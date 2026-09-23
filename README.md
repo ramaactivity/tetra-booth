@@ -47,6 +47,16 @@ pnpm --filter web r2:check            # uji bucket R2
 
 Canon EDSDK: taruh DLL di `services/camera/TetraCamera.Canon/sdk/` (tidak di-commit).
 
+## Uji di laptop Windows (tanpa install apa pun)
+
+Ngoding di macOS, uji di laptop Windows. Laptop hanya butuh internet, `curl` dan `tar` bawaan Windows 10/11.
+
+1. Sekali saja di laptop: buat folder, mis. `C:\TetraBooth`, unduh `update.cmd` dari `<NEXT_PUBLIC_MEDIA_URL>/dev-builds/update.cmd` ke folder itu.
+2. Di Mac, setiap ada perubahan: `pnpm dist:dev`. Ini membangun Electron win-x64 + Camera Service self-contained, mem-zip, dan upload ke R2 (`dev-builds/tetra-booth-dev.zip`).
+3. Di laptop: dobel klik `update.cmd`. Build terbaru diunduh, diekstrak ke `app\`, Camera Service dan booth langsung jalan. Versi build (git sha + waktu) tampil di jendela cmd dan di `app\VERSION.txt`.
+
+`app\run.cmd` menjalankan ulang tanpa unduh. Log Camera Service ada di jendela "Tetra Camera Service" yang diminimalkan.
+
 ## Struktur
 
 Lihat [`docs/05-ARCHITECTURE.md`](docs/05-ARCHITECTURE.md) §2. Proyek yang belum dibuat (Sony, HotFolder, Cups, booth-mobile, workers/zip) menyusul di fasenya.

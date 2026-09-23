@@ -40,6 +40,7 @@ pnpm --filter @tetra/db push   # migrasi ke project dev (SUPABASE_DB_URL di .env
 pnpm --filter @tetra/db seed   # seed organisasi Tetra + owner
 pnpm --filter @tetra/db types  # generate tipe ke packages/db/src/database.types.ts
 pnpm --filter web r2:check   # uji kredensial R2 (butuh apps/web/.env.local)
+pnpm dist:dev                # build win-x64 (Electron + Camera Service) → zip → R2; laptop Windows: update.cmd
 ```
 Catatan: Node 24 (`.node-version`), pnpm via corepack, .NET 10 SDK. Di macOS, `ELECTRON_RUN_AS_NODE` harus kosong saat menjalankan Electron dari terminal editor.
 Keputusan & penyimpangan dari dokumen: `docs/DECISIONS.md`.

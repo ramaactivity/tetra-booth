@@ -10,4 +10,5 @@ allowBuilds:
   '@embedded-postgres/windows-x64': true
   '@sentry-internal/node-cpu-profiler': false
   electron: true
+  electron-winstaller: set this to true or false
   esbuild: true

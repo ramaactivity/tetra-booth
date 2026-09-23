@@ -24,8 +24,37 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "electron": "^44.4.3",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.0"
+  },
+  "productName": "Tetra Booth",
+  "build": {
+    "appId": "id.tetraphoto.booth",
+    "productName": "Tetra Booth",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "npmRebuild": false,
+    "electronLanguages": [
+      "id",
+      "en-US"
+    ]
   }
 }
