@@ -9,10 +9,12 @@ export default defineConfig({
   reporter: "list",
   use: { baseURL: "http://localhost:3000" },
   webServer: {
-    // CI: server produksi (satu proses, tanpa HMR). Lokal: dev server, atau pakai yang sudah jalan.
-    command: CI ? "pnpm build && pnpm start" : "pnpm dev",
+    // Biner `next` dipanggil langsung: lewat `pnpm start` sinyal terminate tidak sampai ke next-server
+    // dan Playwright menggantung saat teardown. CI: server produksi (build dilakukan di step CI sebelumnya).
+    command: CI ? "node_modules/.bin/next start" : "node_modules/.bin/next dev",
     url: "http://localhost:3000",
     reuseExistingServer: !CI,
-    timeout: 240_000,
+    timeout: 120_000,
+    gracefulShutdown: { signal: "SIGTERM", timeout: 5_000 },
   },
 });
