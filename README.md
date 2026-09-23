@@ -1,5 +1,7 @@
 # Tetra Booth
 
+Repo: `github.com/ramaactivity/tetra-booth` (privat). CI: GitHub Actions (`.github/workflows/ci.yml`), job TS di Ubuntu dan Camera Service di Windows.
+
 Platform photobooth Tetra Photobooth: booth Windows (Electron + Camera Service .NET), cloud (Next.js + Supabase + R2), halaman tamu, galeri klien, admin. Dokumen produk & teknis: [`docs/`](docs/README.md). Aturan kerja: [`CLAUDE.md`](CLAUDE.md). Keputusan: [`docs/DECISIONS.md`](docs/DECISIONS.md).
 
 ## Prasyarat
