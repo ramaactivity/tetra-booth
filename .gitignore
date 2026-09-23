@@ -1,1 +1,42 @@
+# OS / editor
 .DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Node
+node_modules/
+dist/
+out/
+.next/
+.turbo/
+*.tsbuildinfo
+coverage/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# .NET
+bin/
+obj/
+*.user
+TestResults/
+
+# Camera SDKs (lisensi, tidak di-commit)
+services/camera/TetraCamera.Canon/sdk/*
+!services/camera/TetraCamera.Canon/sdk/README.md
+services/camera/TetraCamera.Sony/sdk/*
+!services/camera/TetraCamera.Sony/sdk/README.md
+*.dll
+*.dylib
+*.framework/
+
+# Electron build
+apps/booth/release/
