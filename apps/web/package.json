@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "r2:check": "node scripts/r2-check.mjs"
+    "r2:check": "node --env-file-if-exists=.env.local scripts/r2-check.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",

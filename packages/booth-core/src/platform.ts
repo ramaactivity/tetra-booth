@@ -36,11 +36,7 @@ export interface BoothPlatform {
     writeFile(path: string, bytes: Uint8Array): Promise<void>;
     readFile(path: string): Promise<Uint8Array>;
   };
-  // ponytail: repositori db & sync diisi di Fase 1–2, sekarang cukup penanda tipe.
-  db: Record<string, never>;
-  sync: {
-    status(): Promise<{ online: boolean; pending: number; lastError: string | null }>;
-  };
+  // ponytail: `db` (Fase 1) dan `sync` (Fase 2) ditambah saat ada pemakainya. Lihat TSD §0.
   device: {
     info(): Promise<{
       id: string | null;

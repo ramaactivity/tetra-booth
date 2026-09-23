@@ -1,19 +1,11 @@
 // Cek kredensial & bucket R2 dev: upload 1 objek uji, baca kembali, hapus.
 // Jalankan: pnpm --filter web r2:check  (butuh R2_* di apps/web/.env.local)
-import { readFileSync } from "node:fs";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-
-try {
-  for (const line of readFileSync(new URL("../.env.local", import.meta.url), "utf8").split("\n")) {
-    const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
-    if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
-  }
-} catch {}
 
 const need = (k) =>
   process.env[k] ||

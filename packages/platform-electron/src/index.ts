@@ -24,8 +24,6 @@ export const createElectronPlatform = (bridge: TetraBridge): BoothPlatform => ({
     writeFile: todo("storage.writeFile"),
     readFile: todo("storage.readFile"),
   },
-  db: {},
-  sync: { status: async () => ({ online: false, pending: 0, lastError: null }) },
   device: {
     info: () => bridge.deviceInfo(),
     keepAwake: todo("device.keepAwake"),
