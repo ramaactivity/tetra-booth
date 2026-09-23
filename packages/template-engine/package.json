@@ -1,0 +1,20 @@
+{
+  "name": "@tetra/template-engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^1.0.9",
+    "@types/node": "^26.6.2"
+  },
+  "dependencies": {
+    "@tetra/shared": "workspace:*"
+  }
+}

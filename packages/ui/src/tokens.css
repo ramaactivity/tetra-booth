@@ -1,0 +1,36 @@
+/* Design tokens Tetra Booth. Sumber: docs/08-DESIGN.md §2–3. Semua font sans (Geist). */
+@import "@fontsource-variable/geist";
+@source "./";
+
+:root {
+  --bg: #f6f4f1;
+  --surface: #ffffff;
+  --fg: #1a1714;
+  --muted: #8a847d;
+  --line: #e4e0da;
+  --accent: #8e2a1e;
+  --on-accent: #ffffff;
+  --radius: 6px;
+  --font-sans: "Geist Variable", system-ui, sans-serif;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --radius-DEFAULT: var(--radius);
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-sans);
+  --tracking-label: 0.18em;
+}
+
+html {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum";
+}
