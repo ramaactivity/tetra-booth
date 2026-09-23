@@ -36,8 +36,9 @@ pnpm dev --filter web        # Next.js di http://localhost:3000
 dotnet run --project services/camera/TetraCamera.Host   # ws://127.0.0.1:8765/ws?token=dev
 pnpm lint && pnpm typecheck && pnpm test                # TS (Biome, tsc, Vitest)
 dotnet test services/camera                             # C# (xUnit)
-pnpm supabase db push        # migrasi ke project dev (setelah `pnpm supabase link`)
-pnpm --filter @tetra/db types
+pnpm --filter @tetra/db push   # migrasi ke project dev (SUPABASE_DB_URL di .env.local root)
+pnpm --filter @tetra/db seed   # seed organisasi Tetra + owner
+pnpm --filter @tetra/db types  # generate tipe ke packages/db/src/database.types.ts
 pnpm --filter web r2:check   # uji kredensial R2 (butuh apps/web/.env.local)
 ```
 Catatan: Node 24 (`.node-version`), pnpm via corepack, .NET 10 SDK. Di macOS, `ELECTRON_RUN_AS_NODE` harus kosong saat menjalankan Electron dari terminal editor.

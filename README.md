@@ -31,11 +31,14 @@ macOS dari terminal editor (VS Code/Cursor): `unset ELECTRON_RUN_AS_NODE` sebelu
 
 ## Environment
 
-Salin `.env.example` ke `apps/web/.env.local`, isi Supabase dan R2. Lalu:
+Dua file, keduanya di-gitignore (contoh di `.env.example`):
+
+- `apps/web/.env.local`: URL + publishable key + secret key Supabase, kredensial R2, `NEXT_PUBLIC_*`.
+- `.env.local` (root): `SUPABASE_DB_URL` (pooler session mode, port 5432) untuk migrasi/seed/tipe tanpa `supabase login`.
 
 ```bash
-pnpm supabase login && pnpm supabase link --project-ref <ref>
-pnpm supabase db push                 # migrasi + RLS
+pnpm --filter @tetra/db push          # migrasi + RLS ke project dev
+pnpm --filter @tetra/db seed          # organisasi Tetra + owner (user Auth harus sudah ada)
 pnpm --filter @tetra/db types         # generate tipe
 pnpm --filter web r2:check            # uji bucket R2
 ```

@@ -19,7 +19,7 @@ Prinsip:
 - [x] `packages/ui`: design tokens sesuai `08-DESIGN.md` (tema per event).
 - [x] `packages/booth-core` + interface `BoothPlatform` + `packages/platform-electron` (hanya adapter Electron).
 - [x] `packages/template-engine`: render 4R & 2x6x2 + test snapshot.
-- [ ] Supabase project dev: migrasi awal (semua tabel + RLS), seed organisasi Tetra. _(SQL + RLS teruji di Postgres sementara: `pnpm --filter @tetra/db test`; tinggal `supabase link` + `db push` ke project dev)_
+- [x] Supabase project dev: migrasi awal (semua tabel + RLS), seed organisasi Tetra. _(2026-09-24: `0001_init.sql` di-push ke project dev, owner tetrabooth.app@gmail.com di-seed, `/api/health` → `db:true`; RLS teruji: `pnpm --filter @tetra/db test`)_
 - [ ] Bucket R2 dev + custom domain media. _(script cek siap: `pnpm --filter web r2:check`; custom domain ditunda, lihat DECISIONS #8)_
 - [x] Skeleton `apps/booth`, `apps/web`, `services/camera` yang bisa jalan.
 

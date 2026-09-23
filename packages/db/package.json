@@ -8,10 +8,13 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "types": "supabase gen types typescript --linked --schema public > src/database.types.ts",
-    "test": "vitest run"
+    "types": "node --env-file=../../.env.local scripts/db.mjs types",
+    "test": "vitest run",
+    "push": "node --env-file=../../.env.local scripts/db.mjs push",
+    "seed": "node --env-file=../../.env.local scripts/db.mjs seed"
   },
   "devDependencies": {
+    "@supabase/postgres-meta": "^0.99.0",
     "@types/node": "^26.6.2",
     "@types/pg": "^8.23.1",
     "embedded-postgres": "18.4.0-beta.17",

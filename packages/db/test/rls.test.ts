@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
  * Menjaga CLAUDE.md aturan 3: organization_id + RLS di semua tabel.
  */
 const SUPABASE_DIR = join(__dirname, "../../../supabase");
-const OWNER_EMAIL = "tetraphotobooth@gmail.com";
+const OWNER_EMAIL = "tetrabooth.app@gmail.com";
 
 const pg = new EmbeddedPostgres({
   databaseDir: join(tmpdir(), `tetra-rls-${process.pid}`),
