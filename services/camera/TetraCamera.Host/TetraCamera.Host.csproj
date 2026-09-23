@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>TetraCamera</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../TetraCamera.Print/TetraCamera.Print.csproj" />
+    <ProjectReference Include="../TetraCamera.Print.Windows/TetraCamera.Print.Windows.csproj" />
+    <ProjectReference Include="../TetraCamera.Canon/TetraCamera.Canon.csproj" />
+  </ItemGroup>
+</Project>

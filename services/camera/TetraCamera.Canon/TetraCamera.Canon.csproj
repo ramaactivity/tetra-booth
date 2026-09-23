@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- EDSDK: taruh DLL Canon di folder sdk/ (tidak di-commit). Disalin ke output jika ada. -->
+  <ItemGroup>
+    <None Include="sdk/**/*.dll" CopyToOutputDirectory="PreserveNewest" LinkBase="" />
+  </ItemGroup>
+</Project>
