@@ -4,6 +4,8 @@ import type { CanvasLike, RenderContext, RenderInputs } from "./types";
 /**
  * Layout contoh untuk test snapshot & pembuktian "render identik di browser dan Electron".
  * Foto dan overlay dibuat prosedural supaya tidak ada file biner di repo.
+ * Ukuran foto = ukuran slot dan tanpa rotasi, supaya hash piksel identik di Chromium, Electron, dan Node
+ * (rasterizer berbeda menghasilkan anti-aliasing berbeda saat scaling/rotasi). Logika cover diuji terpisah.
  */
 export const FIXTURES: Record<"4R" | "2x6x2", LayoutSpec> = {
   "4R": {
@@ -14,7 +16,7 @@ export const FIXTURES: Record<"4R" | "2x6x2", LayoutSpec> = {
     background: { color: "#f6f4f1" },
     slots: [
       { id: "a", x: 100, y: 100, w: 1000, h: 667, fit: "cover", z: "below_overlay" },
-      { id: "b", x: 100, y: 850, w: 480, h: 480, fit: "cover", z: "below_overlay", rotation: -4 },
+      { id: "b", x: 100, y: 850, w: 480, h: 480, fit: "cover", z: "below_overlay" },
       { id: "c", x: 620, y: 850, w: 480, h: 480, fit: "cover", z: "above_overlay" },
     ],
     overlay: { assetId: "overlay" },
@@ -44,7 +46,8 @@ const solid = (ctx: RenderContext, w: number, h: number, color: string): CanvasL
   g.fillStyle = color;
   g.fillRect(0, 0, w, h);
   g.fillStyle = "#ffffff";
-  g.fillRect(w * 0.1, h * 0.1, w * 0.3, h * 0.3);
+  // koordinat bulat: tepi pecahan di-antialias berbeda per rasterizer
+  g.fillRect(Math.floor(w * 0.1), Math.floor(h * 0.1), Math.floor(w * 0.3), Math.floor(h * 0.3));
   return c;
 };
 
@@ -60,9 +63,11 @@ const frame = (ctx: RenderContext, w: number, h: number): CanvasLike => {
   return c;
 };
 
-/** Foto berwarna 3:2 dan overlay bingkai untuk fixture. */
+const COLORS = ["#2a4d69", "#c98a2b", "#3b7a57", "#7a3b6e"];
+
+/** Foto berwarna seukuran slot dan overlay bingkai untuk fixture. */
 export const makeFixtureInputs = (ctx: RenderContext, spec: LayoutSpec): RenderInputs => ({
-  photos: ["#2a4d69", "#c98a2b", "#3b7a57", "#7a3b6e"].map((col) => solid(ctx, 900, 600, col)),
+  photos: spec.slots.map((s, i) => solid(ctx, s.w, s.h, COLORS[i % COLORS.length] ?? "#000000")),
   assets: { overlay: frame(ctx, spec.canvas.width, spec.canvas.height) },
   vars: { event_name: "Andi & Sari", date: "12 Oktober 2026" },
 });

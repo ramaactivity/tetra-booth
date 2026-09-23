@@ -1,5 +1,5 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`template engine > 2x6x2: strip digandakan ke 1200x1800, hash sama dengan snapshot 1`] = `"d844db82892db2e463dca692be608731f950b14e6a33f7b1b69910c3ae1ebe3a"`;
+exports[`template engine > 2x6x2: strip digandakan ke 1200x1800, hash sama dengan snapshot 1`] = `"9d6cc181cbe9c3d3a0a8b8197dc0e9f90dea636ae65ad711db7c3679d128cd97"`;
 
-exports[`template engine > 4R: hash piksel sama dengan snapshot 1`] = `"d9a9d7451328b20df2f7119152d514e6d532e57ee6907bcd9a12e87dc03ee81f"`;
+exports[`template engine > 4R: hash piksel sama dengan snapshot 1`] = `"ae20f38c39b95ccb068a60bff257748f39a01fe3d8beb4f3dd35d00e6d4835f7"`;

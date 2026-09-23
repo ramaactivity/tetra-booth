@@ -28,9 +28,11 @@ Kontras teks minimal WCAG AA. Jika warna aksen event kurang kontras dengan `--bg
 
 ## 3. Tipografi
 
+Semua peran memakai satu keluarga sans: **Geist**. Tanpa serif (keputusan owner, lihat DECISIONS.md #1).
+
 | Peran | Font default | Gaya |
 |---|---|---|
-| Display (nama acara, judul besar) | Instrument Serif | Besar, bisa diganti font/logo event |
+| Display (nama acara, judul besar) | Geist | Besar, weight 500–600, letter-spacing rapat (-0.02em); bisa diganti font/logo event |
 | Label & tombol | Geist | UPPERCASE, letter-spacing 0.18em, weight 500–600 |
 | Body | Geist | Normal, 16–18px di booth |
 | Angka (countdown, timer) | Geist, tabular | Countdown sangat besar & tipis (weight 200–300) |

@@ -19,3 +19,16 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+
+  camera-service:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: services/camera
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet build --configuration Release
+      - run: dotnet test --configuration Release --no-build

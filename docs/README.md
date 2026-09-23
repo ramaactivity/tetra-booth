@@ -45,4 +45,4 @@ Aturan kerja untuk Claude Code ada di `/CLAUDE.md` (root repo).
 | Lead capture | Opsional per event, default mati |
 | Template | Overlay PNG + slot (desain di Figma/Photoshop) |
 | Orientasi layar | Per event: landscape atau portrait |
-| Domain | Ditunda — pakai env var. Rekomendasi: domain pendek khusus. |
+| Domain | `tetraphoto.com` (milik owner). Default env: `app.` untuk web, `media.` untuk R2, `zip.` untuk Worker. Semua via env var. Custom domain R2 menunggu DNS pindah ke Cloudflare (DECISIONS #8). |

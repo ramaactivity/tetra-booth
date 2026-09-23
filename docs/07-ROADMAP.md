@@ -14,14 +14,14 @@ Prinsip:
 ---
 
 ## Fase 0 — Fondasi
-- [ ] Monorepo pnpm + Turborepo, lint, format, CI dasar.
-- [ ] `packages/shared`: tipe, skema zod, protokol Camera Service.
-- [ ] `packages/ui`: design tokens sesuai `08-DESIGN.md` (tema per event).
-- [ ] `packages/booth-core` + interface `BoothPlatform` + `packages/platform-electron` (hanya adapter Electron).
-- [ ] `packages/template-engine`: render 4R & 2x6x2 + test snapshot.
-- [ ] Supabase project dev: migrasi awal (semua tabel + RLS), seed organisasi Tetra.
-- [ ] Bucket R2 dev + custom domain media.
-- [ ] Skeleton `apps/booth`, `apps/web`, `services/camera` yang bisa jalan.
+- [x] Monorepo pnpm + Turborepo, lint, format, CI dasar.
+- [x] `packages/shared`: tipe, skema zod, protokol Camera Service.
+- [x] `packages/ui`: design tokens sesuai `08-DESIGN.md` (tema per event).
+- [x] `packages/booth-core` + interface `BoothPlatform` + `packages/platform-electron` (hanya adapter Electron).
+- [x] `packages/template-engine`: render 4R & 2x6x2 + test snapshot.
+- [ ] Supabase project dev: migrasi awal (semua tabel + RLS), seed organisasi Tetra. _(SQL siap di `supabase/`; menunggu project dev & `db push`)_
+- [ ] Bucket R2 dev + custom domain media. _(script cek siap: `pnpm --filter web r2:check`; custom domain ditunda, lihat DECISIONS #8)_
+- [x] Skeleton `apps/booth`, `apps/web`, `services/camera` yang bisa jalan.
 
 **Selesai jika:** template engine merender contoh layout identik di browser & Electron; `dotnet run` Camera Service menerima koneksi WebSocket dari booth.
 

@@ -1,0 +1,24 @@
+# Keputusan & Penyimpangan dari Dokumen
+
+Catatan alasan setiap kali implementasi berbeda dari `docs/01–08`, atau saat dokumen memberi pilihan dan satu dipilih. Tambahkan di bawah, urut tanggal.
+
+## 2026-09-23 — Fase 0
+
+| # | Keputusan | Alasan | Dokumen terdampak |
+|---|---|---|---|
+| 1 | Semua font memakai **Geist** (sans). Instrument Serif dibuang. | Owner tidak suka font serif; ingin minimalis ala Photo Place. Event tetap bisa membawa font/logo sendiri. | 08-DESIGN §3 (diperbarui) |
+| 2 | Mockup Google Stitch (`stitch_tetra_photobooth_ui_platform/`, di luar repo) hanya referensi alur layar. | Gaya visualnya (shadow tebal, tombol pill, aksen emas, latar bertekstur) bertentangan dengan 08-DESIGN. 08-DESIGN yang menang. | – |
+| 3 | Repo monorepo di `tetra-booth/`; `CLAUDE.md` dan `docs/` di root repo. Git init lokal, remote menyusul. | Sesuai 05-ARCHITECTURE §2; sebelumnya docs berada di folder terpisah. | – |
+| 4 | Mesin coding utama macOS (arm64). Laptop Windows hanya untuk uji booth. | Laptop Windows spesifikasinya rendah. Semua komponen kecuali `TetraCamera.Print.Windows` + EDSDK bisa dikembangkan di macOS. | – |
+| 5 | Supabase dev memakai **project hosted** + CLI sebagai devDependency (`pnpm supabase`), bukan Docker lokal. | Tidak ada Docker di mesin dev; hosted cukup untuk migrasi & uji RLS. | 04-STACK |
+| 6 | Migrasi SQL di `supabase/migrations/`, bukan `packages/db/`. `packages/db` hanya tipe hasil generate + helper. | Supabase CLI hanya membaca `supabase/migrations`. | 05-ARCHITECTURE §2 (diperbarui) |
+| 7 | Domain: `tetraphoto.com`. Default env: web `app.tetraphoto.com`, media `media.tetraphoto.com`, ZIP `zip.tetraphoto.com`. | Domain sudah dimiliki owner. Semua lewat env var, bisa diganti. | README |
+| 8 | Custom domain R2 **ditunda**; Fase 0 memakai URL `r2.dev`. | DNS tetraphoto.com dikelola di Hostinger. Custom domain R2 mengharuskan zona DNS di Cloudflare (pindah nameserver). Keputusan pindah nameserver ditunda ke owner. | 07-ROADMAP Fase 0 |
+| 9 | Lint & format memakai **Biome** (bukan ESLint + Prettier). | Satu dependensi, satu config, cepat. Dokumen tidak menyebut alat. | 04-STACK |
+| 10 | State sesi booth: **reducer bertipe**, bukan XState. | 04-STACK memberi dua pilihan; reducer tanpa dependensi tambahan. Tipe state/event sudah ada di `booth-core`, reducer dibangun Fase 1. | 04-STACK |
+| 11 | Template engine menerima `createCanvas` lewat `RenderContext`. Test snapshot di Node memakai `@napi-rs/canvas`; browser/Electron memakai `OffscreenCanvas`. | Vitest jalan di Node yang tidak punya `OffscreenCanvas`. Kode render tetap satu. | 03-TSD §6 |
+| 12 | Fixture snapshot tanpa rotasi dan tanpa scaling (foto seukuran slot). Logika cover/rotasi diuji dengan ctx palsu. | Rasterizer berbeda (Chromium vs Skia di napi-rs) menghasilkan anti-aliasing berbeda; hash hanya deterministik untuk fill & blit 1:1. | 03-TSD §6 |
+| 13 | Camera Service Fase 0: port & token **tetap** (`8765` / `dev`) lewat env/argumen. | Spawn dari Electron main dengan port & token acak dibangun bersama supervisor di Fase 1. | 03-TSD §1 |
+| 14 | Proyek `TetraCamera.Sony`, `TetraCamera.HotFolder`, `TetraCamera.Print.Cups`, `apps/booth-mobile`, `workers/zip` **belum dibuat**. | Tidak dipakai sebelum Fase 1/3/5/6/7. Ditambah saat fasenya tiba. | 05-ARCHITECTURE §2 |
+| 15 | `TetraCamera.Print.Windows` target `net10.0` dengan `[SupportedOSPlatform("windows")]`, dipilih runtime lewat `OperatingSystem.IsWindows()`. | Supaya solution bisa build & test di macOS dan CI Linux. API Windows tetap hanya di proyek itu (aturan 10). | 03-TSD §2.4 |
+| 16 | Node **24 LTS** dipin (`.node-version`, `engines`). | Electron & Next.js paling stabil di LTS. | 04-STACK |

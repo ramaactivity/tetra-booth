@@ -3,6 +3,8 @@
 export type ImageLike = { readonly width: number; readonly height: number };
 
 export interface Ctx2D {
+  // biome-ignore lint/suspicious/noExplicitAny: gambar dari platform mana pun (OffscreenCanvas, HTMLImageElement, @napi-rs Image)
+  drawImage(image: any, dx: number, dy: number, dw: number, dh: number): void;
   fillStyle: string | unknown;
   font: string;
   textAlign: "left" | "center" | "right" | "start" | "end";
@@ -16,7 +18,6 @@ export interface Ctx2D {
   clip(): void;
   fillRect(x: number, y: number, w: number, h: number): void;
   fillText(text: string, x: number, y: number, maxWidth?: number): void;
-  drawImage(image: ImageLike, dx: number, dy: number, dw: number, dh: number): void;
   getImageData(x: number, y: number, w: number, h: number): { data: Uint8ClampedArray };
 }
 

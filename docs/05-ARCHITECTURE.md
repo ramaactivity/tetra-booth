@@ -54,10 +54,10 @@ tetra-booth/
 ├─ docs/                       # dokumen ini
 ├─ apps/
 │  ├─ booth/                   # Electron (electron-vite) — Windows, lalu macOS
-│  ├─ booth-mobile/            # Capacitor — Android & iPad (Fase 7)
 │  │  ├─ src/main/             # SQLite, sync, supervisor, heartbeat, updater
 │  │  ├─ src/preload/          # contextBridge API bertipe
 │  │  └─ src/renderer/         # React: screens/, machines/, components/
+│  ├─ booth-mobile/            # Capacitor — Android & iPad (Fase 7)
 │  └─ web/                     # Next.js
 │     ├─ app/s/[sessionId]/    # halaman tamu
 │     ├─ app/g/[token]/        # galeri klien
@@ -82,8 +82,8 @@ tetra-booth/
 │  ├─ template-engine/         # render strip (dipakai booth & admin)
 │  ├─ shared/                  # tipe, skema zod, konstanta, protokol camera service
 │  ├─ ui/                      # design tokens (08-DESIGN.md) + komponen bersama
-│  └─ db/                      # migrasi SQL Supabase + tipe hasil generate
-└─ supabase/                   # config lokal Supabase CLI
+│  └─ db/                      # tipe hasil generate Supabase + helper
+└─ supabase/                   # config Supabase CLI + migrations/ + seed.sql
 ```
 
 ## 3. Alur hari event (mode event)

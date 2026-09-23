@@ -31,9 +31,14 @@ Kamu sedang membangun Tetra Booth: platform photobooth (booth Windows + cloud + 
 ## Perintah
 ```
 pnpm install
-pnpm dev --filter booth      # Electron
-pnpm dev --filter web        # Next.js
-dotnet run --project services/camera/TetraCamera.Host
-pnpm test
+pnpm dev --filter booth      # Electron (butuh Camera Service jalan untuk status OK)
+pnpm dev --filter web        # Next.js di http://localhost:3000
+dotnet run --project services/camera/TetraCamera.Host   # ws://127.0.0.1:8765/ws?token=dev
+pnpm lint && pnpm typecheck && pnpm test                # TS (Biome, tsc, Vitest)
+dotnet test services/camera                             # C# (xUnit)
+pnpm supabase db push        # migrasi ke project dev (setelah `pnpm supabase link`)
+pnpm --filter @tetra/db types
+pnpm --filter web r2:check   # uji kredensial R2 (butuh apps/web/.env.local)
 ```
-(Sesuaikan setelah Fase 0 selesai.)
+Catatan: Node 24 (`.node-version`), pnpm via corepack, .NET 10 SDK. Di macOS, `ELECTRON_RUN_AS_NODE` harus kosong saat menjalankan Electron dari terminal editor.
+Keputusan & penyimpangan dari dokumen: `docs/DECISIONS.md`.

@@ -40,3 +40,4 @@ services/camera/TetraCamera.Sony/sdk/*
 
 # Electron build
 apps/booth/release/
+next-env.d.ts

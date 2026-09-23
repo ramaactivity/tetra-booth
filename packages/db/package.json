@@ -1,0 +1,13 @@
+{
+  "name": "@tetra/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "types": "supabase gen types typescript --linked --schema public > src/database.types.ts"
+  }
+}
