@@ -18,7 +18,7 @@ Windows: kalau `pnpm install` gagal membangun modul native, pasang Visual Studio
 
 ```bash
 pnpm install
-pnpm lint && pnpm typecheck && pnpm test        # TS
+pnpm lint && pnpm typecheck && pnpm test        # TS (termasuk uji migrasi + RLS di Postgres sementara)
 dotnet test services/camera                      # C#
 
 dotnet run --project services/camera/TetraCamera.Host   # terminal 1: ws://127.0.0.1:8765/ws?token=dev

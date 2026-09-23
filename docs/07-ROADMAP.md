@@ -19,11 +19,11 @@ Prinsip:
 - [x] `packages/ui`: design tokens sesuai `08-DESIGN.md` (tema per event).
 - [x] `packages/booth-core` + interface `BoothPlatform` + `packages/platform-electron` (hanya adapter Electron).
 - [x] `packages/template-engine`: render 4R & 2x6x2 + test snapshot.
-- [ ] Supabase project dev: migrasi awal (semua tabel + RLS), seed organisasi Tetra. _(SQL siap di `supabase/`; menunggu project dev & `db push`)_
+- [ ] Supabase project dev: migrasi awal (semua tabel + RLS), seed organisasi Tetra. _(SQL + RLS teruji di Postgres sementara: `pnpm --filter @tetra/db test`; tinggal `supabase link` + `db push` ke project dev)_
 - [ ] Bucket R2 dev + custom domain media. _(script cek siap: `pnpm --filter web r2:check`; custom domain ditunda, lihat DECISIONS #8)_
 - [x] Skeleton `apps/booth`, `apps/web`, `services/camera` yang bisa jalan.
 
-**Selesai jika:** template engine merender contoh layout identik di browser & Electron; `dotnet run` Camera Service menerima koneksi WebSocket dari booth.
+**Selesai jika:** template engine merender contoh layout identik di browser & Electron; `dotnet run` Camera Service menerima koneksi WebSocket dari booth. _(Terpenuhi 2026-09-23: hash `ae20f38c…` sama di Vitest, Playwright/Chromium, dan Electron; health check Electron → Camera Service OK.)_
 
 ## Fase 1 — Booth offline (mode event)
 - [ ] Camera Service: Canon EDSDK (connect, reconnect, live view, capture), hot-folder fallback.
