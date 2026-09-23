@@ -179,6 +179,37 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2))
 
+  packages/booth-core:
+    dependencies:
+      '@tetra/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@tetra/ui':
+        specifier: workspace:*
+        version: link:../ui
+      react:
+        specifier: ^19.3.0
+        version: 19.3.0
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.2
+        version: 26.6.2
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+
+  packages/platform-electron:
+    dependencies:
+      '@tetra/booth-core':
+        specifier: workspace:*
+        version: link:../booth-core
+      '@tetra/shared':
+        specifier: workspace:*
+        version: link:../shared
+
   packages/shared:
     dependencies:
       nanoid:
