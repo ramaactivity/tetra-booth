@@ -9,5 +9,6 @@ allowBuilds:
   '@embedded-postgres/linux-x64': true
   '@embedded-postgres/windows-x64': true
   '@sentry-internal/node-cpu-profiler': set this to true or false
+  '@sentry-internal/node-cpu-profiler': false
   electron: true
   esbuild: true
