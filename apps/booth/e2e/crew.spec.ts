@@ -103,7 +103,9 @@ test("kiosk: layar penuh, tidak bisa ditutup, keluar hanya lewat mode crew", asy
   });
   const w = await app.firstWindow();
   await expect(w.getByRole("button", { name: /sentuh untuk mulai/i })).toBeVisible();
-  expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isKiosk())).toBe(true);
+  expect(
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isKiosk()),
+  ).toBe(true);
 
   // Tutup jendela (Alt+F4 / tombol X) ditolak.
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.close());
