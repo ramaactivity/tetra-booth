@@ -57,6 +57,20 @@ Ngoding di macOS, uji di laptop Windows. Laptop hanya butuh internet, `curl` dan
 
 `app\run.cmd` menjalankan ulang tanpa unduh. Log Camera Service ada di jendela "Tetra Camera Service" yang diminimalkan.
 
+## Mesin dev Windows (coding + uji hardware)
+
+Untuk ngoding atau menjalankan Claude Code (Remote Control) langsung di laptop Windows. Buka PowerShell biasa (bukan admin), tempel:
+
+```powershell
+irm <NEXT_PUBLIC_MEDIA_URL>/dev-builds/setup-windows-dev.ps1 | iex
+```
+
+Script (`tools/windows/setup-windows-dev.ps1`) memasang Git, GitHub CLI, VS Code, Node 24, .NET 10, pnpm lewat winget, login GitHub, clone repo ke `%USERPROFILE%\Code\tetra-booth`, `pnpm install`, build Camera Service, pasang extension Claude Code, dan mematikan sleep saat dicolok charger. Aman dijalankan ulang. Sisanya manual: salin dua file `.env.local` dan DLL EDSDK.
+
+Sinkron Mac dan Windows lewat GitHub: pull sebelum mulai, push setelah selesai. Kerja paralel di branch terpisah. Memori Claude per mesin, jadi keputusan wajib dicatat di `docs/DECISIONS.md`.
+
+Script Windows di R2 diperbarui tiap `pnpm dist:dev`, atau tanpa build: `pnpm dist:dev --tools`.
+
 ## Struktur
 
 Lihat [`docs/05-ARCHITECTURE.md`](docs/05-ARCHITECTURE.md) §2. Proyek yang belum dibuat (Sony, HotFolder, Cups, booth-mobile, workers/zip) menyusul di fasenya.
