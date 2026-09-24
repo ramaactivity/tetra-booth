@@ -27,12 +27,35 @@ export interface BoothStorage {
   readFile(path: string): Promise<Uint8Array<ArrayBuffer>>;
 }
 
+export type AssetKind = "strip" | "strip_web" | "original" | "thumb_strip" | "thumb_original";
+export type SessionAsset = { kind: AssetKind; idx: number; path: string; bytes: number };
+
+/** Repositori SQLite lokal (06-DATA-MODEL §3). Semua idempotent. */
+export interface BoothDb {
+  sessionStarted(s: {
+    id: string;
+    eventId: string;
+    layoutVersionId: string;
+    startedAt: string;
+  }): Promise<void>;
+  /** Sesi + aset + antrean upload dalam satu transaksi (TSD §4.2). */
+  sessionCompleted(s: {
+    id: string;
+    completedAt: string;
+    photoCount: number;
+    retakeCount: number;
+    printCount: number;
+    assets: SessionAsset[];
+  }): Promise<void>;
+}
+
 export interface BoothPlatform {
   camera: BoothCamera;
   /** Gagal = reject. Sesi tetap selesai walau print gagal (FSD §1.10). */
   printer: { submit(job: PrintJob): Promise<void> };
   storage: BoothStorage;
-  // ponytail: db (M2), sync (Fase 2), keepAwake/kiosk (M5) ditambah saat ada pemakainya.
+  db: BoothDb;
+  // ponytail: sync (Fase 2), keepAwake/kiosk (M5) ditambah saat ada pemakainya.
   /** Cek Camera Service hidup. */
   health(): Promise<CommandResult<"system.health">>;
   /** Kabari shell tiap pergantian fase (log, screenshot uji). */

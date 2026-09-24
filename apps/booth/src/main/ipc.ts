@@ -5,6 +5,7 @@ import { app, ipcMain } from "electron";
 import { z } from "zod";
 import { cameraHealth, request } from "./camera-client";
 import { config } from "./config";
+import type { BoothDb } from "./db";
 import { onPhase } from "./shots";
 
 /** %APPDATA%/TetraBooth/sessions (TSD §3). Renderer hanya boleh baca/tulis di bawah folder ini. */
@@ -28,7 +29,33 @@ const PrintJob = z.object({
   paper: PaperSchema,
 });
 
-export function registerIpc() {
+const Iso = z.iso.datetime();
+const Count = z.number().int().min(0).max(100);
+const SessionStarted = z.object({
+  id: z.string().regex(SESSION_ID_PATTERN),
+  eventId: z.string().min(1).max(64),
+  layoutVersionId: z.string().min(1).max(128),
+  startedAt: Iso,
+});
+const SessionCompleted = z.object({
+  id: z.string().regex(SESSION_ID_PATTERN),
+  completedAt: Iso,
+  photoCount: Count,
+  retakeCount: Count,
+  printCount: Count,
+  assets: z
+    .array(
+      z.object({
+        kind: z.enum(["strip", "strip_web", "original", "thumb_strip", "thumb_original"]),
+        idx: Count,
+        path: Path,
+        bytes: z.number().int().min(0),
+      }),
+    )
+    .max(64),
+});
+
+export function registerIpc(db: BoothDb) {
   ipcMain.handle("config", () => config);
   ipcMain.handle("health", () => cameraHealth());
 
@@ -54,12 +81,29 @@ export function registerIpc() {
 
   ipcMain.handle("printSubmit", async (_e, job: unknown) => {
     const j = PrintJob.parse(job);
-    const r = await request({
-      id: crypto.randomUUID(),
-      type: "print.submit",
-      payload: { ...j, path: inSessions(j.path) },
+    const path = inSessions(j.path);
+    const row = { id: j.jobId, sessionId: j.jobId, path, copies: j.copies, paper: j.paper };
+    try {
+      const r = await request({
+        id: crypto.randomUUID(),
+        type: "print.submit",
+        payload: { ...j, path },
+      });
+      if (!r.accepted) throw new Error("print ditolak Camera Service");
+      db.printJob({ ...row, status: "queued" });
+    } catch (e) {
+      db.printJob({ ...row, status: "failed", error: e instanceof Error ? e.message : String(e) });
+      throw e;
+    }
+  });
+
+  ipcMain.handle("sessionStarted", (_e, x: unknown) => db.sessionStarted(SessionStarted.parse(x)));
+  ipcMain.handle("sessionCompleted", (_e, x: unknown) => {
+    const s = SessionCompleted.parse(x);
+    db.sessionCompleted({
+      ...s,
+      assets: s.assets.map((a) => ({ ...a, path: inSessions(a.path) })),
     });
-    if (!r.accepted) throw new Error("print ditolak Camera Service");
   });
 
   ipcMain.on("phaseChanged", (e, phase: unknown) => {

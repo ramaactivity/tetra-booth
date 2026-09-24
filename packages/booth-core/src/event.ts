@@ -2,6 +2,8 @@ import type { LayoutSpec } from "@tetra/shared";
 import { DEFAULT_SETTINGS, type EventSettings } from "./session";
 
 export type BoothEvent = {
+  /** ID event cloud; "local" sampai event dari bundle ada (M6). */
+  id: string;
   name: string;
   /** Tanggal tampil di strip, mis. "12 Oktober 2026". */
   date: string;
@@ -50,6 +52,7 @@ export const DEFAULT_LAYOUT: LayoutSpec = {
 };
 
 export const DEFAULT_EVENT: BoothEvent = {
+  id: "local",
   name: "Tetra Booth",
   date: new Intl.DateTimeFormat("id-ID", { dateStyle: "long" }).format(new Date()),
   layout: DEFAULT_LAYOUT,

@@ -28,6 +28,13 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   4. **Kamera dicabut/diblokir:** kalau bisa tanpa admin, matikan akses kamera untuk proses ini (mis. jalankan webcam dengan kamera sedang dipakai aplikasi lain) dan pastikan layar "Sebentar ya, kamera lagi disiapkan" muncul lalu pulih. Kalau tidak bisa disimulasikan tanpa admin, tulis saja di laporan.
   5. **Print:** kalau W-009 sudah jadi, jalankan Camera Service dengan printer Print to PDF dan `--paper-2x6x2` yang cocok (layout default M1 = `2x6x2`), pastikan satu sesi menghasilkan print tanpa dialog. Kalau belum, cukup pastikan log `cetak gagal, sesi tetap lanjut` dan QR tetap muncul.
   - Bug di `packages/booth-core` atau `apps/booth` yang jelas: perbaiki di `win` + tulis di laporan. Masalah desain/UX: tulis di "Untuk Mac". Hapus `$W\data` & `$W\shots` setelah laporan. Laporan: `docs/reports/windows/<tanggal>-m1-sesi.md`.
+- [ ] **W-012 Verifikasi M2 (DB, output, log) di Windows.** Setelah W-011. Merge `origin/main`, build booth, jalankan `--camera=simulated --demo --data=$W\data` ±60 s (Camera Service jalan), lalu hentikan dan periksa:
+  1. `$W\data\db.sqlite`: tabel `sessions` status `completed`, `assets` 9 baris per sesi (strip, strip_web, thumb_strip, original ×3, thumb_original ×3), `upload_queue` dengan prioritas 0/1/2 sesuai TSD §4.2, `print_jobs` terisi (queued kalau W-009 sudah jalan, failed berikut alasannya kalau belum). Baca DB dengan `electron.exe` + `ELECTRON_RUN_AS_NODE=1` + `node:sqlite`, tanpa install tool lain.
+  2. Ukuran file di `sessions\<id>\out`: strip 1200×1800, strip_web 600×1800, original sisi panjang ≤ 2400 (tidak diperbesar), thumb sisi panjang 480.
+  3. Bunuh proses booth di tengah sesi (saat countdown), start lagi: log `[boot] … sesi terputus ditandai: 1` dan sesi itu `abandoned` di DB.
+  4. Log harian `$W\data\logs\<tanggal>.log` berisi baris main dan renderer (`R-INFO`).
+  5. Ulangi langkah 1–2 sekali dengan `--camera=webcam` untuk ukuran original dari webcam asli.
+  - Laporan `docs/reports/windows/<tanggal>-m2-penyimpanan.md`. Hapus `$W\data` setelahnya.
 
 ## Untuk Mac
 
@@ -40,6 +47,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-24 | Mac | M2 di `main`: SQLite `node:sqlite` (WAL), output strip_web/original/thumb di belakang layar, antrean upload, print_jobs, deteksi sesi terputus, log harian 14 hari. 12 test baru. W-012 ditambahkan. |
 | 2026-09-24 | Mac | M1 (alur sesi) di `main`: reducer + 8 test, layar attract → QR, kamera webcam & simulasi, compose 2x6x2, flag uji `--demo/--shots/--data`. Teruji di Mac (simulasi, landscape & portrait). W-011 ditambahkan. |
 | 2026-09-24 | Mac | Rama setuju: W-005 tidak berlaku di laptop ini; target start ≤ 3 s & RAM idle ≤ 500 MB masuk 03-TSD §14. Mac mulai M1 (alur sesi + webcam) paralel dengan W-009. |
 | 2026-09-24 | Mac | Merge `win` → `main`. M-001..M-004 selesai. PLAN-FASE-1 disetujui & direvisi (webcam, EDSDK ke Fase 1b, desain printer). Tugas coding W-009 (printer) & riset W-010 (webcam) ditambahkan. W-005 menunggu keputusan Rama. |
