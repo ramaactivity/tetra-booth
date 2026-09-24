@@ -35,7 +35,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   4. Log harian `$W\data\logs\<tanggal>.log` berisi baris main dan renderer (`R-INFO`).
   5. Ulangi langkah 1–2 sekali dengan `--camera=webcam` untuk ukuran original dari webcam asli.
   - Laporan `docs/reports/windows/<tanggal>-m2-penyimpanan.md`. Hapus `$W\data` setelahnya.
-- [ ] **W-013 Verifikasi M3 (supervisor) + print end-to-end dari booth.** Merge `origin/main`, `dotnet build services/camera`, build booth. Jangan jalankan Camera Service manual lagi: booth yang menjalankannya.
+- [x] **W-013 Verifikasi M3 (supervisor) + print end-to-end dari booth.** → `docs/reports/windows/2026-09-24-m3-supervisor.md` Merge `origin/main`, `dotnet build services/camera`, build booth. Jangan jalankan Camera Service manual lagi: booth yang menjalankannya.
   1. Booth `--camera=simulated --demo --data=$W\data` dengan printer Print to PDF: `--printer "Microsoft Print to PDF" --paper-2x6x2 A5 --print-to-file "$W\prints"`. Lulus jika log berisi `[supervisor] … start`, `[camera] TetraCamera siap`, `[boot] camera service: OK`, dan setiap sesi menghasilkan PDF di `$W\prints` (cek MediaBox A5 + gambar 288×432 pt, jumlah halaman = jumlah cetak) serta `print_jobs` berstatus `queued`.
   2. **Bunuh `TetraCamera.exe` 20x** (`Stop-Process -Force`, jeda ±5 s) selama demo berjalan. Lulus jika tiap kali log `[supervisor] … berhenti` lalu `start`, sesi demo tidak macet, dan setelah 20x Camera Service masih hidup & health OK.
   3. Tutup booth normal: tidak ada `TetraCamera.exe` yang tertinggal. Lalu bunuh `Tetra Booth`/`electron` paksa: catat apakah `TetraCamera.exe` yatim tertinggal (dugaan: ya, lihat catatan ponytail di `camera-service.ts`). Bersihkan manual.
@@ -72,6 +72,10 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   1. Flag booth hanya membaca `--flag=value`. `--printer "Microsoft Print to PDF"` (bentuk spasi, dipakai di WINDOWS.md §5 dan W-013) diabaikan tanpa pesan, jadi booth jalan tanpa printer. Perbaiki parser (terima `--flag value`) atau dokumen, dan sebaiknya log peringatan kalau flag dikenal tanpa nilai.
   2. Race saat boot: renderer memanggil `health` ±200 ms setelah spawn, Camera Service Windows baru siap ±0,5 s. Setiap boot mencatat `ERROR … Camera Service tidak terhubung` + `R-WARN [boot] camera service: tidak terhubung`. Tunggu `[camera] … siap`/health pertama supervisor sebelum health renderer, atau ulangi.
   3. `print_jobs` tetap `queued` walau PDF sudah jadi, karena `print.done`/`print.failed` tidak pernah sampai ke booth (sama dengan M-007 no. 1).
+- [ ] **M-009 Temuan W-013 (M3 di Windows).**
+  1. **Print hilang saat Camera Service crash.** Dari 20× kill, 2 dari 9 print hilang: satu `failed: Camera Service tidak terhubung` (submit saat service mati, tanpa coba ulang), satu `queued` selamanya (diterima, lalu service mati sebelum mencetak; antrean di memori hilang tanpa event). Saran: setelah restart + health OK, kirim ulang `print_jobs` `queued` (dan `failed` karena koneksi) dengan `jobId` yang sama. Putuskan risiko cetak ganda kalau crash tepat setelah spool.
+  2. Proses yatim **tidak terjadi** di Windows: booth dibunuh paksa (semua proses atau hanya proses utama) → `TetraCamera.exe` ikut mati (job object libuv). Catatan ponytail di `camera-service.ts` hanya berlaku di macOS/Linux.
+  3. M-008 no. 1 (flag dengan spasi diabaikan) dan no. 2 (race health saat boot → `R-WARN … tidak terhubung` setiap boot) masih terjadi di `3feeaaf`.
 
 ## Log
 
@@ -79,6 +83,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 |---|---|---|
 | 2026-09-24 | Mac | Merge W-012. M-008 selesai (parser flag dua bentuk, tunggu Camera Service siap sebelum jendela). |
 | 2026-09-24 | Mac | M6 mode crew di `main`: PIN (scrypt, kunci 60 s), event dari bundle lokal (+overlay/font), cek kamera, test print, counter kertas (berkurang saat print.done, peringatan ≤ 30), cetak gagal + cetak ulang, peringatan printer di pojok layar. E2E Playwright-Electron (`pnpm --filter booth e2e`) + CI (xvfb). W-014 ditambahkan. |
+| 2026-09-24 | Windows | W-013 selesai: supervisor pulih 20/20 kill (±0,6 s), tanpa proses yatim, build dist menemukan Camera Service, event print → `print_jobs` failed/done berkode, portrait beres. Temuan M-009: print bisa hilang saat Camera Service crash. Laporan: `docs/reports/windows/2026-09-24-m3-supervisor.md`. |
 | 2026-09-24 | Windows | W-012 selesai: M2 lulus (WAL, 9 aset/sesi, prioritas upload 0/1/2, print_jobs queued, abandoned setelah kill, log harian main+renderer). Webcam dengan M-006: raw 2560×1920, capture → preview 138–287 ms. Temuan M-008. Laporan: `docs/reports/windows/2026-09-24-m2-penyimpanan.md`. |
 | 2026-09-24 | Mac | Merge W-011. CI merah sejak W-009 diperbaiki: test B Print to PDF sadar driver (runner CI punya 4×6 → wajib PDF 4×6). M-007 selesai. W-013 ditambah uji event print & portrait. |
 | 2026-09-24 | Mac | M3 di `main`: supervisor Camera Service (spawn port/token acak, health 5 s, restart setelah 3x gagal atau proses mati, backoff), argumen printer diteruskan (M-005). Teruji di Mac: dibunuh 5x → pulih 5x, tidak ada proses yatim saat tutup normal. 4 test baru. W-013 ditambahkan. |
