@@ -70,46 +70,59 @@ describe("booth db", () => {
     expect(b.abandoned).toBe(1);
     expect(b.query("select status from sessions")).toEqual([{ status: "abandoned" }]);
   });
-
-  it("print job: gagal lalu dicoba ulang menaikkan attempts", () => {
-    const db = openDb(":memory:");
-    const job = {
-      id: "j1",
-      sessionId: "s",
-      path: "/p",
-      copies: 2,
-      paper: "2x6x2",
-      status: "failed" as const,
-      error: "x",
-    };
-    db.printJob(job);
-    db.printJob({ ...job, status: "queued", error: undefined });
-    expect(db.query("select status, attempts, error from print_jobs")).toEqual([
-      { status: "queued", attempts: 2, error: null },
-    ]);
-  });
 });
 
-describe("print tertunda (M-009)", () => {
-  it("hanya queued, masih dalam jendela waktu, dan percobaan < batas", () => {
+const job = (id: string) => ({ id, sessionId: id, path: "/p", copies: 1, paper: "2x6x2" });
+const status = (db: ReturnType<typeof openDb>, id: string) =>
+  db.query<{ status: string; attempts: number; error: string | null }>(
+    "select status, attempts, error from print_jobs where id = ?",
+    id,
+  )[0];
+
+describe("status print_jobs (M-009, M-012)", () => {
+  it("write-ahead: queued sebelum dikirim; kirim ulang menaikkan percobaan", () => {
     const db = openDb(":memory:");
-    const job = (id: string) => ({
-      id,
-      sessionId: id,
-      path: "/p",
-      copies: 1,
-      paper: "2x6x2",
-      status: "queued" as const,
+    expect(db.printSubmitting(job("a"))).toBe(true);
+    expect(db.printSubmitting(job("a"))).toBe(true);
+    expect(status(db, "a")).toEqual({ status: "queued", attempts: 2, error: null });
+  });
+
+  it("status final tidak pernah kembali ke queued (print_uncertain tidak tertimpa kirim ulang)", () => {
+    const db = openDb(":memory:");
+    db.printSubmitting(job("u"));
+    db.printJobResult("u", "failed", "print_uncertain: mungkin sudah tercetak");
+    expect(db.printSubmitting(job("u"))).toBe(false); // pengiriman ulang otomatis ditolak
+    db.printNote("u", "menunggu Camera Service");
+    expect(status(db, "u")).toEqual({
+      status: "failed",
+      attempts: 1,
+      error: "print_uncertain: mungkin sudah tercetak",
     });
-    db.printJob(job("baru"));
-    db.printJob(job("selesai"));
+    expect(db.failedPrints().map((j) => j.id)).toEqual(["u"]);
+  });
+
+  it("hasil yang datang belakangan tidak menimpa hasil pertama", () => {
+    const db = openDb(":memory:");
+    db.printSubmitting(job("d"));
+    db.printJobResult("d", "done");
+    db.printJobResult("d", "failed", "terlambat");
+    expect(status(db, "d")?.status).toBe("done");
+  });
+
+  it("hanya queued, dalam jendela waktu, percobaan < batas yang dikirim ulang; sisanya kedaluwarsa jadi gagal", () => {
+    const db = openDb(":memory:");
+    db.printSubmitting(job("baru"));
+    db.printSubmitting(job("selesai"));
     db.printJobResult("selesai", "done");
-    db.printJob(job("capek"));
-    db.printJob(job("capek"));
-    db.printJob(job("capek"));
-    const soon = new Date(Date.now() - 60_000).toISOString();
-    expect(db.pendingPrints(soon, 3).map((j) => j.id)).toEqual(["baru"]);
-    expect(db.pendingPrints(new Date(Date.now() + 60_000).toISOString(), 3)).toEqual([]);
+    for (let i = 0; i < 3; i++) db.printSubmitting(job("capek"));
+    const since = new Date(Date.now() - 60_000).toISOString();
+    expect(db.pendingPrints(since, 3).map((j) => j.id)).toEqual(["baru"]);
+    expect(db.printExpire(since, 3)).toBe(1);
+    expect(status(db, "capek")).toMatchObject({
+      status: "failed",
+      error: "tidak terkirim setelah 3 percobaan",
+    });
+    expect(db.printsInFlight(since)).toBe(1);
   });
 });
 

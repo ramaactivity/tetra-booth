@@ -7,6 +7,7 @@ import type { BoothEvent } from "./event";
 import { buildOutputs } from "./finalize";
 import { usePlatform } from "./PlatformContext";
 import { Attract } from "./screens/Attract";
+import { Capturing } from "./screens/Capturing";
 import { Countdown } from "./screens/Countdown";
 import { LiveView } from "./screens/LiveView";
 import { Message } from "./screens/Message";
@@ -246,9 +247,7 @@ export function SessionRunner({
           />
         );
       case "capture":
-        return (
-          <div className="absolute inset-0 animate-[flash_120ms_ease-out_forwards] bg-surface" />
-        );
+        return <Capturing />;
       case "preview":
         return photo ? <PhotoPreview url={photo.url} index={s.index} total={s.slots} /> : null;
       case "camera_error":

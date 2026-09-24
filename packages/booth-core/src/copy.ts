@@ -4,6 +4,7 @@ export const copy = {
   countdown: {
     ready: "Siap? Senyum!",
     lookAtCamera: "Lihat ke kamera",
+    waiting: "Sebentar, menunggu foto dari kamera…",
     progress: (n: number, total: number) => `Foto ${n} dari ${total}`,
   },
   review: { title: "Cek fotonya dulu", retake: "Ulang", next: "Lanjut" },
@@ -56,6 +57,8 @@ export const copy = {
     failedPrints: "Cetak gagal",
     none: "Tidak ada",
     reprint: "Cetak ulang",
+    uncertain:
+      "Mungkin sudah tercetak. Cek lembar yang keluar dulu, cetak ulang hanya kalau tidak ada.",
     changePin: "Ganti PIN",
     device: "Perangkat",
     autoStartOn: "Auto-start: aktif",
