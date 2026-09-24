@@ -53,6 +53,17 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   3. Portrait `--size=450x800`: menu crew & pad PIN muat dan bisa discroll.
   - Laporan `docs/reports/windows/<tanggal>-m6-crew.md`. Hapus `$W\data`, `$W\prints`, `$W\shots` setelahnya.
 - [x] **W-015 Ulang uji kill 20× dengan print (M-009).** → `docs/reports/windows/2026-09-24-m9-print-crash.md` Setelah W-014. Sama seperti W-013 langkah 2 (demo + Print to PDF + bunuh `TetraCamera.exe` 20× jeda ±5 s), flag bentuk spasi (`--printer "Microsoft Print to PDF"`). Lulus jika **setiap sesi yang selesai punya ≥ 1 PDF** (hitung PDF vs sesi `completed`), `print_jobs` tidak ada yang tertinggal `queued` > 1 menit setelah uji selesai, log berisi `[print] tertunda`/`[print] kirim ulang` saat relevan. Catat jumlah PDF ganda (cetak ganda yang diterima). Juga pastikan log boot tidak lagi berisi `camera service: tidak terhubung` (M-008).
+- [ ] **W-016 Perbarui env.ps1 + verifikasi M5 (kiosk) & jurnal print.** Merge `origin/main`.
+  0. **env.ps1:** tambahkan baris baru dari WINDOWS.md §3 **kecuali tiga baris `pnpm_config_*`** (store lama tetap dipakai, dihapus saat laptop dikembalikan). Jangan pindahkan/hapus cache AppData sekarang.
+  1. `pnpm --filter booth e2e`: dua test (mode crew + kiosk) harus lulus.
+  2. **App hasil build** (seperti W-013 langkah 4: `electron-builder --win --x64 --dir` + `dotnet publish … -r win-x64 --self-contained` → `app\booth`, `app\camera`), jalankan `Tetra Booth.exe --camera=simulated --data=… --printer "Microsoft Print to PDF" --paper-2x6x2 A5 --print-to-file …` **tanpa** `--kiosk` (harus kiosk karena app hasil build). Kendalikan dengan Playwright `_electron.launch({ executablePath: '…\\Tetra Booth.exe' })`:
+     - `isKiosk()` true, kursor tersembunyi di attract, log `[kiosk] aktif`.
+     - Alt+F4 / `close()` ditolak (`[kiosk] tutup ditolak`), Ctrl+R/F5/F11/Ctrl+Shift+I tidak berefek.
+     - Renderer dipaksa crash (`webContents.forcefullyCrashRenderer()`): log `[window] renderer mati … muat ulang`, attract muncul lagi.
+     - Menu crew → Perangkat: **Aktifkan** auto-start → cek read-only `reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run` ada entri Tetra Booth → **Matikan** lagi → entri hilang. **Wajib berakhir mati** (laptop pinjaman).
+     - Keluar aplikasi dari menu crew menutup booth dan Camera Service.
+  3. **Jurnal print:** setelah beberapa sesi, `$W\data\print-journal.log` berisi pasangan `spooling`/`spooled` per job. Ulangi kill `TetraCamera.exe` 10× saat demo: tidak ada sesi tanpa PDF, dan tidak ada `jobId` yang `spooled` dua kali di jurnal (hitung).
+  - Laporan `docs/reports/windows/<tanggal>-m5-kiosk.md`. Hapus `$W\data`, `$W\prints`, `$W\shots`, build `app\` setelahnya.
 
 ## Untuk Mac
 
@@ -85,6 +96,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 |---|---|---|
 | 2026-09-24 | Windows | W-015 selesai: flag bentuk spasi & boot tanpa "tidak terhubung" (M-008) beres; 20/20 kill pulih, 9 sesi = 9 PDF = 9 `done`, 3 kirim ulang, 0 cetak ganda menurut log (cetak ganda fisik tidak terdeteksi lewat PDF, lihat laporan). Laporan: `docs/reports/windows/2026-09-24-m9-print-crash.md`. |
 | 2026-09-24 | Windows | W-014 selesai: e2e lulus (5,1 s), test print & cetak ulang ke PDF, kertas berkurang, print gagal tampil di attract & menu crew, cek kamera 2560×1920 (121–209 ms setelah hangat), bundle overlay+font terpakai di strip, portrait bisa discroll. Temuan kecil M-010. Laporan: `docs/reports/windows/2026-09-24-m6-crew.md`. |
+| 2026-09-24 | Mac | Merge W-014/W-015. Protokol: Mac tidak lagi push ke `win`. M-010 selesai. env.ps1 diperbarui (pnpm 12 `pnpm_config_*`, NuGet, electron-builder, TEMP) + daftar bersih-bersih AppData. Cetak ganda dicegah jurnal print Camera Service (DECISIONS #39). M5 kiosk di `main` (DECISIONS #40), e2e kiosk. W-016 ditambahkan. |
 | 2026-09-24 | Mac | Merge W-013. M-009 selesai: print tertunda disimpan `queued` & dikirim ulang setelah Camera Service pulih. W-015 ditambahkan. |
 | 2026-09-24 | Mac | Merge W-012. M-008 selesai (parser flag dua bentuk, tunggu Camera Service siap sebelum jendela). |
 | 2026-09-24 | Mac | M6 mode crew di `main`: PIN (scrypt, kunci 60 s), event dari bundle lokal (+overlay/font), cek kamera, test print, counter kertas (berkurang saat print.done, peringatan ≤ 30), cetak gagal + cetak ulang, peringatan printer di pojok layar. E2E Playwright-Electron (`pnpm --filter booth e2e`) + CI (xvfb). W-014 ditambahkan. |

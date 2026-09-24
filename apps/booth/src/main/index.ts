@@ -2,9 +2,10 @@ import { join } from "node:path";
 import { app, BrowserWindow } from "electron";
 import { createAlerts } from "./alerts";
 import { startCameraService, watchPrintEvents } from "./camera-service";
-import { cameraServiceFlags, dataDir, flagWarnings, windowSize } from "./config";
+import { cameraServiceFlags, config, dataDir, flagWarnings, kioskFlag, windowSize } from "./config";
 import { openDb } from "./db";
 import { registerIpc } from "./ipc";
+import { applyKiosk } from "./kiosk";
 import { setupLogging } from "./log";
 
 // Data lokal di %APPDATA%/TetraBooth (TSD §3), bukan nama produk dengan spasi.
@@ -18,6 +19,8 @@ console.info(
 );
 
 const alerts = createAlerts(db);
+const kiosk = kioskFlag(app.isPackaged);
+config.kiosk = kiosk;
 
 const LEVELS = ["DEBUG", "INFO", "WARN", "ERROR"];
 
@@ -41,6 +44,12 @@ const createWindow = () => {
       e.message,
     ),
   );
+  // Layar crash → muat ulang (booth tidak boleh berhenti di layar putih).
+  win.webContents.on("render-process-gone", (_e, d) => {
+    console.error(`[window] renderer mati (${d.reason}), muat ulang`);
+    win.webContents.reload();
+  });
+  if (kiosk) applyKiosk(win, (m) => console.info(m));
   if (process.env.ELECTRON_RENDERER_URL) win.loadURL(process.env.ELECTRON_RENDERER_URL);
   else win.loadFile(join(__dirname, "../renderer/index.html"));
 };

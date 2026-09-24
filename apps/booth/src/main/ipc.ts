@@ -8,6 +8,7 @@ import { cameraHealth, request, ServiceUnavailable } from "./camera-client";
 import { config } from "./config";
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
 import type { BoothDb } from "./db";
+import { allowQuit, autoStart, setAutoStart } from "./kiosk";
 import { onPhase } from "./shots";
 
 /** %APPDATA%/TetraBooth/sessions (TSD §3). Renderer hanya boleh baca/tulis di bawah folder ini. */
@@ -175,7 +176,18 @@ export function registerIpc(db: BoothDb, alerts: Alerts) {
   });
   ipcMain.handle("crewExit", () => {
     crewOnly();
+    allowQuit();
     app.quit();
+  });
+  ipcMain.handle("crewAutoStart", () => {
+    crewOnly();
+    return autoStart();
+  });
+  ipcMain.handle("crewSetAutoStart", (_e, on: unknown) => {
+    crewOnly();
+    setAutoStart(z.boolean().parse(on));
+    console.info(`[kiosk] auto-start ${on ? "aktif" : "mati"}`);
+    return autoStart();
   });
   ipcMain.handle("printerAlert", () => alerts.get());
 

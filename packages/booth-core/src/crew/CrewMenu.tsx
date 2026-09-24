@@ -42,6 +42,10 @@ export function CrewMenu({
   const [failed, setFailed] = useState<FailedPrint[]>([]);
   const [roll, setRoll] = useState<string | null>(null);
   const [note, setNote] = useState<string>();
+  const [auto, setAuto] = useState<{ enabled: boolean; supported: boolean }>();
+  useEffect(() => {
+    p.crew.autoStart().then(setAuto, (e: unknown) => setNote(errText(e)));
+  }, [p]);
 
   const refresh = useCallback(async () => {
     try {
@@ -183,7 +187,7 @@ export function CrewMenu({
           )}
         </Card>
 
-        <Card title={copy.crew.camera}>
+        <Card title={copy.crew.device}>
           <div className="flex flex-wrap gap-3">
             <Button variant="secondary" onClick={onCameraCheck}>
               {copy.crew.checkCamera}
@@ -192,6 +196,22 @@ export function CrewMenu({
               {copy.crew.changePin}
             </Button>
           </div>
+          {auto &&
+            (auto.supported ? (
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-lg">
+                  {auto.enabled ? copy.crew.autoStartOn : copy.crew.autoStartOff}
+                </span>
+                <Button
+                  variant="secondary"
+                  onClick={act(async () => setAuto(await p.crew.setAutoStart(!auto.enabled)))}
+                >
+                  {auto.enabled ? copy.crew.disable : copy.crew.enable}
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted">{copy.crew.autoStartDev}</p>
+            ))}
         </Card>
       </div>
     </main>

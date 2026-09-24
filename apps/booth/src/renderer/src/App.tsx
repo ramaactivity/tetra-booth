@@ -15,7 +15,7 @@ export function App({ cfg }: { cfg: BoothConfig }) {
 
   return (
     <PlatformProvider platform={platform}>
-      <BoothApp guestBaseUrl={cfg.guestUrl} demo={cfg.demo} />
+      <BoothApp guestBaseUrl={cfg.guestUrl} demo={cfg.demo} kiosk={cfg.kiosk ?? false} />
     </PlatformProvider>
   );
 }

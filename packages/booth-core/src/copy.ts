@@ -56,5 +56,11 @@ export const copy = {
     none: "Tidak ada",
     reprint: "Cetak ulang",
     changePin: "Ganti PIN",
+    device: "Perangkat",
+    autoStartOn: "Auto-start: aktif",
+    autoStartOff: "Auto-start: mati",
+    autoStartDev: "Auto-start hanya di app hasil build",
+    enable: "Aktifkan",
+    disable: "Matikan",
   },
 } as const;

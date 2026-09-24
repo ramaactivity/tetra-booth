@@ -8,6 +8,8 @@ export type BoothConfig = {
   demo: boolean;
   /** Base URL halaman tamu untuk QR, mis. https://app.tetraphoto.com. */
   guestUrl: string;
+  /** Mode kiosk aktif (M5): kursor disembunyikan di luar mode crew. */
+  kiosk?: boolean;
 };
 
 /**
@@ -34,6 +36,8 @@ export type TetraBridge = {
   crewFailedPrints: BoothCrew["failedPrints"];
   crewReprint: BoothCrew["reprint"];
   crewExit: BoothCrew["exit"];
+  crewAutoStart: BoothCrew["autoStart"];
+  crewSetAutoStart: BoothCrew["setAutoStart"];
   printerAlert: BoothCrew["printerAlert"];
   onPrinterAlert: BoothCrew["onPrinterAlert"];
   onPrintUpdated: BoothCrew["onPrintUpdated"];

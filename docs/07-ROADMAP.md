@@ -29,7 +29,7 @@ Prinsip:
 - [ ] Kamera uji: webcam (renderer) + kamera simulasi di Camera Service; hot-folder fallback. _(Canon EDSDK dipindah ke Fase 1b, DECISIONS #26)_
 - [x] Camera Service: print lewat `WindowsPrinterAdapter` (4R & 2x6x2), status spooler. _(M4/W-009; cetak fisik DNP di Fase 1b)_
 - [x] Supervisor & watchdog di Electron main. _(M3, 2026-09-24; verifikasi Windows W-013)_
-- [ ] Kiosk: auto-start, fullscreen, anti-sleep.
+- [x] Kiosk: auto-start, fullscreen, anti-sleep. _(M5, 2026-09-24: auto-start lewat toggle mode crew; verifikasi Windows W-016)_
 - [x] State machine sesi: attract → countdown → capture → review/retake → compose → print select → printing → QR. _(M1, 2026-09-24)_
 - [x] SQLite lokal, struktur folder sesi, output strip/original/thumb. _(M2, 2026-09-24; verifikasi Windows W-012)_
 - [x] Mode crew: pilih event (dari file bundle lokal), cek kamera, test print, counter kertas, keluar kiosk. _(M6, 2026-09-24; keluar = tutup app sampai M5; verifikasi Windows W-014)_

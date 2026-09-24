@@ -92,3 +92,30 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
 
   await app.close();
 });
+
+test("kiosk: layar penuh, tidak bisa ditutup, keluar hanya lewat mode crew", async () => {
+  const env = { ...process.env };
+  delete env.ELECTRON_RUN_AS_NODE;
+  const app = await electron.launch({
+    executablePath: electronPath,
+    args: [appDir, "--kiosk", "--camera=simulated", "--no-spawn", `--data=${makeData()}`],
+    env: env as Record<string, string>,
+  });
+  const w = await app.firstWindow();
+  await expect(w.getByRole("button", { name: /sentuh untuk mulai/i })).toBeVisible();
+  expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isKiosk())).toBe(true);
+
+  // Tutup jendela (Alt+F4 / tombol X) ditolak.
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.close());
+  await w.waitForTimeout(500);
+  expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+
+  // Keluar lewat mode crew menutup aplikasi.
+  await openCrew(w);
+  await typePin(w, "1357");
+  await typePin(w, "1357");
+  await expect(w.getByText("Auto-start hanya di app hasil build")).toBeVisible();
+  const closed = app.waitForEvent("close");
+  await w.getByRole("button", { name: /keluar aplikasi/i }).click();
+  await closed;
+});

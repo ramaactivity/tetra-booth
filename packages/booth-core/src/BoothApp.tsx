@@ -8,7 +8,16 @@ import type { PrinterAlert } from "./platform";
 import { SessionRunner } from "./SessionRunner";
 
 /** Akar UI booth: event aktif (dari bundle lokal), mode crew, dan peringatan printer untuk crew. */
-export function BoothApp({ guestBaseUrl, demo = false }: { guestBaseUrl: string; demo?: boolean }) {
+export function BoothApp({
+  guestBaseUrl,
+  demo = false,
+  kiosk = false,
+}: {
+  guestBaseUrl: string;
+  demo?: boolean;
+  /** Kiosk (M5): kursor disembunyikan untuk tamu; mode crew tetap menampilkan kursor. */
+  kiosk?: boolean;
+}) {
   const p = usePlatform();
   const [bundles, setBundles] = useState<EventBundle[]>([]);
   const [event, setEvent] = useState<BoothEvent>(DEFAULT_EVENT);
@@ -57,7 +66,7 @@ export function BoothApp({ guestBaseUrl, demo = false }: { guestBaseUrl: string;
     );
   }
   return (
-    <>
+    <div className={kiosk ? "cursor-none" : undefined}>
       <SessionRunner
         key={event.id}
         event={event}
@@ -75,6 +84,6 @@ export function BoothApp({ guestBaseUrl, demo = false }: { guestBaseUrl: string;
           {alert.message}
         </p>
       )}
-    </>
+    </div>
   );
 }

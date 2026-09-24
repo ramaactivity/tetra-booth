@@ -48,6 +48,10 @@ const flags = parseFlags(process.argv);
 /** Dicatat di index setelah log file aktif. */
 export const flagWarnings = flags.missing.map((m) => `[config] --${m} butuh nilai, diabaikan`);
 
+/** Kiosk (M5): default aktif di app hasil build; `--kiosk` / `--no-kiosk` memaksa. */
+export const kioskFlag = (isPackaged: boolean) =>
+  flags.has("kiosk") || (isPackaged && !flags.has("no-kiosk"));
+
 export const config: BoothConfig = {
   camera: flags.value("camera") === "simulated" ? "simulated" : "webcam",
   demo: flags.has("demo"),

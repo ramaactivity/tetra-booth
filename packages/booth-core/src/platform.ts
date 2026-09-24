@@ -72,6 +72,9 @@ export interface BoothCrew {
   failedPrints(): Promise<FailedPrint[]>;
   reprint(jobId: string): Promise<void>;
   exit(): Promise<void>;
+  /** Jalankan booth saat Windows login (M5). `supported` false di mode dev. */
+  autoStart(): Promise<{ enabled: boolean; supported: boolean }>;
+  setAutoStart(on: boolean): Promise<{ enabled: boolean; supported: boolean }>;
   printerAlert(): Promise<PrinterAlert>;
   onPrinterAlert(cb: (a: PrinterAlert) => void): Unsubscribe;
   /** Setiap print selesai/gagal (untuk menyegarkan kertas & daftar gagal di menu crew). */

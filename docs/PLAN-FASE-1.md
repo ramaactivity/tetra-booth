@@ -29,7 +29,8 @@ Status M1 (2026-09-24): kode selesai di `main`, teruji di Mac dengan kamera simu
 Status M2 (2026-09-24): kode selesai di `main`: DB + output + log harian, teruji di Mac (compose 84–118 ms, output 181–323 ms di belakang layar). Verifikasi Windows: W-012.
 Status M3 (2026-09-24): supervisor di `main`, teruji di Mac. Verifikasi Windows + print end-to-end: W-013.
 Status M4 (2026-09-24): `WindowsPrinterAdapter` selesai (W-009), kriteria uji 1 & 2 lulus.
-Status M6 (2026-09-24): mode crew di `main` (PIN, event bundle, cek kamera, test print, kertas, cetak ulang, peringatan printer), e2e Playwright-Electron lulus di Mac. Verifikasi Windows: W-014.
+Status M6 (2026-09-24): mode crew di `main` (PIN, event bundle, cek kamera, test print, kertas, cetak ulang, peringatan printer), e2e Playwright-Electron lulus di Mac. Verifikasi Windows: W-014 (lulus).
+Status M5 (2026-09-24): kiosk di `main`, e2e kiosk lulus di Mac. Verifikasi Windows: W-016. Sisa Fase 1: M7 hot-folder, M8 stress test.
 
 Urutan kerja: **M4 (Windows) paralel dengan M1 → M2 → M3 (Mac)** → M9 → M5/M6 → M7 → M8.
 
