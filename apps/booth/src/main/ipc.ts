@@ -58,7 +58,11 @@ const SessionCompleted = z.object({
     .max(64),
 });
 
-export function registerIpc(db: BoothDb, alerts: Alerts) {
+export function registerIpc(
+  db: BoothDb,
+  alerts: Alerts,
+  onPhaseChanged: (phase: string) => void = () => {},
+) {
   const pins = createPinGuard({
     get: () => db.kv.get("crew_pin_hash"),
     set: (v) => db.kv.set("crew_pin_hash", v),
@@ -242,6 +246,9 @@ export function registerIpc(db: BoothDb, alerts: Alerts) {
 
   ipcMain.on("phaseChanged", (e, phase: unknown) => {
     const p = z.string().max(32).safeParse(phase);
-    if (p.success) onPhase(e.sender, p.data);
+    if (p.success) {
+      onPhase(e.sender, p.data);
+      onPhaseChanged(p.data);
+    }
   });
 }

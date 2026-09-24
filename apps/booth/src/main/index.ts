@@ -12,6 +12,7 @@ import {
   windowSize,
 } from "./config";
 import { openDb } from "./db";
+import { createGpuWatch } from "./gpu-watch";
 import { registerIpc } from "./ipc";
 import { APP_ID, applyKiosk } from "./kiosk";
 import { setupLogging } from "./log";
@@ -30,6 +31,17 @@ console.info(
 );
 
 const alerts = createAlerts(db);
+// Pemulihan GPU (M-016): relaunch (lewat before-quit yang menunggu print) saat kembali ke attract.
+const gpu = createGpuWatch({
+  log: (m) => console.warn(m),
+  relaunch: () => {
+    app.relaunch({ args: process.argv.slice(1) });
+    app.quit();
+  },
+});
+app.on("child-process-gone", (_e, d) => {
+  if (d.type === "GPU") gpu.gpuGone(d.reason);
+});
 const kiosk = kioskFlag(app.isPackaged);
 config.kiosk = kiosk;
 
@@ -75,7 +87,7 @@ const createWindow = () => {
   void load();
 };
 
-registerIpc(db, alerts);
+registerIpc(db, alerts, (p) => gpu.phase(p));
 app.on("will-quit", () => db.close());
 app.whenReady().then(async () => {
   const log = (m: string) => console.info(m);
