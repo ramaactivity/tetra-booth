@@ -24,6 +24,7 @@ const bridge: TetraBridge = {
   crewExit: () => ipcRenderer.invoke("crewExit"),
   crewAutoStart: () => ipcRenderer.invoke("crewAutoStart"),
   crewSetAutoStart: (on) => ipcRenderer.invoke("crewSetAutoStart", on),
+  crewPair: (code) => ipcRenderer.invoke("crewPair", code),
   printerAlert: () => ipcRenderer.invoke("printerAlert"),
   onPrinterAlert: (cb) => {
     const h = (_e: IpcRendererEvent, a: Parameters<typeof cb>[0]) => cb(a);

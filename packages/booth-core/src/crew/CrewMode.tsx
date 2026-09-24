@@ -4,9 +4,10 @@ import type { BoothEvent } from "../event";
 import { usePlatform } from "../PlatformContext";
 import { CameraCheck } from "./CameraCheck";
 import { CrewMenu } from "./CrewMenu";
+import { PairPad } from "./PairPad";
 import { PinPad } from "./PinPad";
 
-type View = "pin" | "create" | "menu" | "camera" | "change";
+type View = "pin" | "create" | "menu" | "camera" | "change" | "pair";
 
 export function CrewMode({
   event,
@@ -48,6 +49,8 @@ export function CrewMode({
           onCancel={view === "change" ? () => setView("menu") : close}
         />
       );
+    case "pair":
+      return <PairPad onDone={() => setView("menu")} onCancel={() => setView("menu")} />;
     case "camera":
       return <CameraCheck onBack={() => setView("menu")} />;
     case "menu":
@@ -59,6 +62,7 @@ export function CrewMode({
           onSelectEvent={onSelectEvent}
           onCameraCheck={() => setView("camera")}
           onChangePin={() => setView("change")}
+          onPair={() => setView("pair")}
           onClose={close}
         />
       );

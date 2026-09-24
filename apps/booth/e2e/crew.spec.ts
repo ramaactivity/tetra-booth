@@ -161,3 +161,71 @@ test("kiosk: tidak bisa ditutup, keluar hanya lewat mode crew", async () => {
     .catch(() => {});
   await closed;
 });
+
+test("pairing cloud dari mode crew: kode salah, kode benar, heartbeat bertoken", async () => {
+  // Server palsu API booth (kontrak @tetra/shared); server asli diuji di apps/web/e2e/booth-api.spec.ts.
+  const { createServer } = await import("node:http");
+  const TOKEN = "t".repeat(54);
+  const beats: string[] = [];
+  const server = createServer((req, res) => {
+    let body = "";
+    req.on("data", (c) => {
+      body += c;
+    });
+    req.on("end", () => {
+      res.setHeader("content-type", "application/json");
+      if (req.url === "/api/booth/pair") {
+        const ok = JSON.parse(body).code === "123456";
+        res.statusCode = ok ? 200 : 400;
+        res.end(
+          JSON.stringify(
+            ok
+              ? {
+                  token: TOKEN,
+                  deviceId: "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+                  name: "Booth Uji",
+                  shortCode: "B07",
+                }
+              : { error: "invalid_code" },
+          ),
+        );
+      } else {
+        beats.push(req.headers.authorization ?? "");
+        res.end(JSON.stringify({ ok: true }));
+      }
+    });
+  });
+  await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+  const port = (server.address() as { port: number }).port;
+
+  const env = { ...process.env, TETRA_GUEST_URL: `http://127.0.0.1:${port}` };
+  delete env.ELECTRON_RUN_AS_NODE;
+  const app = await electron.launch({
+    executablePath: electronPath,
+    // --use-mock-keychain: safeStorage di macOS tanpa dialog Keychain.
+    args: [
+      appDir,
+      "--camera=simulated",
+      "--no-spawn",
+      `--data=${makeData()}`,
+      "--use-mock-keychain",
+    ],
+    env: env as Record<string, string>,
+  });
+  const w = await app.firstWindow();
+  await expect(w.getByRole("button", { name: /sentuh untuk mulai/i })).toBeVisible();
+  await openCrew(w);
+  await typePin(w, "2468");
+  await typePin(w, "2468");
+  await expect(w.getByTestId("cloud-device")).toHaveText("Belum dipasangkan");
+
+  await w.getByRole("button", { name: /^Pasangkan/ }).click();
+  await typePin(w, "111111");
+  await expect(w.getByRole("status")).toHaveText("Kode salah atau sudah kedaluwarsa");
+  await typePin(w, "123456");
+  await expect(w.getByTestId("cloud-device")).toHaveText("Booth Uji · B07");
+  await expect.poll(() => beats).toContain(`Bearer ${TOKEN}`);
+
+  await app.close();
+  server.close();
+});

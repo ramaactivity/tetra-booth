@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { app, BrowserWindow } from "electron";
 import { createAlerts } from "./alerts";
 import { startCameraService, watchPrintEvents } from "./camera-service";
+import { createCloud } from "./cloud";
 import {
   cameraServiceFlags,
   config,
@@ -102,13 +103,16 @@ const createWindow = () => {
   void load();
 };
 
-registerIpc(db, alerts, (p) => gpu.phase(p));
+// Cloud (Fase 2): server = app web yang sama dengan halaman tamu.
+const cloud = createCloud(db, alerts, config.guestUrl, (m) => console.info(m));
+registerIpc(db, alerts, cloud, (p) => gpu.phase(p));
 app.on("will-quit", () => db.close());
 app.whenReady().then(async () => {
   const log = (m: string) => console.info(m);
   if (cameraServiceFlags.spawn) await startCameraService(log, db, alerts);
   else app.on("will-quit", watchPrintEvents(log, db, alerts));
   createWindow();
+  cloud.start();
   startMetrics(db, metricsEverySec, log);
 });
 app.on("window-all-closed", () => app.quit());

@@ -122,6 +122,7 @@ export function CrewMenu({
   onSelectEvent,
   onCameraCheck,
   onChangePin,
+  onPair,
   onClose,
 }: {
   event: BoothEvent;
@@ -130,6 +131,7 @@ export function CrewMenu({
   onSelectEvent: (id: string) => void;
   onCameraCheck: () => void;
   onChangePin: () => void;
+  onPair: () => void;
   onClose: () => void;
 }) {
   const p = usePlatform();
@@ -299,8 +301,14 @@ export function CrewMenu({
           }
           foot={
             <>
-              <span>{copy.crew.autoSend}</span>
-              <span>{copy.crew.whenOnline}</span>
+              <span className="truncate" data-testid="cloud-device">
+                {status?.device
+                  ? copy.crew.paired(status.device.name, status.device.shortCode)
+                  : copy.crew.unpaired}
+              </span>
+              <button type="button" className={link} onClick={onPair}>
+                {copy.crew.pair} <ArrowRight size={22} strokeWidth={2.5} />
+              </button>
             </>
           }
         >

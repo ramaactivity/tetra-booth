@@ -49,7 +49,7 @@ Prinsip:
 2. Dipakai di 1 event nyata dengan LumaBooth standby sebagai cadangan, tanpa perlu pindah ke cadangan.
 
 ## Fase 2 — Cloud + halaman tamu
-- [ ] Pairing device.
+- [x] Pairing device. _(N2, 2026-09-25: API + skrip owner + mode crew; DECISIONS #55–56)_
 - [ ] Pull event + bundle, cache offline.
 - [ ] Antrean upload + presigned R2 + retry backoff.
 - [ ] Heartbeat.

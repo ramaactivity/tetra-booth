@@ -56,7 +56,11 @@ export type CrewStatus = {
   paper: { remaining: number; capacity: number };
   printer: { status: string; message?: string | undefined };
   cameraService: boolean;
+  /** Booth di cloud (Fase 2), null = belum dipasangkan. */
+  device: CloudDevice | null;
 };
+
+export type CloudDevice = { name: string; shortCode: string };
 export type FailedPrint = { id: string; copies: number; error: string | null; createdAt: string };
 /** Peringatan kecil untuk crew di pojok layar (printer error, cetak gagal, kertas menipis). */
 export type PrinterAlert = { message: string } | null;
@@ -78,6 +82,8 @@ export interface BoothCrew {
   /** Jalankan booth saat Windows login (M5). `supported` false di mode dev. */
   autoStart(): Promise<{ enabled: boolean; supported: boolean }>;
   setAutoStart(on: boolean): Promise<{ enabled: boolean; supported: boolean }>;
+  /** Pasangkan booth ke cloud dengan kode 6 digit dari owner (FSD §1.2); gagal → Error berpesan untuk crew. */
+  pair(code: string): Promise<CloudDevice>;
   printerAlert(): Promise<PrinterAlert>;
   onPrinterAlert(cb: (a: PrinterAlert) => void): Unsubscribe;
   /** Setiap print selesai/gagal (menyegarkan kertas & daftar gagal, dan hasil test print di menu crew). */

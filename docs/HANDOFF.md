@@ -176,6 +176,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-25 | Mac | Fase 2 N1/N2: API `pair` + `heartbeat` (Supabase dev, migrasi 0002), skrip `pnpm --filter @tetra/db device "<nama>"`, pairing dari mode crew (token safeStorage), heartbeat 60 s. Teruji booth → next dev → Supabase dev. Verifikasi Windows menunggu deploy Vercel (Rama). |
 | 2026-09-25 | Mac | Rama: stress test cukup, Fase 1 selesai (DECISIONS #53). Mulai Fase 2 (PLAN-FASE-2, N1). Windows: M-020 uji fisik → M-021 kalibrasi (DECISIONS #54) → W-023. |
 | 2026-09-25 | Windows | M-020 selesai di `win` (DECISIONS #52): pemotong DNP per job lewat Print Ticket API; antrean kedua `--printer-2x6x2` dihapus. Bukti spooler (antrean offline, tanpa kertas): 2x6x2 → CUT_2INCH, 4R → CUT_STANDARD walau Printing Preferences pengguna CUT_2INCH. lint/typecheck/test, 86/86 C#, e2e 4/4. Uji fisik menunggu Rama mengembalikan 2inch cut per pengguna ke Disable. |
 | 2026-09-25 | Windows | W-022 cetak DNP 4/4 lembar: kode lama → tepi putih 2 sisi & konten bergeser (dugaan W-021 terbukti); kode M-014 (cover) → tanpa tepi putih; potong 2 inci bekerja setelah Rama mengaktifkan 2inch cut (DEVMODE per pengguna). Warna biru = PNG overlay e2e (R0 G0 B255 A127), bukan bug. Potong per job lewat PrintTicket API terbukti sampai spooler → M-020 (permintaan Rama). Laporan: `docs/reports/windows/2026-09-25-dnp-rx1hs.md`. |
