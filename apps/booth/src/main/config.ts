@@ -26,3 +26,17 @@ export const shotsDir = flag("shots") || undefined;
 
 /** Folder data lokal pengganti %APPDATA%/TetraBooth (mis. laptop pinjaman: semua di folder kerja). */
 export const dataDir = flag("data") || undefined;
+
+/**
+ * Camera Service: `--no-spawn` = sambung ke service yang dijalankan manual (port 8765, token dev).
+ * Printer diteruskan apa adanya sampai config device ada (M6): --printer, --paper-4r, --paper-2x6x2,
+ * --print-to-file (khusus uji/stress, printer ber-port PORTPROMPT: seperti Print to PDF).
+ */
+export const cameraServiceFlags = {
+  spawn: flag("no-spawn") === undefined,
+  path: flag("camera-service") || undefined,
+  printerArgs: ["printer", "paper-4r", "paper-2x6x2", "print-to-file"].flatMap((k) => {
+    const v = flag(k);
+    return v ? [`--${k}`, v] : [];
+  }),
+};

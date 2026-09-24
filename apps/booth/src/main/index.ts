@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { app, BrowserWindow } from "electron";
-import { dataDir, windowSize } from "./config";
+import { startCameraService } from "./camera-service";
+import { cameraServiceFlags, dataDir, windowSize } from "./config";
 import { openDb } from "./db";
 import { registerIpc } from "./ipc";
 import { setupLogging } from "./log";
@@ -42,5 +43,8 @@ const createWindow = () => {
 
 registerIpc(db);
 app.on("will-quit", () => db.close());
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  if (cameraServiceFlags.spawn) await startCameraService((m) => console.info(m));
+  createWindow();
+});
 app.on("window-all-closed", () => app.quit());

@@ -36,7 +36,8 @@ Kamu sedang membangun Tetra Booth: platform photobooth (booth Windows + cloud + 
 ## Perintah
 ```
 pnpm install
-pnpm dev --filter booth      # Electron (butuh Camera Service jalan untuk status OK)
+dotnet build services/camera # sekali, supaya booth bisa men-spawn Camera Service
+pnpm dev --filter booth      # Electron (spawn Camera Service sendiri; --no-spawn untuk service manual)
 pnpm dev --filter web        # Next.js di http://localhost:3000
 dotnet run --project services/camera/TetraCamera.Host   # ws://127.0.0.1:8765/ws?token=dev
 pnpm lint && pnpm typecheck && pnpm test                # TS (Biome, tsc, Vitest)
@@ -47,5 +48,5 @@ pnpm --filter @tetra/db types  # generate tipe ke packages/db/src/database.types
 pnpm --filter web r2:check   # uji kredensial R2 (butuh apps/web/.env.local)
 pnpm dist:dev                # build win-x64 (Electron + Camera Service) → zip → R2; laptop Windows: update.cmd
 ```
-Catatan: Node 24 (`.node-version`), pnpm via corepack, .NET 10 SDK. Di macOS, `ELECTRON_RUN_AS_NODE` harus kosong saat menjalankan Electron dari terminal editor.
+Catatan: Node 24 (`.node-version`), pnpm via corepack, .NET 10 SDK. Kalau .NET tidak di lokasi standar (mis. `~/.dotnet`), set `DOTNET_ROOT` supaya binary dev Camera Service jalan. Flag uji booth: lihat `apps/booth/src/main/config.ts`. Di macOS, `ELECTRON_RUN_AS_NODE` harus kosong saat menjalankan Electron dari terminal editor.
 Keputusan & penyimpangan dari dokumen: `docs/DECISIONS.md`.
