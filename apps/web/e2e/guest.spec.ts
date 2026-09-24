@@ -1,19 +1,12 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { expect, test } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@tetra/db";
+import { db, hasDb } from "./admin-helpers";
 
 /** Halaman tamu /s/{id} (N6): semua state di layar HP 390 px, data uji di Supabase dev. */
 
-const envFile = join(__dirname, "../.env.local");
-if (existsSync(envFile)) process.loadEnvFile(envFile);
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-test.skip(!url || !key, "butuh Supabase dev (apps/web/.env.local)");
+test.skip(!hasDb, "butuh Supabase dev (apps/web/.env.local)");
 test.use({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
 
-const db = createClient<Database>(url ?? "", key ?? "", { auth: { persistSession: false } });
 const suffix = String(Date.now()).slice(-6).replace(/[01]/g, "3");
 const ids = {
   pending: `pnd${suffix}a`,
