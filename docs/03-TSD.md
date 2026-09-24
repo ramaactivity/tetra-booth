@@ -232,6 +232,8 @@ booth: status=paid → mulai sesi, session.payment_id = paymentId
 | Compose strip | ≤ 1,5 detik |
 | Foto terakhir → print keluar | ≤ 20 detik |
 | Halaman tamu (4G) | LCP ≤ 2 detik |
+| Start aplikasi booth (proses → layar siap) | ≤ 3 detik |
+| RAM idle booth + Camera Service (setelah 5 menit) | ≤ 500 MB; batas awal deteksi leak stress test M8 |
 
 ## 15. Temukan Foto Saya (Fase 5)
 
