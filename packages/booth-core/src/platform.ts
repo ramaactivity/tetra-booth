@@ -74,6 +74,8 @@ export interface BoothCrew {
   exit(): Promise<void>;
   printerAlert(): Promise<PrinterAlert>;
   onPrinterAlert(cb: (a: PrinterAlert) => void): Unsubscribe;
+  /** Setiap print selesai/gagal (untuk menyegarkan kertas & daftar gagal di menu crew). */
+  onPrintUpdated(cb: () => void): Unsubscribe;
 }
 
 /** Event dari bundle lokal (M6; Fase 2 lewat sync). */

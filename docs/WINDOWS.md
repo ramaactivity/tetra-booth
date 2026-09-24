@@ -21,7 +21,38 @@ Kedua Claude tidak berbagi ingatan. Satu-satunya jalur komunikasi: **repo git** 
 6. Screenshot **hanya jendela aplikasi kita** (Electron/booth), tidak pernah layar penuh: layar penuh bisa merekam jendela pribadi pemilik laptop. Hanya untuk dilihat sendiri, jangan di-commit, hapus setelah dipakai.
 7. Butuh keputusan Rama → tulis pertanyaan singkat di chat, lalu berhenti. Jangan menebak. Butuh aksi fisik dari teman Rama (colok kamera/printer) → tulis instruksi satu kalimat untuk diteruskan Rama.
 
-## 3. Prefix setiap perintah PowerShell
+## 3. `env.ps1` dan prefix setiap perintah PowerShell
+
+Isi `$W\env.ps1` (diperbarui 2026-09-24 setelah laporan W-014/W-015; baris lama `npm_config_store_dir` tidak dibaca pnpm 12):
+
+```powershell
+$W = "$HOME\TetraBooth"
+$env:Path = "$W\tools\node;$W\tools\dotnet;$W\tools\git\cmd;" + $env:Path
+# .NET / NuGet
+$env:DOTNET_ROOT = "$W\tools\dotnet"; $env:DOTNET_CLI_HOME = $W
+$env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"; $env:DOTNET_NOLOGO = "1"
+$env:NUGET_PACKAGES = "$W\.nuget"
+$env:NUGET_HTTP_CACHE_PATH = "$W\.nuget-http"
+$env:NUGET_PLUGINS_CACHE_PATH = "$W\.nuget-plugins"
+# npm (pnpm global) dan pnpm 12 (hanya membaca pnpm_config_*, bukan npm_config_*)
+$env:npm_config_prefix = "$W\tools\node"; $env:npm_config_cache = "$W\.npm-cache"
+$env:pnpm_config_store_dir = "$W\.pnpm\store"
+$env:pnpm_config_cache_dir = "$W\.pnpm\cache"
+$env:pnpm_config_state_dir = "$W\.pnpm\state"
+# Electron & electron-builder (ELECTRON_BUILDER_CACHE wajib path absolut)
+$env:electron_config_cache = "$W\.electron-cache"
+$env:ELECTRON_BUILDER_CACHE = "$W\.electron-builder-cache"
+$env:PLAYWRIGHT_BROWSERS_PATH = "$W\.playwright"
+# Tool lain
+$env:TURBO_TELEMETRY_DISABLED = "1"
+$env:TEMP = "$W\tmp"; $env:TMP = "$W\tmp"   # e2e booth memakai os.tmpdir()
+New-Item -ItemType Directory -Force "$W\tmp" | Out-Null
+Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
+```
+
+Yang tetap bocor ke AppData (tidak bisa dipindah lewat env) dan harus dibersihkan di §7: zip Electron dari electron-builder (`%LOCALAPPDATA%\electron\Cache`, lewat `@electron/get` tanpa override env di electron-builder 26), `%APPDATA%\NuGet\NuGet.Config`, konfigurasi/telemetri turbo, cache Biome/Vitest bila ada. **Laptop pinjaman yang sudah berjalan:** tambahkan semua baris baru **kecuali tiga baris `pnpm_config_*`**. Mengaktifkannya sekarang = pnpm memakai store baru dan mengunduh ulang ±1 GB di jaringan lambat. Store lama di AppData tetap dipakai dan dihapus saat laptop dikembalikan (§7). Tiga baris itu untuk setup baru saja (keputusan 2026-09-24, DECISIONS #39).
+
+### Prefix setiap perintah
 
 Execution policy default Windows memblokir script, dan env tidak bertahan antar perintah. Awali **setiap** perintah dengan:
 
@@ -88,9 +119,25 @@ Menghentikan: `Get-Process 'Tetra Booth',electron,TetraCamera,dotnet -ErrorActio
 ## 7. Bersih-bersih saat laptop dikembalikan
 
 1. Push semua pekerjaan.
-2. Hentikan keep-awake, Electron, Camera Service.
-3. Minta Rama mencabut deploy key (Claude Mac: `gh repo deploy-key delete <id>`).
-4. Hapus `$W` seluruhnya.
-5. Rama logout Claude Code di VS Code. Kalau VS Code/extension dipasang khusus untuk ini, uninstall lewat Settings > Apps.
+2. Hentikan keep-awake, Electron, Camera Service: `Get-Process 'Tetra Booth',electron,TetraCamera,dotnet -ErrorAction SilentlyContinue | Stop-Process -Force`.
+3. Minta Rama mencabut deploy key (Claude Mac: `gh repo deploy-key delete 164281077`).
+4. **Tampilkan dulu** folder AppData yang dibuat/berubah sejak bootstrap (2026-09-24), supaya milik pemilik laptop tidak ikut terhapus:
+   ```powershell
+   Get-ChildItem $env:LOCALAPPDATA, $env:APPDATA -Directory | Where-Object LastWriteTime -ge '2026-09-24' | Select-Object FullName, LastWriteTime
+   ```
+   Hapus hanya yang jelas milik kita (tulis daftarnya di chat untuk Rama sebelum menghapus):
+
+   | Folder | Asal |
+   |---|---|
+   | `%LOCALAPPDATA%\pnpm`, `%LOCALAPPDATA%\pnpm-cache`, `%LOCALAPPDATA%\pnpm-state` | store & cache pnpm 12 (±1 GB) sebelum `pnpm_config_*` |
+   | `%LOCALAPPDATA%\NuGet`, `%APPDATA%\NuGet` | cache HTTP & `NuGet.Config` |
+   | `%LOCALAPPDATA%\electron`, `%LOCALAPPDATA%\electron-builder` | zip Electron & tool electron-builder |
+   | `%APPDATA%\turborepo`, `%LOCALAPPDATA%\turborepo` | konfigurasi/telemetri turbo |
+   | `%LOCALAPPDATA%\biome`, folder `vitest` di AppData | cache tool, kalau ada |
+   | `%APPDATA%\TetraBooth`, `%APPDATA%\booth`, `%APPDATA%\Tetra Booth` | data booth kalau pernah jalan tanpa `--data` |
+   | `%TEMP%\tb-*`, `%TEMP%\tetra-*` | sisa e2e/test sebelum TEMP diarahkan ke `$W\tmp` |
+   | `%USERPROFILE%\.nuget`, `%USERPROFILE%\.dotnet` | kalau ada (sebelum `NUGET_PACKAGES`/`DOTNET_CLI_HOME`) |
+5. Hapus `$W` seluruhnya.
+6. Rama logout Claude Code di VS Code. Kalau VS Code/extension dipasang khusus untuk ini, uninstall lewat Settings > Apps.
 
 Untuk laptop Windows milik sendiri (bukan pinjaman), pakai `tools/windows/setup-windows-dev.ps1` (install permanen via winget).

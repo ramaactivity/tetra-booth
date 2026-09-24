@@ -72,7 +72,12 @@ export async function startCameraService(log: (m: string) => void, db: BoothDb, 
   const port = await freePort();
   const token = randomBytes(24).toString("base64url");
   setEndpoint(port, token);
-  const args = cameraServiceFlags.printerArgs;
+  // Jurnal print di folder data booth: kirim ulang setelah crash tidak mencetak dua kali (DECISIONS #39).
+  const args = [
+    ...cameraServiceFlags.printerArgs,
+    "--print-journal",
+    join(app.getPath("userData"), "print-journal.log"),
+  ];
   log(`[supervisor] ${bin} port ${port} ${args.join(" ")}`);
 
   // ponytail: di macOS/Linux, Camera Service bisa yatim kalau Electron crash (port acak per start, jadi tidak bentrok).

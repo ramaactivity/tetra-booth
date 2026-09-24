@@ -34,6 +34,8 @@ public static class PrintErrors
     public const string ImageSize = "image_size";
     public const string UnknownJob = "unknown_job";
     public const string PrintError = "print_error";
+    /// <summary>Crash di tengah penyerahan ke spooler: mungkin sudah tercetak. Tidak dicetak ulang otomatis.</summary>
+    public const string PrintUncertain = "print_uncertain";
 }
 
 /// <summary>Kegagalan print berkode. Pesan dalam Bahasa Indonesia, untuk log & mode crew.</summary>

@@ -81,7 +81,7 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
     .click();
 
   await expect(w.getByRole("heading", { name: "Andi & Sari" })).toBeVisible();
-  await expect(w.getByTestId("printer-alert")).toContainText("Kertas tinggal 25 lembar");
+  await expect(w.getByTestId("printer-alert")).toContainText("Kertas hampir habis (25)");
 
   // PIN salah 5x → terkunci; PIN benar pun ditolak saat terkunci.
   await openCrew(w);

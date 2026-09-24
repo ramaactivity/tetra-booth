@@ -28,6 +28,9 @@ public abstract class QueuedPrinterAdapter : IPrinterAdapter, IAsyncDisposable
 
     public event Action<PrinterEvent>? Event;
 
+    /// <summary>Jurnal di disk untuk mencegah cetak ganda saat job dikirim ulang setelah crash. Opsional.</summary>
+    public PrintJournal? Journal { get; init; }
+
     /// <summary>Cetak satu job sampai diserahkan ke spooler/driver. Gagal → lempar <see cref="PrintFailure"/>.</summary>
     protected abstract void PrintCore(PrintJob job, CancellationToken ct);
 
@@ -43,8 +46,22 @@ public abstract class QueuedPrinterAdapter : IPrinterAdapter, IAsyncDisposable
         if (!Presets.IsKnown(job.Paper))
             throw new PrintFailure(PrintErrors.BadPaper, $"preset kertas '{job.Paper}' tidak dikenal");
 
-        // Idempoten: jobId yang sama tidak dicetak dua kali.
+        // Idempoten: jobId yang sama tidak dicetak dua kali (dalam proses ini).
         if (!_jobs.TryAdd(job.JobId, new PrintJobStatus(PrintJobState.Queued, null))) return Task.CompletedTask;
+
+        // Idempoten lintas restart lewat jurnal (DECISIONS #39).
+        if (Journal?.IsSpooled(job.JobId) == true)
+        {
+            _jobs[job.JobId] = new PrintJobStatus(PrintJobState.Done, null);
+            _ = Task.Run(() => Emit(new PrintDoneEvent(job.JobId)));
+            return Task.CompletedTask;
+        }
+        if (Journal?.IsUncertain(job.JobId) == true)
+        {
+            _ = Task.Run(() => Fail(job.JobId, PrintErrors.PrintUncertain,
+                "Camera Service berhenti saat job ini diserahkan ke printer. Cek lembar yang keluar, lalu cetak ulang dari mode crew bila perlu."));
+            return Task.CompletedTask;
+        }
         if (!_queue.Writer.TryWrite(job))
         {
             _jobs[job.JobId] = new PrintJobStatus(PrintJobState.Failed, PrintErrors.PrintError);
@@ -84,16 +101,20 @@ public abstract class QueuedPrinterAdapter : IPrinterAdapter, IAsyncDisposable
                 _jobs[job.JobId] = new PrintJobStatus(PrintJobState.Printing, null);
                 try
                 {
+                    Journal?.MarkSpooling(job.JobId);
                     PrintCore(job, _stop.Token);
+                    Journal?.MarkSpooled(job.JobId);
                     _jobs[job.JobId] = new PrintJobStatus(PrintJobState.Done, null);
                     Emit(new PrintDoneEvent(job.JobId));
                 }
                 catch (PrintFailure f)
                 {
+                    Journal?.MarkFailed(job.JobId);
                     Fail(job.JobId, f.Code, f.Message);
                 }
                 catch (Exception e) when (e is not OperationCanceledException)
                 {
+                    Journal?.MarkFailed(job.JobId);
                     Fail(job.JobId, PrintErrors.PrintError, e.Message);
                 }
                 RefreshStatus();

@@ -55,8 +55,12 @@ export function CrewMenu({
   useEffect(() => {
     void refresh();
     const t = setInterval(() => void refresh(), 5000);
-    return () => clearInterval(t);
-  }, [refresh]);
+    const off = p.crew.onPrintUpdated(() => void refresh());
+    return () => {
+      clearInterval(t);
+      off();
+    };
+  }, [p, refresh]);
 
   const act = (fn: () => Promise<unknown>, done?: string) => () =>
     fn()

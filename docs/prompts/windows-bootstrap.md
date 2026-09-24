@@ -15,16 +15,28 @@ Buat $W, $W\tools, $W\.keys, $W\logs, $W\shots. Unduh dengan Invoke-WebRequest (
 - Node 24 LTS win-x64 zip: https://nodejs.org/dist/latest-v24.x/ (ambil nama file dari SHASUMS256.txt, verifikasi SHA256) ke $W\tools\node (isi folder langsung, node.exe di $W\tools\node\node.exe).
 - .NET SDK 10: jalankan https://dot.net/v1/dotnet-install.ps1 dengan -Channel 10.0 -InstallDir $W\tools\dotnet.
 - MinGit 64-bit (zip, bukan busybox) rilis terbaru dari https://api.github.com/repos/git-for-windows/git/releases/latest ke $W\tools\git.
-Tulis $W\env.ps1 persis ini:
+Tulis $W\env.ps1 persis ini (sama dengan docs/WINDOWS.md §3):
   $W = "$HOME\TetraBooth"
   $env:Path = "$W\tools\node;$W\tools\dotnet;$W\tools\git\cmd;" + $env:Path
+  # .NET / NuGet
   $env:DOTNET_ROOT = "$W\tools\dotnet"; $env:DOTNET_CLI_HOME = $W
   $env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"; $env:DOTNET_NOLOGO = "1"
   $env:NUGET_PACKAGES = "$W\.nuget"
+  $env:NUGET_HTTP_CACHE_PATH = "$W\.nuget-http"
+  $env:NUGET_PLUGINS_CACHE_PATH = "$W\.nuget-plugins"
+  # npm (pnpm global) dan pnpm 12 (hanya membaca pnpm_config_*, bukan npm_config_*)
   $env:npm_config_prefix = "$W\tools\node"; $env:npm_config_cache = "$W\.npm-cache"
-  $env:npm_config_store_dir = "$W\.pnpm-store"
-  $env:electron_config_cache = "$W\.electron-cache"; $env:ELECTRON_BUILDER_CACHE = "$W\.electron-builder-cache"
+  $env:pnpm_config_store_dir = "$W\.pnpm\store"
+  $env:pnpm_config_cache_dir = "$W\.pnpm\cache"
+  $env:pnpm_config_state_dir = "$W\.pnpm\state"
+  # Electron & electron-builder (ELECTRON_BUILDER_CACHE wajib path absolut)
+  $env:electron_config_cache = "$W\.electron-cache"
+  $env:ELECTRON_BUILDER_CACHE = "$W\.electron-builder-cache"
   $env:PLAYWRIGHT_BROWSERS_PATH = "$W\.playwright"
+  # Tool lain
+  $env:TURBO_TELEMETRY_DISABLED = "1"
+  $env:TEMP = "$W\tmp"; $env:TMP = "$W\tmp"   # e2e booth memakai os.tmpdir()
+  New-Item -ItemType Directory -Force "$W\tmp" | Out-Null
   Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
 Lalu: npm install -g pnpm@12.6.0. Cek: node -v (v24.x), pnpm -v (12.6.0), dotnet --version (10.x), git --version.
 

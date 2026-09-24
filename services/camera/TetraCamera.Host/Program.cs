@@ -7,7 +7,7 @@ using TetraCamera.Print;
 var port = int.Parse(Environment.GetEnvironmentVariable("TETRA_CAMERA_PORT") ?? "8765");
 var token = Environment.GetEnvironmentVariable("TETRA_CAMERA_TOKEN") ?? "dev";
 // Printer (M4): sementara dari argumen, nanti dari config device lewat Electron.
-string? printerName = null, paper4R = null, paper2x6x2 = null, printToFile = null;
+string? printerName = null, paper4R = null, paper2x6x2 = null, printToFile = null, printJournal = null;
 for (var i = 0; i + 1 < args.Length; i++)
 {
     switch (args[i])
@@ -18,6 +18,7 @@ for (var i = 0; i + 1 < args.Length; i++)
         case "--paper-4r": paper4R = args[i + 1]; break;
         case "--paper-2x6x2": paper2x6x2 = args[i + 1]; break;
         case "--print-to-file": printToFile = Path.GetFullPath(args[i + 1]); break;
+        case "--print-journal": printJournal = Path.GetFullPath(args[i + 1]); break;
     }
 }
 var tokenBytes = Encoding.UTF8.GetBytes(token);
@@ -31,6 +32,10 @@ app.UseWebSockets();
 IPrinterAdapter printer = OperatingSystem.IsWindows()
     ? new TetraCamera.Print.Windows.WindowsPrinterAdapter(
         new(printerName, new PaperConfig(paper4R, paper2x6x2), printToFile))
+    {
+        // Jurnal job print di disk: kirim ulang setelah crash tidak mencetak dua kali (DECISIONS #39).
+        Journal = printJournal is null ? null : new PrintJournal(printJournal),
+    }
     : new NullPrinterAdapter();
 var events = new EventHub();
 printer.Event += e => events.Publish(Dispatcher.SerializeEvent(e));
