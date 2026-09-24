@@ -14,8 +14,7 @@ namespace TetraCamera.Print.Windows;
 /// Kalau diisi: hasil driver ditulis ke file di folder ini (PrintToFile), mis. untuk "Microsoft Print to PDF"
 /// di uji & stress test. Printer dengan port <c>PORTPROMPT:</c> tanpa ini akan membuka dialog Save As, jadi ditolak.
 /// </param>
-/// <param name="Printer2x6x2">Antrean printer khusus preset 2x6x2 (mis. antrean DNP dengan pemotong 2 inci aktif). Default: <paramref name="PrinterName"/>.</param>
-public sealed record WindowsPrinterOptions(string? PrinterName, PaperConfig Paper, string? OutputDirectory = null, string? Printer2x6x2 = null);
+public sealed record WindowsPrinterOptions(string? PrinterName, PaperConfig Paper, string? OutputDirectory = null);
 
 /// <summary>
 /// Print ke DNP lewat spooler Windows (System.Drawing.Printing). Desain: PLAN-FASE-1 "Desain M4".
@@ -42,10 +41,7 @@ public sealed class WindowsPrinterAdapter : QueuedPrinterAdapter
 
     protected override void PrintCore(PrintJob job, CancellationToken ct)
     {
-        // 2x6x2: antrean kedua dengan pemotong 2 inci sebagai default antrean (DECISIONS #47), kalau dikonfigurasi.
-        var name = job.Paper == Presets.TwoBySixByTwo && !string.IsNullOrEmpty(_options.Printer2x6x2)
-            ? _options.Printer2x6x2
-            : _options.PrinterName;
+        var name = _options.PrinterName;
         if (string.IsNullOrEmpty(name))
             throw new PrintFailure(PrintErrors.PrinterUnavailable, "printer belum dikonfigurasi (--printer)");
 
@@ -69,6 +65,11 @@ public sealed class WindowsPrinterAdapter : QueuedPrinterAdapter
         var chosen = PaperSelector.Select(
             driverSizes.Select(p => new PaperOption(p.PaperName, p.Width, p.Height)).ToList(), job.Paper, _options.Paper);
         var paper = driverSizes.First(p => p.PaperName == chosen.Name && p.Width == chosen.Width && p.Height == chosen.Height);
+
+        // Pemotong DNP per job (M-020, DECISIONS #52): 2x6x2 → CUT_2INCH, lainnya → CUT_STANDARD, apa pun
+        // Printing Preferences pengguna. Driver tanpa pemotong dilewati. Sebelum PrintDocument dibuat, supaya
+        // PageSettings mewarisi DEVMODE ini.
+        PrintTicketDevmode.ApplyCutter(settings, CutterTicket.OptionFor(job.Paper));
 
         using var doc = new PrintDocument();
         doc.PrinterSettings = settings;
