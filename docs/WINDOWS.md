@@ -18,7 +18,7 @@ Kedua Claude tidak berbagi ingatan. Satu-satunya jalur komunikasi: **repo git** 
 3. Semua tool portable di `$W\tools`, semua cache di `$W` (lihat `env.ps1`). Membersihkan laptop = menghapus `$W`.
 4. Tidak ada rahasia di laptop ini: tidak ada `.env.local`, key Supabase/R2, atau password. Fase 1 berjalan offline dan tidak membutuhkannya.
 5. Akses GitHub hanya lewat deploy key repo `ramaactivity/tetra-booth` di `$W\.keys\deploy`. Jangan login GitHub/akun lain.
-6. Screenshot layar hanya untuk dilihat sendiri (verifikasi UI). Jangan di-commit, hapus setelah dipakai.
+6. Screenshot **hanya jendela aplikasi kita** (Electron/booth), tidak pernah layar penuh: layar penuh bisa merekam jendela pribadi pemilik laptop. Hanya untuk dilihat sendiri, jangan di-commit, hapus setelah dipakai.
 7. Butuh keputusan Rama → tulis pertanyaan singkat di chat, lalu berhenti. Jangan menebak. Butuh aksi fisik dari teman Rama (colok kamera/printer) → tulis instruksi satu kalimat untuk diteruskan Rama.
 
 ## 3. Prefix setiap perintah PowerShell
@@ -56,7 +56,12 @@ Start-Process apps\booth\node_modules\electron\dist\electron.exe -ArgumentList '
 
 `env.ps1` menghapus `ELECTRON_RUN_AS_NODE`. Tanpa itu Electron jalan sebagai Node biasa.
 
-Menilai UI tanpa melihat layar: baca log (`[fase0]`, error), lalu ambil screenshot layar utama ke `$W\shots\` (System.Windows.Forms + System.Drawing), perkecil, lihat dengan Read, hapus setelahnya.
+Menilai UI tanpa melihat layar: baca log (`[fase0]`, error), lalu screenshot **jendela aplikasi saja**:
+- Cari handle jendela dari proses booth (`(Get-Process 'Tetra Booth','electron').MainWindowHandle`, pilih yang bukan 0).
+- Proses PowerShell harus DPI-aware (`SetProcessDPIAware` via P/Invoke `user32.dll`), karena laptop ini scaling 150%. Tanpa itu gambar terpotong.
+- Ambil ukuran dengan `GetWindowRect`, lalu `PrintWindow(hwnd, hdc, 2)` (`PW_RENDERFULLCONTENT`) ke `System.Drawing.Bitmap`. Jangan `CopyFromScreen`.
+- Simpan ke `$W\shots\`, perkecil, lihat dengan Read, hapus setelahnya. Skripnya simpan lokal di `$W`, jangan di-commit.
+- Baca log UTF-8 dengan `Get-Content -Encoding UTF8`.
 
 Menghentikan: `Get-Process electron,TetraCamera,dotnet -ErrorAction SilentlyContinue | Stop-Process`.
 

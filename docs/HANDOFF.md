@@ -13,18 +13,27 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 - [x] **W-006 Riset printer untuk M4 (tanpa kode fitur).** Dengan skrip PowerShell sementara (tidak di-commit), cetak gambar uji 1200×1800 px ke "Microsoft Print to PDF" memakai `System.Drawing.Printing`: coba paper size 4×6 jika ada, catat `PrinterSettings.DefaultPageSettings` (margin, `PrintableArea`, `HardMarginX/Y`, resolusi), dan apakah hasil PDF tepat 4×6 inci tanpa scaling/margin. Kalau ada DNP terpasang, catat hal yang sama tanpa benar-benar mencetak. Tulis temuan di laporan: ini dasar desain `WindowsPrinterAdapter`.
 - [x] **W-007 Performa dasar.** Di booth hasil build, ukur: waktu dari start proses sampai `[fase0] engine hash` tercatat, waktu render fixture 4R (tambahkan `performance.now()` sementara secara lokal, jangan di-commit), pemakaian RAM Electron + Camera Service setelah 5 menit idle (`Get-Process`). Bandingkan dengan target 03-TSD §14.
 - [x] **W-008 Laporan lanjutan.** Tulis `docs/reports/windows/<tanggal>-uji-lanjutan.md` (W-005..W-007), push ke `win`, ringkas di chat. → `docs/reports/windows/2026-09-24-uji-lanjutan.md`
+- [ ] **W-009 M4: `WindowsPrinterAdapter` (kode, pertama di Fase 1).** Ikuti PLAN-FASE-1 §"Desain M4" dan penuhi "Kriteria uji M4" poin 1 dan 2. Rincian:
+  - Logika pemilihan kertas murni di `TetraCamera.Print` + xUnit (jalan juga di CI Ubuntu).
+  - Adapter di `TetraCamera.Print.Windows`. Paket NuGet yang dibutuhkan (mis. `System.Drawing.Common`, `System.Management` untuk status spooler) hanya di proyek itu.
+  - `Dispatcher`: implementasikan `print.submit` & `print.status` sesuai `packages/shared/src/camera-protocol.ts`, event `print.done`/`print.failed`/`printer.status`. Argumen Host: `--printer`, `--paper-4r`, `--paper-2x6x2`.
+  - Test integrasi Print to PDF boleh berupa xUnit yang otomatis dilewati (return awal) kalau bukan Windows atau printer "Microsoft Print to PDF" tidak ada, supaya CI tetap hijau. Cek geometri PDF (MediaBox, matriks `cm` → 288×432 pt di origin) di dalam test.
+  - Jangan pasang driver apa pun (butuh admin). Jangan ubah protokol di `packages/shared` tanpa menulis alasannya di "Untuk Mac".
+  - Selesai: `dotnet test` lulus di laptop, CI `win` hijau, laporan `docs/reports/windows/<tanggal>-m4-printer.md` dengan contoh output PDF (angka, bukan file).
+- [ ] **W-010 Riset webcam untuk M1 (tanpa kode fitur).** Di Electron (skrip/perubahan sementara, tidak di-commit): daftar perangkat video, resolusi & fps maksimum `getUserMedia` untuk HP 5MP Camera (coba 2592×1944, 1920×1080, 1280×720), `ImageCapture.getPhotoCapabilities()` dan resolusi hasil `takePhoto()`, waktu `takePhoto()` sampai blob, fps nyata live view ke canvas dengan mirror. Tulis temuan di laporan W-009 atau laporan terpisah. Ini dasar sumber kamera `webcam` yang dibangun di Mac.
 
 ## Untuk Mac
 
-- [ ] **M-001 Merge fix `pnpm-workspace.yaml`.** Placeholder `electron-winstaller: set this to true or false` membuat `pnpm install --frozen-lockfile` gagal (`ERR_PNPM_IGNORED_BUILDS`) sebelum Electron terunduh. Di `win` diganti `false` (commit `3cccbbd`). Detail: laporan bootstrap.
-- [ ] **M-002 WINDOWS.md §5: screenshot jendela aplikasi saja.** Screenshot layar penuh di laptop pinjaman ikut menangkap jendela pribadi pemilik. Pakai `PrintWindow` ke jendela Electron, dengan proses DPI-aware (scaling laptop 150%).
-- [ ] **M-003 Kamera: webcam dulu.** Arahan Rama 2026-09-24: belum ada kamera Canon. Uji kamera sementara pakai webcam laptop (HP 5MP Camera). Uji Canon/EDSDK dipindah ke fase berikutnya. Sesuaikan PLAN-FASE-1 bila perlu.
-- [ ] **M-004 Desain `WindowsPrinterAdapter` (M4).** Pilih PaperSize dari `PrinterSettings.PaperSizes` driver, jangan PaperSize custom: Print to PDF mengabaikannya diam-diam dan tetap mencetak Letter, walaupun `PageBounds` melaporkan 4×6. Validasi lewat `PrintableArea`. Uji M4 "PDF 4×6" tidak mungkin dengan Print to PDF bawaan. Detail: laporan uji-lanjutan §W-006.
+- [x] **M-001 Merge fix `pnpm-workspace.yaml`.** Placeholder `electron-winstaller: set this to true or false` membuat `pnpm install --frozen-lockfile` gagal (`ERR_PNPM_IGNORED_BUILDS`) sebelum Electron terunduh. Di `win` diganti `false` (commit `3cccbbd`). Detail: laporan bootstrap. → Selesai: di-merge ke `main` (fast-forward). CI `main` juga ikut hijau lagi.
+- [x] **M-002 WINDOWS.md §5: screenshot jendela aplikasi saja.** Screenshot layar penuh di laptop pinjaman ikut menangkap jendela pribadi pemilik. Pakai `PrintWindow` ke jendela Electron, dengan proses DPI-aware (scaling laptop 150%). → Selesai: WINDOWS.md aturan 6 & §5.
+- [x] **M-003 Kamera: webcam dulu.** Arahan Rama 2026-09-24: belum ada kamera Canon. Uji kamera sementara pakai webcam laptop (HP 5MP Camera). Uji Canon/EDSDK dipindah ke fase berikutnya. Sesuaikan PLAN-FASE-1 bila perlu. → Selesai: PLAN M1/M7/M8, ROADMAP Fase 1b, DECISIONS #26.
+- [x] **M-004 Desain `WindowsPrinterAdapter` (M4).** Pilih PaperSize dari `PrinterSettings.PaperSizes` driver, jangan PaperSize custom: Print to PDF mengabaikannya diam-diam dan tetap mencetak Letter, walaupun `PageBounds` melaporkan 4×6. Validasi lewat `PrintableArea`. Uji M4 "PDF 4×6" tidak mungkin dengan Print to PDF bawaan. Detail: laporan uji-lanjutan §W-006. → Selesai: desain & kriteria uji di PLAN-FASE-1 §"Desain M4", DECISIONS #27.
 
 ## Log
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-24 | Mac | Merge `win` → `main`. M-001..M-004 selesai. PLAN-FASE-1 disetujui & direvisi (webcam, EDSDK ke Fase 1b, desain printer). Tugas coding W-009 (printer) & riset W-010 (webcam) ditambahkan. W-005 menunggu keputusan Rama. |
 | 2026-09-24 | Windows | W-006..W-008 selesai, W-005 terblokir (permission unduh skrip R2). Print to PDF abaikan PaperSize custom; start booth 0,44–1,09 s; RAM idle 258 MB. Laporan: `docs/reports/windows/2026-09-24-uji-lanjutan.md`. |
 | 2026-09-24 | Windows | W-001..W-004 selesai. Semua test lulus, hash 4R cocok, tidak ada DNP/Canon, ada webcam. Laporan: `docs/reports/windows/2026-09-24-bootstrap.md`. |
 | 2026-09-24 | Mac | Tugas W-005..W-008 ditambahkan (uji update.cmd, riset printer, performa). |
