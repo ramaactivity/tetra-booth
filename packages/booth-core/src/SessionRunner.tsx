@@ -3,6 +3,7 @@ import { useEffect, useReducer, useRef } from "react";
 import { composeStrip } from "./compose";
 import { copy } from "./copy";
 import type { BoothEvent } from "./event";
+import { buildOutputs } from "./finalize";
 import { usePlatform } from "./PlatformContext";
 import { Attract } from "./screens/Attract";
 import { Countdown } from "./screens/Countdown";
@@ -127,6 +128,42 @@ export function SessionRunner({
       clearTimeout(timer);
     };
   }, [p, s.phase]);
+
+  // Catat sesi mulai (untuk deteksi sesi terputus saat app mati).
+  useEffect(() => {
+    if (!s.sessionId) return;
+    p.db
+      .sessionStarted({
+        id: s.sessionId,
+        eventId: event.id,
+        layoutVersionId: `${event.layout.id}@${event.layout.version}`,
+        startedAt: new Date().toISOString(),
+      })
+      .catch((e: unknown) => console.error("[session] gagal mencatat sesi", e));
+  }, [p, s.sessionId, event]);
+
+  // QR tampil = sesi selesai. Output upload & catatan DB dibuat di belakang layar; tamu tidak menunggu.
+  useEffect(() => {
+    if (s.phase !== "qr" || !s.sessionId) return;
+    const id = s.sessionId;
+    const photos = s.photos.filter((x): x is Photo => x !== null);
+    const done = {
+      id,
+      completedAt: new Date().toISOString(),
+      photoCount: photos.length,
+      retakeCount: s.retakesUsed.reduce((a, b) => a + b, 0),
+      printCount: s.strip ? s.prints : 0,
+    };
+    const t0 = performance.now();
+    (s.strip ? buildOutputs(p.storage, id, event, photos, s.strip) : Promise.resolve([]))
+      .then((assets) => p.db.sessionCompleted({ ...done, assets }).then(() => assets.length))
+      .then((n) =>
+        console.info(
+          `[session] selesai ${id}: ${n} aset, ${Math.round(performance.now() - t0)} ms`,
+        ),
+      )
+      .catch((e: unknown) => console.error(`[session] gagal menyelesaikan ${id}`, e));
+  }, [p, s.phase, s.sessionId, s.photos, s.retakesUsed, s.strip, s.prints, event]);
 
   // Compose strip.
   useEffect(() => {

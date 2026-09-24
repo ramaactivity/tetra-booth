@@ -1,10 +1,20 @@
 import { join } from "node:path";
 import { app, BrowserWindow } from "electron";
 import { dataDir, windowSize } from "./config";
+import { openDb } from "./db";
 import { registerIpc } from "./ipc";
+import { setupLogging } from "./log";
 
 // Data lokal di %APPDATA%/TetraBooth (TSD §3), bukan nama produk dengan spasi.
 app.setPath("userData", dataDir ?? join(app.getPath("appData"), "TetraBooth"));
+
+const logToFile = setupLogging(join(app.getPath("userData"), "logs"));
+const db = openDb(join(app.getPath("userData"), "db.sqlite"));
+console.info(
+  `[boot] Tetra Booth ${app.getVersion()} · data ${app.getPath("userData")} · sesi terputus ditandai: ${db.abandoned}`,
+);
+
+const LEVELS = ["DEBUG", "INFO", "WARN", "ERROR"];
 
 const createWindow = () => {
   const win = new BrowserWindow({
@@ -19,10 +29,18 @@ const createWindow = () => {
       backgroundThrottling: false,
     },
   });
+  // Log renderer ikut ke file harian.
+  win.webContents.on("console-message", (e) =>
+    logToFile(
+      `R-${LEVELS[["debug", "info", "warning", "error"].indexOf(e.level)] ?? "INFO"}`,
+      e.message,
+    ),
+  );
   if (process.env.ELECTRON_RENDERER_URL) win.loadURL(process.env.ELECTRON_RENDERER_URL);
   else win.loadFile(join(__dirname, "../renderer/index.html"));
 };
 
-registerIpc();
+registerIpc(db);
+app.on("will-quit", () => db.close());
 app.whenReady().then(createWindow);
 app.on("window-all-closed", () => app.quit());

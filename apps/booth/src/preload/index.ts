@@ -9,6 +9,8 @@ const bridge: TetraBridge = {
   readFile: (path) => ipcRenderer.invoke("readFile", path),
   printSubmit: (job) => ipcRenderer.invoke("printSubmit", job),
   phaseChanged: (phase) => ipcRenderer.send("phaseChanged", phase),
+  sessionStarted: (x) => ipcRenderer.invoke("sessionStarted", x),
+  sessionCompleted: (x) => ipcRenderer.invoke("sessionCompleted", x),
 };
 
 contextBridge.exposeInMainWorld("tetra", bridge);

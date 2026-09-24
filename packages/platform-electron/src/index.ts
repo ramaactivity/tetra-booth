@@ -20,6 +20,10 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       cfg.camera === "simulated" ? createSimulatedCamera(storage) : createWebcamCamera(storage),
     printer: { submit: (job) => bridge.printSubmit(job) },
     storage,
+    db: {
+      sessionStarted: (x) => bridge.sessionStarted(x),
+      sessionCompleted: (x) => bridge.sessionCompleted(x),
+    },
     health: () => bridge.health(),
     phaseChanged: (phase) => bridge.phaseChanged(phase),
   };

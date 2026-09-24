@@ -51,7 +51,7 @@ dotnet test services/camera
 Start-Process -WindowStyle Minimized dotnet -ArgumentList 'run','--project','services/camera/TetraCamera.Host','--','--port','8765','--token','dev'
 # Booth (build lalu jalankan dengan log konsol ke file)
 pnpm --filter booth build
-Start-Process apps\booth\node_modules\electron\dist\electron.exe -ArgumentList 'apps\booth\out\main\index.js','--enable-logging' -RedirectStandardError "$W\logs\electron.log"
+Start-Process apps\booth\node_modules\electron\dist\electron.exe -ArgumentList 'apps\booth','--enable-logging' -RedirectStandardError "$W\logs\electron.log"
 ```
 
 `env.ps1` menghapus `ELECTRON_RUN_AS_NODE`. Tanpa itu Electron jalan sebagai Node biasa.
@@ -59,13 +59,15 @@ Start-Process apps\booth\node_modules\electron\dist\electron.exe -ArgumentList '
 Menjalankan sesi booth untuk uji (sejak M1):
 
 ```powershell
-electron.exe apps\booth\out\main\index.js --camera=simulated --demo --data="$W\data" --shots="$W\shots\<nama-uji>" --enable-logging
+electron.exe apps\booth --camera=simulated --demo --data="$W\data" --shots="$W\shots\<nama-uji>" --enable-logging
 ```
 
 - `--camera=webcam|simulated`, `--demo` (sesi jalan sendiri), `--size=WxH` (mis. `450x800` untuk portrait di layar 1280×800 logis).
 - `--data` **wajib** di laptop ini: foto & data sesi masuk `$W\data`, bukan `%APPDATA%`.
 - `--shots` menyimpan screenshot **isi jendela booth** per fase (`capturePage`, hanya konten app). Ini cara utama melihat UI.
-- Log: `[boot]`, `[session] <fase> <id>`, `[phase]`, `[session] compose <ms> ms`.
+- Log: `[boot]`, `[session] <fase> <id>`, `[phase]`, `[session] compose <ms> ms`, `[session] selesai <id>: <n> aset`. Semua juga tertulis ke `$W\data\logs\YYYY-MM-DD.log` (sejak M2).
+- Jalankan dengan path folder `apps\booth` (bukan `out\main\index.js`) supaya versi app terbaca dari package.json.
+- DB lokal: `$W\data\db.sqlite` (`node:sqlite`, WAL).
 - Foto webcam merekam ruangan: lihat seperlunya, hapus `$W\data` dan `$W\shots` setelah laporan ditulis.
 
 Kalau butuh screenshot di luar booth, gunakan **jendela aplikasi saja**:

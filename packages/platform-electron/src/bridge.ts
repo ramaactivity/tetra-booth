@@ -1,3 +1,4 @@
+import type { BoothDb } from "@tetra/booth-core";
 import type { CommandResult, Paper } from "@tetra/shared";
 
 export type BoothConfig = {
@@ -22,6 +23,8 @@ export type TetraBridge = {
   readFile(path: string): Promise<Uint8Array<ArrayBuffer>>;
   printSubmit(job: { jobId: string; path: string; copies: number; paper: Paper }): Promise<void>;
   phaseChanged(phase: string): void;
+  sessionStarted: BoothDb["sessionStarted"];
+  sessionCompleted: BoothDb["sessionCompleted"];
 };
 
 declare global {

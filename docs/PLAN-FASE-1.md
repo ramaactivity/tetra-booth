@@ -16,16 +16,17 @@ Target selesai (07-ROADMAP, direvisi): alur sesi lengkap berjalan di Windows den
 | # | Isi | Mesin | Uji selesai |
 |---|---|---|---|
 | M1 | **Alur sesi lengkap dengan webcam & simulasi.** Sumber kamera `webcam` (renderer, `getUserMedia` + `ImageCapture`, live view di-mirror, hasil tidak) dan `simulated` (Camera Service: live view JPEG ≥ 20 fps, capture menulis file, perintah `camera.*`, `liveview.*`, `capture`, event). State machine sesi (reducer bertipe) attract → countdown → capture ×N → review/retake → compose → print select → printing → QR. Layar booth sesuai 08-DESIGN, landscape & portrait. | Mac, lalu Windows verifikasi dengan webcam | Vitest state machine; satu sesi penuh dengan webcam di Mac dan Windows; mode demo otomatis dengan kamera simulasi |
-| M2 | **Penyimpanan lokal.** SQLite (better-sqlite3, WAL) sesuai 06-DATA-MODEL §3, folder sesi, output strip/strip_web/original 2400px/thumb 480px lewat template engine. Logging lokal rotasi harian. | Mac, Windows cek native module | Test repositori; file output benar ukurannya |
+| M2 | **Penyimpanan lokal.** SQLite (`node:sqlite` bawaan Electron, WAL; DECISIONS #32) sesuai 06-DATA-MODEL §3, folder sesi, output strip/strip_web/original 2400px/thumb 480px lewat template engine. Logging lokal rotasi harian. | Mac, Windows cek native module | Test repositori; file output benar ukurannya |
 | M3 | **Supervisor & watchdog.** Electron main spawn Camera Service dengan port & token acak, health tiap 5 dtk, restart setelah 3x gagal, auto-reconnect UI. | Mac, Windows uji kill proses | Bunuh Camera Service 20x, booth pulih sendiri |
 | M4 | **Printer Windows.** `WindowsPrinterAdapter` sesuai desain di bawah. Antrean print, counter kertas, `print.submit`/`print.status`/`printer.status`. | **Windows** | Lihat "Kriteria uji M4" di bawah; cetak DNP asli menyusul saat DNP tersedia |
 | M5 | **Kiosk.** Auto-start saat login, fullscreen, kursor tersembunyi, anti-sleep, keluar hanya dari mode crew. | Mac (kode), **Windows** (uji) | Restart Windows → booth muncul sendiri |
 | M6 | **Mode crew.** Tap 5x pojok + PIN, pilih event dari bundle lokal, cek kamera (live view + test shot), test print, counter kertas, keluar kiosk. | Mac, Windows verifikasi | Alur crew manual lewat screenshot |
 | M7 | **Hot-folder fallback** (FileSystemWatcher, lintas platform). _Canon EDSDK dipindah ke Fase 1b._ | Mac, Windows verifikasi | File JPEG baru di folder = capture berikutnya |
 | M8 | **Stress test.** Driver otomatis 500 sesi dengan kamera simulasi + print ke Print to PDF (Windows) / printer null (Mac, CI), pantau memori & handle. | Mac (harness), **Windows** (semalam) | 500 sesi tanpa crash; RAM & handle tidak naik terus |
-| M9 | **Build Windows via CI.** Setelah SQLite (native module), build win-x64 dipindah ke job GitHub Actions `windows-latest` yang meng-upload zip ke R2, karena cross-build native module dari Mac tidak andal. `update.cmd` tetap sama. | Mac (CI) | Zip dari CI jalan di laptop |
+| M9 | **Build Windows via CI.** _Tidak mendesak lagi:_ `node:sqlite` bukan modul native, jadi `pnpm dist:dev` dari Mac tetap valid. Dikerjakan kalau nanti ada modul native, atau untuk installer bertanda tangan. | Mac (CI) | Zip dari CI jalan di laptop |
 
 Status M1 (2026-09-24): kode selesai di `main`, teruji di Mac dengan kamera simulasi (landscape & portrait). Menunggu verifikasi webcam di Windows (W-011).
+Status M2 (2026-09-24): kode selesai di `main`: DB + output + log harian, teruji di Mac (compose 84–118 ms, output 181–323 ms di belakang layar). Verifikasi Windows: W-012.
 
 Urutan kerja: **M4 (Windows) paralel dengan M1 → M2 → M3 (Mac)** → M9 → M5/M6 → M7 → M8.
 
