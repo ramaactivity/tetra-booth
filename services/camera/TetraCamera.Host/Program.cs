@@ -10,6 +10,7 @@ var token = Environment.GetEnvironmentVariable("TETRA_CAMERA_TOKEN") ?? "dev";
 string? printerName = null, paper4R = null, paper2x6x2 = null, printToFile = null, printJournal = null, hotFolder = null;
 var paperFitMargin = false;
 string? printer2x6x2 = null;
+Uri? hotFolderTrigger = null;
 for (var i = 0; i + 1 < args.Length; i++)
 {
     switch (args[i])
@@ -24,6 +25,7 @@ for (var i = 0; i + 1 < args.Length; i++)
         case "--hot-folder": hotFolder = Path.GetFullPath(args[i + 1]); break;
         case "--paper-fit": paperFitMargin = args[i + 1] == "margin"; break;
         case "--printer-2x6x2": printer2x6x2 = args[i + 1]; break;
+        case "--hot-folder-trigger": hotFolderTrigger = new Uri(args[i + 1]); break;
     }
 }
 var tokenBytes = Encoding.UTF8.GetBytes(token);
@@ -44,7 +46,7 @@ IPrinterAdapter printer = OperatingSystem.IsWindows()
     : new NullPrinterAdapter();
 var events = new EventHub();
 printer.Event += e => events.Publish(Dispatcher.SerializeEvent(e));
-var camera = hotFolder is null ? null : new TetraCamera.HotFolder.HotFolderCamera(hotFolder);
+var camera = hotFolder is null ? null : new TetraCamera.HotFolder.HotFolderCamera(hotFolder, trigger: hotFolderTrigger);
 var dispatcher = new Dispatcher(printer, camera);
 
 app.Map("/ws", async (HttpContext ctx) =>

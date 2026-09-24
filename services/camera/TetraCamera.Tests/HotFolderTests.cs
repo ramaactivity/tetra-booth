@@ -86,4 +86,43 @@ public sealed class HotFolderTests : IDisposable
         var r2 = JsonDocument.Parse(await d.HandleAsync("""{"id":"c","type":"capture","payload":{"sessionId":"s","index":0,"outputDir":"relatif"}}""")).RootElement;
         Assert.Equal("bad_payload", r2.GetProperty("payload").GetProperty("code").GetString());
     }
+
+    [Fact]
+    public async Task Pemicu_shutter_dipanggil_lalu_JPEG_dari_software_tether_diambil()
+    {
+        var port = FreePort();
+        using var server = new System.Net.HttpListener();
+        server.Prefixes.Add($"http://127.0.0.1:{port}/");
+        server.Start();
+        // "digiCamControl" palsu: setiap GET menyimpan JPEG ke hot folder.
+        var serve = Task.Run(async () =>
+        {
+            var ctx = await server.GetContextAsync();
+            await File.WriteAllBytesAsync(Path.Combine(In, "DSC_0001.jpg"), Jpeg(5184, 3456));
+            ctx.Response.StatusCode = 200;
+            ctx.Response.Close();
+        });
+        var cam = new HotFolderCamera(In, TimeSpan.FromSeconds(5), new Uri($"http://127.0.0.1:{port}/?CMD=Capture"));
+        var r = await cam.CaptureAsync(Out, 0);
+        await serve;
+        Assert.Equal((5184, 3456), (r.Width, r.Height));
+    }
+
+    [Fact]
+    public async Task Pemicu_tidak_bisa_dihubungi_gagal_berkode()
+    {
+        var port = FreePort(); // port bebas, tidak ada server
+        var cam = new HotFolderCamera(In, TimeSpan.FromSeconds(2), new Uri($"http://127.0.0.1:{port}/"));
+        var f = await Assert.ThrowsAsync<CameraFailure>(() => cam.CaptureAsync(Out, 0));
+        Assert.Equal("trigger_failed", f.Code);
+    }
+
+    private static int FreePort()
+    {
+        var l = System.Net.Sockets.TcpListener.Create(0);
+        l.Start();
+        var p = ((System.Net.IPEndPoint)l.LocalEndpoint).Port;
+        l.Stop();
+        return p;
+    }
 }

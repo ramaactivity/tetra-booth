@@ -21,12 +21,19 @@ public sealed class HotFolderCamera
     public static readonly TimeSpan Grace = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan Poll = TimeSpan.FromMilliseconds(100);
 
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(5) };
+    private readonly Uri? _trigger;
     private readonly HashSet<string> _consumed = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim _one = new(1, 1);
     private readonly TimeSpan _timeout;
 
-    public HotFolderCamera(string folder, TimeSpan? timeout = null)
+    /// <param name="trigger">
+    /// Opsional: URL yang dipanggil (GET) setiap capture untuk memicu shutter di software tether
+    /// (mis. web server digiCamControl), supaya tidak perlu menekan shutter manual (W-023).
+    /// </param>
+    public HotFolderCamera(string folder, TimeSpan? timeout = null, Uri? trigger = null)
     {
+        _trigger = trigger;
         Folder = Path.GetFullPath(folder);
         Directory.CreateDirectory(Folder);
         _timeout = timeout ?? DefaultTimeout;
@@ -48,6 +55,7 @@ public sealed class HotFolderCamera
         {
             var armedAt = DateTime.UtcNow - Grace;
             var deadline = DateTime.UtcNow + _timeout;
+            if (_trigger is not null) await TriggerAsync(ct);
             while (DateTime.UtcNow < deadline)
             {
                 var next = Candidates()
@@ -64,6 +72,20 @@ public sealed class HotFolderCamera
             throw new CameraFailure("capture_timeout", $"Tidak ada foto baru di hot folder dalam {_timeout.TotalSeconds:0} detik");
         }
         finally { _one.Release(); }
+    }
+
+    private async Task TriggerAsync(CancellationToken ct)
+    {
+        try
+        {
+            using var r = await Http.GetAsync(_trigger, ct);
+            if (!r.IsSuccessStatusCode)
+                throw new CameraFailure("trigger_failed", $"pemicu shutter membalas {(int)r.StatusCode}");
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
+        {
+            throw new CameraFailure("trigger_failed", $"pemicu shutter tidak bisa dihubungi: {e.Message}");
+        }
     }
 
     /// <summary>Tunggu file selesai ditulis (bisa dibuka eksklusif & ukurannya stabil), salin ke folder sesi.</summary>

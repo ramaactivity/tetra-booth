@@ -93,6 +93,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   4. Status spooler: cabut kabel USB DNP sebentar (minta Rama) → `printer.status` di log & peringatan "Printer bermasalah" di layar → colok lagi → pulih.
   - Laporan `docs/reports/windows/<tanggal>-dnp-rx1hs.md` (nama kertas persis untuk config device).
 - [ ] **W-023 Kamera 60D lewat EOS Utility → hot folder, sesi penuh dengan DNP. Jatah: 1 lembar.** Butuh EOS Utility (tanya Rama sebelum memasang; unduh dari situs resmi Canon, versi yang mendukung EOS 60D).
+  **Diperbarui (DECISIONS #48):** pakai **digiCamControl** (setelah Rama setuju & klik izin admin), bukan EOS Utility. Atur Session → folder simpan `C:\\TetraBooth\\hot`, format JPEG. Aktifkan web server digiCamControl, cari URL perintah capture di dokumentasinya, lalu jalankan booth dengan `--hot-folder-trigger "<url capture>"` supaya shutter terpicu otomatis tiap countdown habis (tanpa Rama menekan shutter). Uji sekali tanpa trigger (Rama menekan shutter) dan sekali dengan trigger. Syarat: 60D sudah tidak Code 10.
   1. EOS Utility: folder tujuan = `C:\TetraBooth\hot`, simpan JPEG saja (Large Fine), tanpa subfolder tanggal kalau bisa. Minta Rama mencoba satu jepretan dan pastikan file masuk ke folder itu.
   2. Booth `--camera hotfolder --hot-folder C:\TetraBooth\hot --data C:\TetraBooth\data --printer … --paper-2x6x2 …`. Satu sesi: Rama menekan shutter (kamera atau EOS Utility) saat hitung mundur habis, 3 kali → review → cetak 1 lembar → QR. Catat: ukuran raw (60D = 5184×3456), jeda file masuk → preview, waktu compose, waktu foto terakhir → kertas keluar (target ≤ 20 s, TSD §14).
   3. Tanpa jepretan: layar "Sebentar, menunggu foto dari kamera…" lalu layar A10 "Sebentar ya, kamera sedang disiapkan ulang", lalu pulih saat Rama menjepret.
@@ -155,6 +156,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 | Tanggal | Mesin | Catatan |
 |---|---|---|
 | 2026-09-24 | Windows | W-019 selesai di `acee1e1` (UI v2): tutup ±1 s setelah QR → tunggu spooling, PDF utuh, `done`; bunuh booth+service saat printing → `print_uncertain` final, tampil di "Cetak gagal" + teks "Mungkin sudah tercetak…", tetap setelah boot ke-2, cetak ulang → PDF baru & daftar kosong; hot folder kosong → teks tunggu 3,4 s setelah capture, A10 ±20 s; e2e 4/4. Temuan kecil M-015 (log `kirim ulang` setelah `print_uncertain`, race `onReady`). Laporan: `docs/reports/windows/2026-09-24-m12-quit-print.md`. |
+| 2026-09-24 | Mac | W-023: digiCamControl + `--hot-folder-trigger <url>` (DECISIONS #48). Semua langkah fisik/berbiaya (60D Code 10, pasang software, antrean 2 inci, cetak DNP) menunggu Rama; Windows mengerjakan W-020 dulu. |
 | 2026-09-24 | Mac | Merge W-019. M-015 selesai (kirim ulang hanya job sebelum instance Camera Service saat ini; log sesuai status akhir). |
 | 2026-09-24 | Mac | Merge W-021. M-014 selesai (DECISIONS #47): 4×6 ber-overscan, borderless cover, antrean potong 2 inci `--printer-2x6x2`. W-022 langkah 0 ditambahkan. |
 | 2026-09-24 | Mac | UI v2 (`4c90b54`) di `main`, CI hijau. Draf `docs/PLAN-FASE-2.md` (mulai setelah W-020 lulus). Stress 500 sesi di Mac dengan UI v2 berjalan. |
