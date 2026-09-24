@@ -314,8 +314,15 @@ export function CrewMenu({
             </>
           }
         >
-          <div className={big}>{copy.crew.sessions(status?.uploadPending ?? 0)}</div>
-          <div className={sub}>{copy.crew.uploadQueue}</div>
+          <div className="flex items-center justify-between gap-4">
+            <div className={big}>{copy.crew.files(status?.uploadPending ?? 0)}</div>
+            {!!status?.uploadPending && status.device && (
+              <button type="button" className={link} onClick={act(() => p.crew.retryUploads())}>
+                {copy.crew.retryUpload}
+              </button>
+            )}
+          </div>
+          <div className={`${sub} truncate`}>{status?.uploadError ?? copy.crew.uploadQueue}</div>
         </StatCard>
 
         <StatCard

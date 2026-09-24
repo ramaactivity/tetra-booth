@@ -178,6 +178,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-25 | Mac | Fase 2 N4: `POST /api/booth/sessions`, `/uploads/sign` (presigned PUT R2 15 mnt), `/sessions/{id}/assets` (complete dari asset_count); worker upload di main (konkurensi 2, backoff, 15 dtk), kartu Koneksi crew: jumlah file, error terakhir, "Coba sekarang". |
 | 2026-09-25 | Mac | Fase 2 N3: `GET /api/booth/events` + `/events/{id}/bundle`, skrip `pnpm --filter web event:push <folder> --device B0x`, booth sync bundle (boot, 5 menit, crew "Sync dari Cloud"), pasang atomik dengan cek sha256. Vercel `tetrabooth.vercel.app` hidup (Rama). |
 | 2026-09-25 | Mac | Fase 2 N1/N2: API `pair` + `heartbeat` (Supabase dev, migrasi 0002), skrip `pnpm --filter @tetra/db device "<nama>"`, pairing dari mode crew (token safeStorage), heartbeat 60 s. Teruji booth → next dev → Supabase dev. Verifikasi Windows menunggu deploy Vercel (Rama). |
 | 2026-09-25 | Mac | Rama: stress test cukup, Fase 1 selesai (DECISIONS #53). Mulai Fase 2 (PLAN-FASE-2, N1). Windows: M-020 uji fisik → M-021 kalibrasi (DECISIONS #54) → W-023. |

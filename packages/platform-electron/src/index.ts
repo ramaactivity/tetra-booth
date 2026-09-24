@@ -57,6 +57,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       setAutoStart: (on) => bridge.crewSetAutoStart(on),
       pair: (code) => bridge.crewPair(code),
       syncEvents: () => bridge.crewSyncEvents(),
+      retryUploads: () => bridge.crewRetryUploads(),
       printerAlert: () => bridge.printerAlert(),
       onPrinterAlert: (cb) => bridge.onPrinterAlert(cb),
       onPrintUpdated: (cb) => bridge.onPrintUpdated(cb),

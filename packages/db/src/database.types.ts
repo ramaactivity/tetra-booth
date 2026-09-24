@@ -724,6 +724,7 @@ export type Database = {
       }
       sessions: {
         Row: {
+          asset_count: number | null
           completed_at: string | null
           created_at: string
           deleted_at: string | null
@@ -741,6 +742,7 @@ export type Database = {
           upload_status: string
         }
         Insert: {
+          asset_count?: number | null
           completed_at?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -758,6 +760,7 @@ export type Database = {
           upload_status?: string
         }
         Update: {
+          asset_count?: number | null
           completed_at?: string | null
           created_at?: string
           deleted_at?: string | null

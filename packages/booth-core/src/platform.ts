@@ -52,7 +52,9 @@ export interface BoothDb {
 export type Unsubscribe = () => void;
 export type CrewStatus = {
   online: boolean;
+  /** Jumlah file di antrean upload. */
   uploadPending: number;
+  uploadError: string | null;
   paper: { remaining: number; capacity: number };
   printer: { status: string; message?: string | undefined };
   cameraService: boolean;
@@ -86,6 +88,8 @@ export interface BoothCrew {
   pair(code: string): Promise<CloudDevice>;
   /** Tarik bundle event yang ditugaskan dari cloud; kembalikan jumlah event yang diperbarui. */
   syncEvents(): Promise<number>;
+  /** Unggah antrean sekarang juga, lewati jeda backoff (FSD §1.3 "coba sekarang"). */
+  retryUploads(): Promise<void>;
   printerAlert(): Promise<PrinterAlert>;
   onPrinterAlert(cb: (a: PrinterAlert) => void): Unsubscribe;
   /** Setiap print selesai/gagal (menyegarkan kertas & daftar gagal, dan hasil test print di menu crew). */

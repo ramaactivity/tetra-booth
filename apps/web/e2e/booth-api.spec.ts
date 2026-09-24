@@ -103,6 +103,58 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
       (await request.get("/api/booth/events/bukan-uuid/bundle", { headers: auth })).status(),
     ).toBe(404);
 
+    // N4: sesi → URL PUT R2 → upload sungguhan → catat aset (partial → complete), semua idempotent.
+    const sessionId = `e2e${code}X`.slice(0, 10).replace(/[01]/g, "2");
+    const session = {
+      id: sessionId,
+      eventId,
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      photoCount: 3,
+      retakeCount: 0,
+      printCount: 1,
+      assetCount: 2,
+    };
+    for (let i = 0; i < 2; i++)
+      expect(
+        (await request.post("/api/booth/sessions", { headers: auth, data: session })).status(),
+      ).toBe(200);
+    expect(
+      (
+        await request.post("/api/booth/sessions", {
+          headers: auth,
+          data: { ...session, eventId: "7c9e6679-7425-40de-944b-e07fc1f90ae7" },
+        })
+      ).status(),
+    ).toBe(404);
+    const sign = await request.post("/api/booth/uploads/sign", {
+      headers: auth,
+      data: {
+        sessionId,
+        assets: [
+          { kind: "strip_web", idx: 0 },
+          { kind: "thumb_strip", idx: 0 },
+        ],
+      },
+    });
+    expect(sign.status()).toBe(200);
+    const { uploads } = await sign.json();
+    expect(uploads[0].key).toBe(`${org?.id}/${eventId}/sessions/${sessionId}/strip_web_0.jpg`);
+    const put = await fetch(uploads[0].url, {
+      method: "PUT",
+      headers: { "content-type": "image/jpeg" },
+      body: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
+    });
+    expect(put.status).toBe(200);
+    const record = (kind: string) =>
+      request.post(`/api/booth/sessions/${sessionId}/assets`, {
+        headers: auth,
+        data: { assets: [{ kind, idx: 0, bytes: 4 }] },
+      });
+    expect(await (await record("strip_web")).json()).toEqual({ uploadStatus: "partial" });
+    expect(await (await record("strip_web")).json()).toEqual({ uploadStatus: "partial" });
+    expect(await (await record("thumb_strip")).json()).toEqual({ uploadStatus: "complete" });
+
     expect(
       (await request.post("/api/booth/heartbeat", { data: { appVersion: "x" } })).status(),
     ).toBe(401);

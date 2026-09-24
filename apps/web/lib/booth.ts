@@ -44,3 +44,24 @@ export async function rateOk(key: string, windowSec: number, max: number): Promi
   });
   return error ? true : data !== false;
 }
+
+/** Sesi milik device ini (dan organisasinya), atau `null`. */
+export async function deviceSession(device: Device, id: string) {
+  const { data } = await createServiceClient()
+    .from("sessions")
+    .select("id, event_id, asset_count")
+    .eq("id", id)
+    .eq("device_id", device.id)
+    .eq("organization_id", device.organizationId)
+    .maybeSingle();
+  return data;
+}
+
+/** Key R2 aset sesi (TSD §4.2): `{org}/{event}/sessions/{id}/{kind}_{idx}.jpg`. */
+export const sessionAssetKey = (
+  device: Device,
+  eventId: string,
+  sessionId: string,
+  kind: string,
+  idx: number,
+) => `${device.organizationId}/${eventId}/sessions/${sessionId}/${kind}_${idx}.jpg`;

@@ -9,10 +9,11 @@ import { app, safeStorage, screen } from "electron";
 import type { Alerts } from "./alerts";
 import { installBundle } from "./bundle-sync";
 import type { BoothDb } from "./db";
+import { createUploader } from "./upload";
 
 /**
  * Koneksi cloud (Fase 2, N2/N3/N5): pairing kode 6 digit → device token, heartbeat tiap 60 s,
- * tarik bundle event yang ditugaskan (saat boot, tiap 5 menit, dan dari mode crew).
+ * tarik bundle event yang ditugaskan (saat boot, tiap 5 menit, dan dari mode crew), antrean upload sesi.
  * Token disimpan terenkripsi (DPAPI/Keychain lewat safeStorage) di kv, tidak pernah dikirim ke renderer.
  * Booth yang belum dipasangkan tetap jalan offline (DECISIONS #56).
  */
@@ -20,6 +21,8 @@ export type CloudDevice = { name: string; shortCode: string };
 
 const HEARTBEAT_MS = 60_000;
 const SYNC_MS = 5 * 60_000;
+/** Cek antrean upload / koneksi (TSD §4.2). */
+const UPLOAD_MS = 15_000;
 const TIMEOUT_MS = 15_000;
 
 const PAIR_ERRORS: Record<string, string> = {
@@ -86,6 +89,34 @@ export function createCloud(
     return new Uint8Array(await res.arrayBuffer());
   };
 
+  const api = async (path: string, body: unknown) => {
+    const t = token();
+    if (!t) throw new Error("booth belum dipasangkan");
+    const res = await fetch(`${baseUrl}${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${t}` },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) throw new Error(`${path}: server ${res.status}`);
+    return res.json() as Promise<unknown>;
+  };
+  const uploader = createUploader({
+    db,
+    api,
+    log,
+    put: async (url, bytes) => {
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { "content-type": "image/jpeg" },
+        body: new Uint8Array(bytes),
+        signal: AbortSignal.timeout(120_000),
+      });
+      if (!res.ok) throw new Error(`R2 PUT ${res.status}`);
+    },
+  });
+  const uploadQuiet = () => void uploader.drain();
+
   let syncing: Promise<number> | null = null;
   /** Unduh bundle event yang versinya berubah; kembalikan jumlah event yang diperbarui. Idempotent. */
   const syncEvents = () => {
@@ -116,6 +147,13 @@ export function createCloud(
   return {
     device,
     syncEvents,
+    /** Sesi baru selesai: langsung coba unggah (tanpa menunggu putaran 15 dtk). */
+    kickUpload: uploadQuiet,
+    /** "Coba sekarang" dari mode crew: lewati backoff. */
+    retryUploads() {
+      db.uploadRetryNow(new Date().toISOString());
+      return uploader.drain();
+    },
     token,
     async pair(code: string): Promise<CloudDevice> {
       // Booth hanya Windows (DPAPI) & macOS dev (Keychain); Linux = CI tanpa keyring.
@@ -153,9 +191,12 @@ export function createCloud(
       syncQuiet();
       const t = setInterval(() => void heartbeat(), HEARTBEAT_MS);
       const s = setInterval(syncQuiet, SYNC_MS);
+      const u = setInterval(uploadQuiet, UPLOAD_MS);
+      uploadQuiet();
       app.on("will-quit", () => {
         clearInterval(t);
         clearInterval(s);
+        clearInterval(u);
       });
     },
   };

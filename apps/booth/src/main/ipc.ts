@@ -167,11 +167,16 @@ export function registerIpc(
     return {
       online: net.isOnline(),
       uploadPending: db.uploadPending(),
+      uploadError: db.uploadError(),
       paper: db.paper(),
       printer: alerts.printer(),
       cameraService,
       device: cloud.device(),
     };
+  });
+  ipcMain.handle("crewRetryUploads", async () => {
+    crewOnly();
+    await cloud.retryUploads();
   });
   ipcMain.handle("crewSyncEvents", () => {
     crewOnly();
@@ -253,6 +258,7 @@ export function registerIpc(
       ...s,
       assets: s.assets.map((a) => ({ ...a, path: inSessions(a.path) })),
     });
+    cloud.kickUpload();
   });
 
   ipcMain.on("phaseChanged", (e, phase: unknown) => {

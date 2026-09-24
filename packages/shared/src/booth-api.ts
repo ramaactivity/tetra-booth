@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SESSION_ID_PATTERN } from "./ids";
 
 /** Kontrak API booth ↔ cloud (TSD §7). Endpoint lain ditambah di milestone Fase 2 masing-masing. */
 
@@ -28,6 +29,7 @@ export type BoothApiError =
   | "invalid_code"
   | "rate_limited"
   | "not_found"
+  | "conflict"
   | "server_error";
 
 /** GET /api/booth/events: event yang ditugaskan ke device ini. */
@@ -59,3 +61,50 @@ export const StoredBundle = z.object({
   files: z.array(z.object({ file: z.string(), sha256: z.string(), key: z.string() })),
 });
 export type StoredBundle = z.infer<typeof StoredBundle>;
+
+export const AssetKindSchema = z.enum([
+  "strip",
+  "strip_web",
+  "original",
+  "thumb_strip",
+  "thumb_original",
+]);
+export type AssetKindName = z.infer<typeof AssetKindSchema>;
+
+/** POST /api/booth/sessions: upsert metadata sesi (idempotent per id). */
+export const SessionUpsert = z.object({
+  id: z.string().regex(SESSION_ID_PATTERN),
+  eventId: z.uuid(),
+  startedAt: z.iso.datetime(),
+  completedAt: z.iso.datetime(),
+  photoCount: z.number().int().min(0).max(20),
+  retakeCount: z.number().int().min(0).max(100),
+  printCount: z.number().int().min(0).max(20),
+  /** Jumlah aset yang akan diunggah; sesi `complete` saat semuanya tercatat. */
+  assetCount: z.number().int().min(1).max(50),
+});
+export type SessionUpsert = z.infer<typeof SessionUpsert>;
+
+const AssetRef = z.object({ kind: AssetKindSchema, idx: z.number().int().min(0).max(20) });
+
+/** POST /api/booth/uploads/sign: URL PUT R2 bertanda tangan (15 menit), satu per aset. */
+export const SignRequest = z.object({
+  sessionId: z.string().regex(SESSION_ID_PATTERN),
+  assets: z.array(AssetRef).min(1).max(20),
+});
+export const SignResponse = z.object({
+  uploads: z.array(AssetRef.extend({ url: z.url(), key: z.string() })),
+});
+export type SignResponse = z.infer<typeof SignResponse>;
+
+/** POST /api/booth/sessions/{id}/assets: catat aset yang sudah masuk R2 (idempotent per key). */
+export const AssetsRequest = z.object({
+  assets: z
+    .array(AssetRef.extend({ bytes: z.number().int().min(1) }))
+    .min(1)
+    .max(20),
+});
+export const AssetsResponse = z.object({
+  uploadStatus: z.enum(["pending", "partial", "complete"]),
+});
+export type AssetsResponse = z.infer<typeof AssetsResponse>;

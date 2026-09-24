@@ -163,11 +163,14 @@ test("kiosk: tidak bisa ditutup, keluar hanya lewat mode crew", async () => {
   await closed;
 });
 
-test("cloud dari mode crew: pairing, heartbeat bertoken, sync bundle event", async () => {
+test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () => {
   // Server palsu API booth (kontrak @tetra/shared); server asli diuji di apps/web/e2e/booth-api.spec.ts.
   const { createServer } = await import("node:http");
   const TOKEN = "t".repeat(54);
   const beats: string[] = [];
+  const sessions: { eventId: string; assetCount: number }[] = [];
+  const puts: string[] = [];
+  const recorded: string[] = [];
   const EVENT = "7c9e6679-7425-40de-944b-e07fc1f90ae8";
   const pngSha = createHash("sha256").update(PNG).digest("hex");
   const config = JSON.parse(
@@ -205,6 +208,26 @@ test("cloud dari mode crew: pairing, heartbeat bertoken, sync bundle event", asy
             files: [{ file: "overlay.png", sha256: pngSha, url: `http://127.0.0.1:${port}/m/ov` }],
           }),
         );
+      } else if (req.url === "/api/booth/sessions") {
+        sessions.push(JSON.parse(body));
+        res.end(JSON.stringify({ ok: true }));
+      } else if (req.url === "/api/booth/uploads/sign") {
+        const { assets } = JSON.parse(body) as { assets: { kind: string; idx: number }[] };
+        res.end(
+          JSON.stringify({
+            uploads: assets.map((a) => ({
+              ...a,
+              key: `k/${a.kind}_${a.idx}`,
+              url: `http://127.0.0.1:${port}/r2/${a.kind}_${a.idx}`,
+            })),
+          }),
+        );
+      } else if (req.url?.startsWith("/r2/")) {
+        puts.push(req.url);
+        res.end();
+      } else if (req.url?.endsWith("/assets")) {
+        recorded.push(...JSON.parse(body).assets.map((a: { kind: string }) => a.kind));
+        res.end(JSON.stringify({ uploadStatus: "partial" }));
       } else if (req.url === "/m/ov") {
         res.setHeader("content-type", "image/png");
         res.end(PNG);
@@ -227,6 +250,7 @@ test("cloud dari mode crew: pairing, heartbeat bertoken, sync bundle event", asy
       "--camera=simulated",
       "--no-spawn",
       `--data=${makeData()}`,
+      "--fast",
       "--use-mock-keychain",
     ],
     env: env as Record<string, string>,
@@ -251,6 +275,20 @@ test("cloud dari mode crew: pairing, heartbeat bertoken, sync bundle event", asy
   await w.getByRole("button", { name: /Rina & Dimas/ }).click();
   await w.getByRole("button", { name: /keluar ke mode tamu/i }).click();
   await expect(w.getByRole("heading", { name: "Rina & Dimas" })).toBeVisible();
+
+  // Satu sesi (--fast) untuk event cloud → semua file masuk R2 palsu dan tercatat (N4).
+  await w.waitForTimeout(1000);
+  await w.getByRole("button", { name: /sentuh untuk mulai/i }).click();
+  await w.getByRole("button", { name: /pakai semua foto/i }).click({ timeout: 30_000 });
+  await w.getByRole("button", { name: /cetak sekarang/i }).click({ timeout: 15_000 });
+  await expect
+    .poll(() => sessions.length > 0 && recorded.length === sessions[0]?.assetCount, {
+      timeout: 30_000,
+    })
+    .toBe(true);
+  expect(sessions[0]?.eventId).toBe(EVENT);
+  expect(recorded).toContain("strip_web");
+  expect(new Set(puts).size).toBe(recorded.length);
 
   await app.close();
   server.close();
