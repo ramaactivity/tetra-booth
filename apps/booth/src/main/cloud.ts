@@ -8,6 +8,7 @@ import {
 import { app, safeStorage, screen } from "electron";
 import type { Alerts } from "./alerts";
 import { installBundle } from "./bundle-sync";
+import { cameraHealth } from "./camera-client";
 import type { BoothDb } from "./db";
 import { createUploader } from "./upload";
 
@@ -50,6 +51,10 @@ export function createCloud(
     const t = token();
     if (!t) return;
     const { width, height } = screen.getPrimaryDisplay().size;
+    const camera = await cameraHealth().then(
+      (h) => h,
+      () => null,
+    );
     const body: HeartbeatRequest = {
       appVersion: app.getVersion(),
       screen: { width, height },
@@ -57,7 +62,9 @@ export function createCloud(
         activeEvent: db.kv.get("active_event_id") ?? "local",
         paper: db.paper(),
         printer: alerts.printer().status,
+        camera,
         uploadPending: db.uploadPending(),
+        lastError: db.uploadError(),
       },
     };
     try {

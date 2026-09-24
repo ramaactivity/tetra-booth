@@ -52,7 +52,7 @@ Prinsip:
 - [x] Pairing device. _(N2, 2026-09-25: API + skrip owner + mode crew; DECISIONS #55–56)_
 - [x] Pull event + bundle, cache offline. _(N3, 2026-09-25; DECISIONS #57)_
 - [x] Antrean upload + presigned R2 + retry backoff. _(N4, 2026-09-25; DECISIONS #58; uji cabut internet 1 jam = N9 Windows)_
-- [ ] Heartbeat.
+- [x] Heartbeat. _(N2/N5, 2026-09-25: tiap 60 dtk — versi, layar, event aktif, kamera, printer, kertas, antrean, error terakhir)_
 - [ ] Halaman tamu: state unknown/pending/ready/expired/removed, simpan via share sheet, branding event.
 - [ ] Tracking `qr_open`, `save`, `save_all`.
 - [ ] Sentry web + booth.
