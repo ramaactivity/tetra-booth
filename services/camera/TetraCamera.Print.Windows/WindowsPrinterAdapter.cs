@@ -14,7 +14,17 @@ namespace TetraCamera.Print.Windows;
 /// Kalau diisi: hasil driver ditulis ke file di folder ini (PrintToFile), mis. untuk "Microsoft Print to PDF"
 /// di uji & stress test. Printer dengan port <c>PORTPROMPT:</c> tanpa ini akan membuka dialog Save As, jadi ditolak.
 /// </param>
-public sealed record WindowsPrinterOptions(string? PrinterName, PaperConfig Paper, string? OutputDirectory = null);
+/// <param name="Printer2x6x2">
+/// Antrean khusus preset 2x6x2 (DECISIONS #47/#52): antrean kedua ke printer DNP yang sama dengan `2inch cut: Enable`
+/// diset lewat dialog Printing Preferences. Driver DNP hanya menuruti setelan dari dialognya, bukan DEVMODE dari program
+/// (W-022, lembar K1–K8), jadi aplikasi tidak pernah mengubah setelan printer. Default: <paramref name="PrinterName"/>.
+/// </param>
+/// <param name="PrintOffset">
+/// Kalibrasi DNP (`--print-offset "x,y"`, M-021): pojok kiri-atas area 4×6 fisik di halaman, 1/100 in. Tanpa nilai = tengah.
+/// </param>
+public sealed record WindowsPrinterOptions(
+    string? PrinterName, PaperConfig Paper, string? OutputDirectory = null,
+    string? Printer2x6x2 = null, (double X, double Y)? PrintOffset = null);
 
 /// <summary>
 /// Print ke DNP lewat spooler Windows (System.Drawing.Printing). Desain: PLAN-FASE-1 "Desain M4".
@@ -41,7 +51,10 @@ public sealed class WindowsPrinterAdapter : QueuedPrinterAdapter
 
     protected override void PrintCore(PrintJob job, CancellationToken ct)
     {
-        var name = _options.PrinterName;
+        // 2x6x2: antrean kedua yang dialognya diset potong 2 inci (DECISIONS #52), kalau dikonfigurasi.
+        var name = job.Paper == Presets.TwoBySixByTwo && !string.IsNullOrEmpty(_options.Printer2x6x2)
+            ? _options.Printer2x6x2
+            : _options.PrinterName;
         if (string.IsNullOrEmpty(name))
             throw new PrintFailure(PrintErrors.PrinterUnavailable, "printer belum dikonfigurasi (--printer)");
 
@@ -65,11 +78,6 @@ public sealed class WindowsPrinterAdapter : QueuedPrinterAdapter
         var chosen = PaperSelector.Select(
             driverSizes.Select(p => new PaperOption(p.PaperName, p.Width, p.Height)).ToList(), job.Paper, _options.Paper);
         var paper = driverSizes.First(p => p.PaperName == chosen.Name && p.Width == chosen.Width && p.Height == chosen.Height);
-
-        // Pemotong DNP per job (M-020, DECISIONS #52): 2x6x2 → CUT_2INCH, lainnya → CUT_STANDARD, apa pun
-        // Printing Preferences pengguna. Driver tanpa pemotong dilewati. Sebelum PrintDocument dibuat, supaya
-        // PageSettings mewarisi DEVMODE ini.
-        PrintTicketDevmode.ApplyCutter(settings, CutterTicket.OptionFor(job.Paper));
 
         using var doc = new PrintDocument();
         doc.PrinterSettings = settings;
@@ -116,14 +124,17 @@ public sealed class WindowsPrinterAdapter : QueuedPrinterAdapter
             if (!margins) g.TranslateTransform(-e.PageSettings.HardMarginX, -e.PageSettings.HardMarginY);
             g.InterpolationMode = InterpolationMode.HighQualityBicubic;
             g.PixelOffsetMode = PixelOffsetMode.Half;
-            // Kertas 4×6 dye-sub (overscan borderless): tutup seluruh halaman tanpa tepi putih.
+            // Kertas 4×6 dye-sub (overscan borderless, M-021): lapisan cover menutup seluruh halaman sebagai bleed,
+            // lalu gambar tepat 4×6 tanpa skala di posisi kalibrasi (default tengah), supaya margin desain terjaga.
             // Kertas lain (mis. A5 di uji PDF) dan mode ber-margin: tepat 4×6 in di origin.
             RectangleF target = fourBySix;
             if (!margins && coverPage)
             {
                 var b = e.PageSettings.Bounds;
                 var c = PaperSelector.CoverRect(b.Width, b.Height, fourBySix.Width, fourBySix.Height);
-                target = new RectangleF((float)c.X, (float)c.Y, (float)c.W, (float)c.H);
+                g.DrawImage(image, new RectangleF((float)c.X, (float)c.Y, (float)c.W, (float)c.H));
+                var x = PaperSelector.ExactRect(b.Width, b.Height, fourBySix.Width, fourBySix.Height, _options.PrintOffset);
+                target = new RectangleF((float)x.X, (float)x.Y, (float)x.W, (float)x.H);
             }
             g.DrawImage(image, target);
             printed++;

@@ -15,6 +15,8 @@ export const VALUE_FLAGS = [
   "metrics-every",
   "paper-fit",
   "hot-folder-trigger",
+  "print-offset",
+  "printer-2x6x2",
 ] as const;
 type ValueFlag = (typeof VALUE_FLAGS)[number];
 
@@ -77,14 +79,26 @@ export const dataDir = flags.value("data");
 
 /**
  * Camera Service: `--no-spawn` = sambung ke service yang dijalankan manual (port 8765, token dev).
- * Diteruskan apa adanya sampai config device ada: --printer, --paper-4r, --paper-2x6x2,
- * --print-to-file (khusus uji/stress, printer ber-port PORTPROMPT: seperti Print to PDF), --hot-folder (M7).
+ * Diteruskan apa adanya sampai config device ada: --printer, --printer-2x6x2 (antrean potong 2 inci, #52),
+ * --paper-4r, --paper-2x6x2, --paper-fit,
+ * --print-offset (kalibrasi DNP, M-021), --print-to-file (khusus uji/stress, printer ber-port PORTPROMPT: seperti
+ * Print to PDF), --hot-folder (M7), --hot-folder-trigger (pemicu shutter, mis. digiCamControl).
  */
 export const cameraServiceFlags = {
   spawn: !flags.has("no-spawn"),
   path: flags.value("camera-service"),
   args: (
-    ["printer", "paper-4r", "paper-2x6x2", "paper-fit", "print-to-file", "hot-folder"] as const
+    [
+      "printer",
+      "printer-2x6x2",
+      "paper-4r",
+      "paper-2x6x2",
+      "paper-fit",
+      "print-offset",
+      "print-to-file",
+      "hot-folder",
+      "hot-folder-trigger",
+    ] as const
   ).flatMap((k) => {
     const v = flags.value(k);
     return v ? [`--${k}`, v] : [];
