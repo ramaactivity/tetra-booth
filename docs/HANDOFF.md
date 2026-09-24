@@ -144,6 +144,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-24 | Mac | UI v2 (`4c90b54`) di `main`, CI hijau. Draf `docs/PLAN-FASE-2.md` (mulai setelah W-020 lulus). Stress 500 sesi di Mac dengan UI v2 berjalan. |
 | 2026-09-24 | Windows | W-018 selesai: Epson L121 (`EPSON L120 Series`, USB002, ready). Driver tanpa 4×6/borderless, A4 ber-margin 0,11 in → test print booth gagal berkode (`paper_mismatch` / `paper_not_supported`) sebelum spooler, 0 lembar tercetak, setelan printer tidak diubah. Temuan M-013. Laporan: `docs/reports/windows/2026-09-24-epson-l121.md`. |
 | 2026-09-24 | Windows | W-017 selesai: e2e 4/4; M-011 terverifikasi (kursor none di tombol, auto-start `id.tetraphoto.booth` aktif→mati, crash 3× pulih tanpa sesi liar); hot folder lulus (3 foto 18 MP, file 14,6 MB ditulis pelan terbaca utuh, preview 0,2–0,3 s setelah file selesai, tanpa file → camera_error setelah ±20 s lalu pulih). Temuan penting M-012: print hilang & job macet `queued` saat booth ditutup di tengah spooling. Laporan: `docs/reports/windows/2026-09-24-m7-hotfolder.md`. |
 | 2026-09-24 | Windows | W-016 selesai: env.ps1 baru (tanpa `pnpm_config_*`), e2e 2/2, kiosk di app hasil build (tutup/shortcut ditolak, crash pulih), auto-start aktif→mati (registry bersih), jurnal print: kill 10× → 6 sesi = 6 PDF, 0 spooled ganda. Temuan kecil M-011. Laporan: `docs/reports/windows/2026-09-24-m5-kiosk.md`. |
