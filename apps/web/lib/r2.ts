@@ -38,3 +38,15 @@ export const presignGet = (key: string, expiresIn = 60 * 60) =>
   getSignedUrl(client(), new GetObjectCommand({ Bucket: env("R2_BUCKET"), Key: key }), {
     expiresIn,
   });
+
+/** Tulis objek dari server (overlay template admin). */
+export const putObject = (key: string, body: Uint8Array, contentType: string) =>
+  client().send(
+    new PutObjectCommand({
+      Bucket: env("R2_BUCKET"),
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      CacheControl: "public, max-age=31536000, immutable",
+    }),
+  );

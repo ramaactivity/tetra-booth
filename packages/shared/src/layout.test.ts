@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LayoutSpecSchema } from "./layout";
+import { LAYOUT_PRESETS } from "./presets";
 
 const base = {
   id: "l1",
@@ -27,5 +28,12 @@ describe("LayoutSpecSchema", () => {
     expect(LayoutSpecSchema.safeParse({ ...base, background: { color: "red" } }).success).toBe(
       false,
     );
+  });
+});
+
+describe("preset layout admin", () => {
+  it("semua preset lolos LayoutSpecSchema", () => {
+    for (const p of Object.values(LAYOUT_PRESETS))
+      expect(LayoutSpecSchema.safeParse({ id: "x", version: 1, ...p.layout }).success).toBe(true);
   });
 });
