@@ -1,5 +1,5 @@
 import "server-only";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const env = (k: string) => {
@@ -12,6 +12,8 @@ let s3: S3Client | undefined;
 const client = () =>
   (s3 ??= new S3Client({
     region: "auto",
+    // Path-style: host akun yang sama untuk semua bucket (terjangkau dari ISP Indonesia, W-026).
+    forcePathStyle: true,
     endpoint: `https://${env("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`,
     credentials: {
       accessKeyId: env("R2_ACCESS_KEY_ID"),
@@ -26,3 +28,13 @@ export const presignPut = (key: string, contentType: string) =>
     new PutObjectCommand({ Bucket: env("R2_BUCKET"), Key: key, ContentType: contentType }),
     { expiresIn: 15 * 60 },
   );
+
+/**
+ * URL GET bertanda tangan ke endpoint S3 R2 (`*.r2.cloudflarestorage.com`). Dipakai untuk semua baca publik
+ * karena `*.r2.dev` diblokir Internet Positif di ISP Indonesia (W-026, DECISIONS #63).
+ * ponytail: tanpa cache CDN; ganti ke custom domain media.* setelah DNS pindah ke Cloudflare.
+ */
+export const presignGet = (key: string, expiresIn = 60 * 60) =>
+  getSignedUrl(client(), new GetObjectCommand({ Bucket: env("R2_BUCKET"), Key: key }), {
+    expiresIn,
+  });

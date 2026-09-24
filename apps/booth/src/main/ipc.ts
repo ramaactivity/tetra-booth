@@ -178,9 +178,14 @@ export function registerIpc(
     crewOnly();
     await cloud.retryUploads();
   });
-  ipcMain.handle("crewSyncEvents", () => {
+  ipcMain.handle("crewSyncEvents", async () => {
     crewOnly();
-    return cloud.syncEvents();
+    try {
+      return await cloud.syncEvents();
+    } catch (e) {
+      console.warn(`[cloud] sync event gagal: ${e instanceof Error ? e.message : String(e)}`);
+      throw new Error("Tidak bisa mengunduh event dari cloud. Cek koneksi internet lalu coba lagi");
+    }
   });
   ipcMain.handle("crewPair", (_e, code: unknown) => {
     crewOnly();

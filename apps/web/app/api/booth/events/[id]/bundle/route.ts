@@ -1,6 +1,7 @@
 import { type BundleManifest, StoredBundle } from "@tetra/shared";
 import { z } from "zod";
 import { apiError, authDevice } from "@/lib/booth";
+import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /** Manifest bundle event (config + file + hash + URL) untuk device yang ditugaskan (TSD §4.1). */
@@ -20,15 +21,16 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   if (error) return apiError("server_error", 500);
   const stored = StoredBundle.safeParse(data?.events.bundle);
   if (!data || !stored.success) return apiError("not_found", 404);
-  // Aset bundle berbasis hash (tidak bisa ditebak, tidak rahasia): dibaca lewat URL publik media.
-  const media = process.env.NEXT_PUBLIC_MEDIA_URL;
+  // URL GET bertanda tangan 15 menit (TSD §4.1); r2.dev diblokir ISP Indonesia (DECISIONS #63).
   return Response.json({
     bundleVersion: data.events.bundle_version,
     config: { ...stored.data.config, id: data.events.id },
-    files: stored.data.files.map((f) => ({
-      file: f.file,
-      sha256: f.sha256,
-      url: `${media}/${f.key}`,
-    })),
+    files: await Promise.all(
+      stored.data.files.map(async (f) => ({
+        file: f.file,
+        sha256: f.sha256,
+        url: await presignGet(f.key, 15 * 60),
+      })),
+    ),
   } satisfies BundleManifest);
 }

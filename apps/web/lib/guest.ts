@@ -1,5 +1,6 @@
 import "server-only";
 import { SESSION_ID_PATTERN } from "@tetra/shared";
+import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /** Data halaman tamu `/s/{id}` (FSD §2). Dibaca di server; service role tidak pernah ke browser. */
@@ -43,12 +44,14 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
     .eq("organization_id", s.organization_id)
     .order("kind")
     .order("idx");
-  const media = process.env.NEXT_PUBLIC_MEDIA_URL;
-  const assets = (rows ?? []).map((a) => ({
-    kind: a.kind,
-    idx: a.idx,
-    url: `${media}/${a.r2_key}`,
-  }));
+  // Kunci "…#x" (data uji) → objek tanpa fragmen.
+  const assets = await Promise.all(
+    (rows ?? []).map(async (a) => ({
+      kind: a.kind,
+      idx: a.idx,
+      url: await presignGet(a.r2_key.split("#")[0] ?? a.r2_key),
+    })),
+  );
   if (s.upload_status !== "complete")
     return { state: "pending", event, startedAt: s.started_at, assets, total: s.asset_count ?? 0 };
   return { state: "ready", event, assets, expiresAt };

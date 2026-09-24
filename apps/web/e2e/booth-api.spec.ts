@@ -91,7 +91,9 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
       await request.get(`/api/booth/events/${eventId}/bundle`, { headers: auth })
     ).json();
     expect(m).toMatchObject({ bundleVersion: 2, config: { id: eventId, name: "e2e event" } });
-    expect(m.files[0].url).toMatch(/\/o\/e\/bundle\/aaa\.png$/);
+    expect(m.files[0].url).toMatch(
+      /^https:\/\/[0-9a-f]+\.r2\.cloudflarestorage\.com\/[\w-]+\/o\/e\/bundle\/aaa\.png\?X-Amz-/,
+    );
     expect(
       (
         await request.get("/api/booth/events/7c9e6679-7425-40de-944b-e07fc1f90ae7/bundle", {
