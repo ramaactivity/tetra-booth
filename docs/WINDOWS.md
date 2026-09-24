@@ -56,7 +56,19 @@ Start-Process apps\booth\node_modules\electron\dist\electron.exe -ArgumentList '
 
 `env.ps1` menghapus `ELECTRON_RUN_AS_NODE`. Tanpa itu Electron jalan sebagai Node biasa.
 
-Menilai UI tanpa melihat layar: baca log (`[fase0]`, error), lalu screenshot **jendela aplikasi saja**:
+Menjalankan sesi booth untuk uji (sejak M1):
+
+```powershell
+electron.exe apps\booth\out\main\index.js --camera=simulated --demo --data="$W\data" --shots="$W\shots\<nama-uji>" --enable-logging
+```
+
+- `--camera=webcam|simulated`, `--demo` (sesi jalan sendiri), `--size=WxH` (mis. `450x800` untuk portrait di layar 1280×800 logis).
+- `--data` **wajib** di laptop ini: foto & data sesi masuk `$W\data`, bukan `%APPDATA%`.
+- `--shots` menyimpan screenshot **isi jendela booth** per fase (`capturePage`, hanya konten app). Ini cara utama melihat UI.
+- Log: `[boot]`, `[session] <fase> <id>`, `[phase]`, `[session] compose <ms> ms`.
+- Foto webcam merekam ruangan: lihat seperlunya, hapus `$W\data` dan `$W\shots` setelah laporan ditulis.
+
+Kalau butuh screenshot di luar booth, gunakan **jendela aplikasi saja**:
 - Cari handle jendela dari proses booth (`(Get-Process 'Tetra Booth','electron').MainWindowHandle`, pilih yang bukan 0).
 - Proses PowerShell harus DPI-aware (`SetProcessDPIAware` via P/Invoke `user32.dll`), karena laptop ini scaling 150%. Tanpa itu gambar terpotong.
 - Ambil ukuran dengan `GetWindowRect`, lalu `PrintWindow(hwnd, hdc, 2)` (`PW_RENDERFULLCONTENT`) ke `System.Drawing.Bitmap`. Jangan `CopyFromScreen`.

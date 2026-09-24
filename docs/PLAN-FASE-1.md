@@ -25,6 +25,8 @@ Target selesai (07-ROADMAP, direvisi): alur sesi lengkap berjalan di Windows den
 | M8 | **Stress test.** Driver otomatis 500 sesi dengan kamera simulasi + print ke Print to PDF (Windows) / printer null (Mac, CI), pantau memori & handle. | Mac (harness), **Windows** (semalam) | 500 sesi tanpa crash; RAM & handle tidak naik terus |
 | M9 | **Build Windows via CI.** Setelah SQLite (native module), build win-x64 dipindah ke job GitHub Actions `windows-latest` yang meng-upload zip ke R2, karena cross-build native module dari Mac tidak andal. `update.cmd` tetap sama. | Mac (CI) | Zip dari CI jalan di laptop |
 
+Status M1 (2026-09-24): kode selesai di `main`, teruji di Mac dengan kamera simulasi (landscape & portrait). Menunggu verifikasi webcam di Windows (W-011).
+
 Urutan kerja: **M4 (Windows) paralel dengan M1 → M2 → M3 (Mac)** → M9 → M5/M6 → M7 → M8.
 
 Kiosk (M5) di laptop pinjaman: auto-start mengubah setelan startup Windows, jadi hanya diuji dengan cara yang bisa dibatalkan tanpa admin dan dikembalikan setelah uji, atau di laptop booth sendiri.

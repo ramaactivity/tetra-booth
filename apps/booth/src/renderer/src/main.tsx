@@ -5,8 +5,10 @@ import "./index.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root tidak ada");
-createRoot(root).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+window.tetra.config().then((cfg) =>
+  createRoot(root).render(
+    <StrictMode>
+      <App cfg={cfg} />
+    </StrictMode>,
+  ),
 );

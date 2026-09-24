@@ -1,33 +1,26 @@
-import type { BoothPlatform } from "@tetra/booth-core";
-import type { TetraBridge } from "./bridge";
+import {
+  type BoothPlatform,
+  type BoothStorage,
+  createSimulatedCamera,
+  createWebcamCamera,
+} from "@tetra/booth-core";
+import type { BoothConfig, TetraBridge } from "./bridge";
 
-export type { TetraBridge } from "./bridge";
-
-const todo = (name: string) => async (): Promise<never> => {
-  throw new Error(`${name} belum diimplementasi (Fase 1)`);
-};
+export type { BoothConfig, TetraBridge } from "./bridge";
 
 /** Adapter BoothPlatform untuk Electron; berbicara ke main lewat `window.tetra`. */
-export const createElectronPlatform = (bridge: TetraBridge): BoothPlatform => ({
-  camera: {
-    list: todo("camera.list"),
-    connect: todo("camera.connect"),
-    startLiveView: todo("camera.startLiveView"),
-    stopLiveView: todo("camera.stopLiveView"),
-    capture: todo("camera.capture"),
-    status: todo("camera.status"),
-    onEvent: () => () => {},
-  },
-  printer: { submit: todo("printer.submit"), status: todo("printer.status") },
-  storage: {
-    sessionDir: todo("storage.sessionDir"),
-    writeFile: todo("storage.writeFile"),
-    readFile: todo("storage.readFile"),
-  },
-  device: {
-    info: () => bridge.deviceInfo(),
-    keepAwake: todo("device.keepAwake"),
-    kiosk: todo("device.kiosk"),
-  },
-  health: () => bridge.health(),
-});
+export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): BoothPlatform => {
+  const storage: BoothStorage = {
+    sessionDir: (id) => bridge.sessionDir(id),
+    writeFile: (path, bytes) => bridge.writeFile(path, bytes),
+    readFile: (path) => bridge.readFile(path),
+  };
+  return {
+    camera:
+      cfg.camera === "simulated" ? createSimulatedCamera(storage) : createWebcamCamera(storage),
+    printer: { submit: (job) => bridge.printSubmit(job) },
+    storage,
+    health: () => bridge.health(),
+    phaseChanged: (phase) => bridge.phaseChanged(phase),
+  };
+};
