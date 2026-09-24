@@ -1,8 +1,10 @@
 import { EventSettingsSchema, LAYOUT_PRESETS, type PresetId, StoredBundle } from "@tetra/shared";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DEFAULT_TEMPLATE, type EventBranding, type EventTemplate } from "@/lib/event-bundle";
 import { requireMember } from "@/lib/supabase/server";
+import { LinksPanel } from "./LinksPanel";
 import { SettingsForm } from "./SettingsForm";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +15,9 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const { db, orgId } = await requireMember(["owner", "admin"]);
   const { data: ev } = await db
     .from("events")
-    .select("id, name, event_date, location, settings, branding, bundle, event_devices(device_id)")
+    .select(
+      "id, name, event_date, location, settings, branding, bundle, client_token, live_token, event_devices(device_id)",
+    )
     .eq("id", id)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -35,6 +39,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
     raw.template && raw.template.preset in LAYOUT_PRESETS ? raw.template : DEFAULT_TEMPLATE;
   const branding = (ev.branding ?? {}) as EventBranding;
   const bundle = StoredBundle.safeParse(ev.bundle);
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
   const assigned = new Set(ev.event_devices.map((d) => d.device_id));
 
   return (
@@ -68,6 +74,12 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           client_days: raw.clientDays ?? 90,
           devices: (devices ?? []).map((d) => ({ ...d, assigned: assigned.has(d.id) })),
         }}
+      />
+      <LinksPanel
+        eventId={ev.id}
+        origin={origin}
+        clientToken={ev.client_token}
+        liveToken={ev.live_token}
       />
     </>
   );
