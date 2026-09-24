@@ -23,8 +23,9 @@ import {
 } from "./session";
 
 const RECONNECT_EVERY_MS = 2000;
-/** Mode demo: jeda "tamu" di layar yang butuh sentuhan. */
+/** Mode demo: jeda "tamu" di layar yang butuh sentuhan (dipersingkat di mode cepat stress test). */
 const DEMO_TAP_MS = 1500;
+const FAST_TAP_MS = 150;
 
 const startEvent = (event: BoothEvent): SessionEvent => ({
   type: "START",
@@ -41,11 +42,14 @@ export function SessionRunner({
   event,
   guestBaseUrl,
   demo = false,
+  fast = false,
   onCrew,
 }: {
   event: BoothEvent;
   guestBaseUrl: string;
   demo?: boolean;
+  /** Demo dipercepat (M8). */
+  fast?: boolean;
   onCrew?: () => void;
 }) {
   const p = usePlatform();
@@ -69,25 +73,26 @@ export function SessionRunner({
 
   // Timer sederhana per fase.
   useEffect(() => {
+    const tapMs = fast ? FAST_TAP_MS : DEMO_TAP_MS;
     const after = (ms: number, e: SessionEvent) => {
       const t = setTimeout(() => dispatch(e), ms);
       return () => clearTimeout(t);
     };
     switch (s.phase) {
       case "attract":
-        return demo ? after(DEMO_TAP_MS, startEvent(event)) : undefined;
+        return demo ? after(tapMs, startEvent(event)) : undefined;
       case "preview":
         return after(cfg.shotDelaySec * 1000, { type: "PREVIEW_DONE" });
       case "review":
-        return after(demo ? DEMO_TAP_MS : cfg.reviewTimeoutSec * 1000, { type: "CONTINUE" });
+        return after(demo ? tapMs : cfg.reviewTimeoutSec * 1000, { type: "CONTINUE" });
       case "print_select":
-        return demo ? after(DEMO_TAP_MS, { type: "PRINTS_SELECTED", count: 1 }) : undefined;
+        return demo ? after(tapMs, { type: "PRINTS_SELECTED", count: 1 }) : undefined;
       case "qr":
-        return after(demo ? DEMO_TAP_MS : cfg.qrScreenSec * 1000, { type: "FINISH" });
+        return after(demo ? tapMs : cfg.qrScreenSec * 1000, { type: "FINISH" });
       default:
         return undefined;
     }
-  }, [s.phase, demo, cfg, event]);
+  }, [s.phase, demo, fast, cfg, event]);
 
   // Capture (dan retry otomatis: `attempt` berubah → efek jalan lagi).
   // biome-ignore lint/correctness/useExhaustiveDependencies: s.attempt sengaja memicu capture ulang

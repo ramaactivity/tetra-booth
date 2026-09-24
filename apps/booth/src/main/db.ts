@@ -219,6 +219,13 @@ export function openDb(file: string) {
         )
         .all(since, maxAttempts) as PrintJobInfo[];
     },
+    completedSessions(): number {
+      return (
+        db.prepare("select count(*) n from sessions where status = 'completed'").get() as {
+          n: number;
+        }
+      ).n;
+    },
     uploadPending(): number {
       return (db.prepare("select count(*) n from upload_queue").get() as { n: number }).n;
     },

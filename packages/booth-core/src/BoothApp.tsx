@@ -1,5 +1,5 @@
 import type { EventBundle } from "@tetra/shared";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CrewMode } from "./crew/CrewMode";
 import { errText } from "./errors";
 import { type BoothEvent, DEFAULT_EVENT, loadEvent } from "./event";
@@ -11,10 +11,13 @@ import { SessionRunner } from "./SessionRunner";
 export function BoothApp({
   guestBaseUrl,
   demo = false,
+  fast = false,
   kiosk = false,
 }: {
   guestBaseUrl: string;
   demo?: boolean;
+  /** Demo dipercepat untuk stress test (M8): countdown 1 s, jeda antar foto 0,2 s. */
+  fast?: boolean;
   /** Kiosk (M5): kursor disembunyikan untuk tamu; mode crew tetap menampilkan kursor. */
   kiosk?: boolean;
 }) {
@@ -47,6 +50,15 @@ export function BoothApp({
     return p.crew.onPrinterAlert(setAlert);
   }, [p]);
 
+  // Objek event harus stabil antar render: efek SessionRunner (compose, selesai sesi) bergantung padanya.
+  const runEvent = useMemo(
+    () =>
+      fast
+        ? { ...event, settings: { ...event.settings, countdownSec: 1, shotDelaySec: 0.2 } }
+        : event,
+    [event, fast],
+  );
+
   const select = (id: string) =>
     p.events
       .setActive(id)
@@ -69,9 +81,10 @@ export function BoothApp({
     <div className={kiosk ? "cursor-none [&_*]:cursor-none" : undefined}>
       <SessionRunner
         key={event.id}
-        event={event}
+        event={runEvent}
         guestBaseUrl={guestBaseUrl}
         demo={demo}
+        fast={fast}
         onCrew={() => setCrewOpen(true)}
       />
       {alert && (

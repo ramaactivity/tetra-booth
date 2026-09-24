@@ -40,6 +40,8 @@ public sealed class Dispatcher(IPrinterAdapter printer, HotFolderCamera? camera 
                     uptime = (DateTime.UtcNow - _startedAt).TotalSeconds,
                     camera = camera is null ? "disconnected" : "connected",
                     printer = State((await printer.GetStatusAsync(ct)).State),
+                    workingSetMb = Math.Round(Environment.WorkingSet / 1048576.0, 1),
+                    handles = System.Diagnostics.Process.GetCurrentProcess().HandleCount,
                 }),
                 "camera.list" => Reply(id, type, camera is null
                     ? Array.Empty<object>()

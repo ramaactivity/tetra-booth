@@ -12,6 +12,7 @@ export const VALUE_FLAGS = [
   "paper-2x6x2",
   "print-to-file",
   "hot-folder",
+  "metrics-every",
 ] as const;
 type ValueFlag = (typeof VALUE_FLAGS)[number];
 
@@ -57,6 +58,7 @@ export const config: BoothConfig = {
   camera:
     (["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ?? "webcam",
   demo: flags.has("demo"),
+  fast: flags.has("fast"),
   guestUrl: process.env.TETRA_GUEST_URL ?? "https://app.tetraphoto.com",
 };
 
@@ -86,3 +88,6 @@ export const cameraServiceFlags = {
     },
   ),
 };
+
+/** Interval log metrik (detik), default 60. Stress test memakai nilai kecil. */
+export const metricsEverySec = Math.max(2, Number(flags.value("metrics-every") ?? 60) || 60);

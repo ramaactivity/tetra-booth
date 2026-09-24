@@ -71,6 +71,9 @@ export const ResultSchemas = {
     uptime: z.number().nonnegative(),
     camera: z.enum(["connected", "disconnected"]),
     printer: z.enum(["ready", "error", "unavailable"]),
+    /** Pemakaian memori & handle Camera Service (M8, deteksi leak). Opsional untuk kompatibilitas. */
+    workingSetMb: z.number().nonnegative().optional(),
+    handles: z.number().int().nonnegative().optional(),
   }),
 } as const satisfies Record<CommandType, z.ZodType>;
 

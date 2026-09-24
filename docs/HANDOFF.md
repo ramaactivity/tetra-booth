@@ -73,6 +73,12 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
      - tidak ada file masuk → setelah ±10 s `capture gagal`, retry otomatis, lalu layar "kamera lagi disiapkan", lalu lanjut saat file masuk.
      - Catat jeda file masuk → preview tampil.
   - Laporan `docs/reports/windows/<tanggal>-m7-hotfolder.md`. Hapus `$W\data`, `$W\hot`, `$W\prints`, `$W\shots`.
+- [ ] **W-018 Tes printer sungguhan: Epson L121 milik teman Rama (prioritas, sebelum verifikasi M-012).** Printer sudah menyala & terhubung, driver sudah terpasang (jangan pasang/ubah apa pun). **Maksimal 2 lembar fisik dicetak** (tinta & kertas milik teman). Jangan ubah setelan default/preferensi printer di Windows.
+  0. Minta Rama memastikan lewat temannya: kertas apa yang dimasukkan (idealnya kertas foto 4R/10×15; kalau tidak ada, A4 biasa).
+  1. **Tanpa mencetak:** `Get-Printer` → nama persis printer Epson, driver, port, status. Daftar `PrinterSettings.PaperSizes` Epson (nama, ukuran 1/100 in, `RawKind`). Untuk ukuran 4×6/10×15 (termasuk varian *Borderless*/*Tanpa Batas*) dan A4: set `DefaultPageSettings.PaperSize` lalu catat `PrintableArea`, `HardMarginX/Y`, dan resolusi. Jalankan `PaperSelector` (logika M4) terhadap daftar itu: preset `4R` tanpa config memilih apa?
+  2. **Cetak 1 lembar lewat jalur booth:** booth dev `--camera simulated --data "$W\data" --printer "<nama persis>" --paper-4r "<ukuran 4×6 terbaik, utamakan borderless>" --paper-2x6x2 "<ukuran yang sama>"` (tanpa `--print-to-file`). Mode crew → **Test print**. Catat log `[print] …` (selesai / GAGAL + kode), waktu submit → `print.done`, dan status spooler. Minta Rama meminta foto hasil cetak dari temannya: apakah gambar penuh 4×6, ada margin putih, terpotong, atau terputar.
+  3. Kalau langkah 2 gagal `paper_mismatch` (area cetak lebih kecil dari kertas karena inkjet ber-margin): **jangan ubah kode**. Catat angka `PrintableArea` vs ukuran kertas dan pesan error; Mac yang memutuskan toleransi/mode ber-margin. Lembar kedua hanya kalau Mac/Rama meminta.
+  - Laporan `docs/reports/windows/<tanggal>-epson-l121.md` (tanpa foto hasil cetak di repo; cukup deskripsi dari Rama). Hapus `$W\data` setelahnya.
 
 ## Untuk Mac
 
@@ -111,6 +117,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 | 2026-09-24 | Windows | W-016 selesai: env.ps1 baru (tanpa `pnpm_config_*`), e2e 2/2, kiosk di app hasil build (tutup/shortcut ditolak, crash pulih), auto-start aktif→mati (registry bersih), jurnal print: kill 10× → 6 sesi = 6 PDF, 0 spooled ganda. Temuan kecil M-011. Laporan: `docs/reports/windows/2026-09-24-m5-kiosk.md`. |
 | 2026-09-24 | Windows | W-015 selesai: flag bentuk spasi & boot tanpa "tidak terhubung" (M-008) beres; 20/20 kill pulih, 9 sesi = 9 PDF = 9 `done`, 3 kirim ulang, 0 cetak ganda menurut log (cetak ganda fisik tidak terdeteksi lewat PDF, lihat laporan). Laporan: `docs/reports/windows/2026-09-24-m9-print-crash.md`. |
 | 2026-09-24 | Windows | W-014 selesai: e2e lulus (5,1 s), test print & cetak ulang ke PDF, kertas berkurang, print gagal tampil di attract & menu crew, cek kamera 2560×1920 (121–209 ms setelah hangat), bundle overlay+font terpakai di strip, portrait bisa discroll. Temuan kecil M-010. Laporan: `docs/reports/windows/2026-09-24-m6-crew.md`. |
+| 2026-09-24 | Mac | Merge W-017. W-018 (tes Epson L121 sungguhan, maks 2 lembar) ditambahkan. M-012 dikerjakan. Harness stress M8 (`pnpm --filter booth stress`, `--fast`, log `[metrics]`) di `main`. |
 | 2026-09-24 | Mac | Merge W-016. M-011 selesai (+ jeda tombol mulai 800 ms). M7 hot folder di `main` (DECISIONS #41) dengan e2e. W-017 ditambahkan. |
 | 2026-09-24 | Mac | Merge W-014/W-015. Protokol: Mac tidak lagi push ke `win`. M-010 selesai. env.ps1 diperbarui (pnpm 12 `pnpm_config_*`, NuGet, electron-builder, TEMP) + daftar bersih-bersih AppData. Cetak ganda dicegah jurnal print Camera Service (DECISIONS #39). M5 kiosk di `main` (DECISIONS #40), e2e kiosk. W-016 ditambahkan. |
 | 2026-09-24 | Mac | Merge W-013. M-009 selesai: print tertunda disimpan `queued` & dikirim ulang setelah Camera Service pulih. W-015 ditambahkan. |

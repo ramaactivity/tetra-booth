@@ -6,6 +6,8 @@ export type BoothConfig = {
   camera: "webcam" | "simulated" | "hotfolder";
   /** Sesi berjalan sendiri tanpa sentuhan. */
   demo: boolean;
+  /** Demo dipercepat untuk stress test (M8): countdown 1 s, jeda pendek. */
+  fast?: boolean;
   /** Base URL halaman tamu untuk QR, mis. https://app.tetraphoto.com. */
   guestUrl: string;
   /** Mode kiosk aktif (M5): kursor disembunyikan di luar mode crew. */

@@ -18,6 +18,8 @@ public class DispatcherTests
         Assert.True(p.GetProperty("uptime").GetDouble() >= 0);
         Assert.Equal("disconnected", p.GetProperty("camera").GetString());
         Assert.Equal("unavailable", p.GetProperty("printer").GetString());
+        Assert.True(p.GetProperty("workingSetMb").GetDouble() > 0);
+        Assert.True(p.GetProperty("handles").GetInt32() >= 0);
     }
 
     [Fact]
