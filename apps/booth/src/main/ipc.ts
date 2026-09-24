@@ -1,10 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
-import { PaperSchema, SESSION_ID_PATTERN } from "@tetra/shared";
+import { PairRequest, PaperSchema, SESSION_ID_PATTERN } from "@tetra/shared";
 import { app, ipcMain, net } from "electron";
 import { z } from "zod";
 import type { Alerts } from "./alerts";
 import { cameraHealth, request, ServiceUnavailable } from "./camera-client";
+import type { Cloud } from "./cloud";
 import { config } from "./config";
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
 import type { BoothDb } from "./db";
@@ -61,6 +62,7 @@ const SessionCompleted = z.object({
 export function registerIpc(
   db: BoothDb,
   alerts: Alerts,
+  cloud: Cloud,
   onPhaseChanged: (phase: string) => void = () => {},
 ) {
   const pins = createPinGuard({
@@ -165,10 +167,24 @@ export function registerIpc(
     return {
       online: net.isOnline(),
       uploadPending: db.uploadPending(),
+      uploadError: db.uploadError(),
       paper: db.paper(),
       printer: alerts.printer(),
       cameraService,
+      device: cloud.device(),
     };
+  });
+  ipcMain.handle("crewRetryUploads", async () => {
+    crewOnly();
+    await cloud.retryUploads();
+  });
+  ipcMain.handle("crewSyncEvents", () => {
+    crewOnly();
+    return cloud.syncEvents();
+  });
+  ipcMain.handle("crewPair", (_e, code: unknown) => {
+    crewOnly();
+    return cloud.pair(PairRequest.shape.code.parse(code));
   });
   ipcMain.handle("crewResetPaper", (_e, capacity: unknown) => {
     crewOnly();
@@ -242,6 +258,7 @@ export function registerIpc(
       ...s,
       assets: s.assets.map((a) => ({ ...a, path: inSessions(a.path) })),
     });
+    cloud.kickUpload();
   });
 
   ipcMain.on("phaseChanged", (e, phase: unknown) => {

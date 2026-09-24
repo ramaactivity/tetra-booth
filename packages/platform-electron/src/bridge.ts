@@ -42,6 +42,9 @@ export type TetraBridge = {
   crewExit: BoothCrew["exit"];
   crewAutoStart: BoothCrew["autoStart"];
   crewSetAutoStart: BoothCrew["setAutoStart"];
+  crewPair: BoothCrew["pair"];
+  crewSyncEvents: BoothCrew["syncEvents"];
+  crewRetryUploads: BoothCrew["retryUploads"];
   printerAlert: BoothCrew["printerAlert"];
   onPrinterAlert: BoothCrew["onPrinterAlert"];
   onPrintUpdated: BoothCrew["onPrintUpdated"];

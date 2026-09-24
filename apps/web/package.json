@@ -8,10 +8,12 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "r2:check": "node --env-file-if-exists=.env.local scripts/r2-check.mjs",
+    "event:push": "node --env-file-if-exists=.env.local scripts/event-push.mjs",
     "e2e": "playwright test"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",
+    "@aws-sdk/s3-request-presigner": "^3.1138.0",
     "@supabase/supabase-js": "^2.117.0",
     "@tetra/db": "workspace:*",
     "@tetra/shared": "workspace:*",
@@ -20,7 +22,8 @@
     "next": "^16.3.6",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

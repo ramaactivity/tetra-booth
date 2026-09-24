@@ -38,7 +38,7 @@ Prinsip:
 
 **Selesai jika:**
 1. Alur sesi lengkap berjalan di Windows dengan webcam, output tersimpan, print lewat `WindowsPrinterAdapter`.
-2. Stress test otomatis 500 sesi (kamera simulasi) tanpa crash atau memory leak.
+2. Stress test otomatis 500 sesi (kamera simulasi) tanpa crash atau memory leak. _(Selesai 2026-09-25: W-024 500/500 sesi tanpa crash, tanpa tren memori; dinyatakan cukup oleh Rama, DECISIONS #53)_
 
 ## Fase 1b — Kamera DSLR (dipindah dari Fase 1, menunggu EDSDK & kamera)
 - [ ] Camera Service: Canon EDSDK (connect, reconnect, live view, capture).
@@ -49,10 +49,10 @@ Prinsip:
 2. Dipakai di 1 event nyata dengan LumaBooth standby sebagai cadangan, tanpa perlu pindah ke cadangan.
 
 ## Fase 2 — Cloud + halaman tamu
-- [ ] Pairing device.
-- [ ] Pull event + bundle, cache offline.
-- [ ] Antrean upload + presigned R2 + retry backoff.
-- [ ] Heartbeat.
+- [x] Pairing device. _(N2, 2026-09-25: API + skrip owner + mode crew; DECISIONS #55–56)_
+- [x] Pull event + bundle, cache offline. _(N3, 2026-09-25; DECISIONS #57)_
+- [x] Antrean upload + presigned R2 + retry backoff. _(N4, 2026-09-25; DECISIONS #58; uji cabut internet 1 jam = N9 Windows)_
+- [x] Heartbeat. _(N2/N5, 2026-09-25: tiap 60 dtk — versi, layar, event aktif, kamera, printer, kertas, antrean, error terakhir)_
 - [ ] Halaman tamu: state unknown/pending/ready/expired/removed, simpan via share sheet, branding event.
 - [ ] Tracking `qr_open`, `save`, `save_all`.
 - [ ] Sentry web + booth.

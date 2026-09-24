@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useState } from "react";
 import { copy } from "../copy";
-import { errText } from "../errors";
+import { crewText, errText } from "../errors";
 import type { BoothEvent } from "../event";
 import { usePlatform } from "../PlatformContext";
 import type { CrewStatus, FailedPrint } from "../platform";
@@ -120,16 +120,20 @@ export function CrewMenu({
   bundles,
   activeId,
   onSelectEvent,
+  onReloadEvents,
   onCameraCheck,
   onChangePin,
+  onPair,
   onClose,
 }: {
   event: BoothEvent;
   bundles: EventBundle[];
   activeId: string;
   onSelectEvent: (id: string) => void;
+  onReloadEvents: () => Promise<void>;
   onCameraCheck: () => void;
   onChangePin: () => void;
+  onPair: () => void;
   onClose: () => void;
 }) {
   const p = usePlatform();
@@ -177,7 +181,7 @@ export function CrewMenu({
         if (done) setNote(done);
         return refresh();
       })
-      .catch((e: unknown) => setNote(errText(e)));
+      .catch((e: unknown) => setNote(crewText(e)));
 
   const printerTone: Tone =
     status?.printer.status === "ready"
@@ -299,13 +303,26 @@ export function CrewMenu({
           }
           foot={
             <>
-              <span>{copy.crew.autoSend}</span>
-              <span>{copy.crew.whenOnline}</span>
+              <span className="truncate" data-testid="cloud-device">
+                {status?.device
+                  ? copy.crew.paired(status.device.name, status.device.shortCode)
+                  : copy.crew.unpaired}
+              </span>
+              <button type="button" className={link} onClick={onPair}>
+                {copy.crew.pair} <ArrowRight size={22} strokeWidth={2.5} />
+              </button>
             </>
           }
         >
-          <div className={big}>{copy.crew.sessions(status?.uploadPending ?? 0)}</div>
-          <div className={sub}>{copy.crew.uploadQueue}</div>
+          <div className="flex items-center justify-between gap-4">
+            <div className={big}>{copy.crew.files(status?.uploadPending ?? 0)}</div>
+            {!!status?.uploadPending && status.device && (
+              <button type="button" className={link} onClick={act(() => p.crew.retryUploads())}>
+                {copy.crew.retryUpload}
+              </button>
+            )}
+          </div>
+          <div className={`${sub} truncate`}>{status?.uploadError ?? copy.crew.uploadQueue}</div>
         </StatCard>
 
         <StatCard
@@ -401,6 +418,20 @@ export function CrewMenu({
 
       {sheet === "events" && (
         <Sheet title={copy.crew.changeEvent} onClose={() => setSheet(null)}>
+          {status?.device && (
+            <Button
+              variant="secondary"
+              className={action}
+              onClick={act(async () => {
+                setNote(copy.crew.syncing);
+                const n = await p.crew.syncEvents();
+                await onReloadEvents();
+                setNote(copy.crew.synced(n));
+              })}
+            >
+              {copy.crew.syncEvents}
+            </Button>
+          )}
           <div className="flex flex-col gap-3 overflow-y-auto">
             {[{ id: "local", name: copy.crew.defaultEvent, date: "" }, ...bundles].map((b) => (
               <button

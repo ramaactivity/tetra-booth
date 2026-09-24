@@ -42,6 +42,29 @@ export const UPLOAD_PRIORITY: Record<AssetKind, number> = {
   thumb_original: 2,
 };
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export type DueUpload = {
+  assetId: string;
+  attempts: number;
+  sessionId: string;
+  kind: AssetKind;
+  idx: number;
+  path: string;
+  bytes: number;
+  syncedMeta: number;
+};
+export type SessionMeta = {
+  id: string;
+  eventId: string;
+  startedAt: string;
+  completedAt: string;
+  photoCount: number;
+  retakeCount: number;
+  printCount: number;
+  assetCount: number;
+};
+
 export type SessionStart = {
   id: string;
   eventId: string;
@@ -170,10 +193,15 @@ export function openDb(file: string) {
           s.id,
         ).changes;
         if (!changed) throw new Error(`sesi ${s.id} belum tercatat`);
+        // Hanya event cloud (id UUID, DECISIONS #58) yang bisa diunggah; event lokal tetap di laptop.
+        const { event_id } = db.prepare("select event_id from sessions where id = ?").get(s.id) as {
+          event_id: string;
+        };
+        const cloud = UUID.test(event_id);
         for (const a of s.assets) {
           const assetId = `${s.id}:${a.kind}:${a.idx}`;
           insertAsset.run(assetId, s.id, a.kind, a.idx, a.path, a.bytes);
-          enqueue.run(assetId, UPLOAD_PRIORITY[a.kind], s.completedAt);
+          if (cloud) enqueue.run(assetId, UPLOAD_PRIORITY[a.kind], s.completedAt);
         }
       });
     },
@@ -277,6 +305,62 @@ export function openDb(file: string) {
     },
     uploadPending(): number {
       return (db.prepare("select count(*) n from upload_queue").get() as { n: number }).n;
+    },
+    /** Aset yang jatuh tempo diunggah, urut prioritas TSD §4.2. */
+    dueUploads(now: string, limit: number): DueUpload[] {
+      return db
+        .prepare(
+          `select q.asset_id assetId, q.attempts, a.session_id sessionId, a.kind, a.idx, a.path, a.bytes,
+             s.synced_meta syncedMeta
+           from upload_queue q join assets a on a.id = q.asset_id join sessions s on s.id = a.session_id
+           where q.next_attempt_at <= ? order by q.priority, q.next_attempt_at limit ?`,
+        )
+        .all(now, limit) as DueUpload[];
+    },
+    /** Metadata sesi untuk upsert cloud (POST /api/booth/sessions). */
+    sessionMeta(id: string) {
+      return db
+        .prepare(
+          `select id, event_id eventId, started_at startedAt, completed_at completedAt,
+             photo_count photoCount, retake_count retakeCount, print_count printCount,
+             (select count(*) from assets where session_id = sessions.id) assetCount
+           from sessions where id = ?`,
+        )
+        .get(id) as SessionMeta;
+    },
+    sessionMetaSynced(id: string) {
+      db.prepare("update sessions set synced_meta = 1 where id = ?").run(id);
+    },
+    uploadDone(assetId: string, r2Key: string, at: string) {
+      tx(() => {
+        db.prepare("update assets set r2_key = ?, uploaded_at = ? where id = ?").run(
+          r2Key,
+          at,
+          assetId,
+        );
+        db.prepare("delete from upload_queue where asset_id = ?").run(assetId);
+      });
+    },
+    uploadFailed(assetId: string, error: string, nextAt: string) {
+      db.prepare(
+        "update upload_queue set attempts = attempts + 1, last_error = ?, next_attempt_at = ? where asset_id = ?",
+      ).run(error, nextAt, assetId);
+    },
+    /** Status antrean untuk mode crew: jumlah & error terakhir. */
+    uploadError(): string | null {
+      return (
+        (
+          db
+            .prepare(
+              "select last_error e from upload_queue where last_error is not null order by next_attempt_at desc limit 1",
+            )
+            .get() as { e: string } | undefined
+        )?.e ?? null
+      );
+    },
+    /** "Coba sekarang" (FSD §1.3): semua aset yang menunggu backoff jatuh tempo sekarang. */
+    uploadRetryNow(now: string) {
+      db.prepare("update upload_queue set next_attempt_at = ?").run(now);
     },
 
     /** Untuk test & mode crew nanti. */

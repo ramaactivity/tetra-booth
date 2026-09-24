@@ -1,6 +1,6 @@
 # Rencana Fase 2: Cloud + halaman tamu
 
-Status: **draf (2026-09-24), belum dikerjakan.** Mulai setelah kriteria Fase 1 terbukti (W-020 stress 500 sesi di Windows lulus). Keputusan di bawah diambil Claude Mac atas delegasi Rama ("decide sendiri") dan dicatat di DECISIONS saat dikerjakan; Rama bisa mengubahnya kapan saja.
+Status: **dikerjakan sejak 2026-09-25** (kriteria Fase 1 selesai, DECISIONS #53). Keputusan di bawah diambil Claude Mac atas delegasi Rama ("decide sendiri") dan dicatat di DECISIONS saat dikerjakan; Rama bisa mengubahnya kapan saja.
 
 Target selesai (07-ROADMAP): di event nyata ≥ 95% sesi ter-upload ≤ 5 menit saat online; internet dicabut 1 jam lalu disambung → semua sesi terkirim tanpa campur tangan.
 

@@ -8,7 +8,7 @@ import { pruneLogs } from "./log";
 const tmp = () => mkdtempSync(join(tmpdir(), "tb-"));
 const start = {
   id: "abcdefghjk",
-  eventId: "e1",
+  eventId: "7c9e6679-7425-40de-944b-e07fc1f90ae7",
   layoutVersionId: "l@1",
   startedAt: "2026-09-24T10:00:00Z",
 };
@@ -53,6 +53,30 @@ describe("booth db", () => {
     db.sessionCompleted(done);
     expect(db.query<{ n: number }>("select count(*) n from assets")[0]?.n).toBe(4);
     expect(db.query<{ n: number }>("select count(*) n from upload_queue")[0]?.n).toBe(4);
+  });
+
+  it("event lokal (bukan UUID cloud): aset tersimpan, tidak masuk antrean upload", () => {
+    const db = openDb(":memory:");
+    db.sessionStarted({ ...start, eventId: "andi-sari" });
+    db.sessionCompleted(done);
+    expect(db.query<{ n: number }>("select count(*) n from assets")[0]?.n).toBe(4);
+    expect(db.uploadPending()).toBe(0);
+  });
+
+  it("antrean upload: jatuh tempo urut prioritas, gagal → backoff, selesai → keluar antrean", () => {
+    const db = openDb(":memory:");
+    db.sessionStarted(start);
+    db.sessionCompleted(done);
+    const now = "2026-09-24T10:02:00Z";
+    expect(db.dueUploads(now, 2).map((u) => u.kind)).toEqual(["strip_web", "original"]);
+    expect(db.sessionMeta(start.id)).toMatchObject({ eventId: start.eventId, assetCount: 4 });
+    db.uploadFailed(`${start.id}:strip_web:0`, "offline", "2026-09-24T10:03:00Z");
+    expect(db.dueUploads(now, 1).map((u) => u.kind)).toEqual(["original"]);
+    expect(db.uploadError()).toBe("offline");
+    db.uploadDone(`${start.id}:original:1`, "k", now);
+    expect(db.uploadPending()).toBe(3);
+    db.uploadRetryNow(now);
+    expect(db.dueUploads(now, 1)[0]).toMatchObject({ kind: "strip_web", attempts: 1 });
   });
 
   it("gagal di tengah transaksi → tidak ada yang tertulis", () => {

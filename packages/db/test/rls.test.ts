@@ -133,4 +133,36 @@ describe("migrasi & RLS", () => {
       ]),
     ).rejects.toThrow(/row-level security/);
   });
+
+  it("rate_hit: jendela tetap per key, anon tidak bisa memanggil", async () => {
+    await c.query("reset role");
+    const hit = async (k: string) =>
+      (await c.query("select rate_hit($1, 600, 3) as ok", [k])).rows[0].ok as boolean;
+    expect([await hit("pair:1"), await hit("pair:1"), await hit("pair:1")]).toEqual([
+      true,
+      true,
+      true,
+    ]);
+    expect(await hit("pair:1")).toBe(false);
+    expect(await hit("pair:2")).toBe(true);
+    await c.query("update rate_limits set window_start = now() - interval '11 minutes'");
+    expect(await hit("pair:1")).toBe(true);
+    await as(null);
+    await expect(c.query("select rate_hit('x', 60, 1)")).rejects.toThrow(/permission denied/);
+    expect(await count("rate_limits")).toBe(0);
+  });
+
+  it("devices: token_hash & kode pairing aktif unik", async () => {
+    await c.query("reset role");
+    const add = (code: string | null, hash: string | null, sc: string) =>
+      c.query(
+        "insert into devices(organization_id, name, short_code, pairing_code, token_hash) values ($1,'b',$2,$3,$4)",
+        [org, sc, code, hash],
+      );
+    await add("123456", "h1", "A1");
+    await expect(add("123456", null, "A2")).rejects.toThrow(/devices_pairing_code/);
+    await expect(add(null, "h1", "A3")).rejects.toThrow(/devices_token_hash/);
+    await add(null, null, "A4");
+    await add(null, null, "A5");
+  });
 });

@@ -301,6 +301,7 @@ export type Database = {
       events: {
         Row: {
           branding: NonNullable<Json>
+          bundle: Json | null
           bundle_version: number
           client_expires_at: string | null
           client_token: string | null
@@ -325,6 +326,7 @@ export type Database = {
         }
         Insert: {
           branding?: NonNullable<Json>
+          bundle?: Json | null
           bundle_version?: number
           client_expires_at?: string | null
           client_token?: string | null
@@ -349,6 +351,7 @@ export type Database = {
         }
         Update: {
           branding?: NonNullable<Json>
+          bundle?: Json | null
           bundle_version?: number
           client_expires_at?: string | null
           client_token?: string | null
@@ -701,8 +704,27 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          hits: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          hits: number
+          key: string
+          window_start: string
+        }
+        Update: {
+          hits?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       sessions: {
         Row: {
+          asset_count: number | null
           completed_at: string | null
           created_at: string
           deleted_at: string | null
@@ -720,6 +742,7 @@ export type Database = {
           upload_status: string
         }
         Insert: {
+          asset_count?: number | null
           completed_at?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -737,6 +760,7 @@ export type Database = {
           upload_status?: string
         }
         Update: {
+          asset_count?: number | null
           completed_at?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -797,6 +821,10 @@ export type Database = {
     }
     Functions: {
       is_member: { Args: { org: string; roles?: string[] }; Returns: boolean }
+      rate_hit: {
+        Args: { k: string; max_hits: number; window_s: number }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
