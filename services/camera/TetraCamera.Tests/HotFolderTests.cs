@@ -49,7 +49,8 @@ public sealed class HotFolderTests : IDisposable
     [Fact]
     public async Task File_sesaat_sebelum_capture_masih_dihitung_dan_tidak_dipakai_dua_kali()
     {
-        var cam = new HotFolderCamera(In, TimeSpan.FromSeconds(1));
+        // 3 dtk, bukan 1: runner Windows CI (antivirus) bisa menahan file sesaat sebelum bisa dibuka eksklusif.
+        var cam = new HotFolderCamera(In, TimeSpan.FromSeconds(3));
         await File.WriteAllBytesAsync(Path.Combine(In, "a.jpg"), Jpeg(100, 50));
         var r = await cam.CaptureAsync(Out, 2);
         Assert.Equal(Path.Combine(Out, "3.jpg"), r.Path);
