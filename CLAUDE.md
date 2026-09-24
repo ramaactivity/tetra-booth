@@ -20,6 +20,11 @@ Kamu sedang membangun Tetra Booth: platform photobooth (booth Windows + cloud + 
 10. Camera Service: kode di luar `TetraCamera.Print.Windows` tidak memakai API khusus Windows.
 11. Jangan mengerjakan macOS, Android, iPad, atau Air Station sebelum Fase 6/7.
 
+## Dua mesin (Mac & Windows)
+- Mac: koding utama di `main`. Windows (laptop pinjaman, dipantau via Remote Control): hanya di branch `win`, ikuti `docs/WINDOWS.md`.
+- Komunikasi antar-Claude lewat `docs/HANDOFF.md` (antrean tugas + log) dan `docs/reports/windows/`. Memori Claude tidak dibagi antar mesin.
+- Rencana Fase 1 & pembagian mesin: `docs/PLAN-FASE-1.md`.
+
 ## Konvensi kode
 - TypeScript `strict`, tanpa `any`. Validasi input di setiap batas (IPC, WebSocket, API) dengan zod dari `packages/shared`.
 - State sesi booth = state machine eksplisit, bukan kumpulan `useState`.
