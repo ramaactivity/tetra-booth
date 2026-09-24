@@ -4,6 +4,7 @@ import { copy } from "@/lib/copy";
 import { clock, type GuestEvent, loadGuest, longDate, shortDate } from "@/lib/guest";
 import { AutoRefresh } from "./AutoRefresh";
 import { GuestReady } from "./GuestReady";
+import { TrackOpen } from "./TrackOpen";
 
 /** Halaman tamu dari QR booth (FSD §2, desain v2 B1–B3). Mobile-first 390 px. */
 export const metadata: Metadata = {
@@ -76,6 +77,7 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
   if (g.state === "ready")
     return (
       <Shell>
+        <TrackOpen sessionId={sessionId} />
         <Header event={g.event} />
         <GuestReady
           sessionId={sessionId}
@@ -91,6 +93,7 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
     return (
       <Shell>
         <AutoRefresh seconds={g.state === "pending" ? 5 : 15} />
+        {g.state === "pending" && <TrackOpen sessionId={sessionId} />}
         <Header event={g.state === "pending" ? g.event : undefined} />
         <div className="flex flex-1 flex-col gap-[22px] px-5 pt-3 pb-6">
           <section className="layered flex flex-col gap-4 rounded-[18px] border-[1.5px] border-ink bg-white p-[18px] [--lb:1.5px] [--lx:5px] [--under:#fff]">

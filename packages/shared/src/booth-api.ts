@@ -108,3 +108,10 @@ export const AssetsResponse = z.object({
   uploadStatus: z.enum(["pending", "partial", "complete"]),
 });
 export type AssetsResponse = z.infer<typeof AssetsResponse>;
+
+/** POST /api/track (publik, rate-limited): analytics halaman tamu (FSD §2). */
+export const TrackRequest = z.object({
+  sessionId: z.string().regex(SESSION_ID_PATTERN),
+  type: z.enum(["qr_open", "save", "save_all"]),
+});
+export type TrackRequest = z.infer<typeof TrackRequest>;

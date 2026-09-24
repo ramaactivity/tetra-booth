@@ -53,8 +53,8 @@ Prinsip:
 - [x] Pull event + bundle, cache offline. _(N3, 2026-09-25; DECISIONS #57)_
 - [x] Antrean upload + presigned R2 + retry backoff. _(N4, 2026-09-25; DECISIONS #58; uji cabut internet 1 jam = N9 Windows)_
 - [x] Heartbeat. _(N2/N5, 2026-09-25: tiap 60 dtk — versi, layar, event aktif, kamera, printer, kertas, antrean, error terakhir)_
-- [ ] Halaman tamu: state unknown/pending/ready/expired/removed, simpan via share sheet, branding event.
-- [ ] Tracking `qr_open`, `save`, `save_all`.
+- [x] Halaman tamu: state unknown/pending/ready/expired/removed, simpan via share sheet, branding event. _(N6, 2026-09-25: branding = nama & tanggal event; warna/logo menyusul admin Fase 3, DECISIONS #60)_
+- [x] Tracking `qr_open`, `save`, `save_all`. _(N7, 2026-09-25: `POST /api/track`, 60/menit per IP)_
 - [ ] Sentry web + booth.
 
 **Selesai jika:** di event nyata, ≥ 95% sesi ter-upload ≤ 5 menit saat online; tes cabut internet 1 jam lalu sambung lagi → semua sesi terkirim tanpa campur tangan.

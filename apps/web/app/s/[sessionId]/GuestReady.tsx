@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { copy } from "@/lib/copy";
 import type { GuestAsset } from "@/lib/guest";
+import { track } from "./track";
 
 const t = copy.guest;
 
@@ -48,11 +49,14 @@ export function GuestReady({
   const [busy, setBusy] = useState(false);
   const strip = assets.find((a) => a.kind === "strip_web");
   const originals = assets.filter((a) => a.kind === "original");
-  const run = (list: GuestAsset[]) => async () => {
-    setBusy(true);
-    await save(list, sessionId);
-    setBusy(false);
-  };
+  const run =
+    (list: GuestAsset[], all = false) =>
+    async () => {
+      track(sessionId, all ? "save_all" : "save");
+      setBusy(true);
+      await save(list, sessionId);
+      setBusy(false);
+    };
   const tabClass = (on: boolean) =>
     `flex h-10 flex-1 items-center justify-center text-[13px] ${on ? "bg-lavender font-bold" : "font-semibold"}`;
 
@@ -118,7 +122,7 @@ export function GuestReady({
           <button
             type="button"
             disabled={busy || !originals.length}
-            onClick={run(originals)}
+            onClick={run(originals, true)}
             className="pressable h-[52px] rounded-[14px] border-[1.5px] border-ink bg-white px-2 text-[13px] leading-tight font-bold disabled:opacity-40"
           >
             {t.saveAll}

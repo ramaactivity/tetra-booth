@@ -120,6 +120,16 @@ test("ready: strip, tab original, simpan, masa berlaku", async ({ page }) => {
   await page.screenshot({ path: "test-results/guest-ready.png" });
   await page.getByRole("tab", { name: "Original" }).click();
   await expect(page.getByRole("button", { name: "Original 1" })).toBeVisible();
+
+  // N7: qr_open saat buka, save saat simpan → analytics_events.
+  await page.getByRole("button", { name: "Simpan ke Galeri HP" }).click();
+  await expect
+    .poll(async () =>
+      ((await db.from("analytics_events").select("type").eq("session_id", ids.ready)).data ?? [])
+        .map((r) => r.type)
+        .sort(),
+    )
+    .toEqual(["qr_open", "save"]);
 });
 
 test("removed & expired: foto tidak tersedia + ajakan kontak", async ({ page }) => {

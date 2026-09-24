@@ -180,6 +180,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-25 | Mac | Fase 2 N7: `POST /api/track` (qr_open/save/save_all → analytics_events, rate limit 60/menit per IP), dikirim lewat sendBeacon dari halaman tamu. Function Vercel dipindah ke sin1 (TTFB 0,2–1 dtk). |
 | 2026-09-25 | Mac | Fase 2 N6: halaman tamu `/s/{id}` (unknown/pending/ready/expired/removed, desain v2 B1–B3, refresh otomatis 5/15 dtk, Simpan via share sheet), e2e mobile 390 px terhadap Supabase dev. Butuh CORS R2 (Rama). |
 | 2026-09-25 | Windows | W-022 lanjutan (15 lembar DNP total): M-021 kalibrasi posisi `--print-offset` selesai (DNP: `7.335,6.70`, garis potong di celah tengah); M-020 potong per job **dibatalkan**: driver DNP hanya mengikuti dialog Printing Preferences terakhir (DECISIONS #59, WINDOWS.md §4b). `--hot-folder-trigger`/`--print-offset` kini diteruskan booth. Temuan M-022. Laporan: `docs/reports/windows/2026-09-25-dnp-rx1hs.md`. |
 | 2026-09-25 | Mac | Fase 2 N4: `POST /api/booth/sessions`, `/uploads/sign` (presigned PUT R2 15 mnt), `/sessions/{id}/assets` (complete dari asset_count); worker upload di main (konkurensi 2, backoff, 15 dtk), kartu Koneksi crew: jumlah file, error terakhir, "Coba sekarang". |
