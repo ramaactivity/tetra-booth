@@ -21,6 +21,7 @@ describe("supervisor", () => {
   const setup = (healthy: () => boolean) => {
     const children: FakeChild[] = [];
     const logs: string[] = [];
+    const ready: number[] = [];
     const sup = createSupervisor({
       spawn: () => {
         const c = new FakeChild();
@@ -29,10 +30,11 @@ describe("supervisor", () => {
       },
       health: () => (healthy() ? Promise.resolve() : Promise.reject(new Error("down"))),
       log: (m) => logs.push(m),
+      onReady: () => ready.push(children.length),
       healthEveryMs: 100,
       backoffMs: [10, 20],
     });
-    return { sup, children, logs };
+    return { sup, children, logs, ready };
   };
 
   it("proses mati → restart otomatis", async () => {
@@ -72,6 +74,17 @@ describe("supervisor", () => {
     }
     expect(children).toHaveLength(21);
     expect(sup.running).toBe(true);
+    sup.stop();
+  });
+
+  it("onReady sekali per start, saat health pertama OK (untuk kirim ulang print)", async () => {
+    const { sup, children, ready } = setup(() => true);
+    sup.start();
+    await vi.advanceTimersByTimeAsync(350);
+    expect(ready).toEqual([1]);
+    children[0]?.emit("exit", 1, null);
+    await vi.advanceTimersByTimeAsync(10 + 100);
+    expect(ready).toEqual([1, 2]);
     sup.stop();
   });
 

@@ -4,7 +4,7 @@ import { PaperSchema, SESSION_ID_PATTERN } from "@tetra/shared";
 import { app, ipcMain, net } from "electron";
 import { z } from "zod";
 import type { Alerts } from "./alerts";
-import { cameraHealth, request } from "./camera-client";
+import { cameraHealth, request, ServiceUnavailable } from "./camera-client";
 import { config } from "./config";
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
 import type { BoothDb } from "./db";
@@ -109,6 +109,12 @@ export function registerIpc(db: BoothDb, alerts: Alerts) {
       if (!r.accepted) throw new Error("print ditolak Camera Service");
       db.printJob({ ...row, status: "queued" });
     } catch (e) {
+      if (e instanceof ServiceUnavailable) {
+        // Camera Service sedang restart: simpan, dikirim ulang begitu pulih (M-009). Sesi tetap lanjut.
+        db.printJob({ ...row, status: "queued", error: `menunggu Camera Service: ${e.message}` });
+        console.warn(`[print] tertunda ${j.jobId}: ${e.message}`);
+        return;
+      }
       db.printJob({ ...row, status: "failed", error: e instanceof Error ? e.message : String(e) });
       throw e;
     }

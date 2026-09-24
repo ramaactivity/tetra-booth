@@ -15,6 +15,9 @@ export const setEndpoint = (port: number, token: string) => {
   endpoint = { port, token };
 };
 const TIMEOUT_MS = 3000;
+
+/** Camera Service tidak bisa dihubungi (mati/restart/macet), berbeda dari error yang dibalas service. */
+export class ServiceUnavailable extends Error {}
 const LISTEN_RETRY_MS = 2000;
 const url = () => `ws://127.0.0.1:${endpoint.port}/ws?token=${encodeURIComponent(endpoint.token)}`;
 
@@ -26,7 +29,7 @@ export function request<T extends CommandType>(
     const ws = new WebSocket(url());
     const timer = setTimeout(() => {
       ws.close();
-      reject(new Error("Camera Service tidak menjawab"));
+      reject(new ServiceUnavailable("Camera Service tidak menjawab"));
     }, TIMEOUT_MS);
     const done = () => {
       clearTimeout(timer);
@@ -35,7 +38,7 @@ export function request<T extends CommandType>(
     ws.onopen = () => ws.send(JSON.stringify(cmd));
     ws.onerror = () => {
       done();
-      reject(new Error("Camera Service tidak terhubung"));
+      reject(new ServiceUnavailable("Camera Service tidak terhubung"));
     };
     ws.onmessage = (e) => {
       const msg = ReplySchema.safeParse(JSON.parse(String(e.data)));
