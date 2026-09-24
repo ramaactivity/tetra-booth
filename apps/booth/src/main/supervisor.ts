@@ -13,6 +13,8 @@ export type SupervisorDeps = {
   spawn: () => ChildProcess;
   health: () => Promise<unknown>;
   log: (msg: string) => void;
+  /** Dipanggil sekali per start, saat health pertama berhasil (mis. kirim ulang print yang tertunda). */
+  onReady?: () => void;
   healthEveryMs?: number;
   backoffMs?: number[];
 };
@@ -26,6 +28,7 @@ export function createSupervisor(d: SupervisorDeps) {
   let streak = 0;
   let restarts = 0;
   let stopped = false;
+  let readySignalled = false;
   let healthTimer: ReturnType<typeof setInterval> | undefined;
   let restartTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -34,6 +37,7 @@ export function createSupervisor(d: SupervisorDeps) {
     const c = d.spawn();
     child = c;
     failures = 0;
+    readySignalled = false;
     d.log(`[supervisor] Camera Service start (pid ${c.pid ?? "?"})`);
     c.once("exit", (code, signal) => {
       if (child !== c) return;
@@ -62,6 +66,10 @@ export function createSupervisor(d: SupervisorDeps) {
       await d.health();
       failures = 0;
       streak = 0;
+      if (!readySignalled) {
+        readySignalled = true;
+        d.onReady?.();
+      }
     } catch {
       failures++;
       if (failures >= MAX_HEALTH_FAILURES && child) {
@@ -75,6 +83,8 @@ export function createSupervisor(d: SupervisorDeps) {
   };
 
   return {
+    /** Paksa health sekarang (tidak menunggu interval), mis. saat boot. */
+    check,
     start() {
       start();
       healthTimer = setInterval(() => void check(), every);

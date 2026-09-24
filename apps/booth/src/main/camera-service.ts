@@ -5,7 +5,13 @@ import { createServer } from "node:net";
 import { dirname, join } from "node:path";
 import { app } from "electron";
 import type { Alerts } from "./alerts";
-import { cameraHealth, listenEvents, setEndpoint } from "./camera-client";
+import {
+  cameraHealth,
+  listenEvents,
+  request,
+  ServiceUnavailable,
+  setEndpoint,
+} from "./camera-client";
 import { cameraServiceFlags } from "./config";
 import type { BoothDb } from "./db";
 import { createSupervisor } from "./supervisor";
@@ -21,6 +27,22 @@ function findBinary(): string | undefined {
     join(__dirname, "../../../../services/camera/TetraCamera.Host/bin/Debug/net10.0", EXE),
   ];
   return candidates.find((p): p is string => !!p && existsSync(p));
+}
+
+/** Health berulang tiap 150 ms sampai berhasil atau batas waktu habis. */
+async function waitHealthy(timeoutMs: number): Promise<boolean> {
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    if (
+      await cameraHealth().then(
+        () => true,
+        () => false,
+      )
+    )
+      return true;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return false;
 }
 
 const freePort = () =>
@@ -53,8 +75,8 @@ export async function startCameraService(log: (m: string) => void, db: BoothDb, 
   const args = cameraServiceFlags.printerArgs;
   log(`[supervisor] ${bin} port ${port} ${args.join(" ")}`);
 
-  // ponytail: kalau Electron crash, Camera Service yatim tetap hidup (Windows tidak ikut membunuh anak).
-  // Aman karena port acak per start; bersihkan proses yatim di M5 (kiosk) kalau jadi masalah.
+  // ponytail: di macOS/Linux, Camera Service bisa yatim kalau Electron crash (port acak per start, jadi tidak bentrok).
+  // Di Windows tidak terjadi: anak ikut mati lewat job object (W-013).
   const sup = createSupervisor({
     spawn: () => {
       const c = spawn(bin, args, {
@@ -68,8 +90,15 @@ export async function startCameraService(log: (m: string) => void, db: BoothDb, 
     },
     health: cameraHealth,
     log,
+    onReady: () => void resubmitPending(db, log),
   });
   sup.start();
+  // Tunggu service siap sebelum jendela dibuka, supaya health pertama di renderer tidak gagal palsu (M-008).
+  const t0 = Date.now();
+  const ready = await waitHealthy(5000);
+  log(
+    `[supervisor] Camera Service ${ready ? `siap dalam ${Date.now() - t0} ms` : "belum siap setelah 5 s, booth tetap jalan"}`,
+  );
   const stopEvents = watchPrintEvents(log, db, alerts);
   app.on("will-quit", () => {
     stopEvents();
@@ -95,4 +124,40 @@ export function watchPrintEvents(log: (m: string) => void, db: BoothDb, alerts: 
       log(`[print] printer ${e.payload.status}${msg}`);
     }
   });
+}
+
+/** Batas kirim ulang print tertunda: umur job & jumlah percobaan (M-009, DECISIONS #38). */
+export const RESUBMIT_WINDOW_MS = 10 * 60_000;
+export const RESUBMIT_MAX_ATTEMPTS = 3;
+
+/**
+ * Setelah Camera Service (re)start dan sehat: kirim ulang print yang diterima tapi belum ada hasilnya.
+ * Antrean print Camera Service ada di memori, jadi crash menghapusnya tanpa event. Risiko: cetak ganda
+ * kalau crash terjadi setelah kertas keluar tapi sebelum print.done; lebih baik daripada tamu tanpa cetakan.
+ */
+export async function resubmitPending(db: BoothDb, log: (m: string) => void, now = Date.now()) {
+  const since = new Date(now - RESUBMIT_WINDOW_MS).toISOString();
+  for (const j of db.pendingPrints(since, RESUBMIT_MAX_ATTEMPTS)) {
+    try {
+      const paper = j.paper === "4R" ? "4R" : "2x6x2";
+      const r = await request({
+        id: crypto.randomUUID(),
+        type: "print.submit",
+        payload: { jobId: j.id, path: j.path, copies: j.copies, paper },
+      });
+      if (!r.accepted) throw new Error("ditolak");
+      db.printJob({
+        id: j.id,
+        sessionId: j.session_id,
+        path: j.path,
+        copies: j.copies,
+        paper,
+        status: "queued",
+      });
+      log(`[print] kirim ulang ${j.id}`);
+    } catch (e) {
+      log(`[print] kirim ulang ${j.id} gagal: ${e instanceof Error ? e.message : String(e)}`);
+      if (e instanceof ServiceUnavailable) return;
+    }
+  }
 }

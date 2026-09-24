@@ -90,6 +90,29 @@ describe("booth db", () => {
   });
 });
 
+describe("print tertunda (M-009)", () => {
+  it("hanya queued, masih dalam jendela waktu, dan percobaan < batas", () => {
+    const db = openDb(":memory:");
+    const job = (id: string) => ({
+      id,
+      sessionId: id,
+      path: "/p",
+      copies: 1,
+      paper: "2x6x2",
+      status: "queued" as const,
+    });
+    db.printJob(job("baru"));
+    db.printJob(job("selesai"));
+    db.printJobResult("selesai", "done");
+    db.printJob(job("capek"));
+    db.printJob(job("capek"));
+    db.printJob(job("capek"));
+    const soon = new Date(Date.now() - 60_000).toISOString();
+    expect(db.pendingPrints(soon, 3).map((j) => j.id)).toEqual(["baru"]);
+    expect(db.pendingPrints(new Date(Date.now() + 60_000).toISOString(), 3)).toEqual([]);
+  });
+});
+
 describe("log harian", () => {
   it("hapus log lebih tua dari 14 hari, sisakan yang baru dan file lain", () => {
     const dir = tmp();

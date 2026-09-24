@@ -211,6 +211,14 @@ export function openDb(file: string) {
         )
         .get(id) as PrintJobInfo | undefined;
     },
+    /** Print yang diterima/tertunda tapi belum ada hasil, cukup baru untuk dikirim ulang setelah Camera Service pulih. */
+    pendingPrints(since: string, maxAttempts: number): PrintJobInfo[] {
+      return db
+        .prepare(
+          "select id, session_id, path, copies, paper, error, created_at from print_jobs where status = 'queued' and created_at >= ? and attempts < ? order by created_at",
+        )
+        .all(since, maxAttempts) as PrintJobInfo[];
+    },
     uploadPending(): number {
       return (db.prepare("select count(*) n from upload_queue").get() as { n: number }).n;
     },

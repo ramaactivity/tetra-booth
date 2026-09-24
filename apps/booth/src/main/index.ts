@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { app, BrowserWindow } from "electron";
 import { createAlerts } from "./alerts";
 import { startCameraService, watchPrintEvents } from "./camera-service";
-import { cameraServiceFlags, dataDir, windowSize } from "./config";
+import { cameraServiceFlags, dataDir, flagWarnings, windowSize } from "./config";
 import { openDb } from "./db";
 import { registerIpc } from "./ipc";
 import { setupLogging } from "./log";
@@ -11,6 +11,7 @@ import { setupLogging } from "./log";
 app.setPath("userData", dataDir ?? join(app.getPath("appData"), "TetraBooth"));
 
 const logToFile = setupLogging(join(app.getPath("userData"), "logs"));
+for (const w of flagWarnings) console.warn(w);
 const db = openDb(join(app.getPath("userData"), "db.sqlite"));
 console.info(
   `[boot] Tetra Booth ${app.getVersion()} · data ${app.getPath("userData")} · sesi terputus ditandai: ${db.abandoned}`,
