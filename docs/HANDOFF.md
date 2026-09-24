@@ -28,7 +28,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   4. **Kamera dicabut/diblokir:** kalau bisa tanpa admin, matikan akses kamera untuk proses ini (mis. jalankan webcam dengan kamera sedang dipakai aplikasi lain) dan pastikan layar "Sebentar ya, kamera lagi disiapkan" muncul lalu pulih. Kalau tidak bisa disimulasikan tanpa admin, tulis saja di laporan.
   5. **Print:** kalau W-009 sudah jadi, jalankan Camera Service dengan printer Print to PDF dan `--paper-2x6x2` yang cocok (layout default M1 = `2x6x2`), pastikan satu sesi menghasilkan print tanpa dialog. Kalau belum, cukup pastikan log `cetak gagal, sesi tetap lanjut` dan QR tetap muncul.
   - Bug di `packages/booth-core` atau `apps/booth` yang jelas: perbaiki di `win` + tulis di laporan. Masalah desain/UX: tulis di "Untuk Mac". Hapus `$W\data` & `$W\shots` setelah laporan. Laporan: `docs/reports/windows/<tanggal>-m1-sesi.md`.
-- [ ] **W-012 Verifikasi M2 (DB, output, log) di Windows.** Setelah W-011. Merge `origin/main`, build booth, jalankan `--camera=simulated --demo --data=$W\data` ±60 s (Camera Service jalan), lalu hentikan dan periksa:
+- [x] **W-012 Verifikasi M2 (DB, output, log) di Windows.** → `docs/reports/windows/2026-09-24-m2-penyimpanan.md` Setelah W-011. Merge `origin/main`, build booth, jalankan `--camera=simulated --demo --data=$W\data` ±60 s (Camera Service jalan), lalu hentikan dan periksa:
   1. `$W\data\db.sqlite`: tabel `sessions` status `completed`, `assets` 9 baris per sesi (strip, strip_web, thumb_strip, original ×3, thumb_original ×3), `upload_queue` dengan prioritas 0/1/2 sesuai TSD §4.2, `print_jobs` terisi (queued kalau W-009 sudah jalan, failed berikut alasannya kalau belum). Baca DB dengan `electron.exe` + `ELECTRON_RUN_AS_NODE=1` + `node:sqlite`, tanpa install tool lain.
   2. Ukuran file di `sessions\<id>\out`: strip 1200×1800, strip_web 600×1800, original sisi panjang ≤ 2400 (tidak diperbesar), thumb sisi panjang 480.
   3. Bunuh proses booth di tengah sesi (saat countdown), start lagi: log `[boot] … sesi terputus ditandai: 1` dan sesi itu `abandoned` di DB.
@@ -56,12 +56,17 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   2. Log error kamera `[object DOMException]`: tulis `e.name: e.message`.
   3. Preview foto tidak di-mirror padahal live view di-mirror (keputusan UX).
   4. Portrait 450×800: thumbnail review ±90 px dengan setengah layar kosong; tombol attract terbungkus 2 baris.
-  5. Webcam booth meminta 1920×1080. Max 2560×1920 (lihat M-006).
+  5. Webcam booth meminta 1920×1080. Max 2560×1920 (lihat M-006). → Terverifikasi beres di W-012: raw 2560×1920, capture → preview 138–287 ms.
+- [ ] **M-008 Temuan W-012 (M2/M3 di Windows).**
+  1. Flag booth hanya membaca `--flag=value`. `--printer "Microsoft Print to PDF"` (bentuk spasi, dipakai di WINDOWS.md §5 dan W-013) diabaikan tanpa pesan, jadi booth jalan tanpa printer. Perbaiki parser (terima `--flag value`) atau dokumen, dan sebaiknya log peringatan kalau flag dikenal tanpa nilai.
+  2. Race saat boot: renderer memanggil `health` ±200 ms setelah spawn, Camera Service Windows baru siap ±0,5 s. Setiap boot mencatat `ERROR … Camera Service tidak terhubung` + `R-WARN [boot] camera service: tidak terhubung`. Tunggu `[camera] … siap`/health pertama supervisor sebelum health renderer, atau ulangi.
+  3. `print_jobs` tetap `queued` walau PDF sudah jadi, karena `print.done`/`print.failed` tidak pernah sampai ke booth (sama dengan M-007 no. 1).
 
 ## Log
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-24 | Windows | W-012 selesai: M2 lulus (WAL, 9 aset/sesi, prioritas upload 0/1/2, print_jobs queued, abandoned setelah kill, log harian main+renderer). Webcam dengan M-006: raw 2560×1920, capture → preview 138–287 ms. Temuan M-008. Laporan: `docs/reports/windows/2026-09-24-m2-penyimpanan.md`. |
 | 2026-09-24 | Mac | M3 di `main`: supervisor Camera Service (spawn port/token acak, health 5 s, restart setelah 3x gagal atau proses mati, backoff), argumen printer diteruskan (M-005). Teruji di Mac: dibunuh 5x → pulih 5x, tidak ada proses yatim saat tutup normal. 4 test baru. W-013 ditambahkan. |
 | 2026-09-24 | Windows | W-011 selesai: M1 lulus di Windows (simulasi landscape/portrait, webcam dengan mirror benar, kamera diblokir → pulih, print ke PDF lewat W-009). Temuan di M-007. Laporan: `docs/reports/windows/2026-09-24-m1-sesi.md`. |
 | 2026-09-24 | Mac | Merge `win` (W-009 printer, W-010 webcam) ke `main`; DECISIONS Mac dinomori ulang #32/#33. M-006 selesai. M-005 masuk M3. |
