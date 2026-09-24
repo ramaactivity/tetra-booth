@@ -33,7 +33,7 @@ export function GalleryView({ token, photos: initial }: { token: string; photos:
   );
   const sections = useMemo(() => {
     const m = new Map<number, number[]>();
-    shown.forEach((p, i) => m.set(p.hour, [...(m.get(p.hour) ?? []), i]));
+    for (const [i, p] of shown.entries()) m.set(p.hour, [...(m.get(p.hour) ?? []), i]);
     return [...m.entries()];
   }, [shown]);
   const favCount = photos.filter((p) => p.favorite).length;
