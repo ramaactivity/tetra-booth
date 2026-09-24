@@ -1,0 +1,31 @@
+/** Semua teks UI web (CLAUDE.md: satu file copy per app). */
+export const copy = {
+  guest: {
+    strip: "Strip",
+    original: "Original",
+    saveStrip: "Simpan ke Galeri HP",
+    saveAll: "Simpan Semua Original",
+    saving: "Menyimpan…",
+    availableUntil: "Tersedia sampai",
+    poweredBy: "Powered by Tetra Photobooth",
+    pendingTitle: "Fotomu lagi dikirim dari booth",
+    pendingBody: "Halaman ini akan otomatis muncul begitu fotonya sampai, gak perlu refresh",
+    unknownTitle: "Foto kamu belum sampai",
+    unknownBody:
+      "Biasanya beberapa menit setelah booth tersambung internet. Halaman ini akan muncul otomatis.",
+    stepTaken: "Foto diambil",
+    stepTakenAt: (t: string) => `${t} · di booth`,
+    stepSending: "Mengirim dari booth",
+    stepSendingPartial: (n: number, total: number) => `${n} dari ${total} file sudah sampai`,
+    stepWaiting: "Menunggu koneksi booth",
+    stepWaitingBody: "Booth sedang offline",
+    stepHere: "Muncul di sini",
+    stepHereBody: "Otomatis",
+    keepLink: "Simpan link ini, bisa dibuka lagi nanti",
+    goneTitle: "Foto ini sudah tidak tersedia",
+    expiredBody: (d: string) => `Masa simpan foto sesi ini sudah berakhir pada ${d}`,
+    removedBody: "Foto ini sudah dihapus oleh penyelenggara acara",
+    ctaTitle: "Mau photobooth di acaramu?",
+    cta: "Hubungi Tetra Photobooth",
+  },
+} as const;

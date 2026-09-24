@@ -178,6 +178,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-25 | Mac | Fase 2 N6: halaman tamu `/s/{id}` (unknown/pending/ready/expired/removed, desain v2 B1–B3, refresh otomatis 5/15 dtk, Simpan via share sheet), e2e mobile 390 px terhadap Supabase dev. Butuh CORS R2 (Rama). |
 | 2026-09-25 | Mac | Fase 2 N4: `POST /api/booth/sessions`, `/uploads/sign` (presigned PUT R2 15 mnt), `/sessions/{id}/assets` (complete dari asset_count); worker upload di main (konkurensi 2, backoff, 15 dtk), kartu Koneksi crew: jumlah file, error terakhir, "Coba sekarang". |
 | 2026-09-25 | Mac | Fase 2 N3: `GET /api/booth/events` + `/events/{id}/bundle`, skrip `pnpm --filter web event:push <folder> --device B0x`, booth sync bundle (boot, 5 menit, crew "Sync dari Cloud"), pasang atomik dengan cek sha256. Vercel `tetrabooth.vercel.app` hidup (Rama). |
 | 2026-09-25 | Mac | Fase 2 N1/N2: API `pair` + `heartbeat` (Supabase dev, migrasi 0002), skrip `pnpm --filter @tetra/db device "<nama>"`, pairing dari mode crew (token safeStorage), heartbeat 60 s. Teruji booth → next dev → Supabase dev. Verifikasi Windows menunggu deploy Vercel (Rama). |
