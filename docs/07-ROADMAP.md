@@ -42,7 +42,7 @@ Prinsip:
 
 ## Fase 1b — Kamera DSLR (dipindah dari Fase 1, menunggu EDSDK & kamera)
 - [ ] Camera Service: Canon EDSDK (connect, reconnect, live view, capture).
-- [ ] Cetak fisik DNP RX1HS 4R & 2x6x2.
+- [x] Cetak fisik DNP RX1HS 4R & 2x6x2. _(W-022/W-023, 2026-09-25: tanpa tepi putih, offset terkalibrasi `7.335,6.70`; potong 2 inci hanya lewat dialog Printing Preferences, DECISIONS #59. 60D lewat digiCamControl + hot folder sebagai pengganti sementara EDSDK)_
 
 **Selesai jika:**
 1. Stress test otomatis 500 sesi semalaman tanpa crash, memory leak, atau kamera putus permanen (diuji di 600D dan 70D).
