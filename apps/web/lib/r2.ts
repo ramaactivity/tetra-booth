@@ -1,5 +1,10 @@
 import "server-only";
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectsCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const env = (k: string) => {
@@ -50,3 +55,17 @@ export const putObject = (key: string, body: Uint8Array, contentType: string) =>
       CacheControl: "public, max-age=31536000, immutable",
     }),
   );
+
+/** Hapus objek (moderasi, retensi). Maks 1000 key per panggilan S3. */
+export async function deleteObjects(keys: string[]) {
+  for (let i = 0; i < keys.length; i += 1000) {
+    const batch = keys.slice(i, i + 1000);
+    if (batch.length)
+      await client().send(
+        new DeleteObjectsCommand({
+          Bucket: env("R2_BUCKET"),
+          Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true },
+        }),
+      );
+  }
+}
