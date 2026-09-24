@@ -137,6 +137,10 @@ const report = {
     appGrowthPct: early ? Math.round(((late - early) / early) * 1000) / 10 : null,
     totalEnd: totalLate,
     totalPeak: peak,
+    // GPU dilaporkan terpisah (informasi): naik-turun wajar, tren naik terus = curiga leak tekstur/gambar.
+    gpuAfterWarmup: at(warm.slice(0, k), (m) => m.gpu || 0),
+    gpuEnd: at(warm.slice(-k), (m) => m.gpu || 0),
+    gpuMax: Math.max(0, ...warm.map((m) => m.gpu || 0)),
   },
   cameraHandles: { afterWarmup: handles(warm.slice(0, k)), end: handles(warm.slice(-k)) },
   samples: metrics.length,
