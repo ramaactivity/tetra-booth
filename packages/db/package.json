@@ -12,7 +12,8 @@
     "test": "vitest run",
     "push": "node --env-file=../../.env.local scripts/db.mjs push",
     "seed": "node --env-file=../../.env.local scripts/db.mjs seed",
-    "device": "node --env-file=../../.env.local scripts/db.mjs device"
+    "device": "node --env-file=../../.env.local scripts/db.mjs device",
+    "password": "node --env-file=../../.env.local scripts/db.mjs password"
   },
   "devDependencies": {
     "@supabase/postgres-meta": "^0.99.0",

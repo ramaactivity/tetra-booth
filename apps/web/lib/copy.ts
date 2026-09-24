@@ -30,4 +30,38 @@ export const copy = {
     ctaTitle: "Mau photobooth di acaramu?",
     cta: "Hubungi Tetra Photobooth",
   },
+  admin: {
+    loginTitle: "Masuk ke Admin",
+    email: "Email",
+    password: "Kata sandi",
+    signIn: "Masuk",
+    signingIn: "Masuk…",
+    noAccess: "Akun ini bukan anggota organisasi",
+    signOut: "Keluar",
+    loginCards: [
+      {
+        t: "Booth online",
+        d: "Status kamera, printer & kertas tiap menit",
+        i: "▭",
+        bg: "bg-mint-soft",
+        ml: "ml-0",
+      },
+      {
+        t: "Foto sampai ke tamu",
+        d: "Halaman tamu & galeri klien otomatis",
+        i: "▦",
+        bg: "bg-lavender",
+        ml: "ml-12",
+      },
+      {
+        t: "Satu admin untuk semua event",
+        d: "Template, device, dan link klien",
+        i: "◷",
+        bg: "bg-butter",
+        ml: "ml-4",
+      },
+    ],
+    nav: { events: "Event", devices: "Device" },
+    roles: { owner: "Owner", admin: "Admin", crew: "Crew" } as Record<string, string>,
+  },
 } as const;

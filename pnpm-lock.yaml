@@ -254,6 +254,9 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.1138.0
         version: 3.1138.0
+      '@supabase/ssr':
+        specifier: ^0.12.7
+        version: 0.12.7(@supabase/supabase-js@2.117.0(@opentelemetry/api@1.9.1))
       '@supabase/supabase-js':
         specifier: ^2.117.0
         version: 2.117.0(@opentelemetry/api@1.9.1)
@@ -1990,6 +1993,11 @@ packages:
     resolution: {integrity: sha512-E+hovHDWTpoOQHCMWdOwahvJmD7M/Vgj8cQTwLMPlEFvTO7wV8zBhrM9iUnKReurpGpl9u6MGbbjBeQJTEE1Kg==}
     engines: {node: '>=22.0.0'}
 
+  '@supabase/ssr@0.12.7':
+    resolution: {integrity: sha512-wiBtEie1KkRJi9RrZWY3R2imRhX1JY7qMyUCH2z9AUk15gQebNEplM+urbCKamdxaTJLXUU6LlpkJsaxhojCEg==}
+    peerDependencies:
+      '@supabase/supabase-js': ^2.114.0
+
   '@supabase/storage-js@2.117.0':
     resolution: {integrity: sha512-jFn8MTRKhUls5yzfYogPqItNH0jwzlLvdhAO2nBKRMzQuvI9BgNM2BabcGSxcDAcyEACGEjeIBXjxRfIb8OI5Q==}
     engines: {node: '>=22.0.0'}
@@ -2617,6 +2625,10 @@ packages:
   cookie@0.7.2:
     resolution: {integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==}
     engines: {node: '>= 0.6'}
+
+  cookie@1.1.1:
+    resolution: {integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==}
+    engines: {node: '>=18'}
 
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
@@ -5733,6 +5745,11 @@ snapshots:
       '@supabase/phoenix': 0.4.5
       tslib: 2.8.1
 
+  '@supabase/ssr@0.12.7(@supabase/supabase-js@2.117.0(@opentelemetry/api@1.9.1))':
+    dependencies:
+      '@supabase/supabase-js': 2.117.0(@opentelemetry/api@1.9.1)
+      cookie: 1.1.1
+
   '@supabase/storage-js@2.117.0':
     dependencies:
       iceberg-js: 0.8.1
@@ -6286,6 +6303,8 @@ snapshots:
   convert-source-map@2.0.0: {}
 
   cookie@0.7.2: {}
+
+  cookie@1.1.1: {}
 
   core-util-is@1.0.3: {}
 

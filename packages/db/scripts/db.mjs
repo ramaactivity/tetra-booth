@@ -96,6 +96,23 @@ if (cmd === "push") {
   console.log(
     `booth ${rows[0].name} (${rows[0].short_code}) · kode pairing ${code} · berlaku 10 menit`,
   );
+} else if (cmd === "password") {
+  // Atur kata sandi login admin untuk akun yang sudah ada (tanpa email reset). Sandi diketik, tidak lewat argumen.
+  const email = process.argv[3];
+  if (!email) throw new Error("pakai: pnpm --filter @tetra/db password <email>");
+  const { createInterface } = await import("node:readline/promises");
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const pw = await rl.question(`Kata sandi baru untuk ${email} (min 8): `);
+  rl.close();
+  if (pw.length < 8) throw new Error("kata sandi minimal 8 karakter");
+  const c = new Client({ connectionString: url });
+  await c.connect();
+  const { rowCount } = await c.query(
+    "update auth.users set encrypted_password = crypt($2, gen_salt('bf')), updated_at = now() where email = $1",
+    [email, pw],
+  );
+  await c.end();
+  console.log(rowCount ? `kata sandi ${email} diperbarui` : `akun ${email} tidak ditemukan`);
 } else {
-  throw new Error("perintah: push | seed | types | device");
+  throw new Error("perintah: push | seed | types | device | password");
 }
