@@ -60,7 +60,7 @@ Prinsip:
 **Selesai jika:** di event nyata, ≥ 95% sesi ter-upload ≤ 5 menit saat online; tes cabut internet 1 jam lalu sambung lagi → semua sesi terkirim tanpa campur tangan.
 
 ## Fase 3 — Admin + klien + live
-- [x] Auth & role (owner/admin/crew). _(A1, 2026-09-25: login email+sandi, guard anggota, RLS lewat klien user; undangan tim menyusul)_
+- [x] Auth & role (owner/admin/crew). _(A1, 2026-09-25: login email+sandi, guard anggota, RLS lewat klien user; undangan tim E7 + lupa kata sandi, DECISIONS #69)_
 - [x] Daftar event, pengaturan event lengkap, penugasan device. _(A3, 2026-09-25)_
 - [ ] Editor template (overlay + slot + teks + font) dengan versi. _(A4 sementara: preset + overlay + warna latar, DECISIONS #66)_
 - [x] Halaman device. _(A2, 2026-09-25)_

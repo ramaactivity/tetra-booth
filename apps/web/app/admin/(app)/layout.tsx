@@ -20,7 +20,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           </span>
           <span className="text-lg font-extrabold tracking-[-0.02em]">tetra</span>
         </div>
-        <Nav />
+        <Nav owner={role === "owner"} />
         <div className="mt-auto flex items-center gap-2.5 rounded-[14px] border-[1.5px] border-dashed border-ink p-2.5">
           <span className="flex size-8 flex-none items-center justify-center rounded-full border-[1.5px] border-ink bg-peach text-xs font-extrabold uppercase">
             {name[0]}

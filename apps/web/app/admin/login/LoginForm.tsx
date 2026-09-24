@@ -1,10 +1,11 @@
 "use client";
+import Link from "next/link";
 import { useActionState } from "react";
 import { copy } from "@/lib/copy";
 import { signIn } from "./actions";
 
 const t = copy.admin;
-const input =
+export const input =
   "h-12 rounded-xl border-[1.5px] border-ink bg-white px-3.5 text-sm outline-none focus:shadow-[0_0_0_3px_var(--mint)]";
 
 export function LoginForm({ note }: { note: string | null }) {
@@ -38,6 +39,9 @@ export function LoginForm({ note }: { note: string | null }) {
       >
         {pending ? t.signingIn : t.signIn}
       </button>
+      <Link href="/admin/login?lupa" className="self-start text-[13px] font-bold underline">
+        {t.forgot}
+      </Link>
     </form>
   );
 }
