@@ -1,7 +1,10 @@
 import { Button } from "@tetra/ui";
 import { Minus, Plus, Sparkle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
+
+/** Tamu pergi tanpa memilih (M-019): tanpa sentuhan selama ini → cetak jumlah yang sedang dipilih. */
+export const PRINT_SELECT_IDLE_MS = 30_000;
 
 export function PrintSelect({
   stripUrl,
@@ -13,6 +16,12 @@ export function PrintSelect({
   onSelect: (count: number) => void;
 }) {
   const [n, setN] = useState(1);
+  const select = useRef(onSelect);
+  select.current = onSelect;
+  useEffect(() => {
+    const t = setTimeout(() => select.current(n), PRINT_SELECT_IDLE_MS);
+    return () => clearTimeout(t);
+  }, [n]);
   const step =
     "flex size-[150px] items-center justify-center border-dashed border-ink disabled:text-muted";
   return (
