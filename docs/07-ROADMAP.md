@@ -66,7 +66,7 @@ Prinsip:
 - [x] Halaman device. _(A2, 2026-09-25)_
 - [ ] Dashboard event: statistik, share analytics, status booth, grid + aksi massal.
 - [ ] Moderasi: sembunyikan/hapus + audit log.
-- [ ] Galeri klien: hero, timeline per jam, lightbox, favorit, slideshow, toggle galeri publik, hitung mundur.
+- [x] Galeri klien: hero, timeline per jam, lightbox, favorit, slideshow, toggle galeri publik, hitung mundur. _(A7, 2026-09-25: semua kecuali toggle galeri publik = Fase 5; + download semua ZIP)_
 - [ ] Worker ZIP.
 - [ ] Live slideshow realtime.
 - [ ] Cron retensi + lifecycle rule bucket.

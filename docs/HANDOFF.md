@@ -178,10 +178,21 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   → **Dibatalkan 2026-09-25 (Windows, DECISIONS #59):** secara fisik driver DNP mengabaikan DEVMODE job & setelan yang ditulis program; potong hanya mengikuti dialog Printing Preferences yang terakhir di-OK (15 lembar, laporan dnp-rx1hs §Lanjutan). Kode pemotong dihapus (dec4a4); operasional: set 2inch cut per event lewat dialog.
 - [ ] **M-022 Temuan W-022 lanjutan: pengingat mode potong per event + kalibrasi.** (1) Menu crew: tampilkan pengingat sesuai layout event aktif (strip → "pastikan 2inch cut Enable", 4R → "Disable") karena driver tidak bisa diatur dari aplikasi. (2) --print-offset (M-021, di `win@adec4a4`) masuk config device; nilai DNP laptop booth `7.335,6.70`. (3) Opsional: tanya DNP soal SDK/perintah pemotong (language monitor `CSJCYLM.DLL` / `MonitorIoControl`) untuk potong otomatis per job. Detail: laporan dnp-rx1hs, WINDOWS.md §4b.
 
+## Untuk Rama (besok, 2026-09-25)
+1. **Kata sandi admin:** `pnpm --filter @tetra/db password tetrabooth.app@gmail.com` (di Mac, ketik sandi baru), lalu masuk di https://booth.tetraphoto.com/admin.
+2. **CORS R2** (tombol Simpan langsung share sheet): Cloudflare → R2 → `tetra-media-dev` → Settings → CORS Policy → `[{"AllowedOrigins":["*"],"AllowedMethods":["GET","HEAD"],"AllowedHeaders":["*"],"MaxAgeSeconds":86400}]`.
+3. **Vercel env `CRON_SECRET`** (acak panjang) di project `tetrabooth`, supaya cron retensi tidak bisa dipanggil orang lain.
+4. **Lifecycle rule R2** (opsional, pengaman): hapus objek umur > 400 hari.
+5. **Sentry:** 2 DSN (Next.js + Electron) untuk N8.
+6. **HP data seluler:** buka satu link `/s/{id}` dari booth B02 (W-026), foto tampil?
+7. Setelan **2inch cut** DNP sesuai event berikutnya (DECISIONS #59/#64).
+8. Jadwal **event percontohan** (kriteria Fase 1b & 2).
+
 ## Log
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-25 | Mac | **Fase 3 A1–A9** (PLAN-FASE-3): admin `/admin` (login, Device E5, Event E1/E3 + template preset & overlay, dashboard E2 + moderasi E8, link klien), galeri klien `/g/{token}` (C1–C2, favorit, slideshow, ZIP), live slideshow `/live/{token}` (D1), cron retensi. 15 e2e web terhadap Supabase dev. Sisa: editor template penuh, undangan tim, galeri publik (Fase 5). |
 | 2026-09-25 | Windows | W-026: pairing B02, offline 2 menit, N3 sync (setelah fix `*.r2.dev` diblokir Internet Positif → presigned `r2.cloudflarestorage.com`), N4 sesi → halaman tamu `booth.tetraphoto.com/s/{id}` tampil dari laptop. Strip W-023 ternyata tidak terpotong → aturan pemotong DNP direvisi (DECISIONS #64: satu antrean, dialog per event). |
 | 2026-09-25 | Mac | GIF animasi (DECISIONS #62): booth membuat `animation.gif` dari foto sesi (≥ 2 foto), diunggah sebagai kind `animation`, tab Animasi di halaman tamu. Domain `booth.tetraphoto.com` aktif (DECISIONS #61). Video live view ditunda. |
 | 2026-09-25 | Mac | Fase 2 N7: `POST /api/track` (qr_open/save/save_all → analytics_events, rate limit 60/menit per IP), dikirim lewat sendBeacon dari halaman tamu. Function Vercel dipindah ke sin1 (TTFB 0,2–1 dtk). |
