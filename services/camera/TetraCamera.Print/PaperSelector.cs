@@ -35,8 +35,11 @@ public static class PaperSelector
     /// <summary>Lebar × tinggi 4×6 inci dalam 1/100 inci.</summary>
     public const int FourBySixShort = 400, FourBySixLong = 600;
 
-    /// <summary>Toleransi pencocokan ukuran driver (1/100 inci).</summary>
+    /// <summary>Toleransi pencocokan ukuran driver (1/100 inci): kurang ≤ 2, lebih ≤ 17.</summary>
     public const int SizeTolerance = 2;
+
+    /// <summary>Kertas 4×6 driver dye-sub boleh lebih besar karena overscan borderless (DNP DS-RX1: 615×413, W-021).</summary>
+    public const int OverscanTolerance = 17;
 
     /// <summary>PrintableArea boleh kurang dari kertas sebesar ini (1/100 inci).</summary>
     public const int PrintableUnderTolerance = 2;
@@ -45,7 +48,7 @@ public static class PaperSelector
     public const int PrintableOverTolerance = 25;
 
     /// <summary>
-    /// Urutan: nama persis dari config → khusus 4R: ukuran 4×6 di orientasi mana pun (±2) → gagal <c>paper_not_supported</c>.
+    /// Urutan: nama persis dari config → khusus 4R: ukuran 4×6 di orientasi mana pun (−2…+17, overscan) → gagal <c>paper_not_supported</c>.
     /// </summary>
     public static PaperOption Select(IReadOnlyList<PaperOption> available, string preset, PaperConfig config)
     {
@@ -75,7 +78,19 @@ public static class PaperSelector
     public static bool IsFourBySix(PaperOption p)
     {
         var (s, l) = Sorted(p.Width, p.Height);
-        return Math.Abs(s - FourBySixShort) <= SizeTolerance && Math.Abs(l - FourBySixLong) <= SizeTolerance;
+        static bool Near(int v, int target) => v >= target - SizeTolerance && v <= target + OverscanTolerance;
+        return Near(s, FourBySixShort) && Near(l, FourBySixLong);
+    }
+
+    /// <summary>
+    /// Kotak gambar yang menutup seluruh halaman (skala <i>cover</i>, rasio tetap, di tengah) untuk cetak borderless:
+    /// halaman DNP lebih besar dari 4×6 karena overscan, jadi gambar tepat 4×6 di pojok meninggalkan tepi putih (W-021).
+    /// </summary>
+    public static (double X, double Y, double W, double H) CoverRect(double pageW, double pageH, double imgW, double imgH)
+    {
+        var k = Math.Max(pageW / imgW, pageH / imgH);
+        var (w, h) = (imgW * k, imgH * k);
+        return ((pageW - w) / 2, (pageH - h) / 2, w, h);
     }
 
     /// <summary>

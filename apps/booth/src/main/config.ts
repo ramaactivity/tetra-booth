@@ -14,6 +14,7 @@ export const VALUE_FLAGS = [
   "hot-folder",
   "metrics-every",
   "paper-fit",
+  "printer-2x6x2",
 ] as const;
 type ValueFlag = (typeof VALUE_FLAGS)[number];
 

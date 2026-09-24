@@ -37,8 +37,8 @@ public class PaperSelectorTests
     }
 
     [Theory]
-    [InlineData(397, 600)]
-    [InlineData(400, 603)]
+    [InlineData(397, 600)]   // kurang > 2
+    [InlineData(400, 618)]   // lebih > 17 (overscan DNP maks +15)
     [InlineData(500, 700)]
     public void _4R_tidak_cocok_di_luar_toleransi(int w, int h)
     {
@@ -107,4 +107,26 @@ public class PaperSelectorTests
     [InlineData(583, 590, false)]       // A5 pendek < 600
     public void Mode_ber_margin_cukup_memuat_4x6(double w, double h, bool ok) =>
         Assert.Equal(ok, PaperSelector.PrintableAreaFitsFourBySix(w, h));
+
+    [Theory]
+    [InlineData(413, 615, true)]   // DNP DS-RX1 "PR (4x6)" (W-021)
+    [InlineData(615, 413, true)]   // DNP "(6x4)"
+    [InlineData(400, 600, true)]
+    [InlineData(398, 598, true)]
+    [InlineData(420, 620, false)]  // terlalu besar
+    [InlineData(363, 516, false)]  // 3.5x5
+    public void Ukuran_4x6_dengan_overscan_dikenali(int w, int h, bool ok) =>
+        Assert.Equal(ok, PaperSelector.IsFourBySix(new PaperOption("x", w, h)));
+
+    [Fact]
+    public void Cover_menutup_seluruh_halaman_DNP_tanpa_tepi_putih()
+    {
+        // Halaman (6x4) DNP 614,67×413,33, gambar 4×6 melebar 600×400.
+        var (x, y, w, h) = PaperSelector.CoverRect(614.67, 413.33, 600, 400);
+        Assert.True(x <= 0 && y <= 0);
+        Assert.True(x + w >= 614.67 - 0.01 && y + h >= 413.33 - 0.01);
+        Assert.Equal(1.5, w / h, 3);                 // rasio tetap
+        Assert.Equal(-x, x + w - 614.67, 3);         // di tengah
+        Assert.True(w / 600 < 1.04);                  // pembesaran kecil (≈3,3%)
+    }
 }

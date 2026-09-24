@@ -14,7 +14,8 @@ namespace TetraCamera.Print.Windows;
 /// Kalau diisi: hasil driver ditulis ke file di folder ini (PrintToFile), mis. untuk "Microsoft Print to PDF"
 /// di uji & stress test. Printer dengan port <c>PORTPROMPT:</c> tanpa ini akan membuka dialog Save As, jadi ditolak.
 /// </param>
-public sealed record WindowsPrinterOptions(string? PrinterName, PaperConfig Paper, string? OutputDirectory = null);
+/// <param name="Printer2x6x2">Antrean printer khusus preset 2x6x2 (mis. antrean DNP dengan pemotong 2 inci aktif). Default: <paramref name="PrinterName"/>.</param>
+public sealed record WindowsPrinterOptions(string? PrinterName, PaperConfig Paper, string? OutputDirectory = null, string? Printer2x6x2 = null);
 
 /// <summary>
 /// Print ke DNP lewat spooler Windows (System.Drawing.Printing). Desain: PLAN-FASE-1 "Desain M4".
@@ -41,7 +42,10 @@ public sealed class WindowsPrinterAdapter : QueuedPrinterAdapter
 
     protected override void PrintCore(PrintJob job, CancellationToken ct)
     {
-        var name = _options.PrinterName;
+        // 2x6x2: antrean kedua dengan pemotong 2 inci sebagai default antrean (DECISIONS #47), kalau dikonfigurasi.
+        var name = job.Paper == Presets.TwoBySixByTwo && !string.IsNullOrEmpty(_options.Printer2x6x2)
+            ? _options.Printer2x6x2
+            : _options.PrinterName;
         if (string.IsNullOrEmpty(name))
             throw new PrintFailure(PrintErrors.PrinterUnavailable, "printer belum dikonfigurasi (--printer)");
 
@@ -97,7 +101,7 @@ public sealed class WindowsPrinterAdapter : QueuedPrinterAdapter
         // Kertas yang didefinisikan melebar di driver: putar gambar, tetap tepat 4×6 in.
         var landscapePaper = paper.Width > paper.Height;
         if (landscapePaper) image.RotateFlip(RotateFlipType.Rotate90FlipNone);
-        var target = landscapePaper
+        var fourBySix = landscapePaper
             ? new RectangleF(0, 0, PaperSelector.FourBySixLong, PaperSelector.FourBySixShort)
             : new RectangleF(0, 0, PaperSelector.FourBySixShort, PaperSelector.FourBySixLong);
 
@@ -110,6 +114,14 @@ public sealed class WindowsPrinterAdapter : QueuedPrinterAdapter
             if (!margins) g.TranslateTransform(-e.PageSettings.HardMarginX, -e.PageSettings.HardMarginY);
             g.InterpolationMode = InterpolationMode.HighQualityBicubic;
             g.PixelOffsetMode = PixelOffsetMode.Half;
+            // Borderless: tutup seluruh halaman (termasuk overscan) tanpa tepi putih. Ber-margin: tepat 4×6 in.
+            RectangleF target = fourBySix;
+            if (!margins)
+            {
+                var b = e.PageSettings.Bounds;
+                var c = PaperSelector.CoverRect(b.Width, b.Height, fourBySix.Width, fourBySix.Height);
+                target = new RectangleF((float)c.X, (float)c.Y, (float)c.W, (float)c.H);
+            }
             g.DrawImage(image, target);
             printed++;
             // Salinan sebagai halaman: jumlah halaman = copies, tidak bergantung dukungan Copies di driver.
