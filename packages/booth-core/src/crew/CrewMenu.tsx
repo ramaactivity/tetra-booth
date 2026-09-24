@@ -175,6 +175,11 @@ export function CrewMenu({
               <div key={f.id} className={row}>
                 <span className="text-sm">
                   {new Date(f.createdAt).toLocaleTimeString("id-ID")} · {f.copies}× · {f.error}
+                  {f.error?.startsWith("print_uncertain") && (
+                    <strong className="mt-1 block font-medium text-accent">
+                      {copy.crew.uncertain}
+                    </strong>
+                  )}
                 </span>
                 <Button
                   variant="secondary"

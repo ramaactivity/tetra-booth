@@ -117,14 +117,26 @@ export function openDb(file: string) {
     `insert into upload_queue (asset_id, priority, next_attempt_at) values (?, ?, ?)
      on conflict (asset_id) do nothing`,
   );
+  // print_jobs: status final (done/failed/reprinted) tidak pernah kembali ke queued (M-012).
+  // Baris ditulis SEBELUM print.submit dikirim (write-ahead), jadi event hasil tidak pernah mendahului barisnya.
   const insertPrint = db.prepare(
     `insert into print_jobs (id, session_id, path, copies, paper, status, attempts, error, created_at)
-     values (?, ?, ?, ?, ?, ?, 1, ?, ?)
-     on conflict (id) do update set status = excluded.status, attempts = attempts + 1, error = excluded.error`,
+     values (?, ?, ?, ?, ?, 'queued', 1, null, ?)
+     on conflict (id) do update set attempts = attempts + 1
+       where print_jobs.status = 'queued'`,
   );
-
+  const noteQueued = db.prepare(
+    "update print_jobs set error = ? where id = ? and status = 'queued'",
+  );
   const updatePrint = db.prepare(
-    "update print_jobs set status = ?, error = ? where id = ? returning copies",
+    "update print_jobs set status = ?, error = ? where id = ? and status = 'queued' returning copies",
+  );
+  const markReprinted = db.prepare(
+    "update print_jobs set status = 'reprinted' where id = ? and status = 'failed'",
+  );
+  const expire = db.prepare(
+    `update print_jobs set status = 'failed', error = ?
+     where status = 'queued' and (created_at < ? or attempts >= ?)`,
   );
   const getKv = db.prepare("select value from kv where key = ?");
   const setKv = db.prepare(
@@ -166,27 +178,56 @@ export function openDb(file: string) {
       });
     },
 
-    printJob(j: PrintJobRow) {
-      insertPrint.run(
-        j.id,
-        j.sessionId,
-        j.path,
-        j.copies,
-        j.paper,
-        j.status,
-        j.error ?? null,
-        new Date().toISOString(),
+    /**
+     * Catat job sebelum dikirim ke Camera Service. Baru → queued. Masih queued → percobaan +1 (kirim ulang).
+     * Sudah final → tidak berubah dan dikembalikan false: jangan kirim lagi.
+     */
+    printSubmitting(j: Omit<PrintJobRow, "status" | "error">): boolean {
+      insertPrint.run(j.id, j.sessionId, j.path, j.copies, j.paper, new Date().toISOString());
+      return (
+        (db.prepare("select status from print_jobs where id = ?").get(j.id) as { status: string })
+          .status === "queued"
       );
     },
 
-    /** Hasil akhir dari event Camera Service (print.done / print.failed). */
-    /** Hasil akhir cetak. Selesai → counter kertas berkurang sebanyak salinan (FSD §1.10). */
-    printJobResult(id: string, status: PrintJobStatus, error?: string) {
+    /** Catatan pada job yang masih queued (mis. menunggu Camera Service). */
+    printNote(id: string, note: string) {
+      noteQueued.run(note, id);
+    },
+
+    /**
+     * Hasil akhir (event print.done/print.failed, atau submit ditolak). Hanya dari queued: hasil yang datang
+     * belakangan tidak menimpa status final. Selesai → counter kertas berkurang sebanyak salinan (FSD §1.10).
+     */
+    printJobResult(id: string, status: "done" | "failed", error?: string) {
       const row = updatePrint.get(status, error ?? null, id) as { copies: number } | undefined;
       if (status === "done" && row) {
         const p = paper();
         kv.set("paper_remaining", String(Math.max(0, p.remaining - row.copies)));
       }
+    },
+
+    /** Crew mencetak ulang job gagal (job baru dengan id lain). */
+    printReprinted(id: string) {
+      markReprinted.run(id);
+    },
+
+    /** Job queued yang terlalu lama/terlalu sering dicoba → gagal, supaya muncul di menu crew. */
+    printExpire(before: string, maxAttempts: number) {
+      return Number(
+        expire.run(`tidak terkirim setelah ${maxAttempts} percobaan`, before, maxAttempts).changes,
+      );
+    },
+
+    /** Job yang sudah diserahkan tapi belum ada hasil (untuk menunggu sebelum app ditutup). */
+    printsInFlight(since: string): number {
+      return (
+        db
+          .prepare("select count(*) n from print_jobs where status = 'queued' and created_at >= ?")
+          .get(since) as {
+          n: number;
+        }
+      ).n;
     },
 
     kv,

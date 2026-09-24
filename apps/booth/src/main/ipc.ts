@@ -116,23 +116,32 @@ export function registerIpc(db: BoothDb, alerts: Alerts) {
   ipcMain.handle("printSubmit", async (_e, job: unknown) => {
     const j = PrintJob.parse(job);
     const path = inSessions(j.path);
-    const row = { id: j.jobId, sessionId: j.jobId, path, copies: j.copies, paper: j.paper };
+    // Write-ahead: baris queued ada sebelum event hasil bisa datang (M-012).
+    if (
+      !db.printSubmitting({
+        id: j.jobId,
+        sessionId: j.jobId,
+        path,
+        copies: j.copies,
+        paper: j.paper,
+      })
+    )
+      return;
     try {
       const r = await request({
         id: crypto.randomUUID(),
         type: "print.submit",
         payload: { ...j, path },
       });
-      if (!r.accepted) throw new Error("print ditolak Camera Service");
-      db.printJob({ ...row, status: "queued" });
+      if (!r.accepted) db.printJobResult(j.jobId, "failed", "print ditolak Camera Service");
     } catch (e) {
       if (e instanceof ServiceUnavailable) {
-        // Camera Service sedang restart: simpan, dikirim ulang begitu pulih (M-009). Sesi tetap lanjut.
-        db.printJob({ ...row, status: "queued", error: `menunggu Camera Service: ${e.message}` });
+        // Camera Service sedang restart: tetap queued, dikirim ulang begitu pulih (M-009). Sesi tetap lanjut.
+        db.printNote(j.jobId, `menunggu Camera Service: ${e.message}`);
         console.warn(`[print] tertunda ${j.jobId}: ${e.message}`);
         return;
       }
-      db.printJob({ ...row, status: "failed", error: e instanceof Error ? e.message : String(e) });
+      db.printJobResult(j.jobId, "failed", e instanceof Error ? e.message : String(e));
       throw e;
     }
   });
@@ -174,22 +183,22 @@ export function registerIpc(db: BoothDb, alerts: Alerts) {
     if (!j) throw new Error("job tidak ditemukan");
     const paper = PaperSchema.parse(j.paper);
     const jobId = `${j.session_id}-r${Date.now().toString(36)}`;
-    const r = await request({
-      id: crypto.randomUUID(),
-      type: "print.submit",
-      payload: { jobId, path: inSessions(j.path), copies: j.copies, paper },
-    });
-    if (!r.accepted) throw new Error("print ditolak Camera Service");
-    db.printJob({
-      id: jobId,
-      sessionId: j.session_id,
-      path: j.path,
-      copies: j.copies,
-      paper,
-      status: "queued",
-    });
-    db.printJobResult(j.id, "reprinted");
+    const path = inSessions(j.path);
+    db.printSubmitting({ id: jobId, sessionId: j.session_id, path, copies: j.copies, paper });
+    db.printReprinted(j.id);
+    try {
+      const r = await request({
+        id: crypto.randomUUID(),
+        type: "print.submit",
+        payload: { jobId, path, copies: j.copies, paper },
+      });
+      if (!r.accepted) throw new Error("print ditolak Camera Service");
+    } catch (e) {
+      db.printJobResult(jobId, "failed", e instanceof Error ? e.message : String(e));
+      throw e;
+    }
   });
+
   ipcMain.handle("crewExit", () => {
     crewOnly();
     allowQuit();

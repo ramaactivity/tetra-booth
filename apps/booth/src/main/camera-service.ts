@@ -15,6 +15,7 @@ import {
 import { cameraServiceFlags } from "./config";
 import type { BoothDb } from "./db";
 import { createSupervisor } from "./supervisor";
+import { waitUntil } from "./wait";
 
 const EXE = process.platform === "win32" ? "TetraCamera.exe" : "TetraCamera";
 
@@ -105,6 +106,26 @@ export async function startCameraService(log: (m: string) => void, db: BoothDb, 
     `[supervisor] Camera Service ${ready ? `siap dalam ${Date.now() - t0} ms` : "belum siap setelah 5 s, booth tetap jalan"}`,
   );
   const stopEvents = watchPrintEvents(log, db, alerts);
+  // Keluar dengan halus (M-012): tunggu print yang sedang diserahkan ke printer selesai (maks 15 s),
+  // baru hentikan Camera Service. Menutup booth tepat setelah QR tidak boleh membatalkan cetakan tamu.
+  let drained = false;
+  app.on("before-quit", (e) => {
+    if (drained) return;
+    e.preventDefault();
+    const since = () => new Date(Date.now() - RESUBMIT_WINDOW_MS).toISOString();
+    void waitUntil(() => db.printsInFlight(since()) === 0, QUIT_DRAIN_MS).then((ok) => {
+      const left = db.printsInFlight(since());
+      log(
+        ok
+          ? "[print] antrean kosong, Camera Service dihentikan"
+          : `[print] keluar dengan ${left} job belum selesai`,
+      );
+      drained = true;
+      stopEvents();
+      sup.stop();
+      app.quit();
+    });
+  });
   app.on("will-quit", () => {
     stopEvents();
     sup.stop();
@@ -131,6 +152,9 @@ export function watchPrintEvents(log: (m: string) => void, db: BoothDb, alerts: 
   });
 }
 
+/** Batas tunggu print selesai saat app ditutup (M-012). */
+export const QUIT_DRAIN_MS = 15_000;
+
 /** Batas kirim ulang print tertunda: umur job & jumlah percobaan (M-009, DECISIONS #38). */
 export const RESUBMIT_WINDOW_MS = 10 * 60_000;
 export const RESUBMIT_MAX_ATTEMPTS = 3;
@@ -142,27 +166,33 @@ export const RESUBMIT_MAX_ATTEMPTS = 3;
  */
 export async function resubmitPending(db: BoothDb, log: (m: string) => void, now = Date.now()) {
   const since = new Date(now - RESUBMIT_WINDOW_MS).toISOString();
+  const expired = db.printExpire(since, RESUBMIT_MAX_ATTEMPTS);
+  if (expired) log(`[print] ${expired} job tidak terkirim, dipindah ke "Cetak gagal"`);
   for (const j of db.pendingPrints(since, RESUBMIT_MAX_ATTEMPTS)) {
-    try {
-      const paper = j.paper === "4R" ? "4R" : "2x6x2";
-      const r = await request({
-        id: crypto.randomUUID(),
-        type: "print.submit",
-        payload: { jobId: j.id, path: j.path, copies: j.copies, paper },
-      });
-      if (!r.accepted) throw new Error("ditolak");
-      db.printJob({
+    const paper = j.paper === "4R" ? "4R" : "2x6x2";
+    // Percobaan dicatat dulu; kalau job sudah final (mis. print_uncertain), jangan kirim (M-012).
+    if (
+      !db.printSubmitting({
         id: j.id,
         sessionId: j.session_id,
         path: j.path,
         copies: j.copies,
         paper,
-        status: "queued",
+      })
+    )
+      continue;
+    try {
+      const r = await request({
+        id: crypto.randomUUID(),
+        type: "print.submit",
+        payload: { jobId: j.id, path: j.path, copies: j.copies, paper },
       });
-      log(`[print] kirim ulang ${j.id}`);
+      if (!r.accepted) db.printJobResult(j.id, "failed", "print ditolak Camera Service");
+      else log(`[print] kirim ulang ${j.id}`);
     } catch (e) {
       log(`[print] kirim ulang ${j.id} gagal: ${e instanceof Error ? e.message : String(e)}`);
       if (e instanceof ServiceUnavailable) return;
+      db.printJobResult(j.id, "failed", e instanceof Error ? e.message : String(e));
     }
   }
 }

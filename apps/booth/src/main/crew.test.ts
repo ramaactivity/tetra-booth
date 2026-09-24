@@ -104,15 +104,15 @@ describe("counter kertas & cetak ulang", () => {
   it("cetak selesai mengurangi kertas sebanyak salinan; gagal tidak", () => {
     const db = openDb(":memory:");
     db.resetPaper(700);
-    db.printJob({ id: "a", sessionId: "a", path: "/p", copies: 2, paper: "4R", status: "queued" });
-    db.printJob({ id: "b", sessionId: "b", path: "/p", copies: 1, paper: "4R", status: "queued" });
+    db.printSubmitting({ id: "a", sessionId: "a", path: "/p", copies: 2, paper: "4R" });
+    db.printSubmitting({ id: "b", sessionId: "b", path: "/p", copies: 1, paper: "4R" });
     db.printJobResult("a", "done");
     db.printJobResult("b", "failed", "printer_error: ribbon habis");
     expect(db.paper()).toEqual({ remaining: 698, capacity: 700 });
     expect(db.failedPrints().map((j) => [j.id, j.error])).toEqual([
       ["b", "printer_error: ribbon habis"],
     ]);
-    db.printJobResult("b", "reprinted");
+    db.printReprinted("b");
     expect(db.failedPrints()).toEqual([]);
   });
 });
