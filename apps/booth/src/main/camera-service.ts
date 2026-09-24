@@ -106,6 +106,12 @@ export async function startCameraService(log: (m: string) => void, db: BoothDb, 
     `[supervisor] Camera Service ${ready ? `siap dalam ${Date.now() - t0} ms` : "belum siap setelah 5 s, booth tetap jalan"}`,
   );
   const stopEvents = watchPrintEvents(log, db, alerts);
+  // Event printer.status pertama bisa terkirim sebelum koneksi event tersambung: isi status awal dari health (W-018).
+  if (ready)
+    void cameraHealth().then(
+      (h) => alerts.onPrinterStatus(h.printer),
+      () => {},
+    );
   // Keluar dengan halus (M-012): tunggu print yang sedang diserahkan ke printer selesai (maks 15 s),
   // baru hentikan Camera Service. Menutup booth tepat setelah QR tidak boleh membatalkan cetakan tamu.
   let drained = false;
@@ -138,11 +144,11 @@ export function watchPrintEvents(log: (m: string) => void, db: BoothDb, alerts: 
   return listenEvents((e) => {
     if (e.type === "print.done") {
       db.printJobResult(e.payload.jobId, "done");
-      alerts.onPrintDone();
+      alerts.onPrintDone(e.payload.jobId);
       log(`[print] selesai ${e.payload.jobId} · kertas ${db.paper().remaining}`);
     } else if (e.type === "print.failed") {
       db.printJobResult(e.payload.jobId, "failed", `${e.payload.code}: ${e.payload.message}`);
-      alerts.onPrintFailed(e.payload.message);
+      alerts.onPrintFailed(e.payload.jobId, `${e.payload.code}: ${e.payload.message}`);
       log(`[print] GAGAL ${e.payload.jobId}: ${e.payload.code} ${e.payload.message}`);
     } else if (e.type === "printer.status") {
       alerts.onPrinterStatus(e.payload.status, e.payload.message);

@@ -61,6 +61,8 @@ export type FailedPrint = { id: string; copies: number; error: string | null; cr
 /** Peringatan kecil untuk crew di pojok layar (printer error, cetak gagal, kertas menipis). */
 export type PrinterAlert = { message: string } | null;
 
+export type PrintUpdate = { jobId: string; ok: boolean; message?: string };
+
 /** Mode crew (FSD §1.3). Selain PIN, semua aksi ditolak shell kalau crew belum masuk. */
 export interface BoothCrew {
   pinStatus(): Promise<{ hasPin: boolean; lockedUntil: number | null }>;
@@ -70,15 +72,16 @@ export interface BoothCrew {
   status(): Promise<CrewStatus>;
   resetPaper(capacity: number): Promise<void>;
   failedPrints(): Promise<FailedPrint[]>;
-  reprint(jobId: string): Promise<void>;
+  /** Cetak ulang job gagal sebagai job baru; kembalikan id job baru. */
+  reprint(jobId: string): Promise<string>;
   exit(): Promise<void>;
   /** Jalankan booth saat Windows login (M5). `supported` false di mode dev. */
   autoStart(): Promise<{ enabled: boolean; supported: boolean }>;
   setAutoStart(on: boolean): Promise<{ enabled: boolean; supported: boolean }>;
   printerAlert(): Promise<PrinterAlert>;
   onPrinterAlert(cb: (a: PrinterAlert) => void): Unsubscribe;
-  /** Setiap print selesai/gagal (untuk menyegarkan kertas & daftar gagal di menu crew). */
-  onPrintUpdated(cb: () => void): Unsubscribe;
+  /** Setiap print selesai/gagal (menyegarkan kertas & daftar gagal, dan hasil test print di menu crew). */
+  onPrintUpdated(cb: (u: PrintUpdate) => void): Unsubscribe;
 }
 
 /** Event dari bundle lokal (M6; Fase 2 lewat sync). */

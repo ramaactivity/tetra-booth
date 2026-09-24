@@ -76,10 +76,14 @@ public sealed class WindowsPrinterAdapter : QueuedPrinterAdapter
         page.Margins = new Margins(0, 0, 0, 0);
 
         // Driver yang mengabaikan pilihan kertas melaporkan area kertas lain (W-006): jangan cetak.
+        // Mode ber-margin (inkjet): cukup area cetak memuat 4×6 in utuh.
         var area = page.PrintableArea;
-        if (!PaperSelector.PrintableAreaMatches(chosen, area.Width, area.Height))
-            throw new PrintFailure(PrintErrors.PaperMismatch,
-                $"PrintableArea {area.Width:0.#}x{area.Height:0.#} tidak cocok dengan '{chosen.Name}' {chosen.Width}x{chosen.Height}");
+        var margins = _options.Paper.AllowMargins;
+        if (margins ? !PaperSelector.PrintableAreaFitsFourBySix(area.Width, area.Height)
+                    : !PaperSelector.PrintableAreaMatches(chosen, area.Width, area.Height))
+            throw new PrintFailure(PrintErrors.PaperMismatch, margins
+                ? $"area cetak {area.Width:0.#}x{area.Height:0.#} '{chosen.Name}' tidak muat 4x6 in (400x600)"
+                : $"PrintableArea {area.Width:0.#}x{area.Height:0.#} tidak cocok dengan '{chosen.Name}' {chosen.Width}x{chosen.Height}");
 
         if (_options.OutputDirectory is not null)
         {
@@ -102,7 +106,8 @@ public sealed class WindowsPrinterAdapter : QueuedPrinterAdapter
         {
             var g = e.Graphics!;
             g.PageUnit = GraphicsUnit.Display; // 1/100 in
-            g.TranslateTransform(-e.PageSettings.HardMarginX, -e.PageSettings.HardMarginY); // origin = tepi kertas
+            // Normal: origin = tepi kertas (borderless DNP). Ber-margin: origin = pojok area cetak, 4×6 utuh di dalamnya.
+            if (!margins) g.TranslateTransform(-e.PageSettings.HardMarginX, -e.PageSettings.HardMarginY);
             g.InterpolationMode = InterpolationMode.HighQualityBicubic;
             g.PixelOffsetMode = PixelOffsetMode.Half;
             g.DrawImage(image, target);

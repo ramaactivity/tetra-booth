@@ -25,8 +25,8 @@ export function createAlerts(db: BoothDb) {
     return null;
   };
   /** Setiap hasil cetak: menu crew menyegarkan kertas & daftar gagal saat itu juga (M-010). */
-  const printUpdated = () => {
-    for (const w of BrowserWindow.getAllWindows()) w.webContents.send("printUpdated");
+  const printUpdated = (u: { jobId: string; ok: boolean; message?: string }) => {
+    for (const w of BrowserWindow.getAllWindows()) w.webContents.send("printUpdated", u);
   };
   const publish = () => {
     const next = compute();
@@ -42,15 +42,15 @@ export function createAlerts(db: BoothDb) {
       printer = { status, message };
       publish();
     },
-    onPrintDone() {
+    onPrintDone(jobId: string) {
       lastFailure = null;
       publish();
-      printUpdated();
+      printUpdated({ jobId, ok: true });
     },
-    onPrintFailed(message: string) {
+    onPrintFailed(jobId: string, message: string) {
       lastFailure = message;
       publish();
-      printUpdated();
+      printUpdated({ jobId, ok: false, message });
     },
     refresh: publish,
   };

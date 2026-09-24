@@ -4,7 +4,8 @@ import type { BoothEvent } from "../event";
 import type { BoothPlatform } from "../platform";
 
 /** Test print: layout event aktif dengan foto abu-abu bertanda TEST, lewat jalur cetak yang sama dengan sesi. */
-export async function testPrint(p: BoothPlatform, event: BoothEvent): Promise<void> {
+/** Kembalikan id job, supaya menu crew bisa menampilkan hasil akhirnya. */
+export async function testPrint(p: BoothPlatform, event: BoothEvent): Promise<string> {
   const photos = event.layout.slots.map((s, i) => {
     const c = new OffscreenCanvas(Math.round(s.w), Math.round(s.h));
     const g = c.getContext("2d");
@@ -22,5 +23,7 @@ export async function testPrint(p: BoothPlatform, event: BoothEvent): Promise<vo
   const id = newSessionId();
   const path = `${await p.storage.sessionDir(id)}/out/test.jpg`;
   await p.storage.writeFile(path, new Uint8Array(await blob.arrayBuffer()));
-  await p.printer.submit({ jobId: `test-${id}`, path, copies: 1, paper: event.layout.paper });
+  const jobId = `test-${id}`;
+  await p.printer.submit({ jobId, path, copies: 1, paper: event.layout.paper });
+  return jobId;
 }

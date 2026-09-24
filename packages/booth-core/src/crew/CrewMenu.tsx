@@ -42,6 +42,8 @@ export function CrewMenu({
   const [failed, setFailed] = useState<FailedPrint[]>([]);
   const [roll, setRoll] = useState<string | null>(null);
   const [note, setNote] = useState<string>();
+  /** Job test print / cetak ulang terakhir: hasil akhirnya menggantikan catatan "dikirim" (W-018). */
+  const [, setWatching] = useState<string | null>(null);
   const [auto, setAuto] = useState<{ enabled: boolean; supported: boolean }>();
   useEffect(() => {
     p.crew.autoStart().then(setAuto, (e: unknown) => setNote(errText(e)));
@@ -59,7 +61,14 @@ export function CrewMenu({
   useEffect(() => {
     void refresh();
     const t = setInterval(() => void refresh(), 5000);
-    const off = p.crew.onPrintUpdated(() => void refresh());
+    const off = p.crew.onPrintUpdated((u) => {
+      void refresh();
+      setWatching((w) => {
+        if (w === u.jobId)
+          setNote(u.ok ? copy.crew.printed : copy.crew.printFailed(u.message ?? ""));
+        return w === u.jobId ? null : w;
+      });
+    });
     return () => {
       clearInterval(t);
       off();
@@ -140,7 +149,10 @@ export function CrewMenu({
               >
                 {copy.crew.newRoll}
               </Button>
-              <Button variant="secondary" onClick={act(() => testPrint(p, event), copy.crew.sent)}>
+              <Button
+                variant="secondary"
+                onClick={act(async () => setWatching(await testPrint(p, event)), copy.crew.sent)}
+              >
                 {copy.crew.testPrint}
               </Button>
             </div>
@@ -183,7 +195,7 @@ export function CrewMenu({
                 </span>
                 <Button
                   variant="secondary"
-                  onClick={act(() => p.crew.reprint(f.id), copy.crew.sent)}
+                  onClick={act(async () => setWatching(await p.crew.reprint(f.id)), copy.crew.sent)}
                 >
                   {copy.crew.reprint}
                 </Button>

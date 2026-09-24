@@ -98,4 +98,13 @@ public class PaperSelectorTests
     {
         Assert.Equal(ok, PaperSelector.PrintableAreaMatches(new PaperOption("(4x6)", 400, 600), w, h));
     }
+
+    [Theory]
+    [InlineData(803.3, 1145.8, true)]   // Epson L121 A4 (W-018)
+    [InlineData(1145.8, 803.3, true)]   // orientasi melebar
+    [InlineData(400, 600, true)]
+    [InlineData(399, 600, false)]
+    [InlineData(583, 590, false)]       // A5 pendek < 600
+    public void Mode_ber_margin_cukup_memuat_4x6(double w, double h, bool ok) =>
+        Assert.Equal(ok, PaperSelector.PrintableAreaFitsFourBySix(w, h));
 }

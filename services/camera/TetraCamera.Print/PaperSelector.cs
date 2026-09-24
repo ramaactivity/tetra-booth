@@ -3,8 +3,12 @@ namespace TetraCamera.Print;
 /// <summary>Satu ukuran kertas dari driver. Satuan 1/100 inci (sama dengan System.Drawing.Printing).</summary>
 public sealed record PaperOption(string Name, int Width, int Height);
 
-/// <summary>Nama kertas persis dari driver per preset, dari config device (sementara: argumen Host).</summary>
-public sealed record PaperConfig(string? Paper4R = null, string? Paper2x6x2 = null)
+/// <summary>
+/// Nama kertas persis dari driver per preset, dari config device (sementara: argumen Host).
+/// <paramref name="AllowMargins"/>: mode ber-margin untuk printer inkjet biasa (W-018, DECISIONS #44): kertas boleh
+/// lebih besar & punya margin keras, gambar tetap tepat 4×6 in di pojok area cetak, crew menggunting.
+/// </summary>
+public sealed record PaperConfig(string? Paper4R = null, string? Paper2x6x2 = null, bool AllowMargins = false)
 {
     public string? NameFor(string preset) => preset switch
     {
@@ -78,6 +82,13 @@ public static class PaperSelector
     /// PrintableArea dari driver harus menutup kertas terpilih, tapi tidak jauh lebih besar
     /// (driver yang mengabaikan pilihan kertas melaporkan area kertas lain, mis. Letter). Orientasi diabaikan.
     /// </summary>
+    /// <summary>Mode ber-margin: area cetak cukup untuk 4×6 in utuh (orientasi mana pun), tanpa perlu menutup kertas.</summary>
+    public static bool PrintableAreaFitsFourBySix(double areaWidth, double areaHeight)
+    {
+        var (a, b) = (Math.Min(areaWidth, areaHeight), Math.Max(areaWidth, areaHeight));
+        return a >= FourBySixShort && b >= FourBySixLong;
+    }
+
     public static bool PrintableAreaMatches(PaperOption paper, double areaWidth, double areaHeight)
     {
         var (ps, pl) = Sorted(paper.Width, paper.Height);

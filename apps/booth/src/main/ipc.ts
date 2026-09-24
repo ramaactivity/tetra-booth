@@ -186,6 +186,7 @@ export function registerIpc(db: BoothDb, alerts: Alerts) {
     const path = inSessions(j.path);
     db.printSubmitting({ id: jobId, sessionId: j.session_id, path, copies: j.copies, paper });
     db.printReprinted(j.id);
+    const newJobId = jobId;
     try {
       const r = await request({
         id: crypto.randomUUID(),
@@ -197,6 +198,7 @@ export function registerIpc(db: BoothDb, alerts: Alerts) {
       db.printJobResult(jobId, "failed", e instanceof Error ? e.message : String(e));
       throw e;
     }
+    return newJobId;
   });
 
   ipcMain.handle("crewExit", () => {

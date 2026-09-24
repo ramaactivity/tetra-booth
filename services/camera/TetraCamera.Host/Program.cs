@@ -8,6 +8,7 @@ var port = int.Parse(Environment.GetEnvironmentVariable("TETRA_CAMERA_PORT") ?? 
 var token = Environment.GetEnvironmentVariable("TETRA_CAMERA_TOKEN") ?? "dev";
 // Printer (M4): sementara dari argumen, nanti dari config device lewat Electron.
 string? printerName = null, paper4R = null, paper2x6x2 = null, printToFile = null, printJournal = null, hotFolder = null;
+var paperFitMargin = false;
 for (var i = 0; i + 1 < args.Length; i++)
 {
     switch (args[i])
@@ -20,6 +21,7 @@ for (var i = 0; i + 1 < args.Length; i++)
         case "--print-to-file": printToFile = Path.GetFullPath(args[i + 1]); break;
         case "--print-journal": printJournal = Path.GetFullPath(args[i + 1]); break;
         case "--hot-folder": hotFolder = Path.GetFullPath(args[i + 1]); break;
+        case "--paper-fit": paperFitMargin = args[i + 1] == "margin"; break;
     }
 }
 var tokenBytes = Encoding.UTF8.GetBytes(token);
@@ -32,7 +34,7 @@ app.UseWebSockets();
 
 IPrinterAdapter printer = OperatingSystem.IsWindows()
     ? new TetraCamera.Print.Windows.WindowsPrinterAdapter(
-        new(printerName, new PaperConfig(paper4R, paper2x6x2), printToFile))
+        new(printerName, new PaperConfig(paper4R, paper2x6x2, paperFitMargin), printToFile))
     {
         // Jurnal job print di disk: kirim ulang setelah crash tidak mencetak dua kali (DECISIONS #39).
         Journal = printJournal is null ? null : new PrintJournal(printJournal),
@@ -58,5 +60,5 @@ app.Map("/ws", async (HttpContext ctx) =>
 
 Console.WriteLine($"TetraCamera siap di ws://127.0.0.1:{port}/ws");
 if (camera is not null) Console.WriteLine($"Kamera: hot folder {camera.Folder}");
-if (printerName is not null) Console.WriteLine($"Printer: {printerName} (4R: {paper4R ?? "ukuran 4x6"}, 2x6x2: {paper2x6x2 ?? "-"})");
+if (printerName is not null) Console.WriteLine($"Printer: {printerName} (4R: {paper4R ?? "ukuran 4x6"}, 2x6x2: {paper2x6x2 ?? "-"}{(paperFitMargin ? ", mode ber-margin" : "")})");
 app.Run();

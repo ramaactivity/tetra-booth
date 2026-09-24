@@ -13,6 +13,7 @@ export const VALUE_FLAGS = [
   "print-to-file",
   "hot-folder",
   "metrics-every",
+  "paper-fit",
 ] as const;
 type ValueFlag = (typeof VALUE_FLAGS)[number];
 
@@ -81,12 +82,12 @@ export const dataDir = flags.value("data");
 export const cameraServiceFlags = {
   spawn: !flags.has("no-spawn"),
   path: flags.value("camera-service"),
-  args: (["printer", "paper-4r", "paper-2x6x2", "print-to-file", "hot-folder"] as const).flatMap(
-    (k) => {
-      const v = flags.value(k);
-      return v ? [`--${k}`, v] : [];
-    },
-  ),
+  args: (
+    ["printer", "paper-4r", "paper-2x6x2", "paper-fit", "print-to-file", "hot-folder"] as const
+  ).flatMap((k) => {
+    const v = flags.value(k);
+    return v ? [`--${k}`, v] : [];
+  }),
 };
 
 /** Interval log metrik (detik), default 60. Stress test memakai nilai kecil. */
