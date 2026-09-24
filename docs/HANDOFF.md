@@ -108,13 +108,14 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 - [x] **W-025 Uji ulang pemulihan GPU di build M-018.** → `docs/reports/windows/2026-09-24-w025-gpu-recovery.md` (attract 11/11 pulih; tengah sesi 4/6 relaunch, 2/6 tertahan di print_select → M-019) `git pull` → build. Jalankan skrip `gpukill` yang sama (booth di attract, `taskkill /F` proses GPU), **dengan `--kiosk`** (dan tanpa), minimal 5×. Harapan tiap percobaan: `[gpu] …` (kalau Electron melihatnya) atau `[watchdog] layar tidak menggambar > 15 s` → `[boot]` kedua dalam ±20 s, booth kembali normal di attract (klik "Sentuh untuk Mulai" jalan). Tambah 1 percobaan kill GPU di tengah sesi (countdown/review). Laporkan waktu deteksi → boot ulang tiap percobaan, dan apakah pernah tidak pulih (main `Not Responding`?).
 
-- [ ] **W-020 M8: stress test 500 sesi (kriteria selesai Fase 1).** Setelah W-019. Di laptop booth Rama bisa semalaman; pakai Print to PDF, **bukan** DNP. Merge `origin/main`, build booth + `dotnet build services/camera`. Printer: Print to PDF (**bukan** Epson; jangan cetak fisik). Pastikan laptop dicolok charger & keep-awake jalan.
+- [x] **W-020 M8: stress test 500 sesi (kriteria selesai Fase 1).** Setelah W-019. Di laptop booth Rama bisa semalaman; pakai Print to PDF, **bukan** DNP. Merge `origin/main`, build booth + `dotnet build services/camera`. Printer: Print to PDF (**bukan** Epson; jangan cetak fisik). Pastikan laptop dicolok charger & keep-awake jalan.
   1. **Cepat:** `node apps/booth/scripts/stress.mjs --sessions 500 --fast --data "$W\stress-fast" -- --printer "Microsoft Print to PDF" --paper-2x6x2 A5 --print-to-file "$W\stress-fast\prints"` (±45–60 menit). Skrip keluar 0 = lulus. Tempel isi `stress-report.json` ke laporan.
   2. **Semalaman (waktu normal):** sama tanpa `--fast` (±25 s/sesi → 500 sesi ±3,5 jam), `--data "$W\stress-normal"`. Kalau dijalankan saat Rama tidak memantau, tetap di dalam `$W`.
   3. Kalau ada kriteria GAGAL: jangan ubah kode; lampirkan baris `[metrics]` awal/akhir, jumlah dan contoh `ERROR`, dan grafik sederhana (tabel sesi vs memori per 50 sesi).
   4. Catat ukuran `$W\stress-*` (disk) setelah 500 sesi, lalu hapus kedua folder (PDF & foto uji).
   - Laporan `docs/reports/windows/<tanggal>-m8-stress.md`.
   - **Status (Windows, 2026-09-24): langkah 1 dua kali, belum lulus** → `docs/reports/windows/2026-09-24-m8-stress.md`. Run ke-1 macet di 350 (Windows Update memasang driver Intel → GPU process hilang, main macet). Run ke-2 501/500, stabilitas lulus, memori GAGAL (total akhir 1.277 MB; GPU iGPU ±1,1–1,2 GB). Langkah 2 (waktu normal) belum dijalankan, menunggu keputusan M-017.
+  → Ditutup 2026-09-25 atas keputusan Rama (DECISIONS #53): langkah 1 cukup (W-024), langkah 2 tidak dijalankan.
 
 ## Untuk Mac
 
@@ -175,6 +176,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-25 | Mac | Rama: stress test cukup, Fase 1 selesai (DECISIONS #53). Mulai Fase 2 (PLAN-FASE-2, N1). Windows: M-020 uji fisik → M-021 kalibrasi (DECISIONS #54) → W-023. |
 | 2026-09-25 | Windows | M-020 selesai di `win` (DECISIONS #52): pemotong DNP per job lewat Print Ticket API; antrean kedua `--printer-2x6x2` dihapus. Bukti spooler (antrean offline, tanpa kertas): 2x6x2 → CUT_2INCH, 4R → CUT_STANDARD walau Printing Preferences pengguna CUT_2INCH. lint/typecheck/test, 86/86 C#, e2e 4/4. Uji fisik menunggu Rama mengembalikan 2inch cut per pengguna ke Disable. |
 | 2026-09-25 | Windows | W-022 cetak DNP 4/4 lembar: kode lama → tepi putih 2 sisi & konten bergeser (dugaan W-021 terbukti); kode M-014 (cover) → tanpa tepi putih; potong 2 inci bekerja setelah Rama mengaktifkan 2inch cut (DEVMODE per pengguna). Warna biru = PNG overlay e2e (R0 G0 B255 A127), bukan bug. Potong per job lewat PrintTicket API terbukti sampai spooler → M-020 (permintaan Rama). Laporan: `docs/reports/windows/2026-09-25-dnp-rx1hs.md`. |
 | 2026-09-24 | Mac | M-019: print_select 30 s tanpa sentuhan → cetak jumlah terpilih → QR (DECISIONS #51). Relaunch GPU yang tertunda tidak lagi tertahan tamu yang pergi. |

@@ -38,7 +38,7 @@ Prinsip:
 
 **Selesai jika:**
 1. Alur sesi lengkap berjalan di Windows dengan webcam, output tersimpan, print lewat `WindowsPrinterAdapter`.
-2. Stress test otomatis 500 sesi (kamera simulasi) tanpa crash atau memory leak.
+2. Stress test otomatis 500 sesi (kamera simulasi) tanpa crash atau memory leak. _(Selesai 2026-09-25: W-024 500/500 sesi tanpa crash, tanpa tren memori; dinyatakan cukup oleh Rama, DECISIONS #53)_
 
 ## Fase 1b — Kamera DSLR (dipindah dari Fase 1, menunggu EDSDK & kamera)
 - [ ] Camera Service: Canon EDSDK (connect, reconnect, live view, capture).
