@@ -21,6 +21,13 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   - Jangan pasang driver apa pun (butuh admin). Jangan ubah protokol di `packages/shared` tanpa menulis alasannya di "Untuk Mac".
   - Selesai: `dotnet test` lulus di laptop, CI `win` hijau, laporan `docs/reports/windows/<tanggal>-m4-printer.md` dengan contoh output PDF (angka, bukan file).
 - [ ] **W-010 Riset webcam untuk M1 (tanpa kode fitur).** Di Electron (skrip/perubahan sementara, tidak di-commit): daftar perangkat video, resolusi & fps maksimum `getUserMedia` untuk HP 5MP Camera (coba 2592×1944, 1920×1080, 1280×720), `ImageCapture.getPhotoCapabilities()` dan resolusi hasil `takePhoto()`, waktu `takePhoto()` sampai blob, fps nyata live view ke canvas dengan mirror. Tulis temuan di laporan W-009 atau laporan terpisah. Ini dasar sumber kamera `webcam` yang dibangun di Mac.
+- [ ] **W-011 Verifikasi M1 (alur sesi) di Windows, simulasi + webcam.** Merge `origin/main` ke `win`, `pnpm install --frozen-lockfile`, `pnpm --filter booth build`. Jalankan Camera Service, lalu booth dengan flag di WINDOWS.md §5 (`--data` wajib).
+  1. **Simulasi landscape:** `--camera=simulated --demo --shots=$W\shots\sim` ±40 s. Lulus jika log menunjukkan satu siklus lengkap attract → countdown/capture/preview ×3 → review → compose → print_select → printing → qr → attract; `raw/1..3.jpg` 3000×2000 dan `out/strip.jpg` 1200×1800 ada di `$W\data\sessions\<id>`; screenshot review, print_select, qr tampil benar (bandingkan dengan 08-DESIGN).
+  2. **Simulasi portrait:** sama dengan `--size=450x800`. Semua konten muat tanpa terpotong.
+  3. **Webcam:** `--camera=webcam --demo --shots=$W\shots\cam`. Catat: live view di-mirror (screenshot countdown), resolusi `raw/*.jpg` (dari `takePhoto` atau fallback frame video), waktu `compose` dari log, dan jeda capture → preview. Foto tidak boleh di-mirror di strip.
+  4. **Kamera dicabut/diblokir:** kalau bisa tanpa admin, matikan akses kamera untuk proses ini (mis. jalankan webcam dengan kamera sedang dipakai aplikasi lain) dan pastikan layar "Sebentar ya, kamera lagi disiapkan" muncul lalu pulih. Kalau tidak bisa disimulasikan tanpa admin, tulis saja di laporan.
+  5. **Print:** kalau W-009 sudah jadi, jalankan Camera Service dengan printer Print to PDF dan `--paper-2x6x2` yang cocok (layout default M1 = `2x6x2`), pastikan satu sesi menghasilkan print tanpa dialog. Kalau belum, cukup pastikan log `cetak gagal, sesi tetap lanjut` dan QR tetap muncul.
+  - Bug di `packages/booth-core` atau `apps/booth` yang jelas: perbaiki di `win` + tulis di laporan. Masalah desain/UX: tulis di "Untuk Mac". Hapus `$W\data` & `$W\shots` setelah laporan. Laporan: `docs/reports/windows/<tanggal>-m1-sesi.md`.
 
 ## Untuk Mac
 
@@ -35,7 +42,8 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
-| 2026-09-24 | Windows | W-009 selesai: `WindowsPrinterAdapter` + antrean + `print.*` di Dispatcher. `dotnet test` 55/55 (Debug & Release), kriteria M4 1 & 2 lulus di Print to PDF. DECISIONS #30. Laporan: `docs/reports/windows/2026-09-24-m4-printer.md`. |
+| 2026-09-24 | Windows | W-009 selesai: `WindowsPrinterAdapter` + antrean + `print.*` di Dispatcher. `dotnet test` 55/55 (Debug & Release), kriteria M4 1 & 2 lulus di Print to PDF. DECISIONS #31. Laporan: `docs/reports/windows/2026-09-24-m4-printer.md`. |
+| 2026-09-24 | Mac | M1 (alur sesi) di `main`: reducer + 8 test, layar attract → QR, kamera webcam & simulasi, compose 2x6x2, flag uji `--demo/--shots/--data`. Teruji di Mac (simulasi, landscape & portrait). W-011 ditambahkan. |
 | 2026-09-24 | Mac | Rama setuju: W-005 tidak berlaku di laptop ini; target start ≤ 3 s & RAM idle ≤ 500 MB masuk 03-TSD §14. Mac mulai M1 (alur sesi + webcam) paralel dengan W-009. |
 | 2026-09-24 | Mac | Merge `win` → `main`. M-001..M-004 selesai. PLAN-FASE-1 disetujui & direvisi (webcam, EDSDK ke Fase 1b, desain printer). Tugas coding W-009 (printer) & riset W-010 (webcam) ditambahkan. W-005 menunggu keputusan Rama. |
 | 2026-09-24 | Windows | W-006..W-008 selesai, W-005 terblokir (permission unduh skrip R2). Print to PDF abaikan PaperSize custom; start booth 0,44–1,09 s; RAM idle 258 MB. Laporan: `docs/reports/windows/2026-09-24-uji-lanjutan.md`. |
