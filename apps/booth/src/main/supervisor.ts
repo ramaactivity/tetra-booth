@@ -13,8 +13,11 @@ export type SupervisorDeps = {
   spawn: () => ChildProcess;
   health: () => Promise<unknown>;
   log: (msg: string) => void;
-  /** Dipanggil sekali per start, saat health pertama berhasil (mis. kirim ulang print yang tertunda). */
-  onReady?: () => void;
+  /**
+   * Dipanggil sekali per start, saat health pertama berhasil (mis. kirim ulang print yang tertunda).
+   * `startedAt` = waktu instance ini di-spawn: job yang dibuat sesudahnya sudah dikirim ke instance ini (M-015).
+   */
+  onReady?: (startedAt: number) => void;
   healthEveryMs?: number;
   backoffMs?: number[];
 };
@@ -29,6 +32,7 @@ export function createSupervisor(d: SupervisorDeps) {
   let restarts = 0;
   let stopped = false;
   let readySignalled = false;
+  let startedAt = 0;
   let healthTimer: ReturnType<typeof setInterval> | undefined;
   let restartTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -38,6 +42,7 @@ export function createSupervisor(d: SupervisorDeps) {
     child = c;
     failures = 0;
     readySignalled = false;
+    startedAt = Date.now();
     d.log(`[supervisor] Camera Service start (pid ${c.pid ?? "?"})`);
     c.once("exit", (code, signal) => {
       if (child !== c) return;
@@ -68,7 +73,7 @@ export function createSupervisor(d: SupervisorDeps) {
       streak = 0;
       if (!readySignalled) {
         readySignalled = true;
-        d.onReady?.();
+        d.onReady?.(startedAt);
       }
     } catch {
       failures++;

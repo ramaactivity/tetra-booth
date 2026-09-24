@@ -253,12 +253,20 @@ export function openDb(file: string) {
         .get(id) as PrintJobInfo | undefined;
     },
     /** Print yang diterima/tertunda tapi belum ada hasil, cukup baru untuk dikirim ulang setelah Camera Service pulih. */
-    pendingPrints(since: string, maxAttempts: number): PrintJobInfo[] {
+    /** Job queued dalam jendela waktu, percobaan < batas, dan dibuat sebelum `before` (instance Camera Service saat ini). */
+    pendingPrints(since: string, maxAttempts: number, before = "9999"): PrintJobInfo[] {
       return db
         .prepare(
-          "select id, session_id, path, copies, paper, error, created_at from print_jobs where status = 'queued' and created_at >= ? and attempts < ? order by created_at",
+          "select id, session_id, path, copies, paper, error, created_at from print_jobs where status = 'queued' and created_at >= ? and created_at < ? and attempts < ? order by created_at",
         )
-        .all(since, maxAttempts) as PrintJobInfo[];
+        .all(since, before, maxAttempts) as PrintJobInfo[];
+    },
+    printStatus(id: string): string | undefined {
+      return (
+        db.prepare("select status from print_jobs where id = ?").get(id) as
+          | { status: string }
+          | undefined
+      )?.status;
     },
     completedSessions(): number {
       return (

@@ -30,7 +30,10 @@ describe("supervisor", () => {
       },
       health: () => (healthy() ? Promise.resolve() : Promise.reject(new Error("down"))),
       log: (m) => logs.push(m),
-      onReady: () => ready.push(children.length),
+      onReady: (at) => {
+        expect(at).toBeGreaterThan(0);
+        ready.push(children.length);
+      },
       healthEveryMs: 100,
       backoffMs: [10, 20],
     });

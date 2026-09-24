@@ -117,6 +117,8 @@ describe("status print_jobs (M-009, M-012)", () => {
     for (let i = 0; i < 3; i++) db.printSubmitting(job("capek"));
     const since = new Date(Date.now() - 60_000).toISOString();
     expect(db.pendingPrints(since, 3).map((j) => j.id)).toEqual(["baru"]);
+    // Job yang dibuat setelah Camera Service start tidak dikirim ulang (M-015).
+    expect(db.pendingPrints(since, 3, new Date(Date.now() - 30_000).toISOString())).toEqual([]);
     expect(db.printExpire(since, 3)).toBe(1);
     expect(status(db, "capek")).toMatchObject({
       status: "failed",

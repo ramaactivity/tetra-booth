@@ -96,7 +96,7 @@ export async function startCameraService(log: (m: string) => void, db: BoothDb, 
     },
     health: cameraHealth,
     log,
-    onReady: () => void resubmitPending(db, log),
+    onReady: (startedAt) => void resubmitPending(db, log, Date.now(), startedAt),
   });
   sup.start();
   // Tunggu service siap sebelum jendela dibuka, supaya health pertama di renderer tidak gagal palsu (M-008).
@@ -170,11 +170,21 @@ export const RESUBMIT_MAX_ATTEMPTS = 3;
  * Antrean print Camera Service ada di memori, jadi crash menghapusnya tanpa event. Risiko: cetak ganda
  * kalau crash terjadi setelah kertas keluar tapi sebelum print.done; lebih baik daripada tamu tanpa cetakan.
  */
-export async function resubmitPending(db: BoothDb, log: (m: string) => void, now = Date.now()) {
+/**
+ * `submittedBefore`: hanya job yang dibuat sebelum instance Camera Service ini start. Job sesudahnya sudah
+ * dikirim ke instance ini dan tidak perlu dikirim ulang (M-015).
+ */
+export async function resubmitPending(
+  db: BoothDb,
+  log: (m: string) => void,
+  now = Date.now(),
+  submittedBefore = now,
+) {
   const since = new Date(now - RESUBMIT_WINDOW_MS).toISOString();
   const expired = db.printExpire(since, RESUBMIT_MAX_ATTEMPTS);
   if (expired) log(`[print] ${expired} job tidak terkirim, dipindah ke "Cetak gagal"`);
-  for (const j of db.pendingPrints(since, RESUBMIT_MAX_ATTEMPTS)) {
+  const before = new Date(submittedBefore).toISOString();
+  for (const j of db.pendingPrints(since, RESUBMIT_MAX_ATTEMPTS, before)) {
     const paper = j.paper === "4R" ? "4R" : "2x6x2";
     // Percobaan dicatat dulu; kalau job sudah final (mis. print_uncertain), jangan kirim (M-012).
     if (
@@ -194,7 +204,13 @@ export async function resubmitPending(db: BoothDb, log: (m: string) => void, now
         payload: { jobId: j.id, path: j.path, copies: j.copies, paper },
       });
       if (!r.accepted) db.printJobResult(j.id, "failed", "print ditolak Camera Service");
-      else log(`[print] kirim ulang ${j.id}`);
+      // Camera Service bisa langsung menjawab lewat event (mis. print_uncertain dari jurnal): log status sebenarnya.
+      const st = db.printStatus(j.id);
+      log(
+        st === "queued"
+          ? `[print] kirim ulang ${j.id}`
+          : `[print] kirim ulang ${j.id} dijawab: ${st}`,
+      );
     } catch (e) {
       log(`[print] kirim ulang ${j.id} gagal: ${e instanceof Error ? e.message : String(e)}`);
       if (e instanceof ServiceUnavailable) return;
