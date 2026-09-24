@@ -7,7 +7,7 @@ Dibaca oleh Claude Code yang berjalan di laptop Windows.
 | Profil | Status | Aturan |
 |---|---|---|
 | **A. Laptop booth milik Rama** | **Aktif sejak 2026-09-24** | §0.1 di bawah. §2 (aturan laptop pinjaman) **tidak berlaku**. |
-| B. Laptop pinjaman teman Rama | Selesai dipakai 2026-09-24, deploy key sudah dicabut | §2, §3 (`env.ps1`), §7 |
+| B. Laptop pinjaman teman Rama | Cadangan, dipakai lagi bila Rama minta. Deploy key tetap aktif (id `164304172`) | §2, §3 (`env.ps1`), §7 |
 
 ### 0.1 Aturan laptop booth Rama (profil A)
 
@@ -139,7 +139,7 @@ Menghentikan: `Get-Process 'Tetra Booth',electron,TetraCamera,dotnet -ErrorActio
 
 1. Push semua pekerjaan.
 2. Hentikan keep-awake, Electron, Camera Service: `Get-Process 'Tetra Booth',electron,TetraCamera,dotnet -ErrorAction SilentlyContinue | Stop-Process -Force`.
-3. Minta Rama mencabut deploy key (Claude Mac: `gh repo deploy-key delete 164281077`).
+3. Hanya saat laptop pinjaman benar-benar tidak dipakai lagi (keputusan Rama): Claude Mac mencabut deploy key `gh repo deploy-key delete 164304172`.
 4. **Tampilkan dulu** folder AppData yang dibuat/berubah sejak bootstrap (2026-09-24), supaya milik pemilik laptop tidak ikut terhapus:
    ```powershell
    Get-ChildItem $env:LOCALAPPDATA, $env:APPDATA -Directory | Where-Object LastWriteTime -ge '2026-09-24' | Select-Object FullName, LastWriteTime
