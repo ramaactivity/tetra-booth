@@ -701,6 +701,24 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          hits: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          hits: number
+          key: string
+          window_start: string
+        }
+        Update: {
+          hits?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       sessions: {
         Row: {
           completed_at: string | null
@@ -797,6 +815,10 @@ export type Database = {
     }
     Functions: {
       is_member: { Args: { org: string; roles?: string[] }; Returns: boolean }
+      rate_hit: {
+        Args: { k: string; max_hits: number; window_s: number }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

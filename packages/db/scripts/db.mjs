@@ -1,6 +1,7 @@
 // Migrasi, seed, dan generate tipe ke project Supabase lewat SUPABASE_DB_URL (root .env.local).
 // Jalankan lewat: pnpm --filter @tetra/db push | seed | types
 import { spawn, spawnSync } from "node:child_process";
+import { randomInt } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { Client } from "pg";
@@ -67,6 +68,34 @@ if (cmd === "push") {
   } finally {
     server.kill();
   }
+} else if (cmd === "device") {
+  // Fase 2 (sebelum admin Fase 3): buat booth baru, atau kode pairing baru untuk booth yang sudah ada.
+  const name = process.argv[3];
+  if (!name) throw new Error('pakai: pnpm --filter @tetra/db device "<nama booth>"');
+  const c = new Client({ connectionString: url });
+  await c.connect();
+  const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
+  const { rows } = await c.query(
+    `with org as (select id from organizations where slug = 'tetra'),
+     upd as (
+       update devices set pairing_code = $2, pairing_expires_at = now() + interval '10 minutes'
+       where organization_id = (select id from org) and name = $1 and revoked_at is null
+       returning name, short_code
+     ),
+     ins as (
+       insert into devices (organization_id, name, short_code, pairing_code, pairing_expires_at)
+       select id, $1, 'B' || lpad((select count(*) + 1 from devices d where d.organization_id = org.id)::text, 2, '0'),
+              $2, now() + interval '10 minutes'
+       from org where not exists (select 1 from upd)
+       returning name, short_code
+     )
+     select * from upd union all select * from ins`,
+    [name, code],
+  );
+  await c.end();
+  console.log(
+    `booth ${rows[0].name} (${rows[0].short_code}) · kode pairing ${code} · berlaku 10 menit`,
+  );
 } else {
-  throw new Error("perintah: push | seed | types");
+  throw new Error("perintah: push | seed | types | device");
 }
