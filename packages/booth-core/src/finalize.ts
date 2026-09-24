@@ -4,6 +4,8 @@ import type { Photo, Strip } from "./session";
 
 export const ORIGINAL_LONG_SIDE = 2400;
 export const THUMB_LONG_SIDE = 480;
+/** Foto untuk layar booth (preview, review, thumbnail). Raw 3000×2000 = ±24 MB tekstur GPU per foto (W-020). */
+export const PREVIEW_LONG_SIDE = 1600;
 
 /** Ukuran baru dengan sisi panjang `max`, tidak pernah memperbesar. */
 export const fit = (w: number, h: number, max: number) => {
@@ -21,6 +23,22 @@ const encode = async (src: ImageBitmap, w: number, h: number, sx = 0, sw = src.w
     await (await c.convertToBlob({ type: "image/jpeg", quality: 0.85 })).arrayBuffer(),
   );
 };
+
+/** Object URL JPEG kecil untuk ditampilkan; raw tetap dipakai compose & output. Rasio dijaga browser (aman untuk EXIF). */
+export async function previewUrl(bytes: Uint8Array<ArrayBuffer>, w: number, h: number) {
+  const bmp = await createImageBitmap(
+    new Blob([bytes]),
+    w >= h
+      ? { resizeWidth: Math.min(w, PREVIEW_LONG_SIDE), resizeQuality: "high" }
+      : { resizeHeight: Math.min(h, PREVIEW_LONG_SIDE), resizeQuality: "high" },
+  );
+  try {
+    const jpeg = await encode(bmp, bmp.width, bmp.height);
+    return URL.createObjectURL(new Blob([jpeg], { type: "image/jpeg" }));
+  } finally {
+    bmp.close();
+  }
+}
 
 /**
  * Output upload sesi (FSD §1.9) dari strip & foto mentah, dijalankan di belakang layar setelah cetak:

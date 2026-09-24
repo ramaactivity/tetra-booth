@@ -4,7 +4,7 @@ import { composeStrip } from "./compose";
 import { copy } from "./copy";
 import { errText } from "./errors";
 import type { BoothEvent } from "./event";
-import { buildOutputs } from "./finalize";
+import { buildOutputs, previewUrl } from "./finalize";
 import { usePlatform } from "./PlatformContext";
 import { Attract } from "./screens/Attract";
 import { Capturing } from "./screens/Capturing";
@@ -99,9 +99,7 @@ export function SessionRunner({
     p.camera
       .capture({ sessionId: s.sessionId, index: s.index })
       .then(async (r) => {
-        const url = URL.createObjectURL(
-          new Blob([await p.storage.readFile(r.path)], { type: "image/jpeg" }),
-        );
+        const url = await previewUrl(await p.storage.readFile(r.path), r.width, r.height);
         urls.current.push(url);
         if (live) dispatch({ type: "CAPTURED", photo: { ...r, url } });
       })
