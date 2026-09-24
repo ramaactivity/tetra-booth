@@ -28,7 +28,7 @@ export function Countdown({
       <p className="absolute top-12 text-xl font-medium uppercase tracking-label">
         {copy.countdown.progress(index + 1, total)}
       </p>
-      <span className="text-[16rem] leading-none font-extralight tabular-nums drop-shadow-sm">
+      <span className="text-[16rem] leading-none font-extralight drop-shadow-sm">
         {left > 0 ? left : ""}
       </span>
     </div>

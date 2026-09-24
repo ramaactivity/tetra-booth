@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { errText } from "../errors";
 import { usePlatform } from "../PlatformContext";
 
 /** Live view full-bleed, di-mirror seperti cermin (FSD §1.7). Hasil foto tidak di-mirror. */
@@ -25,7 +26,7 @@ export function LiveView() {
         g.setTransform(-1, 0, 0, 1, cw, 0);
         g.drawImage(source, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
       })
-      .catch((e: unknown) => console.warn("[liveview] gagal mulai", e));
+      .catch((e: unknown) => console.warn(`[liveview] gagal mulai: ${errText(e)}`));
     return () => {
       void camera.stopLiveView();
     };

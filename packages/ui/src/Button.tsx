@@ -13,7 +13,7 @@ const variants = {
   secondary: "border-[1.5px] border-fg bg-transparent text-fg",
 } as const;
 const sizes = {
-  booth: "min-h-[72px] px-12 text-lg",
+  booth: "min-h-[72px] whitespace-nowrap px-12 text-lg portrait:px-8",
   web: "min-h-12 px-6 text-sm",
 } as const;
 

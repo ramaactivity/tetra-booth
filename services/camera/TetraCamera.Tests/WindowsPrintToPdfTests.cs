@@ -118,15 +118,34 @@ public sealed class WindowsPrintToPdfTests : IDisposable
     }
 
     [Fact]
-    public async Task B_tanpa_config_4R_gagal_paper_not_supported_dan_tidak_ada_PDF_Letter()
+    public async Task B_tanpa_config_4R_tidak_pernah_PDF_Letter()
     {
         if (!Available()) return;
         await using var p = NewProbe();
-        var e = Assert.IsType<PrintFailedEvent>(await p.Print("m4-nocfg", TestImage(), 1, "4R"));
-        Assert.Equal(PrintErrors.PaperNotSupported, e.Code);
-        Assert.Empty(OutputFiles(p));
-        Assert.Equal(new PrintJobStatus(PrintJobState.Failed, PrintErrors.PaperNotSupported),
-            await p.Adapter.GetJobStatusAsync("m4-nocfg"));
+        var e = await p.Print("m4-nocfg", TestImage(), 1, "4R");
+        if (!DriverHas4x6())
+        {
+            // Laptop uji (Win 11 21H2): Print to PDF tanpa 4×6 → gagal berkode, tidak ada file.
+            Assert.Equal(PrintErrors.PaperNotSupported, Assert.IsType<PrintFailedEvent>(e).Code);
+            Assert.Empty(OutputFiles(p));
+            Assert.Equal(new PrintJobStatus(PrintJobState.Failed, PrintErrors.PaperNotSupported),
+                await p.Adapter.GetJobStatusAsync("m4-nocfg"));
+            return;
+        }
+        // Runner CI (Windows Server): driver punya 4×6 → dipilih lewat ukuran, PDF harus tepat 4×6, bukan Letter.
+        Assert.IsType<PrintDoneEvent>(e);
+        var media = Assert.Single(PdfInspector.Read(Path.Combine(p.OutDir, "m4-nocfg.pdf")).MediaBoxes.Distinct());
+        Assert.Equal(288, Math.Min(media.Width, media.Height), 1.5);
+        Assert.Equal(432, Math.Max(media.Width, media.Height), 1.5);
+    }
+
+    /// <summary>Driver Print to PDF berbeda antar versi Windows: sebagian punya ukuran 4×6 (±0,02 in).</summary>
+    private static bool DriverHas4x6()
+    {
+        if (!OperatingSystem.IsWindows()) return false;
+        return new PrinterSettings { PrinterName = Pdf }.PaperSizes.Cast<PaperSize>().Any(s =>
+            (Math.Abs(s.Width - 400) <= 2 && Math.Abs(s.Height - 600) <= 2) ||
+            (Math.Abs(s.Width - 600) <= 2 && Math.Abs(s.Height - 400) <= 2));
     }
 
     [Fact]
