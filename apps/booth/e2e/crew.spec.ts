@@ -8,7 +8,7 @@ import { _electron as electron, expect, type Page, test } from "@playwright/test
 
 const appDir = join(__dirname, "..");
 const electronPath = createRequire(__filename)("electron") as unknown as string;
-// PNG 1×1 transparan: overlay bundle uji.
+// PNG 1×1 biru setengah transparan (R0 G0 B255 A127): overlay bundle uji, kelihatan biru di hasil cetak.
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
   "base64",
