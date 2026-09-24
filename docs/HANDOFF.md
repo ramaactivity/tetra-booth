@@ -43,6 +43,15 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   5. **Event print (M-007):** jalankan tanpa `--printer` lalu dengan `--paper-2x6x2` yang salah (mis. `TidakAda`): log booth harus `[print] GAGAL <id>: printer_unavailable …` / `paper_not_supported …` dan `print_jobs.status = failed` berisi kode itu. Dengan config benar: `[print] selesai <id>` dan status `done`.
   6. Portrait `--size=450x800`: review (foto kiri, tombol Ulang kanan), attract (judul tengah, tombol satu baris), print_select muat.
   - Laporan `docs/reports/windows/<tanggal>-m3-supervisor.md`. Hapus `$W\data` dan `$W\prints` setelahnya.
+- [ ] **W-014 Verifikasi M6 (mode crew) di Windows.** Merge `origin/main`, build booth.
+  1. **E2E otomatis:** `pnpm --filter booth e2e` (Playwright mengendalikan Electron: tap 5x → buat PIN → pilih event bundle → roll 25 → peringatan → PIN salah 5x terkunci). Harus lulus; lampirkan durasi.
+  2. **Manual dengan printer PDF** (`--camera=webcam --data=$W\data --printer "Microsoft Print to PDF" --paper-4r A5 --paper-2x6x2 A5 --print-to-file "$W\prints"`), kendalikan dengan Playwright atau skrip, screenshot via `--shots`/`capturePage` saja:
+     - Test print dari menu crew → PDF terbentuk, `[print] selesai test-…`, kertas berkurang 1.
+     - Ganti `--paper-2x6x2` jadi nama yang tidak ada, jalankan satu sesi → `print_jobs` failed, peringatan kecil di pojok kanan bawah attract, dan muncul di "Cetak gagal" menu crew. Jalankan ulang dengan config benar lalu **Cetak ulang** dari menu → PDF terbentuk, item hilang dari daftar.
+     - Cek kamera: live view webcam + test shot, catat resolusi & ms yang tampil.
+     - Bundle event: salin contoh bundle dari `apps/booth/e2e/crew.spec.ts` (atau buat dengan overlay PNG + font TTF/OTF milik Windows yang bebas lisensi, mis. dari `C:\Windows\Fonts` hanya untuk uji lokal, jangan di-commit) ke `$W\data\events\<id>\bundle`, pilih di menu crew, jalankan satu sesi: strip memakai overlay & font bundle.
+  3. Portrait `--size=450x800`: menu crew & pad PIN muat dan bisa discroll.
+  - Laporan `docs/reports/windows/<tanggal>-m6-crew.md`. Hapus `$W\data`, `$W\prints`, `$W\shots` setelahnya.
 
 ## Untuk Mac
 
@@ -72,6 +81,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-24 | Mac | M6 mode crew di `main`: PIN (scrypt, kunci 60 s), event dari bundle lokal (+overlay/font), cek kamera, test print, counter kertas (berkurang saat print.done, peringatan ≤ 30), cetak gagal + cetak ulang, peringatan printer di pojok layar. E2E Playwright-Electron (`pnpm --filter booth e2e`) + CI (xvfb). W-014 ditambahkan. |
 | 2026-09-24 | Windows | W-013 selesai: supervisor pulih 20/20 kill (±0,6 s), tanpa proses yatim, build dist menemukan Camera Service, event print → `print_jobs` failed/done berkode, portrait beres. Temuan M-009: print bisa hilang saat Camera Service crash. Laporan: `docs/reports/windows/2026-09-24-m3-supervisor.md`. |
 | 2026-09-24 | Windows | W-012 selesai: M2 lulus (WAL, 9 aset/sesi, prioritas upload 0/1/2, print_jobs queued, abandoned setelah kill, log harian main+renderer). Webcam dengan M-006: raw 2560×1920, capture → preview 138–287 ms. Temuan M-008. Laporan: `docs/reports/windows/2026-09-24-m2-penyimpanan.md`. |
 | 2026-09-24 | Mac | Merge W-011. CI merah sejak W-009 diperbaiki: test B Print to PDF sadar driver (runner CI punya 4×6 → wajib PDF 4×6). M-007 selesai. W-013 ditambah uji event print & portrait. |

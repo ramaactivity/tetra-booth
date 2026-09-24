@@ -1,4 +1,4 @@
-import type { CommandResult, Paper } from "@tetra/shared";
+import type { CommandResult, EventBundle, Paper } from "@tetra/shared";
 
 /**
  * Satu-satunya pintu booth-core ke perangkat. TSD §0.
@@ -49,12 +49,49 @@ export interface BoothDb {
   }): Promise<void>;
 }
 
+export type Unsubscribe = () => void;
+export type CrewStatus = {
+  online: boolean;
+  uploadPending: number;
+  paper: { remaining: number; capacity: number };
+  printer: { status: string; message?: string | undefined };
+  cameraService: boolean;
+};
+export type FailedPrint = { id: string; copies: number; error: string | null; createdAt: string };
+/** Peringatan kecil untuk crew di pojok layar (printer error, cetak gagal, kertas menipis). */
+export type PrinterAlert = { message: string } | null;
+
+/** Mode crew (FSD §1.3). Selain PIN, semua aksi ditolak shell kalau crew belum masuk. */
+export interface BoothCrew {
+  pinStatus(): Promise<{ hasPin: boolean; lockedUntil: number | null }>;
+  verifyPin(pin: string): Promise<{ ok: boolean; lockedUntil: number | null }>;
+  setPin(pin: string): Promise<void>;
+  lock(): Promise<void>;
+  status(): Promise<CrewStatus>;
+  resetPaper(capacity: number): Promise<void>;
+  failedPrints(): Promise<FailedPrint[]>;
+  reprint(jobId: string): Promise<void>;
+  exit(): Promise<void>;
+  printerAlert(): Promise<PrinterAlert>;
+  onPrinterAlert(cb: (a: PrinterAlert) => void): Unsubscribe;
+}
+
+/** Event dari bundle lokal (M6; Fase 2 lewat sync). */
+export interface BoothEvents {
+  list(): Promise<EventBundle[]>;
+  active(): Promise<string | null>;
+  setActive(id: string): Promise<void>;
+  asset(eventId: string, assetId: string): Promise<Uint8Array<ArrayBuffer>>;
+}
+
 export interface BoothPlatform {
   camera: BoothCamera;
   /** Gagal = reject. Sesi tetap selesai walau print gagal (FSD §1.10). */
   printer: { submit(job: PrintJob): Promise<void> };
   storage: BoothStorage;
   db: BoothDb;
+  crew: BoothCrew;
+  events: BoothEvents;
   // ponytail: sync (Fase 2), keepAwake/kiosk (M5) ditambah saat ada pemakainya.
   /** Cek Camera Service hidup. */
   health(): Promise<CommandResult<"system.health">>;

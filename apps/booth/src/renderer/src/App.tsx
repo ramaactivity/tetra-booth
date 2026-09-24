@@ -1,4 +1,4 @@
-import { DEFAULT_EVENT, PlatformProvider, SessionRunner } from "@tetra/booth-core";
+import { BoothApp, PlatformProvider } from "@tetra/booth-core";
 import { type BoothConfig, createElectronPlatform } from "@tetra/platform-electron";
 import { useEffect, useMemo } from "react";
 
@@ -15,7 +15,7 @@ export function App({ cfg }: { cfg: BoothConfig }) {
 
   return (
     <PlatformProvider platform={platform}>
-      <SessionRunner event={DEFAULT_EVENT} guestBaseUrl={cfg.guestUrl} demo={cfg.demo} />
+      <BoothApp guestBaseUrl={cfg.guestUrl} demo={cfg.demo} />
     </PlatformProvider>
   );
 }

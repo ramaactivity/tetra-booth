@@ -3,27 +3,7 @@
  * Reducer murni: semua timer & efek samping ada di SessionRunner, bukan di sini.
  */
 
-export type EventSettings = {
-  /** Detik hitung mundur sebelum tiap foto. */
-  countdownSec: number;
-  /** Detik menampilkan hasil foto sebelum foto berikutnya. */
-  shotDelaySec: number;
-  /** Batas retake per foto. */
-  retakeMax: number;
-  maxPrints: number;
-  /** Tanpa interaksi di layar review selama ini → lanjut otomatis. */
-  reviewTimeoutSec: number;
-  qrScreenSec: number;
-};
-
-export const DEFAULT_SETTINGS: EventSettings = {
-  countdownSec: 3,
-  shotDelaySec: 2,
-  retakeMax: 1,
-  maxPrints: 2,
-  reviewTimeoutSec: 20,
-  qrScreenSec: 45,
-};
+export { DEFAULT_SETTINGS, type EventSettings } from "@tetra/shared";
 
 /** Capture gagal berturut-turut sebanyak ini → layar "kamera disiapkan". FSD §1.7: retry otomatis 1x. */
 export const MAX_CAPTURE_ATTEMPTS = 2;

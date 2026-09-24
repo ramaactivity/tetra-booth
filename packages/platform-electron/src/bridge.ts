@@ -1,4 +1,4 @@
-import type { BoothDb } from "@tetra/booth-core";
+import type { BoothCrew, BoothDb, BoothEvents } from "@tetra/booth-core";
 import type { CommandResult, Paper } from "@tetra/shared";
 
 export type BoothConfig = {
@@ -25,6 +25,21 @@ export type TetraBridge = {
   phaseChanged(phase: string): void;
   sessionStarted: BoothDb["sessionStarted"];
   sessionCompleted: BoothDb["sessionCompleted"];
+  crewPinStatus: BoothCrew["pinStatus"];
+  crewVerify: BoothCrew["verifyPin"];
+  crewSetPin: BoothCrew["setPin"];
+  crewLock: BoothCrew["lock"];
+  crewStatus: BoothCrew["status"];
+  crewResetPaper: BoothCrew["resetPaper"];
+  crewFailedPrints: BoothCrew["failedPrints"];
+  crewReprint: BoothCrew["reprint"];
+  crewExit: BoothCrew["exit"];
+  printerAlert: BoothCrew["printerAlert"];
+  onPrinterAlert: BoothCrew["onPrinterAlert"];
+  eventsList: BoothEvents["list"];
+  eventsActive: BoothEvents["active"];
+  eventsSetActive: BoothEvents["setActive"];
+  eventAsset: BoothEvents["asset"];
 };
 
 declare global {

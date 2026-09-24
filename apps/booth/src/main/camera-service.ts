@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, join } from "node:path";
 import { app } from "electron";
+import type { Alerts } from "./alerts";
 import { cameraHealth, listenEvents, setEndpoint } from "./camera-client";
 import { cameraServiceFlags } from "./config";
 import type { BoothDb } from "./db";
@@ -38,7 +39,7 @@ const freePort = () =>
  * Jalankan Camera Service di bawah supervisor dengan port & token acak (TSD §1).
  * Token lewat env, bukan argumen, supaya tidak terlihat di daftar proses.
  */
-export async function startCameraService(log: (m: string) => void, db: BoothDb) {
+export async function startCameraService(log: (m: string) => void, db: BoothDb, alerts: Alerts) {
   const bin = findBinary();
   if (!bin) {
     log(
@@ -69,7 +70,7 @@ export async function startCameraService(log: (m: string) => void, db: BoothDb) 
     log,
   });
   sup.start();
-  const stopEvents = watchPrintEvents(log, db);
+  const stopEvents = watchPrintEvents(log, db, alerts);
   app.on("will-quit", () => {
     stopEvents();
     sup.stop();
@@ -78,18 +79,20 @@ export async function startCameraService(log: (m: string) => void, db: BoothDb) 
 }
 
 /** Hasil cetak datang sebagai event, bukan balasan print.submit: catat ke print_jobs + log (M-007). */
-export function watchPrintEvents(log: (m: string) => void, db: BoothDb) {
+export function watchPrintEvents(log: (m: string) => void, db: BoothDb, alerts: Alerts) {
   return listenEvents((e) => {
     if (e.type === "print.done") {
       db.printJobResult(e.payload.jobId, "done");
-      log(`[print] selesai ${e.payload.jobId}`);
+      alerts.onPrintDone();
+      log(`[print] selesai ${e.payload.jobId} · kertas ${db.paper().remaining}`);
     } else if (e.type === "print.failed") {
       db.printJobResult(e.payload.jobId, "failed", `${e.payload.code}: ${e.payload.message}`);
+      alerts.onPrintFailed(e.payload.message);
       log(`[print] GAGAL ${e.payload.jobId}: ${e.payload.code} ${e.payload.message}`);
     } else if (e.type === "printer.status") {
-      log(
-        `[print] printer ${e.payload.status}${e.payload.message ? `: ${e.payload.message}` : ""}`,
-      );
+      alerts.onPrinterStatus(e.payload.status, e.payload.message);
+      const msg = e.payload.message ? `: ${e.payload.message}` : "";
+      log(`[print] printer ${e.payload.status}${msg}`);
     }
   });
 }

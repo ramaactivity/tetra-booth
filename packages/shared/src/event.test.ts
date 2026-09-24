@@ -1,0 +1,49 @@
+import { describe, expect, it } from "vitest";
+import { DEFAULT_SETTINGS, EventBundleSchema } from "./event";
+
+const layout = {
+  id: "l",
+  version: 1,
+  paper: "4R",
+  canvas: { width: 1200, height: 1800, dpi: 300 },
+  slots: [{ id: "a", x: 0, y: 0, w: 100, h: 100, fit: "cover", z: "below_overlay" }],
+  overlay: { assetId: "ov" },
+  texts: [],
+};
+
+describe("EventBundleSchema", () => {
+  it("settings kosong → default; aset dirujuk ada", () => {
+    const b = EventBundleSchema.parse({
+      id: "e1",
+      name: "A & B",
+      date: "12 Okt",
+      layout,
+      assets: { ov: "overlay.png" },
+    });
+    expect(b.settings).toEqual(DEFAULT_SETTINGS);
+  });
+  it("tolak aset yang dirujuk layout tapi tidak ada", () => {
+    expect(EventBundleSchema.safeParse({ id: "e1", name: "x", date: "x", layout }).success).toBe(
+      false,
+    );
+  });
+  it("tolak nama file aset berbahaya", () => {
+    for (const f of ["../x.png", "a/b.png", "x.exe", ".png"]) {
+      expect(
+        EventBundleSchema.safeParse({ id: "e1", name: "x", date: "x", layout, assets: { ov: f } })
+          .success,
+      ).toBe(false);
+    }
+  });
+  it("tolak id event dengan karakter path", () => {
+    expect(
+      EventBundleSchema.safeParse({
+        id: "../e",
+        name: "x",
+        date: "x",
+        layout,
+        assets: { ov: "o.png" },
+      }).success,
+    ).toBe(false);
+  });
+});
