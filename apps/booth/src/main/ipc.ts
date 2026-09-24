@@ -1,10 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import { PaperSchema, SESSION_ID_PATTERN } from "@tetra/shared";
-import { app, ipcMain } from "electron";
+import { app, ipcMain, net } from "electron";
 import { z } from "zod";
+import type { Alerts } from "./alerts";
 import { cameraHealth, request } from "./camera-client";
 import { config } from "./config";
+import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
 import type { BoothDb } from "./db";
 import { onPhase } from "./shots";
 
@@ -55,7 +57,22 @@ const SessionCompleted = z.object({
     .max(64),
 });
 
-export function registerIpc(db: BoothDb) {
+export function registerIpc(db: BoothDb, alerts: Alerts) {
+  const pins = createPinGuard({
+    get: () => db.kv.get("crew_pin_hash"),
+    set: (v) => db.kv.set("crew_pin_hash", v),
+  });
+  const crewOnly = () => {
+    if (!pins.unlocked) throw new Error("mode crew terkunci");
+  };
+  const eventsDir = () => join(app.getPath("userData"), "events");
+  let bundles: LoadedBundle[] = [];
+  const reloadBundles = () => {
+    bundles = loadBundles(eventsDir(), (m) => console.warn(m));
+    return bundles;
+  };
+  reloadBundles();
+
   ipcMain.handle("config", () => config);
   ipcMain.handle("health", () => cameraHealth());
 
@@ -95,6 +112,78 @@ export function registerIpc(db: BoothDb) {
       db.printJob({ ...row, status: "failed", error: e instanceof Error ? e.message : String(e) });
       throw e;
     }
+  });
+
+  // Mode crew (FSD §1.3). Semua aksi selain PIN butuh crew sudah masuk.
+  const Pin = z.string().regex(/^\d{4,6}$/);
+  ipcMain.handle("crewPinStatus", () => pins.status());
+  ipcMain.handle("crewVerify", (_e, pin: unknown) => pins.verify(Pin.parse(pin)));
+  ipcMain.handle("crewSetPin", (_e, pin: unknown) => pins.set(Pin.parse(pin)));
+  ipcMain.handle("crewLock", () => pins.lock());
+  ipcMain.handle("crewStatus", async () => {
+    crewOnly();
+    const cameraService = await cameraHealth().then(
+      () => true,
+      () => false,
+    );
+    return {
+      online: net.isOnline(),
+      uploadPending: db.uploadPending(),
+      paper: db.paper(),
+      printer: alerts.printer(),
+      cameraService,
+    };
+  });
+  ipcMain.handle("crewResetPaper", (_e, capacity: unknown) => {
+    crewOnly();
+    db.resetPaper(z.number().int().min(1).max(5000).parse(capacity));
+    alerts.refresh();
+  });
+  ipcMain.handle("crewFailedPrints", () => {
+    crewOnly();
+    return db
+      .failedPrints()
+      .map((j) => ({ id: j.id, copies: j.copies, error: j.error, createdAt: j.created_at }));
+  });
+  ipcMain.handle("crewReprint", async (_e, id: unknown) => {
+    crewOnly();
+    const j = db.printJobById(z.string().min(1).max(64).parse(id));
+    if (!j) throw new Error("job tidak ditemukan");
+    const paper = PaperSchema.parse(j.paper);
+    const jobId = `${j.session_id}-r${Date.now().toString(36)}`;
+    const r = await request({
+      id: crypto.randomUUID(),
+      type: "print.submit",
+      payload: { jobId, path: inSessions(j.path), copies: j.copies, paper },
+    });
+    if (!r.accepted) throw new Error("print ditolak Camera Service");
+    db.printJob({
+      id: jobId,
+      sessionId: j.session_id,
+      path: j.path,
+      copies: j.copies,
+      paper,
+      status: "queued",
+    });
+    db.printJobResult(j.id, "reprinted");
+  });
+  ipcMain.handle("crewExit", () => {
+    crewOnly();
+    app.quit();
+  });
+  ipcMain.handle("printerAlert", () => alerts.get());
+
+  // Event lokal dari bundle (M6); Fase 2 mengisi folder yang sama lewat sync.
+  ipcMain.handle("eventsList", () => reloadBundles().map(({ dir: _dir, ...b }) => b));
+  ipcMain.handle("eventsActive", () => db.kv.get("active_event_id"));
+  ipcMain.handle("eventsSetActive", (_e, id: unknown) => {
+    crewOnly();
+    db.kv.set("active_event_id", z.string().min(1).max(64).parse(id));
+  });
+  ipcMain.handle("eventAsset", async (_e, eventId: unknown, assetId: unknown) => {
+    const b = bundles.find((x) => x.id === z.string().parse(eventId));
+    if (!b) throw new Error("event tidak ditemukan");
+    return new Uint8Array(await readFile(assetPath(b, z.string().parse(assetId))));
   });
 
   ipcMain.handle("sessionStarted", (_e, x: unknown) => db.sessionStarted(SessionStarted.parse(x)));

@@ -56,7 +56,19 @@ export type SessionDone = {
   printCount: number;
   assets: { kind: AssetKind; idx: number; path: string; bytes: number }[];
 };
-export type PrintJobStatus = "queued" | "done" | "failed";
+export type PrintJobStatus = "queued" | "done" | "failed" | "reprinted";
+export type PrintJobInfo = {
+  id: string;
+  session_id: string;
+  path: string;
+  copies: number;
+  paper: string;
+  error: string | null;
+  created_at: string;
+};
+
+/** Kapasitas default satu roll DNP RX1HS 4×6 (lembar). */
+export const DEFAULT_PAPER_CAPACITY = 700;
 export type PrintJobRow = {
   id: string;
   sessionId: string;
@@ -111,7 +123,22 @@ export function openDb(file: string) {
      on conflict (id) do update set status = excluded.status, attempts = attempts + 1, error = excluded.error`,
   );
 
-  const updatePrint = db.prepare("update print_jobs set status = ?, error = ? where id = ?");
+  const updatePrint = db.prepare(
+    "update print_jobs set status = ?, error = ? where id = ? returning copies",
+  );
+  const getKv = db.prepare("select value from kv where key = ?");
+  const setKv = db.prepare(
+    "insert into kv (key, value) values (?, ?) on conflict (key) do update set value = excluded.value",
+  );
+  const kv = {
+    get: (k: string): string | null =>
+      (getKv.get(k) as { value: string } | undefined)?.value ?? null,
+    set: (k: string, v: string) => void setKv.run(k, v),
+  };
+  const paper = () => ({
+    remaining: Number(kv.get("paper_remaining") ?? DEFAULT_PAPER_CAPACITY),
+    capacity: Number(kv.get("paper_capacity") ?? DEFAULT_PAPER_CAPACITY),
+  });
 
   return {
     abandoned: Number(abandoned),
@@ -153,8 +180,39 @@ export function openDb(file: string) {
     },
 
     /** Hasil akhir dari event Camera Service (print.done / print.failed). */
+    /** Hasil akhir cetak. Selesai → counter kertas berkurang sebanyak salinan (FSD §1.10). */
     printJobResult(id: string, status: PrintJobStatus, error?: string) {
-      updatePrint.run(status, error ?? null, id);
+      const row = updatePrint.get(status, error ?? null, id) as { copies: number } | undefined;
+      if (status === "done" && row) {
+        const p = paper();
+        kv.set("paper_remaining", String(Math.max(0, p.remaining - row.copies)));
+      }
+    },
+
+    kv,
+    paper,
+    resetPaper(capacity: number) {
+      kv.set("paper_capacity", String(capacity));
+      kv.set("paper_remaining", String(capacity));
+    },
+
+    /** Cetak gagal yang belum dicetak ulang, terbaru dulu. */
+    failedPrints(): PrintJobInfo[] {
+      return db
+        .prepare(
+          "select id, session_id, path, copies, paper, error, created_at from print_jobs where status = 'failed' order by created_at desc limit 20",
+        )
+        .all() as PrintJobInfo[];
+    },
+    printJobById(id: string): PrintJobInfo | undefined {
+      return db
+        .prepare(
+          "select id, session_id, path, copies, paper, error, created_at from print_jobs where id = ?",
+        )
+        .get(id) as PrintJobInfo | undefined;
+    },
+    uploadPending(): number {
+      return (db.prepare("select count(*) n from upload_queue").get() as { n: number }).n;
     },
 
     /** Untuk test & mode crew nanti. */

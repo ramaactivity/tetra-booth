@@ -41,10 +41,12 @@ export function SessionRunner({
   event,
   guestBaseUrl,
   demo = false,
+  onCrew,
 }: {
   event: BoothEvent;
   guestBaseUrl: string;
   demo?: boolean;
+  onCrew?: () => void;
 }) {
   const p = usePlatform();
   const cfg = event.settings;
@@ -221,7 +223,13 @@ export function SessionRunner({
     const photo = s.photos[s.index];
     switch (s.phase) {
       case "attract":
-        return <Attract eventName={event.name} onStart={() => dispatch(startEvent(event))} />;
+        return (
+          <Attract
+            eventName={event.name}
+            onStart={() => dispatch(startEvent(event))}
+            onCrew={onCrew}
+          />
+        );
       case "countdown":
         return (
           <Countdown

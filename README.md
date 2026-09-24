@@ -27,6 +27,7 @@ dotnet run --project services/camera/TetraCamera.Host   # terminal 1: ws://127.0
 pnpm dev --filter booth                                 # terminal 2: Electron
 pnpm dev --filter web                                   # terminal 3: http://localhost:3000
 pnpm --filter web e2e                                   # Playwright: bukti render identik di browser
+pnpm --filter booth build && pnpm --filter booth e2e    # Playwright-Electron: mode crew end-to-end
 ```
 
 macOS dari terminal editor (VS Code/Cursor): `unset ELECTRON_RUN_AS_NODE` sebelum `pnpm dev --filter booth`.
@@ -46,6 +47,19 @@ pnpm --filter web r2:check            # uji bucket R2
 ```
 
 Canon EDSDK: taruh DLL di `services/camera/TetraCamera.Canon/sdk/` (tidak di-commit).
+
+## Bundle event lokal (Fase 1)
+
+Sampai sync cloud ada (Fase 2), event dipasang dengan menyalin folder ke data booth, lalu dipilih di mode crew (tap 5x pojok kanan atas layar awal, lalu PIN):
+
+```
+%APPDATA%\TetraBooth\events\<event-id>\bundle\
+  config.json      # { id, name, date, layout (LayoutSpec), settings?, assets: { <assetId>: "<file>" } }
+  overlay.png      # dirujuk layout.overlay.assetId
+  font.otf         # dirujuk texts[].fontAssetId (opsional)
+```
+
+Skema: `EventBundleSchema` di `packages/shared/src/event.ts`. Contoh lengkap: `apps/booth/e2e/crew.spec.ts`.
 
 ## Uji di laptop Windows (tanpa install apa pun)
 

@@ -1,4 +1,5 @@
-import type { LayoutSpec } from "@tetra/shared";
+import type { EventBundle, LayoutSpec } from "@tetra/shared";
+import type { BoothEvents } from "./platform";
 import { DEFAULT_SETTINGS, type EventSettings } from "./session";
 
 export type BoothEvent = {
@@ -9,7 +10,37 @@ export type BoothEvent = {
   date: string;
   layout: LayoutSpec;
   settings: EventSettings;
+  /** Aset bundle yang sudah dimuat (overlay/background) + nama font terdaftar per assetId. */
+  render?: { images: Record<string, ImageBitmap>; fonts: Record<string, string> };
 };
+
+const FONT_FILE = /\.(ttf|otf|woff2)$/i;
+
+/** Muat bundle jadi event siap render: gambar di-decode, font didaftarkan ke document.fonts. */
+export async function loadEvent(bundle: EventBundle, events: BoothEvents): Promise<BoothEvent> {
+  const images: Record<string, ImageBitmap> = {};
+  const fonts: Record<string, string> = {};
+  await Promise.all(
+    Object.entries(bundle.assets).map(async ([assetId, file]) => {
+      const bytes = await events.asset(bundle.id, assetId);
+      if (FONT_FILE.test(file)) {
+        const family = `tb-${bundle.id}-${assetId}`;
+        document.fonts.add(await new FontFace(family, bytes).load());
+        fonts[assetId] = family;
+      } else {
+        images[assetId] = await createImageBitmap(new Blob([bytes]));
+      }
+    }),
+  );
+  return {
+    id: bundle.id,
+    name: bundle.name,
+    date: bundle.date,
+    layout: bundle.layout,
+    settings: bundle.settings,
+    render: { images, fonts },
+  };
+}
 
 /** Strip klasik 2×6 (dicetak berdua di 4R), 3 foto 3:2. Dipakai sampai event dari bundle ada (M6). */
 export const DEFAULT_LAYOUT: LayoutSpec = {

@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { app, BrowserWindow } from "electron";
+import { createAlerts } from "./alerts";
 import { startCameraService, watchPrintEvents } from "./camera-service";
 import { cameraServiceFlags, dataDir, windowSize } from "./config";
 import { openDb } from "./db";
@@ -14,6 +15,8 @@ const db = openDb(join(app.getPath("userData"), "db.sqlite"));
 console.info(
   `[boot] Tetra Booth ${app.getVersion()} · data ${app.getPath("userData")} · sesi terputus ditandai: ${db.abandoned}`,
 );
+
+const alerts = createAlerts(db);
 
 const LEVELS = ["DEBUG", "INFO", "WARN", "ERROR"];
 
@@ -41,12 +44,12 @@ const createWindow = () => {
   else win.loadFile(join(__dirname, "../renderer/index.html"));
 };
 
-registerIpc(db);
+registerIpc(db, alerts);
 app.on("will-quit", () => db.close());
 app.whenReady().then(async () => {
   const log = (m: string) => console.info(m);
-  if (cameraServiceFlags.spawn) await startCameraService(log, db);
-  else app.on("will-quit", watchPrintEvents(log, db));
+  if (cameraServiceFlags.spawn) await startCameraService(log, db, alerts);
+  else app.on("will-quit", watchPrintEvents(log, db, alerts));
   createWindow();
 });
 app.on("window-all-closed", () => app.quit());

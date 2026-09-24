@@ -32,7 +32,7 @@ Prinsip:
 - [ ] Kiosk: auto-start, fullscreen, anti-sleep.
 - [x] State machine sesi: attract → countdown → capture → review/retake → compose → print select → printing → QR. _(M1, 2026-09-24)_
 - [x] SQLite lokal, struktur folder sesi, output strip/original/thumb. _(M2, 2026-09-24; verifikasi Windows W-012)_
-- [ ] Mode crew: pilih event (dari file bundle lokal), cek kamera, test print, counter kertas, keluar kiosk.
+- [x] Mode crew: pilih event (dari file bundle lokal), cek kamera, test print, counter kertas, keluar kiosk. _(M6, 2026-09-24; keluar = tutup app sampai M5; verifikasi Windows W-014)_
 - [x] Orientasi landscape & portrait. _(M1; diuji di jendela, uji layar booth asli menyusul)_
 - [x] Logging lokal. _(M2: log harian, simpan 14 hari)_
 
