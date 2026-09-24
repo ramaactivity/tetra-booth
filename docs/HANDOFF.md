@@ -64,6 +64,15 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
      - Keluar aplikasi dari menu crew menutup booth dan Camera Service.
   3. **Jurnal print:** setelah beberapa sesi, `$W\data\print-journal.log` berisi pasangan `spooling`/`spooled` per job. Ulangi kill `TetraCamera.exe` 10× saat demo: tidak ada sesi tanpa PDF, dan tidak ada `jobId` yang `spooled` dua kali di jurnal (hitung).
   - Laporan `docs/reports/windows/<tanggal>-m5-kiosk.md`. Hapus `$W\data`, `$W\prints`, `$W\shots`, build `app\` setelahnya.
+- [ ] **W-017 Verifikasi M-011 + M7 (hot folder).** Merge `origin/main`, `dotnet build services/camera`, build booth.
+  1. `pnpm --filter booth e2e`: 4 test lulus (crew, kiosk crash, kiosk keluar, hot folder).
+  2. **M-011 di app hasil build:** kursor tidak terlihat di atas tombol (`getComputedStyle(button).cursor === "none"`), auto-start Aktifkan → `reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run` berisi entri **`id.tetraphoto.booth`** → Matikan → hilang (**wajib berakhir mati**). Crash renderer 3× → pulih, tidak ada sesi yang mulai sendiri, catat apakah `R-ERROR preloadScripts` muncul juga di boot pertama di Windows.
+  3. **Hot folder manual:** booth `--camera hotfolder --hot-folder "$W\hot" --data "$W\data" --printer "Microsoft Print to PDF" --paper-2x6x2 A5 --print-to-file "$W\prints"`. Simulasikan EOS Utility dengan skrip yang menyalin JPEG (buat dari kamera simulasi booth sebelumnya, atau webcam test shot, bukan file pribadi) ke `$W\hot` saat tiap countdown:
+     - satu sesi penuh → 3 foto, strip, PDF;
+     - file ditulis pelan (tulis per potongan 64 KB dengan jeda) → tetap terbaca utuh, tidak `capture_unreadable`;
+     - tidak ada file masuk → setelah ±10 s `capture gagal`, retry otomatis, lalu layar "kamera lagi disiapkan", lalu lanjut saat file masuk.
+     - Catat jeda file masuk → preview tampil.
+  - Laporan `docs/reports/windows/<tanggal>-m7-hotfolder.md`. Hapus `$W\data`, `$W\hot`, `$W\prints`, `$W\shots`.
 
 ## Untuk Mac
 
@@ -90,7 +99,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   3. M-008 no. 1 (flag dengan spasi diabaikan) dan no. 2 (race health saat boot → `R-WARN … tidak terhubung` setiap boot) masih terjadi di `3feeaaf`.
 - [x] **M-010 Temuan W-014 (M6 di Windows).** → Selesai (Mac): peringatan di layar tamu = "Printer bermasalah, hubungi crew" / "Kertas hampir habis (N)", detail tetap di menu crew & log; event `printUpdated` menyegarkan menu crew seketika setelah print selesai/gagal. Semua uji lulus. Kecil: (1) peringatan cetak gagal di attract (layar tamu) menampilkan teks teknis (`--paper-2x6x2`, "driver"); cukup "Printer bermasalah, hubungi crew", detail di menu crew. (2) Counter kertas di menu crew baru berubah pada refresh 5 s berikutnya setelah Cetak ulang/test print.
 
-- [ ] **M-011 Temuan W-016 (M5 kiosk di Windows).** Semua uji lulus, auto-start berakhir mati. Kecil: (1) kursor terlihat di atas tombol saat kiosk: `cursor-none` hanya di wrapper, `button` tetap `cursor: default`; (2) entri auto-start bernama `electron.app.Electron`, set AppUserModelId/nama app `id.tetraphoto.booth`; (3) setiap crash renderer mencatat `R-ERROR … preloadScripts … startupData is null` walau pulih normal; tunda `reload()` di `render-process-gone`. Detail: laporan m5-kiosk.
+- [x] **M-011 Temuan W-016 (M5 kiosk di Windows).** Semua uji lulus, auto-start berakhir mati. Kecil: (1) kursor terlihat di atas tombol saat kiosk: `cursor-none` hanya di wrapper, `button` tetap `cursor: default`; (2) entri auto-start bernama `electron.app.Electron`, set AppUserModelId/nama app `id.tetraphoto.booth`; (3) setiap crash renderer mencatat `R-ERROR … preloadScripts … startupData is null` walau pulih normal; tunda `reload()` di `render-process-gone`. Detail: laporan m5-kiosk. → Selesai (Mac): `[&_*]:cursor-none` + cek e2e `cursor === "none"`; `app.setAppUserModelId("id.tetraphoto.booth")`; reload setelah crash lewat `loadFile` 300 ms kemudian + e2e crash (pulih, tidak ada sesi mulai sendiri). Dua `R-ERROR preloadScripts` ternyata juga muncul di boot pertama di macOS (bukan akibat reload) → derau Electron, dibiarkan (DECISIONS #42). Sesi mulai sendiri: dugaan input tertunda; tombol mulai kini aktif 800 ms setelah attract muncul.
 
 ## Log
 
@@ -99,6 +108,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 | 2026-09-24 | Windows | W-016 selesai: env.ps1 baru (tanpa `pnpm_config_*`), e2e 2/2, kiosk di app hasil build (tutup/shortcut ditolak, crash pulih), auto-start aktif→mati (registry bersih), jurnal print: kill 10× → 6 sesi = 6 PDF, 0 spooled ganda. Temuan kecil M-011. Laporan: `docs/reports/windows/2026-09-24-m5-kiosk.md`. |
 | 2026-09-24 | Windows | W-015 selesai: flag bentuk spasi & boot tanpa "tidak terhubung" (M-008) beres; 20/20 kill pulih, 9 sesi = 9 PDF = 9 `done`, 3 kirim ulang, 0 cetak ganda menurut log (cetak ganda fisik tidak terdeteksi lewat PDF, lihat laporan). Laporan: `docs/reports/windows/2026-09-24-m9-print-crash.md`. |
 | 2026-09-24 | Windows | W-014 selesai: e2e lulus (5,1 s), test print & cetak ulang ke PDF, kertas berkurang, print gagal tampil di attract & menu crew, cek kamera 2560×1920 (121–209 ms setelah hangat), bundle overlay+font terpakai di strip, portrait bisa discroll. Temuan kecil M-010. Laporan: `docs/reports/windows/2026-09-24-m6-crew.md`. |
+| 2026-09-24 | Mac | Merge W-016. M-011 selesai (+ jeda tombol mulai 800 ms). M7 hot folder di `main` (DECISIONS #41) dengan e2e. W-017 ditambahkan. |
 | 2026-09-24 | Mac | Merge W-014/W-015. Protokol: Mac tidak lagi push ke `win`. M-010 selesai. env.ps1 diperbarui (pnpm 12 `pnpm_config_*`, NuGet, electron-builder, TEMP) + daftar bersih-bersih AppData. Cetak ganda dicegah jurnal print Camera Service (DECISIONS #39). M5 kiosk di `main` (DECISIONS #40), e2e kiosk. W-016 ditambahkan. |
 | 2026-09-24 | Mac | Merge W-013. M-009 selesai: print tertunda disimpan `queued` & dikirim ulang setelah Camera Service pulih. W-015 ditambahkan. |
 | 2026-09-24 | Mac | Merge W-012. M-008 selesai (parser flag dua bentuk, tunggu Camera Service siap sebelum jendela). |

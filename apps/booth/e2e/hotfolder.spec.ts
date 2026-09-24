@@ -26,7 +26,10 @@ test("hot folder: 3 JPEG yang masuk folder jadi 3 foto sesi", async () => {
     env: env as Record<string, string>,
   });
   const w = await app.firstWindow();
-  await w.getByRole("button", { name: /sentuh untuk mulai/i }).click();
+  const start = w.getByRole("button", { name: /sentuh untuk mulai/i });
+  await expect(start).toBeVisible();
+  await w.waitForTimeout(1000); // tombol mulai aktif setelah START_GUARD_MS
+  await start.click();
 
   // JPEG asli dibuat lewat nativeImage Electron (tanpa dependensi encoder tambahan).
   const jpeg = async (n: number) =>

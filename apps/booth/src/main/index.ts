@@ -5,8 +5,10 @@ import { startCameraService, watchPrintEvents } from "./camera-service";
 import { cameraServiceFlags, config, dataDir, flagWarnings, kioskFlag, windowSize } from "./config";
 import { openDb } from "./db";
 import { registerIpc } from "./ipc";
-import { applyKiosk } from "./kiosk";
+import { APP_ID, applyKiosk } from "./kiosk";
 import { setupLogging } from "./log";
+
+if (process.platform === "win32") app.setAppUserModelId(APP_ID);
 
 // Data lokal di %APPDATA%/TetraBooth (TSD §3), bukan nama produk dengan spasi.
 app.setPath("userData", dataDir ?? join(app.getPath("appData"), "TetraBooth"));
@@ -44,14 +46,24 @@ const createWindow = () => {
       e.message,
     ),
   );
-  // Layar crash → muat ulang (booth tidak boleh berhenti di layar putih).
+  const load = () =>
+    process.env.ELECTRON_RENDERER_URL
+      ? win.loadURL(process.env.ELECTRON_RENDERER_URL)
+      : win.loadFile(join(__dirname, "../renderer/index.html"));
+  // Layar crash → muat ulang (booth tidak boleh berhenti di layar putih). Ditunda sebentar dan lewat
+  // loadFile, bukan reload() langsung di event, supaya preload tidak gagal di proses yang masih mati (M-011).
   win.webContents.on("render-process-gone", (_e, d) => {
     console.error(`[window] renderer mati (${d.reason}), muat ulang`);
-    win.webContents.reload();
+    setTimeout(
+      () =>
+        void load().catch((e: unknown) =>
+          console.error(`[window] gagal memuat ulang: ${String(e)}`),
+        ),
+      300,
+    );
   });
   if (kiosk) applyKiosk(win, (m) => console.info(m));
-  if (process.env.ELECTRON_RENDERER_URL) win.loadURL(process.env.ELECTRON_RENDERER_URL);
-  else win.loadFile(join(__dirname, "../renderer/index.html"));
+  void load();
 };
 
 registerIpc(db, alerts);

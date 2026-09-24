@@ -48,6 +48,9 @@ export function autoStart(): { enabled: boolean; supported: boolean } {
   return { enabled: supported && app.getLoginItemSettings().openAtLogin, supported };
 }
 
+/** Nama entri auto-start (HKCU Run) dan identitas app di Windows = appId build, bukan "electron.app.Electron" (M-011). */
+export const APP_ID = "id.tetraphoto.booth";
+
 export function setAutoStart(on: boolean) {
   if (!autoStart().supported) throw new Error("auto-start hanya untuk app hasil build");
   app.setLoginItemSettings({ openAtLogin: on });

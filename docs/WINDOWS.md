@@ -94,7 +94,7 @@ Menjalankan sesi booth untuk uji (sejak M1):
 electron.exe apps\booth --camera=simulated --demo --data="$W\data" --shots="$W\shots\<nama-uji>" --enable-logging
 ```
 
-- `--camera=webcam|simulated`, `--demo` (sesi jalan sendiri), `--size=WxH` (mis. `450x800` untuk portrait di layar 1280×800 logis).
+- `--camera=webcam|simulated|hotfolder` (hot folder butuh `--hot-folder <dir>`, M7), `--demo` (sesi jalan sendiri), `--size=WxH` (mis. `450x800` untuk portrait di layar 1280×800 logis).
 - Kiosk (M5): mati di mode dev, **aktif otomatis di app hasil build** (`app\\booth\\Tetra Booth.exe`); `--kiosk` / `--no-kiosk` untuk memaksa. Di kiosk, keluar hanya lewat mode crew.
 - Camera Service di-spawn booth. `--no-spawn` = pakai Camera Service yang dijalankan manual (port 8765, token `dev`). Printer diteruskan: `--printer "Microsoft Print to PDF" --paper-2x6x2 A5 --print-to-file "$W\prints"` (tanpa `--print-to-file`, Print to PDF ditolak `output_file_required`).
 - `--data` **wajib** di laptop ini: foto & data sesi masuk `$W\data`, bukan `%APPDATA%`.

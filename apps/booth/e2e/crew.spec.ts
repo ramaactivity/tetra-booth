@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -93,7 +93,44 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await app.close();
 });
 
-test("kiosk: layar penuh, tidak bisa ditutup, keluar hanya lewat mode crew", async () => {
+test("kiosk: layar penuh, kursor tersembunyi, pulih dari crash renderer", async () => {
+  const env = { ...process.env };
+  delete env.ELECTRON_RUN_AS_NODE;
+  const data = makeData();
+  const app = await electron.launch({
+    executablePath: electronPath,
+    args: [appDir, "--kiosk", "--camera=simulated", "--no-spawn", `--data=${data}`],
+    env: env as Record<string, string>,
+  });
+  const w = await app.firstWindow();
+  await expect(w.getByRole("button", { name: /sentuh untuk mulai/i })).toBeVisible();
+  expect(
+    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isKiosk()),
+  ).toBe(true);
+  // Kursor tersembunyi juga di atas tombol (M-011).
+  const start = w.getByRole("button", { name: /sentuh untuk mulai/i });
+  expect(await start.evaluate((b) => getComputedStyle(b).cursor)).toBe("none");
+
+  // Renderer crash → dimuat ulang, attract kembali, sesi tidak mulai sendiri (M-011, W-016).
+  // Page Playwright tidak bisa dipakai setelah crash: pantau log harian booth.
+  const log = () =>
+    readdirSync(join(data, "logs"))
+      .map((f) => readFileSync(join(data, "logs", f), "utf8"))
+      .join("");
+  const boots = () => (log().match(/R-INFO \[boot\] kamera=/g) ?? []).length;
+  expect(boots()).toBe(1);
+  await app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0]?.webContents.forcefullyCrashRenderer(),
+  );
+  await expect.poll(boots, { timeout: 10_000 }).toBe(2);
+  await new Promise((r) => setTimeout(r, 3000));
+  expect(log()).toContain("renderer mati");
+  expect(log()).not.toContain("[session] countdown");
+  // app.close() ditolak kiosk (memang begitu); keluar paksa dari proses main.
+  await app.evaluate(({ app }) => app.exit(0)).catch(() => {});
+});
+
+test("kiosk: tidak bisa ditutup, keluar hanya lewat mode crew", async () => {
   const env = { ...process.env };
   delete env.ELECTRON_RUN_AS_NODE;
   const app = await electron.launch({
@@ -103,9 +140,6 @@ test("kiosk: layar penuh, tidak bisa ditutup, keluar hanya lewat mode crew", asy
   });
   const w = await app.firstWindow();
   await expect(w.getByRole("button", { name: /sentuh untuk mulai/i })).toBeVisible();
-  expect(
-    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isKiosk()),
-  ).toBe(true);
 
   // Tutup jendela (Alt+F4 / tombol X) ditolak.
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.close());

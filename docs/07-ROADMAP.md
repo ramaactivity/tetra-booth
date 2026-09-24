@@ -26,7 +26,7 @@ Prinsip:
 **Selesai jika:** template engine merender contoh layout identik di browser & Electron; `dotnet run` Camera Service menerima koneksi WebSocket dari booth. _(Terpenuhi 2026-09-23: hash `ae20f38c…` sama di Vitest, Playwright/Chromium, dan Electron; health check Electron → Camera Service OK.)_
 
 ## Fase 1 — Booth offline (mode event)
-- [ ] Kamera uji: webcam (renderer) + kamera simulasi di Camera Service; hot-folder fallback. _(Canon EDSDK dipindah ke Fase 1b, DECISIONS #26)_
+- [x] Kamera uji: webcam (renderer) + kamera simulasi; hot-folder fallback di Camera Service. _(M1 + M7, 2026-09-24; Canon EDSDK dipindah ke Fase 1b, DECISIONS #26)_
 - [x] Camera Service: print lewat `WindowsPrinterAdapter` (4R & 2x6x2), status spooler. _(M4/W-009; cetak fisik DNP di Fase 1b)_
 - [x] Supervisor & watchdog di Electron main. _(M3, 2026-09-24; verifikasi Windows W-013)_
 - [x] Kiosk: auto-start, fullscreen, anti-sleep. _(M5, 2026-09-24: auto-start lewat toggle mode crew; verifikasi Windows W-016)_

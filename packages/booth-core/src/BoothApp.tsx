@@ -66,7 +66,7 @@ export function BoothApp({
     );
   }
   return (
-    <div className={kiosk ? "cursor-none" : undefined}>
+    <div className={kiosk ? "cursor-none [&_*]:cursor-none" : undefined}>
       <SessionRunner
         key={event.id}
         event={event}
