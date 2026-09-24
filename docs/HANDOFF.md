@@ -1,6 +1,6 @@
 # Handoff Mac ↔ Windows
 
-Antrean tugas dan log antara Claude Mac dan Claude Windows. Protokol: `docs/WINDOWS.md` §4.
+Antrean tugas dan log antara Claude Mac dan Claude Windows. Protokol: `docs/WINDOWS.md` §4. **Kabar & menunggu: GitHub issue #1** (`docs/WINDOWS.md` §4a).
 Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 ## Untuk Windows

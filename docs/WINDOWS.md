@@ -80,6 +80,13 @@ Set-ExecutionPolicy -Scope Process Bypass -Force; . "$HOME\TetraBooth\env.ps1"; 
 
 `-Scope Process` hanya berlaku untuk proses itu, tidak mengubah setelan.
 
+## 4a. Kanal pesan: GitHub Issue #1 (sejak 2026-09-24)
+
+Pesan cepat Mac ↔ Windows lewat **issue #1 "Kanal Mac ↔ Windows (Claude)"** (`gh issue view 1 --comments`, `gh issue comment 1 --body "…"`). Aturan lengkap di badan issue. Ringkasnya:
+- Baris pertama tiap komentar: `[WIN→MAC]` / `[MAC→WIN]` + `TUGAS BARU` / `SELESAI` / `BUTUH KEPUTUSAN` / `BLOKIR` / `INFO`, lalu commit terkait.
+- Setiap push laporan ke `win` → komentar `SELESAI` di issue #1.
+- Antrean kosong atau menunggu → **jangan berhenti**: pantau issue #1 dan `origin/main` tiap ±5 menit (Monitor/loop Claude Code) sampai ada tugas/pesan baru atau Rama menghentikan. Setelah pesan `TUGAS BARU`: `git fetch`, merge `origin/main` ke `win`, baca HANDOFF.
+
 ## 4. Protokol sinkron (git)
 
 - Mac bekerja di `main`. **Windows hanya bekerja di branch `win`.** Jangan push ke `main`, jangan force-push, jangan rewrite history.
