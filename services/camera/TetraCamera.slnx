@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="TetraCamera.Canon/TetraCamera.Canon.csproj" />
   <Project Path="TetraCamera.Host/TetraCamera.Host.csproj" />
+  <Project Path="TetraCamera.HotFolder/TetraCamera.HotFolder.csproj" />
   <Project Path="TetraCamera.Print.Windows/TetraCamera.Print.Windows.csproj" />
   <Project Path="TetraCamera.Print/TetraCamera.Print.csproj" />
   <Project Path="TetraCamera.Tests/TetraCamera.Tests.csproj" />

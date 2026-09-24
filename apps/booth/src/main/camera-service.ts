@@ -74,7 +74,7 @@ export async function startCameraService(log: (m: string) => void, db: BoothDb, 
   setEndpoint(port, token);
   // Jurnal print di folder data booth: kirim ulang setelah crash tidak mencetak dua kali (DECISIONS #39).
   const args = [
-    ...cameraServiceFlags.printerArgs,
+    ...cameraServiceFlags.args,
     "--print-journal",
     join(app.getPath("userData"), "print-journal.log"),
   ];

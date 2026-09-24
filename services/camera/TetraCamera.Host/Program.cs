@@ -7,7 +7,7 @@ using TetraCamera.Print;
 var port = int.Parse(Environment.GetEnvironmentVariable("TETRA_CAMERA_PORT") ?? "8765");
 var token = Environment.GetEnvironmentVariable("TETRA_CAMERA_TOKEN") ?? "dev";
 // Printer (M4): sementara dari argumen, nanti dari config device lewat Electron.
-string? printerName = null, paper4R = null, paper2x6x2 = null, printToFile = null, printJournal = null;
+string? printerName = null, paper4R = null, paper2x6x2 = null, printToFile = null, printJournal = null, hotFolder = null;
 for (var i = 0; i + 1 < args.Length; i++)
 {
     switch (args[i])
@@ -19,6 +19,7 @@ for (var i = 0; i + 1 < args.Length; i++)
         case "--paper-2x6x2": paper2x6x2 = args[i + 1]; break;
         case "--print-to-file": printToFile = Path.GetFullPath(args[i + 1]); break;
         case "--print-journal": printJournal = Path.GetFullPath(args[i + 1]); break;
+        case "--hot-folder": hotFolder = Path.GetFullPath(args[i + 1]); break;
     }
 }
 var tokenBytes = Encoding.UTF8.GetBytes(token);
@@ -39,7 +40,8 @@ IPrinterAdapter printer = OperatingSystem.IsWindows()
     : new NullPrinterAdapter();
 var events = new EventHub();
 printer.Event += e => events.Publish(Dispatcher.SerializeEvent(e));
-var dispatcher = new Dispatcher(printer);
+var camera = hotFolder is null ? null : new TetraCamera.HotFolder.HotFolderCamera(hotFolder);
+var dispatcher = new Dispatcher(printer, camera);
 
 app.Map("/ws", async (HttpContext ctx) =>
 {
@@ -55,5 +57,6 @@ app.Map("/ws", async (HttpContext ctx) =>
 });
 
 Console.WriteLine($"TetraCamera siap di ws://127.0.0.1:{port}/ws");
+if (camera is not null) Console.WriteLine($"Kamera: hot folder {camera.Folder}");
 if (printerName is not null) Console.WriteLine($"Printer: {printerName} (4R: {paper4R ?? "ukuran 4x6"}, 2x6x2: {paper2x6x2 ?? "-"})");
 app.Run();

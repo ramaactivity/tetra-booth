@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { copy } from "../copy";
 import { errText } from "../errors";
 import { usePlatform } from "../PlatformContext";
 
@@ -6,6 +7,7 @@ import { usePlatform } from "../PlatformContext";
 export function LiveView() {
   const { camera } = usePlatform();
   const ref = useRef<HTMLCanvasElement>(null);
+  const [hasFrame, setHasFrame] = useState(false);
 
   useEffect(() => {
     const canvas = ref.current;
@@ -13,6 +15,7 @@ export function LiveView() {
     if (!canvas || !g) return;
     camera
       .startLiveView(({ source, width, height }) => {
+        setHasFrame(true);
         const dpr = window.devicePixelRatio || 1;
         const cw = Math.round(canvas.clientWidth * dpr);
         const ch = Math.round(canvas.clientHeight * dpr);
@@ -32,5 +35,15 @@ export function LiveView() {
     };
   }, [camera]);
 
-  return <canvas ref={ref} className="absolute inset-0 h-full w-full bg-fg" />;
+  return (
+    <>
+      <canvas ref={ref} className="absolute inset-0 h-full w-full bg-fg" />
+      {/* Kamera tanpa live view (hot folder): arahkan tamu ke kamera. */}
+      {!hasFrame && (
+        <p className="absolute inset-x-0 bottom-16 text-center text-2xl font-medium uppercase tracking-label text-surface/80">
+          {copy.countdown.lookAtCamera}
+        </p>
+      )}
+    </>
+  );
 }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using TetraCamera.HotFolder;
 using TetraCamera.Print;
 
 namespace TetraCamera.Host;
@@ -8,7 +9,7 @@ namespace TetraCamera.Host;
 /// Menerima pesan teks JSON `{ id, type, payload }`, membalas dengan `id` yang sama. TSD §2.
 /// Skema: packages/shared/src/camera-protocol.ts. Perintah kamera ditambah bersama sumber kamera simulasi (M1).
 /// </summary>
-public sealed class Dispatcher(IPrinterAdapter printer)
+public sealed class Dispatcher(IPrinterAdapter printer, HotFolderCamera? camera = null)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private readonly DateTime _startedAt = DateTime.UtcNow;
@@ -37,9 +38,22 @@ public sealed class Dispatcher(IPrinterAdapter printer)
                 "system.health" => Reply(id, type, new
                 {
                     uptime = (DateTime.UtcNow - _startedAt).TotalSeconds,
-                    camera = "disconnected",
+                    camera = camera is null ? "disconnected" : "connected",
                     printer = State((await printer.GetStatusAsync(ct)).State),
                 }),
+                "camera.list" => Reply(id, type, camera is null
+                    ? Array.Empty<object>()
+                    : [new { id = "hotfolder", brand = "hotfolder", model = "Hot folder", serial = camera.Folder }]),
+                "camera.connect" => Reply(id, type, new { ok = camera is not null && RequiredString(payload, "id") == "hotfolder" }),
+                "camera.status" => Reply(id, type, new
+                {
+                    connected = camera is not null,
+                    model = camera is null ? null : "Hot folder",
+                    battery = (int?)null,
+                    shotsRemaining = (int?)null,
+                }),
+                "liveview.start" or "liveview.stop" => Error(id, "unsupported", "hot folder tidak punya live view"),
+                "capture" => await Capture(id, type, payload, ct),
                 "print.submit" => await PrintSubmit(id, type, payload, ct),
                 "print.status" => await PrintStatus(id, type, payload, ct),
                 _ => Error(id, "unknown_type", $"perintah '{type}' belum didukung"),
@@ -47,6 +61,21 @@ public sealed class Dispatcher(IPrinterAdapter printer)
         }
         catch (BadPayload e) { return Error(id, "bad_payload", e.Message); }
         catch (PrintFailure f) { return Error(id, f.Code, f.Message); }
+        catch (CameraFailure f) { return Error(id, f.Code, f.Message); }
+    }
+
+    private async Task<string> Capture(string id, string type, JsonNode? p, CancellationToken ct)
+    {
+        if (camera is null) throw new CameraFailure("no_camera", "tidak ada kamera (jalankan dengan --hot-folder)");
+        RequiredString(p, "sessionId");
+        var outputDir = RequiredString(p, "outputDir");
+        if (!Path.IsPathFullyQualified(outputDir)) throw new BadPayload("outputDir harus path absolut");
+        int index;
+        try { index = p?["index"]?.GetValue<int>() ?? throw new BadPayload("index wajib diisi"); }
+        catch (Exception e) when (e is InvalidOperationException or FormatException) { throw new BadPayload("index harus bilangan bulat"); }
+        if (index < 0) throw new BadPayload("index harus ≥ 0");
+        var r = await camera.CaptureAsync(outputDir, index, ct);
+        return Reply(id, type, new { path = r.Path, width = r.Width, height = r.Height });
     }
 
     private async Task<string> PrintSubmit(string id, string type, JsonNode? p, CancellationToken ct)

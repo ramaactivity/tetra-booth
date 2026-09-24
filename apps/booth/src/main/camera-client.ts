@@ -24,13 +24,14 @@ const url = () => `ws://127.0.0.1:${endpoint.port}/ws?token=${encodeURIComponent
 /** Kirim satu perintah ke Camera Service dan tunggu balasan dengan id yang sama. */
 export function request<T extends CommandType>(
   cmd: Command & { type: T },
+  timeoutMs = TIMEOUT_MS,
 ): Promise<CommandResult<T>> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(url());
     const timer = setTimeout(() => {
       ws.close();
       reject(new ServiceUnavailable("Camera Service tidak menjawab"));
-    }, TIMEOUT_MS);
+    }, timeoutMs);
     const done = () => {
       clearTimeout(timer);
       ws.close();

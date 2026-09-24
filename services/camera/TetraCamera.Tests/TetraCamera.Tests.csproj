@@ -9,6 +9,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../TetraCamera.Host/TetraCamera.Host.csproj" />
+    <ProjectReference Include="../TetraCamera.HotFolder/TetraCamera.HotFolder.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

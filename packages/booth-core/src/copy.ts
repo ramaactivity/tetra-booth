@@ -3,6 +3,7 @@ export const copy = {
   attract: { cta: "Sentuh untuk mulai" },
   countdown: {
     ready: "Siap? Senyum!",
+    lookAtCamera: "Lihat ke kamera",
     progress: (n: number, total: number) => `Foto ${n} dari ${total}`,
   },
   review: { title: "Cek fotonya dulu", retake: "Ulang", next: "Lanjut" },

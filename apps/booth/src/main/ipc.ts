@@ -97,6 +97,22 @@ export function registerIpc(db: BoothDb, alerts: Alerts) {
     async (_e, path: unknown) => new Uint8Array(await readFile(inSessions(Path.parse(path)))),
   );
 
+  // Kamera lewat Camera Service (hot folder M7; nanti Canon EDSDK): foto ditulis service ke raw/ sesi.
+  const CAPTURE_TIMEOUT_MS = 15_000;
+  ipcMain.handle("cameraCapture", async (_e, req: unknown) => {
+    const { sessionId, index } = z
+      .object({ sessionId: SessionId, index: z.number().int().min(0).max(20) })
+      .parse(req);
+    const outputDir = join(sessionsRoot(), sessionId, "raw");
+    await mkdir(outputDir, { recursive: true });
+    const r = await request(
+      { id: crypto.randomUUID(), type: "capture", payload: { sessionId, index, outputDir } },
+      CAPTURE_TIMEOUT_MS,
+    );
+    return { ...r, path: inSessions(r.path) };
+  });
+  ipcMain.handle("cameraStatus", () => request({ id: crypto.randomUUID(), type: "camera.status" }));
+
   ipcMain.handle("printSubmit", async (_e, job: unknown) => {
     const j = PrintJob.parse(job);
     const path = inSessions(j.path);

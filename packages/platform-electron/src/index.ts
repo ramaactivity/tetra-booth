@@ -1,4 +1,5 @@
 import {
+  type BoothCamera,
   type BoothPlatform,
   type BoothStorage,
   createSimulatedCamera,
@@ -7,6 +8,20 @@ import {
 import type { BoothConfig, TetraBridge } from "./bridge";
 
 export type { BoothConfig, TetraBridge } from "./bridge";
+
+/**
+ * Kamera di Camera Service (hot folder M7, Canon EDSDK Fase 1b): capture lewat main → WebSocket.
+ * Hot folder tidak punya live view; layar countdown menampilkan ajakan melihat ke kamera.
+ */
+const serviceCamera = (bridge: TetraBridge): BoothCamera => ({
+  startLiveView: async () => {},
+  stopLiveView: async () => {},
+  capture: (req) => bridge.cameraCapture(req),
+  reconnect: async () => {
+    const s = await bridge.cameraStatus();
+    if (!s.connected) throw new Error("kamera Camera Service belum terhubung");
+  },
+});
 
 /** Adapter BoothPlatform untuk Electron; berbicara ke main lewat `window.tetra`. */
 export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): BoothPlatform => {
@@ -17,7 +32,11 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
   };
   return {
     camera:
-      cfg.camera === "simulated" ? createSimulatedCamera(storage) : createWebcamCamera(storage),
+      cfg.camera === "simulated"
+        ? createSimulatedCamera(storage)
+        : cfg.camera === "hotfolder"
+          ? serviceCamera(bridge)
+          : createWebcamCamera(storage),
     printer: { submit: (job) => bridge.printSubmit(job) },
     storage,
     db: {

@@ -3,7 +3,7 @@ import type { CommandResult, Paper } from "@tetra/shared";
 
 export type BoothConfig = {
   /** Sumber kamera Fase 1 (DECISIONS #26). */
-  camera: "webcam" | "simulated";
+  camera: "webcam" | "simulated" | "hotfolder";
   /** Sesi berjalan sendiri tanpa sentuhan. */
   demo: boolean;
   /** Base URL halaman tamu untuk QR, mis. https://app.tetraphoto.com. */
@@ -23,6 +23,8 @@ export type TetraBridge = {
   sessionDir(sessionId: string): Promise<string>;
   writeFile(path: string, bytes: Uint8Array): Promise<void>;
   readFile(path: string): Promise<Uint8Array<ArrayBuffer>>;
+  cameraCapture(req: { sessionId: string; index: number }): Promise<CommandResult<"capture">>;
+  cameraStatus(): Promise<CommandResult<"camera.status">>;
   printSubmit(job: { jobId: string; path: string; copies: number; paper: Paper }): Promise<void>;
   phaseChanged(phase: string): void;
   sessionStarted: BoothDb["sessionStarted"];

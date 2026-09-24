@@ -11,6 +11,7 @@ export const VALUE_FLAGS = [
   "paper-4r",
   "paper-2x6x2",
   "print-to-file",
+  "hot-folder",
 ] as const;
 type ValueFlag = (typeof VALUE_FLAGS)[number];
 
@@ -53,7 +54,8 @@ export const kioskFlag = (isPackaged: boolean) =>
   flags.has("kiosk") || (isPackaged && !flags.has("no-kiosk"));
 
 export const config: BoothConfig = {
-  camera: flags.value("camera") === "simulated" ? "simulated" : "webcam",
+  camera:
+    (["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ?? "webcam",
   demo: flags.has("demo"),
   guestUrl: process.env.TETRA_GUEST_URL ?? "https://app.tetraphoto.com",
 };
@@ -71,14 +73,16 @@ export const dataDir = flags.value("data");
 
 /**
  * Camera Service: `--no-spawn` = sambung ke service yang dijalankan manual (port 8765, token dev).
- * Printer diteruskan apa adanya sampai config device ada (M6): --printer, --paper-4r, --paper-2x6x2,
- * --print-to-file (khusus uji/stress, printer ber-port PORTPROMPT: seperti Print to PDF).
+ * Diteruskan apa adanya sampai config device ada: --printer, --paper-4r, --paper-2x6x2,
+ * --print-to-file (khusus uji/stress, printer ber-port PORTPROMPT: seperti Print to PDF), --hot-folder (M7).
  */
 export const cameraServiceFlags = {
   spawn: !flags.has("no-spawn"),
   path: flags.value("camera-service"),
-  printerArgs: (["printer", "paper-4r", "paper-2x6x2", "print-to-file"] as const).flatMap((k) => {
-    const v = flags.value(k);
-    return v ? [`--${k}`, v] : [];
-  }),
+  args: (["printer", "paper-4r", "paper-2x6x2", "print-to-file", "hot-folder"] as const).flatMap(
+    (k) => {
+      const v = flags.value(k);
+      return v ? [`--${k}`, v] : [];
+    },
+  ),
 };
