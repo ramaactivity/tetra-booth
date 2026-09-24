@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GalleryPhoto } from "@/lib/gallery";
 
 type Filter = "strip" | "original" | "favorit";
@@ -27,6 +27,7 @@ export function GalleryView({ token, photos: initial }: { token: string; photos:
   const [photos, setPhotos] = useState(initial);
   const [filter, setFilter] = useState<Filter>("strip");
   const [open, setOpen] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
   const shown = useMemo(
     () => photos.filter((p) => (filter === "favorit" ? p.favorite : p.kind === filter)),
     [photos, filter],
@@ -37,6 +38,12 @@ export function GalleryView({ token, photos: initial }: { token: string; photos:
     return [...m.entries()];
   }, [shown]);
   const favCount = photos.filter((p) => p.favorite).length;
+  // Slideshow (C1 "Putar Slideshow"): lightbox maju sendiri tiap 4 dtk, berulang.
+  useEffect(() => {
+    if (!playing || open === null) return;
+    const t = setTimeout(() => setOpen((open + 1) % shown.length), 4000);
+    return () => clearTimeout(t);
+  }, [playing, open, shown.length]);
   const cur = open !== null ? shown[open] : undefined;
 
   const toggleFav = async (p: GalleryPhoto) => {
@@ -72,10 +79,22 @@ export function GalleryView({ token, photos: initial }: { token: string; photos:
             {k === "favorit" ? `${t} (${favCount})` : t}
           </button>
         ))}
+        {shown.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setPlaying(true);
+              setOpen(0);
+            }}
+            className="ml-auto h-9 rounded-[10px] border-[1.5px] border-ink bg-butter px-4 text-[13px] font-extrabold"
+          >
+            ▶ Putar Slideshow
+          </button>
+        )}
         {filter !== "favorit" && shown.length > 0 && (
           <a
             href={`/api/g/${token}/zip?kind=${filter}`}
-            className="ml-auto flex h-9 items-center rounded-[10px] border-[1.5px] border-ink bg-sky px-3.5 text-[13px] font-bold no-underline"
+            className="flex h-9 items-center rounded-[10px] border-[1.5px] border-ink bg-sky px-3.5 text-[13px] font-bold no-underline"
           >
             ↓ Download Semua
           </a>
@@ -125,7 +144,10 @@ export function GalleryView({ token, photos: initial }: { token: string; photos:
             <button
               type="button"
               aria-label="Tutup"
-              onClick={() => setOpen(null)}
+              onClick={() => {
+                setOpen(null);
+                setPlaying(false);
+              }}
               className="flex size-10 items-center justify-center rounded-xl border-[1.5px] border-ink bg-white"
             >
               ✕

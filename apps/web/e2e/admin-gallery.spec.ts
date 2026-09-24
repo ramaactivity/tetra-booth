@@ -79,6 +79,10 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
       (await db.from("favorites").select("asset_id").eq("event_id", eventId)).data,
     ).toHaveLength(1);
     await expect(guest.getByRole("link", { name: "↓ Download Semua" })).toBeVisible();
+    await guest.getByRole("button", { name: "▶ Putar Slideshow" }).click();
+    await expect(guest.getByRole("dialog")).toContainText("1 / 2");
+    await expect(guest.getByRole("dialog")).toContainText("2 / 2", { timeout: 6000 });
+    await guest.getByRole("button", { name: "Tutup" }).click();
     const zip = await guest.request.get(`/api/g/${path.split("/").pop()}/zip?kind=original`);
     expect(zip.headers()["content-type"]).toBe("application/zip");
     const bytes = await zip.body();
