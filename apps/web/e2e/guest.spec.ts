@@ -86,7 +86,7 @@ test.beforeAll(async () => {
       asset(ids.partial, "strip_web", 0),
       asset(ids.ready, "strip_web", 0),
       asset(ids.ready, "original", 1),
-    asset(ids.ready, "animation", 0),
+      asset(ids.ready, "animation", 0),
     ]);
 });
 
