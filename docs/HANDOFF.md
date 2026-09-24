@@ -21,7 +21,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   - Jangan pasang driver apa pun (butuh admin). Jangan ubah protokol di `packages/shared` tanpa menulis alasannya di "Untuk Mac".
   - Selesai: `dotnet test` lulus di laptop, CI `win` hijau, laporan `docs/reports/windows/<tanggal>-m4-printer.md` dengan contoh output PDF (angka, bukan file).
 - [x] **W-010 Riset webcam untuk M1 (tanpa kode fitur).** → `docs/reports/windows/2026-09-24-webcam.md` Di Electron (skrip/perubahan sementara, tidak di-commit): daftar perangkat video, resolusi & fps maksimum `getUserMedia` untuk HP 5MP Camera (coba 2592×1944, 1920×1080, 1280×720), `ImageCapture.getPhotoCapabilities()` dan resolusi hasil `takePhoto()`, waktu `takePhoto()` sampai blob, fps nyata live view ke canvas dengan mirror. Tulis temuan di laporan W-009 atau laporan terpisah. Ini dasar sumber kamera `webcam` yang dibangun di Mac.
-- [ ] **W-011 Verifikasi M1 (alur sesi) di Windows, simulasi + webcam.** Merge `origin/main` ke `win`, `pnpm install --frozen-lockfile`, `pnpm --filter booth build`. Jalankan Camera Service, lalu booth dengan flag di WINDOWS.md §5 (`--data` wajib).
+- [x] **W-011 Verifikasi M1 (alur sesi) di Windows, simulasi + webcam.** → `docs/reports/windows/2026-09-24-m1-sesi.md` Merge `origin/main` ke `win`, `pnpm install --frozen-lockfile`, `pnpm --filter booth build`. Jalankan Camera Service, lalu booth dengan flag di WINDOWS.md §5 (`--data` wajib).
   1. **Simulasi landscape:** `--camera=simulated --demo --shots=$W\shots\sim` ±40 s. Lulus jika log menunjukkan satu siklus lengkap attract → countdown/capture/preview ×3 → review → compose → print_select → printing → qr → attract; `raw/1..3.jpg` 3000×2000 dan `out/strip.jpg` 1200×1800 ada di `$W\data\sessions\<id>`; screenshot review, print_select, qr tampil benar (bandingkan dengan 08-DESIGN).
   2. **Simulasi portrait:** sama dengan `--size=450x800`. Semua konten muat tanpa terpotong.
   3. **Webcam:** `--camera=webcam --demo --shots=$W\shots\cam`. Catat: live view di-mirror (screenshot countdown), resolusi `raw/*.jpg` (dari `takePhoto` atau fallback frame video), waktu `compose` dari log, dan jeda capture → preview. Foto tidak boleh di-mirror di strip.
@@ -51,12 +51,19 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 - [x] **M-005 Integrasi printer ke booth (M3/M6).** Camera Service sekarang punya `print.submit`/`print.status` + event `print.done`/`print.failed`/`printer.status` (W-009). Saat spawn, Electron main perlu meneruskan `--printer`, `--paper-4r`, `--paper-2x6x2` dari config device; `--print-to-file <dir>` hanya untuk uji/stress (tanpa itu, printer ber-port `PORTPROMPT:` seperti Print to PDF ditolak `output_file_required`). Gambar yang dikirim harus 1200×1800. Petakan kode error baru ke UI/log. Daftar lengkap: laporan m4-printer §"Untuk Mac / booth". → Selesai (M3): booth meneruskan `--printer`, `--paper-4r`, `--paper-2x6x2`, `--print-to-file` ke Camera Service yang di-spawn. Pemetaan kode error ke UI crew menyusul di M6.
 - [x] **M-006 `webcam.ts`: frame video dulu, bukan `takePhoto`.** W-010: di HP 5MP Camera `ImageCapture` tidak punya resolusi still lebih tinggi dari stream. `takePhoto()` hanya meng-encode frame ke PNG, 1,3–1,6 s @1080p dan 1,8–3,1 s @2560×1920. Frame video → JPEG hanya 107/174 ms dengan resolusi sama. Resolusi max stream 2560×1920 (4:3) @30 fps; tanpa constraint ukuran didapat 640×480. Saran: frame video dulu (`takePhoto` hanya kalau `imageWidth.max > videoWidth`), stream minta 2560×1920. Detail: laporan webcam. → Selesai (Mac): stream `ideal` 2560×1920 @30, foto = frame video → JPEG q0,95; `takePhoto` hanya kalau `getPhotoCapabilities().imageWidth.max` > `videoWidth`. Log `[webcam] <w>×<h>, foto: …`. Diverifikasi di W-011.
+- [ ] **M-007 Temuan W-011 (M1 di Windows).** Semua uji lulus. Yang perlu diputuskan/diperbaiki di `main`:
+  1. Booth belum mendengarkan event Camera Service (koneksi per-permintaan), jadi `print.failed` (mis. `printer_unavailable`, `paper_not_supported`) tidak pernah sampai. Sesi tetap jalan, tapi log `cetak gagal` tidak muncul dan crew tidak tahu. Perlu koneksi WebSocket tetap (M3) atau `print.status` polling.
+  2. Log error kamera `[object DOMException]`: tulis `e.name: e.message`.
+  3. Preview foto tidak di-mirror padahal live view di-mirror (keputusan UX).
+  4. Portrait 450×800: thumbnail review ±90 px dengan setengah layar kosong; tombol attract terbungkus 2 baris.
+  5. Webcam booth meminta 1920×1080. Max 2560×1920 (lihat M-006).
 
 ## Log
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
 | 2026-09-24 | Mac | M3 di `main`: supervisor Camera Service (spawn port/token acak, health 5 s, restart setelah 3x gagal atau proses mati, backoff), argumen printer diteruskan (M-005). Teruji di Mac: dibunuh 5x → pulih 5x, tidak ada proses yatim saat tutup normal. 4 test baru. W-013 ditambahkan. |
+| 2026-09-24 | Windows | W-011 selesai: M1 lulus di Windows (simulasi landscape/portrait, webcam dengan mirror benar, kamera diblokir → pulih, print ke PDF lewat W-009). Temuan di M-007. Laporan: `docs/reports/windows/2026-09-24-m1-sesi.md`. |
 | 2026-09-24 | Mac | Merge `win` (W-009 printer, W-010 webcam) ke `main`; DECISIONS Mac dinomori ulang #32/#33. M-006 selesai. M-005 masuk M3. |
 | 2026-09-24 | Mac | M2 di `main`: SQLite `node:sqlite` (WAL), output strip_web/original/thumb di belakang layar, antrean upload, print_jobs, deteksi sesi terputus, log harian 14 hari. 12 test baru. W-012 ditambahkan. |
 | 2026-09-24 | Windows | W-010 selesai: webcam max 2560×1920 @30 fps, live view mirror 30 fps; `takePhoto` = PNG dari frame stream, 1,3–3,1 s (lihat M-006). Laporan: `docs/reports/windows/2026-09-24-webcam.md`. |
