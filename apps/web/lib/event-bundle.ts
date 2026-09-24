@@ -9,6 +9,7 @@ import {
   type StoredBundle,
 } from "@tetra/shared";
 import { longDate } from "@/lib/guest";
+import type { PhotoboxSettings } from "@/lib/payments";
 import { putObject } from "@/lib/r2";
 
 /**
@@ -37,20 +38,37 @@ export function buildBundle(e: {
   template: EventTemplate;
   branding: EventBranding;
   overlay: StoredBundle["files"][number] | null;
+  mode?: "event" | "photobox";
+  photobox?: PhotoboxSettings | null;
 }): Json {
-  const preset = LAYOUT_PRESETS[e.template.preset];
+  // Overlay dibuat untuk kanvas preset template, jadi hanya dipasang di layout dengan preset itu.
+  const layoutOf = (id: PresetId) => ({
+    id: `${id}-${e.id.slice(0, 8)}`,
+    version: 1,
+    ...LAYOUT_PRESETS[id].layout,
+    background: { color: e.template.background },
+    ...(e.overlay && id === e.template.preset ? { overlay: { assetId: "ov" } } : {}),
+  });
+  const photobox =
+    e.mode === "photobox" && e.photobox?.layouts.length
+      ? {
+          layouts: e.photobox.layouts.map((l) => ({
+            id: l.preset,
+            name: LAYOUT_PRESETS[l.preset].name,
+            info: LAYOUT_PRESETS[l.preset].info,
+            price: l.price,
+            layout: layoutOf(l.preset),
+          })),
+          extraPrintPrice: e.photobox.extraPrintPrice,
+        }
+      : undefined;
   const config = EventBundleSchema.parse({
     id: e.id,
     name: e.name,
     ...(e.branding.tagline ? { tagline: e.branding.tagline } : {}),
     date: longDate(e.eventDate),
-    layout: {
-      id: `${e.template.preset}-${e.id.slice(0, 8)}`,
-      version: 1,
-      ...preset.layout,
-      background: { color: e.template.background },
-      ...(e.overlay ? { overlay: { assetId: "ov" } } : {}),
-    },
+    layout: layoutOf(e.template.preset),
+    ...(photobox ? { mode: "photobox", photobox } : {}),
     settings: EventSettingsSchema.parse(e.settings ?? {}),
     assets: e.overlay ? { ov: e.overlay.file } : {},
   });

@@ -25,6 +25,17 @@ export async function POST(req: Request) {
     .neq("device_id", device.id)
     .maybeSingle();
   if (other) return apiError("conflict", 409);
+  // Photobox: tautkan pembayaran paket yang lunas milik device ini; selain itu diabaikan (upload tidak boleh gagal).
+  const { data: paid } = s.paymentId
+    ? await db
+        .from("payments")
+        .select("id")
+        .eq("id", s.paymentId)
+        .eq("device_id", device.id)
+        .eq("organization_id", device.organizationId)
+        .eq("status", "paid")
+        .maybeSingle()
+    : { data: null };
   const { error } = await db.from("sessions").upsert({
     id: s.id,
     organization_id: device.organizationId,
@@ -36,6 +47,7 @@ export async function POST(req: Request) {
     retake_count: s.retakeCount,
     print_count: s.printCount,
     asset_count: s.assetCount,
+    ...(paid && { payment_id: paid.id }),
   });
   if (error) return apiError("server_error", 500);
   return Response.json({ ok: true });

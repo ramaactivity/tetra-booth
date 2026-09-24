@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DEFAULT_TEMPLATE, type EventBranding, type EventTemplate } from "@/lib/event-bundle";
+import type { PhotoboxSettings } from "@/lib/payments";
 import { requireMember } from "@/lib/supabase/server";
 import { LinksPanel } from "./LinksPanel";
 import { SettingsForm } from "./SettingsForm";
@@ -16,7 +17,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, name, event_date, location, settings, branding, bundle, client_token, live_token, event_devices(device_id)",
+      "id, name, mode, event_date, location, settings, branding, bundle, client_token, live_token, event_devices(device_id)",
     )
     .eq("id", id)
     .eq("organization_id", orgId)
@@ -33,6 +34,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
     template?: EventTemplate;
     guestDays?: number;
     clientDays?: number;
+    photobox?: PhotoboxSettings;
   };
   const s = EventSettingsSchema.parse(raw);
   const tpl =
@@ -70,6 +72,10 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           maxPrints: s.maxPrints,
           reviewTimeoutSec: s.reviewTimeoutSec,
           qrScreenSec: s.qrScreenSec,
+          mode: ev.mode === "photobox" ? "photobox" : "event",
+          sessionSec: s.sessionSec,
+          extraPrintPrice: raw.photobox?.extraPrintPrice ?? 10000,
+          prices: Object.fromEntries((raw.photobox?.layouts ?? []).map((l) => [l.preset, l.price])),
           guest_days: raw.guestDays ?? 30,
           client_days: raw.clientDays ?? 90,
           devices: (devices ?? []).map((d) => ({ ...d, assigned: assigned.has(d.id) })),

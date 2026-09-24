@@ -16,5 +16,7 @@ export default defineConfig({
     reuseExistingServer: !CI,
     timeout: 120_000,
     gracefulShutdown: { signal: "SIGTERM", timeout: 5_000 },
+    // Pembayaran photobox pakai provider palsu (DECISIONS #70); tidak pernah aktif di production.
+    env: { PAYMENT_PROVIDER: "fake", XENDIT_CALLBACK_TOKEN: "e2e-callback-token" },
   },
 });

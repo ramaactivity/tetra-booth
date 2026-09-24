@@ -17,20 +17,27 @@ const items = [
     match: (p: string) => p.startsWith("/admin/devices"),
   },
   {
+    href: "/admin/transactions",
+    t: copy.admin.nav.transactions,
+    i: "⇄",
+    match: (p: string) => p.startsWith("/admin/transactions"),
+    roles: ["owner", "admin"],
+  },
+  {
     href: "/admin/team",
     t: copy.admin.nav.team,
     i: "☺",
     match: (p: string) => p.startsWith("/admin/team"),
-    owner: true,
+    roles: ["owner"],
   },
 ];
 
-export function Nav({ owner }: { owner: boolean }) {
+export function Nav({ role }: { role: string }) {
   const path = usePathname();
   return (
     <nav className="flex flex-col gap-1.5">
       {items
-        .filter((n) => owner || !n.owner)
+        .filter((n) => !n.roles || n.roles.includes(role))
         .map((n) => {
           const on = n.match(path);
           return (

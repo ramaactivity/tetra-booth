@@ -61,7 +61,7 @@ export const copy = {
         ml: "ml-4",
       },
     ],
-    nav: { events: "Event", devices: "Device", team: "Tim" },
+    nav: { events: "Event", devices: "Device", transactions: "Transaksi", team: "Tim" },
     forgot: "Lupa kata sandi?",
     forgotTitle: "Atur ulang kata sandi",
     forgotBody: "Masukkan email akunmu. Link untuk membuat kata sandi baru dikirim ke email itu.",

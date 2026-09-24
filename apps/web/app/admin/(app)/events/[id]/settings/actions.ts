@@ -1,13 +1,16 @@
 "use server";
-import { LAYOUT_PRESETS, StoredBundle } from "@tetra/shared";
+import { LAYOUT_PRESETS, type PresetId, StoredBundle } from "@tetra/shared";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { buildBundle, storeOverlay } from "@/lib/event-bundle";
+import type { PhotoboxSettings } from "@/lib/payments";
 import { requireMember } from "@/lib/supabase/server";
 
 const DAY = 86_400_000;
 const MAX_OVERLAY = 4 * 1024 * 1024;
 const int = (min: number, max: number) => z.coerce.number().int().min(min).max(max);
+/** Minimal nominal QRIS Xendit. */
+const MIN_PRICE = 1500;
 
 const Form = z.object({
   name: z.string().trim().min(1).max(120),
@@ -22,6 +25,9 @@ const Form = z.object({
   maxPrints: int(1, 10),
   reviewTimeoutSec: int(5, 120),
   qrScreenSec: int(10, 300),
+  mode: z.enum(["event", "photobox"]),
+  sessionSec: int(60, 900),
+  extraPrintPrice: int(0, 1_000_000),
   guest_days: int(1, 365),
   client_days: int(1, 365),
 });
@@ -60,7 +66,21 @@ export async function saveEvent(
     overlay = await storeOverlay(orgId, eventId, new Uint8Array(await file.arrayBuffer()));
   } else if (form.get("remove_overlay") === "on") overlay = null;
 
+  // Photobox (E3, DECISIONS #70): tiap preset yang dicentang dijual dengan harganya sendiri.
+  const presets = Object.keys(LAYOUT_PRESETS) as PresetId[];
+  const layouts = presets
+    .filter((id) => form.get(`pb_${id}`) === "on")
+    .map((id) => ({ preset: id, price: Number(form.get(`price_${id}`)) }));
+  if (
+    layouts.some((l) => !Number.isInteger(l.price) || l.price < MIN_PRICE || l.price > 10_000_000)
+  )
+    return { ok: false, message: `Harga layout minimal Rp ${MIN_PRICE.toLocaleString("id-ID")}` };
+  if (f.mode === "photobox" && !layouts.length)
+    return { ok: false, message: "Mode photobox: centang minimal satu layout yang dijual" };
+  const photobox: PhotoboxSettings = { layouts, extraPrintPrice: f.extraPrintPrice };
+
   const settings = {
+    sessionSec: f.sessionSec,
     countdownSec: f.countdownSec,
     retakeMax: f.retakeMax,
     maxPrints: f.maxPrints,
@@ -82,6 +102,8 @@ export async function saveEvent(
       template,
       branding,
       overlay,
+      mode: f.mode,
+      photobox,
     });
   } catch {
     return { ok: false, message: "Template tidak valid" };
@@ -95,7 +117,14 @@ export async function saveEvent(
       name: f.name,
       event_date: f.event_date,
       location: f.location || null,
-      settings: { ...settings, template, guestDays: f.guest_days, clientDays: f.client_days },
+      mode: f.mode,
+      settings: {
+        ...settings,
+        template,
+        photobox,
+        guestDays: f.guest_days,
+        clientDays: f.client_days,
+      },
       branding,
       guest_expires_at: guest,
       client_expires_at: client,

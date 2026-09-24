@@ -9,6 +9,8 @@ export const EventSettingsSchema = z.object({
   maxPrints: z.number().int().min(1).max(10).default(2),
   reviewTimeoutSec: z.number().int().min(5).max(120).default(20),
   qrScreenSec: z.number().int().min(10).max(300).default(45),
+  /** Photobox: timer sesi mulai setelah bayar (FSD §1.5). */
+  sessionSec: z.number().int().min(60).max(900).default(180),
 });
 export type EventSettings = z.infer<typeof EventSettingsSchema>;
 export const DEFAULT_SETTINGS: EventSettings = EventSettingsSchema.parse({});
@@ -17,6 +19,23 @@ export const DEFAULT_SETTINGS: EventSettings = EventSettingsSchema.parse({});
 const AssetFile = z
   .string()
   .regex(/^[\w][\w.-]*\.(png|jpg|jpeg|ttf|otf|woff2)$/i, "nama file aset tidak valid");
+
+/** Satu layout yang dijual di photobox (desain A2). `id` = kunci layout (preset); harga Rupiah, 1 lembar termasuk. */
+export const PhotoboxLayoutSchema = z.object({
+  id: z.string().regex(/^[\w-]{1,40}$/),
+  name: z.string().min(1).max(40),
+  info: z.string().max(40),
+  price: z.number().int().min(1000).max(10_000_000),
+  layout: LayoutSpecSchema,
+});
+export type PhotoboxLayout = z.infer<typeof PhotoboxLayoutSchema>;
+
+/** Mode photobox (FSD §1.5, DECISIONS #70): tamu memilih layout & bayar QRIS; lembar tambahan dibayar setelah foto. */
+export const PhotoboxSchema = z.object({
+  layouts: z.array(PhotoboxLayoutSchema).min(1).max(8),
+  extraPrintPrice: z.number().int().min(0).max(1_000_000),
+});
+export type Photobox = z.infer<typeof PhotoboxSchema>;
 
 /**
  * Bundle event lokal: `events/{id}/bundle/config.json` + file aset di folder yang sama (TSD §3, §4.1).
@@ -31,15 +50,20 @@ export const EventBundleSchema = z
     tagline: z.string().min(1).max(40).optional(),
     date: z.string().min(1).max(60),
     layout: LayoutSpecSchema,
+    mode: z.enum(["event", "photobox"]).default("event"),
+    photobox: PhotoboxSchema.optional(),
     settings: EventSettingsSchema.default(DEFAULT_SETTINGS),
     assets: z.record(z.string().min(1).max(64), AssetFile).default({}),
   })
   .superRefine((b, ctx) => {
-    const refs = [
-      b.layout.overlay?.assetId,
-      b.layout.background?.assetId,
-      ...b.layout.texts.map((t) => t.fontAssetId),
-    ];
+    const layouts = [b.layout, ...(b.photobox?.layouts.map((l) => l.layout) ?? [])];
+    const refs = layouts.flatMap((l) => [
+      l.overlay?.assetId,
+      l.background?.assetId,
+      ...l.texts.map((t) => t.fontAssetId),
+    ]);
+    if (b.mode === "photobox" && !b.photobox)
+      ctx.addIssue({ code: "custom", path: ["photobox"], message: "mode photobox tanpa layout" });
     for (const id of refs) {
       if (id && !(id in b.assets) && id !== "geist") {
         ctx.addIssue({

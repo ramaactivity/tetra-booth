@@ -30,6 +30,7 @@ export type BoothApiError =
   | "rate_limited"
   | "not_found"
   | "conflict"
+  | "payment_unavailable"
   | "server_error";
 
 /** GET /api/booth/events: event yang ditugaskan ke device ini. */
@@ -86,6 +87,8 @@ export const SessionUpsert = z.object({
   photoCount: z.number().int().min(0).max(20),
   retakeCount: z.number().int().min(0).max(100),
   printCount: z.number().int().min(0).max(20),
+  /** Photobox: pembayaran paket sesi ini (harus lunas & milik organisasi device). */
+  paymentId: z.uuid().optional(),
   /** Jumlah aset yang akan diunggah; sesi `complete` saat semuanya tercatat. */
   assetCount: z.number().int().min(1).max(50),
 });
@@ -121,3 +124,29 @@ export const TrackRequest = z.object({
   type: z.enum(["qr_open", "save", "save_all"]),
 });
 export type TrackRequest = z.infer<typeof TrackRequest>;
+
+/**
+ * POST /api/booth/payments: tagihan QRIS (TSD §8). Booth tidak pernah mengirim nominal; server menghitung dari
+ * pengaturan event. `extraPrints` > 0 = tambahan cetak setelah foto (A7b), selain itu paket layout.
+ */
+export const PaymentCreateRequest = z.object({
+  eventId: z.uuid(),
+  sessionId: z.string().regex(SESSION_ID_PATTERN),
+  layoutId: z.string().regex(/^[\w-]{1,40}$/),
+  extraPrints: z.number().int().min(1).max(9).optional(),
+});
+export type PaymentCreateRequest = z.infer<typeof PaymentCreateRequest>;
+
+export const PaymentStatus = z.enum(["pending", "paid", "expired", "failed"]);
+export type PaymentStatus = z.infer<typeof PaymentStatus>;
+
+export const PaymentCreateResponse = z.object({
+  paymentId: z.uuid(),
+  qrString: z.string().min(1),
+  amount: z.number().int(),
+  expiresAt: z.iso.datetime({ offset: true }),
+});
+export type PaymentCreateResponse = z.infer<typeof PaymentCreateResponse>;
+
+/** GET /api/booth/payments/{id} */
+export const PaymentStatusResponse = z.object({ status: PaymentStatus });

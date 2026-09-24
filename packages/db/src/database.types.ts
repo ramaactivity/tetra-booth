@@ -627,9 +627,11 @@ export type Database = {
           created_at: string
           device_id: string
           event_id: string
-          event_layout_id: string
+          event_layout_id: string | null
           expires_at: string
           id: string
+          kind: string
+          layout_key: string | null
           organization_id: string
           paid_at: string | null
           prints: number
@@ -637,6 +639,7 @@ export type Database = {
           provider_ref: string | null
           qr_string: string | null
           raw: Json | null
+          session_id: string | null
           status: string
         }
         Insert: {
@@ -644,9 +647,11 @@ export type Database = {
           created_at?: string
           device_id: string
           event_id: string
-          event_layout_id: string
+          event_layout_id?: string | null
           expires_at: string
           id?: string
+          kind?: string
+          layout_key?: string | null
           organization_id: string
           paid_at?: string | null
           prints: number
@@ -654,6 +659,7 @@ export type Database = {
           provider_ref?: string | null
           qr_string?: string | null
           raw?: Json | null
+          session_id?: string | null
           status: string
         }
         Update: {
@@ -661,9 +667,11 @@ export type Database = {
           created_at?: string
           device_id?: string
           event_id?: string
-          event_layout_id?: string
+          event_layout_id?: string | null
           expires_at?: string
           id?: string
+          kind?: string
+          layout_key?: string | null
           organization_id?: string
           paid_at?: string | null
           prints?: number
@@ -671,6 +679,7 @@ export type Database = {
           provider_ref?: string | null
           qr_string?: string | null
           raw?: Json | null
+          session_id?: string | null
           status?: string
         }
         Relationships: [

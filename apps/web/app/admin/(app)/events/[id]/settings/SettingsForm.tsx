@@ -1,6 +1,6 @@
 "use client";
 import { LAYOUT_PRESETS, type PresetId } from "@tetra/shared";
-import { type ReactNode, useActionState } from "react";
+import { type ReactNode, startTransition, useActionState } from "react";
 import { type SaveResult, saveEvent } from "./actions";
 
 export type SettingsValues = {
@@ -17,10 +17,20 @@ export type SettingsValues = {
   maxPrints: number;
   reviewTimeoutSec: number;
   qrScreenSec: number;
+  mode: "event" | "photobox";
+  sessionSec: number;
+  extraPrintPrice: number;
+  /** Harga per preset yang dijual di photobox (tidak ada = tidak dijual). */
+  prices: Partial<Record<PresetId, number>>;
   guest_days: number;
   client_days: number;
   devices: { id: string; name: string; assigned: boolean }[];
 };
+
+const MODES = [
+  { v: "event", i: "♥", t: "Mode Event", d: "Klien bayar paket, 1 layout, cetak gratis" },
+  { v: "photobox", i: "▣", t: "Mode Photobox", d: "Tamu bayar per sesi via QRIS" },
+] as const;
 
 const input = "h-[42px] w-full rounded-[11px] border-[1.5px] border-ink bg-white px-3 text-sm";
 
@@ -67,7 +77,15 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
     />
   );
   return (
-    <form action={action} className="grid grid-cols-1 items-start gap-7 xl:grid-cols-[1fr_280px]">
+    <form
+      // onSubmit, bukan action=: React me-reset form setelah action, isian hilang kalau simpan ditolak.
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => action(data));
+      }}
+      className="grid grid-cols-1 items-start gap-7 xl:grid-cols-[1fr_280px]"
+    >
       <div className="flex flex-col gap-4">
         <Section title="Informasi">
           <Field label="Nama event">
@@ -91,6 +109,30 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           <Field label="Teks kecil di layar booth (mis. The Wedding of)">
             <input name="tagline" maxLength={40} defaultValue={v.tagline} className={input} />
           </Field>
+        </Section>
+
+        <Section title="Mode">
+          {MODES.map((m) => (
+            <label
+              key={m.v}
+              className="flex cursor-pointer items-center gap-3 rounded-[14px] border-[1.5px] border-dashed border-ink p-3.5 has-checked:border-solid has-checked:bg-mint-soft"
+            >
+              <input
+                type="radio"
+                name="mode"
+                value={m.v}
+                defaultChecked={v.mode === m.v}
+                className="sr-only"
+              />
+              <span className="flex size-10 flex-none items-center justify-center rounded-xl border-[1.5px] border-ink bg-white text-lg">
+                {m.i}
+              </span>
+              <span>
+                <span className="block text-sm font-bold">{m.t}</span>
+                <span className="block text-xs font-normal text-text-2">{m.d}</span>
+              </span>
+            </label>
+          ))}
         </Section>
 
         <Section title="Template">
@@ -131,6 +173,43 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
               <input type="checkbox" name="remove_overlay" /> Hapus overlay sekarang
             </label>
           )}
+        </Section>
+
+        <Section title="Photobox (berlaku di Mode Photobox)">
+          <fieldset className="col-span-full grid grid-cols-1 gap-2.5 lg:grid-cols-2">
+            <legend className="mb-1.5 text-xs font-bold">
+              Layout yang dijual · harga termasuk 1 lembar cetak
+            </legend>
+            {(
+              Object.entries(LAYOUT_PRESETS) as [PresetId, (typeof LAYOUT_PRESETS)[PresetId]][]
+            ).map(([id, p]) => (
+              <div
+                key={id}
+                className="flex items-center gap-3 rounded-[11px] border-[1.5px] border-ink px-3 py-2"
+              >
+                <label className="flex flex-1 items-center gap-2.5 text-sm font-semibold">
+                  <input type="checkbox" name={`pb_${id}`} defaultChecked={id in v.prices} />
+                  {p.name} <span className="font-mono text-xs text-text-2">{p.info}</span>
+                </label>
+                <span className="text-xs font-semibold text-text-2">Rp</span>
+                <input
+                  name={`price_${id}`}
+                  type="number"
+                  min={1500}
+                  step={500}
+                  aria-label={`Harga ${p.name}`}
+                  defaultValue={v.prices[id] ?? 25000}
+                  className={`${input} w-28`}
+                />
+              </div>
+            ))}
+          </fieldset>
+          <Field label="Harga lembar tambahan" unit="Rp / lembar">
+            {num("extraPrintPrice", 0, 1_000_000)}
+          </Field>
+          <Field label="Timer sesi setelah bayar" unit="detik">
+            {num("sessionSec", 60, 900)}
+          </Field>
         </Section>
 
         <Section title="Sesi">

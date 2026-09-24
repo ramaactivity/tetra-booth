@@ -37,7 +37,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await expect(page.getByRole("heading", { name: "Pengaturan" })).toBeVisible();
 
     await page.getByLabel(/Teks kecil di layar booth/).fill("The Wedding of");
-    await page.getByText("4R Grid").click();
+    await page.getByRole("group", { name: "Layout", exact: true }).getByText("4R Grid").click();
     await page
       .locator('input[name="overlay"]')
       .setInputFiles({ name: "ov.png", mimeType: "image/png", buffer: PNG });
@@ -66,6 +66,29 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     const file = await fetch(m.files[0].url);
     expect(file.status).toBe(200);
     expect(sha(new Uint8Array(await file.arrayBuffer()))).toBe(m.files[0].sha256);
+
+    // Fase 4: mode photobox butuh minimal satu layout dijual; bundle memuat layout + harga.
+    await page.getByText("Mode Photobox", { exact: true }).click();
+    await page.getByRole("button", { name: "Simpan" }).click();
+    await expect(page.getByRole("status")).toContainText("centang minimal satu layout");
+    await page.getByRole("checkbox", { name: /4R Grid/ }).check();
+    await page.getByLabel("Harga 4R Grid").fill("35000");
+    await page.getByRole("checkbox", { name: /Strip Klasik/ }).check();
+    await page.getByLabel("Harga Strip Klasik").fill("25000");
+    await page.getByLabel("Harga lembar tambahan").fill("10000");
+    await page.getByRole("button", { name: "Simpan" }).click();
+    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v3");
+    const pb = await (
+      await request.get(`/api/booth/events/${ev.id}/bundle`, { headers: auth })
+    ).json();
+    expect(pb.config.mode).toBe("photobox");
+    expect(pb.config.photobox.extraPrintPrice).toBe(10000);
+    expect(
+      pb.config.photobox.layouts.map((l: { id: string; price: number }) => [l.id, l.price]),
+    ).toEqual([
+      ["strip-3", 25000],
+      ["4r-grid", 35000],
+    ]);
 
     await page.goto("/admin");
     await expect(page.getByRole("link", { name: new RegExp(name) })).toContainText(dev?.name ?? "");
