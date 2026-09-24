@@ -30,7 +30,7 @@ Urutan: N1 → N2 → N3 → N4 → N5 (booth sudah bisa kirim) → N6 → N7 �
 ## Yang dibutuhkan dari Rama (sebelum N6/N8)
 
 1. **Vercel**: project untuk `apps/web` (Rama login `vercel` sekali, atau hubungkan repo GitHub di dashboard Vercel) + env (Supabase, R2) di Vercel.
-2. **DNS di Hostinger**: `CNAME app → cname.vercel-dns.com` untuk `app.tetraphoto.com` (URL QR). Sampai itu ada, QR memakai URL preview Vercel.
+2. **DNS di Hostinger**: selesai 2026-09-25, `booth.tetraphoto.com` → Vercel (DECISIONS #61).
 3. **Sentry**: akun/organisasi + dua DSN (web, booth). Tier gratis cukup.
 4. Keputusan domain media: tetap `r2.dev` (sekarang) atau pindah DNS ke Cloudflare supaya `media.tetraphoto.com` (DECISIONS #8).
 

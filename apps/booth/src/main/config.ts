@@ -63,7 +63,7 @@ export const config: BoothConfig = {
     (["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ?? "webcam",
   demo: flags.has("demo"),
   fast: flags.has("fast"),
-  guestUrl: process.env.TETRA_GUEST_URL ?? "https://app.tetraphoto.com",
+  guestUrl: process.env.TETRA_GUEST_URL ?? "https://booth.tetraphoto.com",
 };
 
 const size = /^(\d+)x(\d+)$/.exec(flags.value("size") ?? "");
