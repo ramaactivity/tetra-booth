@@ -1,3 +1,4 @@
+import { cpuCanvas } from "@tetra/template-engine";
 import type { BoothCamera, BoothStorage } from "../platform";
 import { rawPath, toJpeg } from "./encode";
 
@@ -37,7 +38,7 @@ export function createSimulatedCamera(storage: BoothStorage): BoothCamera {
       cancelAnimationFrame(raf);
     },
     async capture({ sessionId, index }) {
-      const c = new OffscreenCanvas(3000, 2000);
+      const c = cpuCanvas(3000, 2000);
       paint(c, performance.now(), `Foto ${index + 1}`);
       const { bytes, width, height } = await toJpeg(
         await c.convertToBlob({ type: "image/jpeg", quality: 0.9 }),

@@ -1,3 +1,4 @@
+import { cpuCanvas } from "@tetra/template-engine";
 import type { BoothEvent } from "./event";
 import type { AssetKind, BoothStorage, SessionAsset } from "./platform";
 import type { Photo, Strip } from "./session";
@@ -14,7 +15,7 @@ export const fit = (w: number, h: number, max: number) => {
 };
 
 const encode = async (src: ImageBitmap, w: number, h: number, sx = 0, sw = src.width) => {
-  const c = new OffscreenCanvas(w, h);
+  const c = cpuCanvas(w, h);
   const g = c.getContext("2d");
   if (!g) throw new Error("canvas 2d tidak tersedia");
   g.imageSmoothingQuality = "high";

@@ -1,4 +1,5 @@
 import { newSessionId } from "@tetra/shared";
+import { cpuCanvas } from "@tetra/template-engine";
 import { renderEvent } from "../compose";
 import type { BoothEvent } from "../event";
 import type { BoothPlatform } from "../platform";
@@ -7,7 +8,7 @@ import type { BoothPlatform } from "../platform";
 /** Kembalikan id job, supaya menu crew bisa menampilkan hasil akhirnya. */
 export async function testPrint(p: BoothPlatform, event: BoothEvent): Promise<string> {
   const photos = event.layout.slots.map((s, i) => {
-    const c = new OffscreenCanvas(Math.round(s.w), Math.round(s.h));
+    const c = cpuCanvas(Math.round(s.w), Math.round(s.h));
     const g = c.getContext("2d");
     if (g) {
       g.fillStyle = i % 2 ? "#b8b2aa" : "#8a847d";

@@ -1,3 +1,5 @@
+import { cpuCanvas } from "@tetra/template-engine";
+
 /** Pastikan blob foto berupa JPEG; kembalikan byte + ukuran piksel. */
 export async function toJpeg(
   blob: Blob,
@@ -6,7 +8,7 @@ export async function toJpeg(
   const { width, height } = bmp;
   let jpeg = blob;
   if (blob.type !== "image/jpeg") {
-    const c = new OffscreenCanvas(width, height);
+    const c = cpuCanvas(width, height);
     c.getContext("2d")?.drawImage(bmp, 0, 0);
     jpeg = await c.convertToBlob({ type: "image/jpeg", quality: 0.95 });
   }

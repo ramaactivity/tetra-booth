@@ -1,3 +1,4 @@
+import { cpuCanvas } from "@tetra/template-engine";
 import type { BoothCamera, BoothStorage } from "../platform";
 import { rawPath, toJpeg } from "./encode";
 
@@ -48,7 +49,7 @@ export function createWebcamCamera(storage: BoothStorage): BoothCamera {
     video = null;
   };
   const grabFrame = (v: HTMLVideoElement) => {
-    const c = new OffscreenCanvas(v.videoWidth, v.videoHeight);
+    const c = cpuCanvas(v.videoWidth, v.videoHeight);
     c.getContext("2d")?.drawImage(v, 0, 0);
     return c.convertToBlob({ type: "image/jpeg", quality: 0.95 });
   };

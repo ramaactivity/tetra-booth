@@ -31,7 +31,7 @@ console.info(
 );
 
 const alerts = createAlerts(db);
-// Pemulihan GPU (M-016): relaunch (lewat before-quit yang menunggu print) saat kembali ke attract.
+// Pemulihan GPU (M-016, M-017): relaunch (lewat before-quit yang menunggu print) saat kembali ke attract.
 const gpu = createGpuWatch({
   log: (m) => console.warn(m),
   relaunch: () => {
