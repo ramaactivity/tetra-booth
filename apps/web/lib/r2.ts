@@ -2,6 +2,7 @@ import "server-only";
 import {
   DeleteObjectsCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -68,4 +69,28 @@ export async function deleteObjects(keys: string[]) {
         }),
       );
   }
+}
+
+/** Semua key di bawah prefix (retensi: hapus satu event). */
+export async function listKeys(prefix: string) {
+  const keys: string[] = [];
+  let token: string | undefined;
+  do {
+    const r = await client().send(
+      new ListObjectsV2Command({
+        Bucket: env("R2_BUCKET"),
+        Prefix: prefix,
+        ContinuationToken: token,
+      }),
+    );
+    for (const o of r.Contents ?? []) if (o.Key) keys.push(o.Key);
+    token = r.IsTruncated ? r.NextContinuationToken : undefined;
+  } while (token);
+  return keys;
+}
+
+/** Isi objek sebagai stream (ZIP galeri). */
+export async function getStream(key: string) {
+  const r = await client().send(new GetObjectCommand({ Bucket: env("R2_BUCKET"), Key: key }));
+  return r.Body?.transformToWebStream();
 }

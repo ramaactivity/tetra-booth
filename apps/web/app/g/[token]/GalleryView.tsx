@@ -72,6 +72,14 @@ export function GalleryView({ token, photos: initial }: { token: string; photos:
             {k === "favorit" ? `${t} (${favCount})` : t}
           </button>
         ))}
+        {filter !== "favorit" && shown.length > 0 && (
+          <a
+            href={`/api/g/${token}/zip?kind=${filter}`}
+            className="ml-auto flex h-9 items-center rounded-[10px] border-[1.5px] border-ink bg-sky px-3.5 text-[13px] font-bold no-underline"
+          >
+            ↓ Download Semua
+          </a>
+        )}
       </div>
 
       {sections.map(([hour, idx]) => (

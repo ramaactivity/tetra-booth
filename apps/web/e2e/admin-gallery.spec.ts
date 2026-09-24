@@ -29,18 +29,16 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
     (await db.from("devices").select("id").eq("organization_id", u.org).limit(1).single()).data
       ?.id ?? "";
   try {
-    await db
-      .from("sessions")
-      .insert(
-        ids.map((id, i) => ({
-          id,
-          organization_id: u.org,
-          event_id: eventId,
-          device_id: device,
-          started_at: `2026-10-12T1${2 + i}:10:00Z`,
-          upload_status: "complete",
-        })),
-      );
+    await db.from("sessions").insert(
+      ids.map((id, i) => ({
+        id,
+        organization_id: u.org,
+        event_id: eventId,
+        device_id: device,
+        started_at: `2026-10-12T1${2 + i}:10:00Z`,
+        upload_status: "complete",
+      })),
+    );
     await db.from("assets").insert(
       ids.flatMap((sid) =>
         (["strip_web_0", "thumb_strip_0", "original_1", "thumb_original_1"] as const).map((f) => ({
@@ -80,6 +78,12 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
     expect(
       (await db.from("favorites").select("asset_id").eq("event_id", eventId)).data,
     ).toHaveLength(1);
+    await expect(guest.getByRole("link", { name: "↓ Download Semua" })).toBeVisible();
+    const zip = await guest.request.get(`/api/g/${path.split("/").pop()}/zip?kind=original`);
+    expect(zip.headers()["content-type"]).toBe("application/zip");
+    const bytes = await zip.body();
+    expect(bytes.subarray(0, 2).toString()).toBe("PK");
+    expect(bytes.length).toBeGreaterThan(2000);
 
     page.once("dialog", (d) => d.accept());
     await page.getByRole("button", { name: "Cabut", exact: true }).first().click();
