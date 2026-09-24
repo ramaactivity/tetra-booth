@@ -18,4 +18,5 @@ _(kosong)_
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-24 | Mac | Deploy key `tetra-windows-deploy` (id 164281077, read-write) dipasang. Cabut saat laptop dikembalikan: `gh repo deploy-key delete 164281077`. |
 | 2026-09-24 | Mac | Runbook Windows, handoff, dan rencana Fase 1 dibuat. Branch `win` dibuat dari `main`. |
