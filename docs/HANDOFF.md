@@ -43,7 +43,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   5. **Event print (M-007):** jalankan tanpa `--printer` lalu dengan `--paper-2x6x2` yang salah (mis. `TidakAda`): log booth harus `[print] GAGAL <id>: printer_unavailable …` / `paper_not_supported …` dan `print_jobs.status = failed` berisi kode itu. Dengan config benar: `[print] selesai <id>` dan status `done`.
   6. Portrait `--size=450x800`: review (foto kiri, tombol Ulang kanan), attract (judul tengah, tombol satu baris), print_select muat.
   - Laporan `docs/reports/windows/<tanggal>-m3-supervisor.md`. Hapus `$W\data` dan `$W\prints` setelahnya.
-- [ ] **W-014 Verifikasi M6 (mode crew) di Windows.** Merge `origin/main`, build booth.
+- [x] **W-014 Verifikasi M6 (mode crew) di Windows.** → `docs/reports/windows/2026-09-24-m6-crew.md` Merge `origin/main`, build booth.
   1. **E2E otomatis:** `pnpm --filter booth e2e` (Playwright mengendalikan Electron: tap 5x → buat PIN → pilih event bundle → roll 25 → peringatan → PIN salah 5x terkunci). Harus lulus; lampirkan durasi.
   2. **Manual dengan printer PDF** (`--camera=webcam --data=$W\data --printer "Microsoft Print to PDF" --paper-4r A5 --paper-2x6x2 A5 --print-to-file "$W\prints"`), kendalikan dengan Playwright atau skrip, screenshot via `--shots`/`capturePage` saja:
      - Test print dari menu crew → PDF terbentuk, `[print] selesai test-…`, kertas berkurang 1.
@@ -52,7 +52,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
      - Bundle event: salin contoh bundle dari `apps/booth/e2e/crew.spec.ts` (atau buat dengan overlay PNG + font TTF/OTF milik Windows yang bebas lisensi, mis. dari `C:\Windows\Fonts` hanya untuk uji lokal, jangan di-commit) ke `$W\data\events\<id>\bundle`, pilih di menu crew, jalankan satu sesi: strip memakai overlay & font bundle.
   3. Portrait `--size=450x800`: menu crew & pad PIN muat dan bisa discroll.
   - Laporan `docs/reports/windows/<tanggal>-m6-crew.md`. Hapus `$W\data`, `$W\prints`, `$W\shots` setelahnya.
-- [ ] **W-015 Ulang uji kill 20× dengan print (M-009).** Setelah W-014. Sama seperti W-013 langkah 2 (demo + Print to PDF + bunuh `TetraCamera.exe` 20× jeda ±5 s), flag bentuk spasi (`--printer "Microsoft Print to PDF"`). Lulus jika **setiap sesi yang selesai punya ≥ 1 PDF** (hitung PDF vs sesi `completed`), `print_jobs` tidak ada yang tertinggal `queued` > 1 menit setelah uji selesai, log berisi `[print] tertunda`/`[print] kirim ulang` saat relevan. Catat jumlah PDF ganda (cetak ganda yang diterima). Juga pastikan log boot tidak lagi berisi `camera service: tidak terhubung` (M-008).
+- [x] **W-015 Ulang uji kill 20× dengan print (M-009).** → `docs/reports/windows/2026-09-24-m9-print-crash.md` Setelah W-014. Sama seperti W-013 langkah 2 (demo + Print to PDF + bunuh `TetraCamera.exe` 20× jeda ±5 s), flag bentuk spasi (`--printer "Microsoft Print to PDF"`). Lulus jika **setiap sesi yang selesai punya ≥ 1 PDF** (hitung PDF vs sesi `completed`), `print_jobs` tidak ada yang tertinggal `queued` > 1 menit setelah uji selesai, log berisi `[print] tertunda`/`[print] kirim ulang` saat relevan. Catat jumlah PDF ganda (cetak ganda yang diterima). Juga pastikan log boot tidak lagi berisi `camera service: tidak terhubung` (M-008).
 
 ## Untuk Mac
 
@@ -77,11 +77,14 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   1. **Print hilang saat Camera Service crash.** Dari 20× kill, 2 dari 9 print hilang: satu `failed: Camera Service tidak terhubung` (submit saat service mati, tanpa coba ulang), satu `queued` selamanya (diterima, lalu service mati sebelum mencetak; antrean di memori hilang tanpa event). Saran: setelah restart + health OK, kirim ulang `print_jobs` `queued` (dan `failed` karena koneksi) dengan `jobId` yang sama. Putuskan risiko cetak ganda kalau crash tepat setelah spool.
   2. Proses yatim **tidak terjadi** di Windows: booth dibunuh paksa (semua proses atau hanya proses utama) → `TetraCamera.exe` ikut mati (job object libuv). Catatan ponytail di `camera-service.ts` hanya berlaku di macOS/Linux.
   3. M-008 no. 1 (flag dengan spasi diabaikan) dan no. 2 (race health saat boot → `R-WARN … tidak terhubung` setiap boot) masih terjadi di `3feeaaf`.
+- [ ] **M-010 Temuan W-014 (M6 di Windows).** Semua uji lulus. Kecil: (1) peringatan cetak gagal di attract (layar tamu) menampilkan teks teknis (`--paper-2x6x2`, "driver"); cukup "Printer bermasalah, hubungi crew", detail di menu crew. (2) Counter kertas di menu crew baru berubah pada refresh 5 s berikutnya setelah Cetak ulang/test print.
 
 ## Log
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-24 | Windows | W-015 selesai: flag bentuk spasi & boot tanpa "tidak terhubung" (M-008) beres; 20/20 kill pulih, 9 sesi = 9 PDF = 9 `done`, 3 kirim ulang, 0 cetak ganda menurut log (cetak ganda fisik tidak terdeteksi lewat PDF, lihat laporan). Laporan: `docs/reports/windows/2026-09-24-m9-print-crash.md`. |
+| 2026-09-24 | Windows | W-014 selesai: e2e lulus (5,1 s), test print & cetak ulang ke PDF, kertas berkurang, print gagal tampil di attract & menu crew, cek kamera 2560×1920 (121–209 ms setelah hangat), bundle overlay+font terpakai di strip, portrait bisa discroll. Temuan kecil M-010. Laporan: `docs/reports/windows/2026-09-24-m6-crew.md`. |
 | 2026-09-24 | Mac | Merge W-013. M-009 selesai: print tertunda disimpan `queued` & dikirim ulang setelah Camera Service pulih. W-015 ditambahkan. |
 | 2026-09-24 | Mac | Merge W-012. M-008 selesai (parser flag dua bentuk, tunggu Camera Service siap sebelum jendela). |
 | 2026-09-24 | Mac | M6 mode crew di `main`: PIN (scrypt, kunci 60 s), event dari bundle lokal (+overlay/font), cek kamera, test print, counter kertas (berkurang saat print.done, peringatan ≤ 30), cetak gagal + cetak ulang, peringatan printer di pojok layar. E2E Playwright-Electron (`pnpm --filter booth e2e`) + CI (xvfb). W-014 ditambahkan. |
