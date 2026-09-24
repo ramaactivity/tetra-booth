@@ -198,7 +198,7 @@ test("pairing cloud dari mode crew: kode salah, kode benar, heartbeat bertoken",
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
   const port = (server.address() as { port: number }).port;
 
-  const env = { ...process.env, TETRA_GUEST_URL: `http://127.0.0.1:${port}` };
+  const env: NodeJS.ProcessEnv = { ...process.env, TETRA_GUEST_URL: `http://127.0.0.1:${port}` };
   delete env.ELECTRON_RUN_AS_NODE;
   const app = await electron.launch({
     executablePath: electronPath,
