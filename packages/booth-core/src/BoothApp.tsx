@@ -6,6 +6,7 @@ import { type BoothEvent, DEFAULT_EVENT, loadEvent } from "./event";
 import { usePlatform } from "./PlatformContext";
 import type { PrinterAlert } from "./platform";
 import { SessionRunner } from "./SessionRunner";
+import { Stage } from "./ui";
 
 /** Akar UI booth: event aktif (dari bundle lokal), mode crew, dan peringatan printer untuk crew. */
 export function BoothApp({
@@ -67,36 +68,38 @@ export function BoothApp({
 
   if (crewOpen) {
     return (
-      <div className="h-screen w-screen">
+      <Stage>
         <CrewMode
           event={event}
           bundles={bundles}
           onSelectEvent={select}
           onClose={() => setCrewOpen(false)}
         />
-      </div>
+      </Stage>
     );
   }
   return (
     <div className={kiosk ? "cursor-none [&_*]:cursor-none" : undefined}>
-      <SessionRunner
-        key={event.id}
-        event={runEvent}
-        guestBaseUrl={guestBaseUrl}
-        demo={demo}
-        fast={fast}
-        onCrew={() => setCrewOpen(true)}
-      />
-      {alert && (
-        <p
-          className="fixed right-4 bottom-3 flex items-center gap-2 text-xs text-muted"
-          role="status"
-          data-testid="printer-alert"
-        >
-          <span className="size-2 rounded-full bg-accent" />
-          {alert.message}
-        </p>
-      )}
+      <Stage>
+        <SessionRunner
+          key={event.id}
+          event={runEvent}
+          guestBaseUrl={guestBaseUrl}
+          demo={demo}
+          fast={fast}
+          onCrew={() => setCrewOpen(true)}
+        />
+        {alert && (
+          <p
+            className="absolute bottom-5 left-6 flex items-center gap-2.5 rounded-full border-2 border-ink bg-white px-4 py-1.5 text-xl font-semibold"
+            role="status"
+            data-testid="printer-alert"
+          >
+            <span className="size-2.5 rounded-full border-[1.5px] border-ink bg-coral-strong" />
+            {alert.message}
+          </p>
+        )}
+      </Stage>
     </div>
   );
 }

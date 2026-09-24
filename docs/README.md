@@ -13,7 +13,7 @@ Platform photobooth end-to-end milik Tetra Photobooth: aplikasi booth di Windows
 | 5 | [05-ARCHITECTURE.md](05-ARCHITECTURE.md) | Diagram sistem, struktur repo, alur data |
 | 6 | [06-DATA-MODEL.md](06-DATA-MODEL.md) | Skema Postgres, SQLite lokal, struktur R2 |
 | 7 | [07-ROADMAP.md](07-ROADMAP.md) | Fase 0–8 + kriteria selesai |
-| 8 | [08-DESIGN.md](08-DESIGN.md) | Arah visual & UX booth + halaman tamu |
+| 8 | [08-DESIGN.md](08-DESIGN.md) | Desain v2 (token, komponen, pemetaan layar); referensi PNG & markup di [design/v2/](design/v2/) |
 
 Aturan kerja untuk Claude Code ada di `/CLAUDE.md` (root repo).
 

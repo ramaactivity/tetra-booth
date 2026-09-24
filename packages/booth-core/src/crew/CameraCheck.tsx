@@ -30,13 +30,19 @@ export function CameraCheck({ onBack }: { onBack: () => void }) {
         <img
           src={shot}
           alt=""
-          className="absolute right-6 bottom-28 w-1/4 rounded border-4 border-surface"
+          className="absolute right-10 bottom-44 w-1/4 rounded-[20px] border-[2.5px] border-ink"
         />
       )}
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-6 bg-bg/90 p-4">
-        <span className="text-sm text-muted">{info}</span>
-        <Button onClick={() => void take()}>{copy.crew.testShot}</Button>
-        <Button variant="secondary" onClick={onBack}>
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-6 border-t-[2.5px] border-ink bg-paper px-10 py-6">
+        <span className="font-mono text-xl text-text-2">{info}</span>
+        <Button className="h-[92px] rounded-[20px] px-10 text-[26px]" onClick={() => void take()}>
+          {copy.crew.testShot}
+        </Button>
+        <Button
+          variant="secondary"
+          className="h-[92px] rounded-[20px] px-10 text-[26px]"
+          onClick={onBack}
+        >
           {copy.crew.back}
         </Button>
       </div>

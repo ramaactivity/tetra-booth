@@ -29,7 +29,7 @@ Kamu sedang membangun Tetra Booth: platform photobooth (booth Windows + cloud + 
 - TypeScript `strict`, tanpa `any`. Validasi input di setiap batas (IPC, WebSocket, API) dengan zod dari `packages/shared`.
 - State sesi booth = state machine eksplisit, bukan kumpulan `useState`.
 - Semua teks UI dalam Bahasa Indonesia, dikumpulkan di satu file copy per app.
-- Desain booth & halaman tamu: ikuti `docs/08-DESIGN.md` (minimalis, tema dari branding event). Jangan pakai gradient, emoji, shadow tebal, atau gaya template generik.
+- Desain semua surface (booth, tamu, galeri, live, admin): ikuti `docs/08-DESIGN.md` (desain v2, DECISIONS #45) dan PNG/markup di `docs/design/v2/`. Token hanya dari `packages/ui/src/tokens.css`; setiap layar baru dibandingkan dengan PNG-nya sampai sama. Tanpa serif, gradient, emoji, atau shadow blur.
 - C#: .NET 10, nullable enabled, semua panggilan EDSDK lewat satu thread antrean.
 - Test: Vitest untuk TS, xUnit untuk C#, Playwright untuk alur web penting.
 

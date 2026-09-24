@@ -1,0 +1,48 @@
+/* Tetra Booth v2 — design tokens (nilai persis dari desain) */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Warna */
+  --ink: #1D1D1B;
+  --paper: #F8F7F4;
+  --white: #FFFFFF;
+  --butter: #F8D98B;      /* aksi utama */
+  --mint: #8EDCCB;        /* terpilih, toggle on, focus ring, progress */
+  --mint-soft: #D6F1EA;   /* latar terpilih, status sukses/online */
+  --lavender: #CEC8F6;    /* label mode, tab aktif, status mendatang */
+  --peach: #FCE3C6;       /* total, peringatan ringan */
+  --sky: #D6EEF8;         /* info, catatan offline */
+  --coral: #F7D5CC;       /* destruktif sekunder, status gagal */
+  --coral-strong: #E8836F;/* konfirmasi hapus permanen */
+  --green: #5DB978;       /* lingkaran centang selesai */
+  --neutral: #EFEDE8;     /* status selesai/kedaluwarsa, placeholder foto */
+  --text-2: #5F5E5A;
+  --text-3: #3A3936;
+  --muted: #8A8883;
+  --line-soft: #D6D3CC;
+
+  /* Font */
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+
+  /* Garis */
+  --bw-web: 1.5px;
+  --bw-booth: 2.5px;
+
+  /* Radius web / admin / mobile */
+  --r-sm: 9px;  --r-md: 12px; --r-lg: 16px; --r-xl: 22px; --r-pill: 999px;
+  /* Radius booth */
+  --rb-btn: 24px; --rb-card: 28px; --rb-hero: 36px;
+}
+
+/* Kartu berlapis — ciri utama. --under = warna lapisan belakang */
+.layered-web   { border: 1.5px solid var(--ink); box-shadow: 4px 4px 0 -1.5px var(--under, var(--white)), 4px 4px 0 0 var(--ink); }
+.layered-booth { border: 2.5px solid var(--ink); box-shadow: 8px 8px 0 -2.5px var(--under, var(--paper)), 8px 8px 0 0 var(--ink); }
+.layered-hero  { border: 3px solid var(--ink);   box-shadow: 14px 14px 0 -3px var(--under, var(--paper)), 14px 14px 0 0 var(--ink); }
+
+/* Efek tekan tombol */
+.pressable { transition: transform .1s ease-out, box-shadow .1s ease-out; }
+.pressable:active { transform: translate(4px, 4px); box-shadow: 0 0 0 0 var(--ink); }
+
+.focus-ring:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--mint); }
+.divider-dashed { border-top: 1.5px dashed var(--ink); }

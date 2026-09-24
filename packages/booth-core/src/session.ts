@@ -37,6 +37,8 @@ export type SessionState = {
   /** Percobaan capture untuk `index`; juga kunci efek supaya retry memicu capture baru. */
   attempt: number;
   prints: number;
+  /** Hasil cetak sesi ini: submit ditolak atau event `print.failed` → "failed" (layar A11). */
+  print: "pending" | "done" | "failed";
   strip: Strip | null;
 };
 
@@ -52,7 +54,8 @@ export type SessionEvent =
   | { type: "COMPOSED"; strip: Strip }
   | { type: "COMPOSE_FAILED" }
   | { type: "PRINTS_SELECTED"; count: number }
-  | { type: "PRINT_DONE" }
+  | { type: "PRINT_DONE"; ok: boolean }
+  | { type: "PRINT_RESULT"; ok: boolean }
   | { type: "FINISH" };
 
 export const initialSession: SessionState = {
@@ -66,6 +69,7 @@ export const initialSession: SessionState = {
   retakesUsed: [],
   attempt: 0,
   prints: 0,
+  print: "pending",
   strip: null,
 };
 
@@ -134,7 +138,11 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
         ? { ...s, phase: "printing", prints: e.count }
         : s;
     case "PRINT_DONE":
-      return s.phase === "printing" ? { ...s, phase: "qr" } : s;
+      return s.phase === "printing" ? { ...s, phase: "qr", print: e.ok ? s.print : "failed" } : s;
+    case "PRINT_RESULT":
+      return s.phase === "printing" || s.phase === "qr"
+        ? { ...s, print: e.ok ? "done" : "failed" }
+        : s;
     case "FINISH":
       return s.phase === "qr" ? initialSession : s;
   }

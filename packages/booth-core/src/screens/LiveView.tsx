@@ -37,10 +37,10 @@ export function LiveView() {
 
   return (
     <>
-      <canvas ref={ref} className="absolute inset-0 h-full w-full bg-fg" />
+      <canvas ref={ref} className="absolute inset-0 h-full w-full bg-ink" />
       {/* Kamera tanpa live view (hot folder): arahkan tamu ke kamera. */}
       {!hasFrame && (
-        <p className="absolute inset-x-0 bottom-16 text-center text-2xl font-medium uppercase tracking-label text-surface/80">
+        <p className="absolute bottom-14 left-1/2 -translate-x-1/2 rounded-full border-[2.5px] border-ink bg-white px-8 py-3.5 text-[26px] font-extrabold whitespace-nowrap">
           {copy.countdown.lookAtCamera}
         </p>
       )}

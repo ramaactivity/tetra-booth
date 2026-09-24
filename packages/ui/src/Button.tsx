@@ -1,28 +1,20 @@
 import type { ButtonHTMLAttributes } from "react";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary";
-  /** `booth`: tinggi >= 72px untuk layar sentuh. 08-DESIGN §4. */
-  size?: "booth" | "web";
+  /** primary = aksi utama (butter + lapisan), secondary = putih + lapisan, plain = tanpa lapisan,
+   *  destructive = coral putus-putus. Ukuran (tinggi, radius, font) diberi lewat className per layar. */
+  variant?: "primary" | "secondary" | "plain" | "destructive";
 };
 
 const base =
-  "inline-flex items-center justify-center rounded font-medium uppercase tracking-label select-none disabled:opacity-40";
+  "pressable inline-flex items-center justify-center gap-3 border-ink text-ink whitespace-nowrap select-none disabled:opacity-40";
 const variants = {
-  primary: "bg-accent text-on-accent",
-  secondary: "border-[1.5px] border-fg bg-transparent text-fg",
-} as const;
-const sizes = {
-  booth: "min-h-[72px] whitespace-nowrap px-12 text-lg portrait:px-8",
-  web: "min-h-12 px-6 text-sm",
+  primary: "layered bg-butter border-[2.5px] font-extrabold",
+  secondary: "layered bg-white border-[2.5px] font-bold",
+  plain: "bg-paper border-[2.5px] font-bold",
+  destructive: "bg-coral border-[2.5px] border-dashed font-bold",
 } as const;
 
-export function Button({ variant = "primary", size = "web", className = "", ...rest }: Props) {
-  return (
-    <button
-      type="button"
-      className={`${base} ${variants[variant]} ${sizes[size]} ${className}`}
-      {...rest}
-    />
-  );
+export function Button({ variant = "primary", className = "", ...rest }: Props) {
+  return <button type="button" className={`${base} ${variants[variant]} ${className}`} {...rest} />;
 }

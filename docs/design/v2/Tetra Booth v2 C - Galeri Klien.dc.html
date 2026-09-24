@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#EDECE8;font-family:'Plus Jakarta Sans',sans-serif;color:#1D1D1B;-webkit-font-smoothing:antialiased}a{color:#1D1D1B;text-decoration-thickness:1.5px}a:hover{color:#5F5E5A}*{box-sizing:border-box}</style>
+</helmet>
+<section style="padding:80px;display:flex;flex-direction:column;gap:56px;font-family:'Plus Jakarta Sans',sans-serif">
+<div style="display:flex;flex-direction:column;gap:12px;max-width:900px">
+<div style="display:flex;gap:10px;align-items:center"><span style="font-family:'Geist Mono',monospace;font-size:14px;background:#1D1D1B;color:#fff;padding:5px 12px;border-radius:999px">v2</span><span style="font-size:16px;font-weight:600;color:#5F5E5A">Tetra Booth · Bagian C</span></div>
+<div style="font-size:56px;font-weight:800;letter-spacing:-.035em">Galeri Klien</div>
+<div style="font-size:19px;color:#5F5E5A;line-height:1.5">Link privat untuk pengantin atau PIC, tanpa login. Foto sebagai pusat, bingkai tinta tipis sebagai ciri.</div>
+</div>
+
+<div id="C1" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:16px;padding:5px 12px;border-radius:8px">C1</span><span style="font-size:19px;font-weight:600;color:#3A3936">Beranda Galeri · Mobile &amp; Desktop</span></div>
+<div style="display:flex;gap:48px;align-items:flex-start">
+<div data-screen-label="C1 Galeri Mobile" style="flex:none;width:390px;height:1400px;background:#F8F7F4;overflow:hidden;border-radius:40px;border:1.5px solid #1D1D1B">
+<div style="padding:48px 14px 0">
+<div style="height:420px;position:relative;border:1.5px solid #1D1D1B;border-radius:26px;overflow:hidden;background:repeating-linear-gradient(135deg,#DAD7D1 0 14px,#D0CCC5 14px 28px)">
+<div style="position:absolute;top:16px;left:16px;right:16px;display:flex;justify-content:space-between"><span style="width:32px;height:32px;border-radius:9px;border:1.5px solid #1D1D1B;background:#8EDCCB;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px">T</span><span style="font-family:'Geist Mono',monospace;font-size:11px;color:#6A6864">foto cover</span></div>
+<div style="position:absolute;left:12px;right:12px;bottom:12px;background:#fff;border:1.5px solid #1D1D1B;border-radius:18px;padding:16px">
+<div style="font-size:30px;font-weight:800;letter-spacing:-.04em;line-height:1">Andi &amp; Sari</div>
+<div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1.5px dashed #1D1D1B;font-size:12px;font-weight:600"><span>12 Okt 2026 · Gedung Kirana, Bogor</span><span style="font-family:'Geist Mono',monospace">1.284</span></div>
+</div>
+</div>
+</div>
+<div style="padding:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+<sc-for list="{{ tools }}" as="t" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="width:52px;height:52px;border-radius:14px;border:1.5px solid #1D1D1B;background:{{ t.bg }};display:flex;align-items:center;justify-content:center;font-size:18px">{{ t.i }}</span><span style="font-size:11px;font-weight:600;text-align:center;line-height:1.2">{{ t.t }}</span></div></sc-for>
+</div>
+<div style="margin:0 14px;border:1.5px dashed #1D1D1B;border-radius:14px;background:#FCE3C6;padding:12px 14px;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700"><span>Galeri tersedia 72 hari lagi</span><span style="font-family:'Geist Mono',monospace;font-weight:400">72/90</span></div>
+<div style="height:8px;border-radius:4px;border:1.5px solid #1D1D1B;background:#fff;overflow:hidden"><div style="width:80%;height:100%;background:#1D1D1B"></div></div>
+</div>
+<div style="padding:16px 14px 6px;display:flex;gap:6px">
+<sc-for list="{{ chipsM }}" as="c" hint-placeholder-count="3"><span style="height:32px;padding:0 12px;border-radius:999px;border:1.5px solid #1D1D1B;background:{{ c.bg }};font-size:12px;font-weight:700;display:flex;align-items:center;white-space:nowrap">{{ c.t }}</span></sc-for>
+</div>
+<sc-for list="{{ sections }}" as="sec" hint-placeholder-count="2">
+<div style="padding:8px 14px 18px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 12px"><span style="font-size:17px;font-weight:800;letter-spacing:-.02em">{{ sec.title }}</span><span style="font-family:'Geist Mono',monospace;font-size:11px;color:#5F5E5A">{{ sec.count }}</span></div>
+<div style="columns:2;column-gap:8px">
+<sc-for list="{{ sec.m }}" as="p" hint-placeholder-count="6"><div style="height:{{ p.h }};margin-bottom:8px;break-inside:avoid;border-radius:10px;border:1.5px solid #1D1D1B;background:repeating-linear-gradient(135deg,#EFEDE8 0 10px,#E6E3DD 10px 20px)"></div></sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+
+<div data-screen-label="C1 Galeri Desktop" style="flex:none;width:1440px;height:1400px;background:#F8F7F4;overflow:hidden;border-radius:18px;border:1.5px solid #1D1D1B">
+<div style="padding:24px 48px;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:10px"><span style="width:34px;height:34px;border-radius:9px;border:1.5px solid #1D1D1B;background:#8EDCCB;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">T</span><span style="font-weight:800;font-size:18px;letter-spacing:-.02em">tetra</span></div><span style="font-size:13px;color:#5F5E5A;font-weight:600">Galeri privat · hanya dengan link</span></div>
+<div style="margin:0 48px;height:560px;position:relative;border:1.5px solid #1D1D1B;border-radius:28px;overflow:hidden;background:repeating-linear-gradient(135deg,#DAD7D1 0 18px,#D0CCC5 18px 36px)">
+<span style="position:absolute;top:22px;right:24px;font-family:'Geist Mono',monospace;font-size:12px;color:#6A6864">foto cover pengantin</span>
+<div style="position:absolute;left:28px;bottom:28px;width:560px;background:#fff;border:1.5px solid #1D1D1B;border-radius:22px;box-shadow:6px 6px 0 -1.5px #fff,6px 6px 0 0 #1D1D1B;padding:28px">
+<span style="font-size:12px;font-weight:700;border:1.5px solid #1D1D1B;border-radius:999px;padding:5px 12px;background:#CEC8F6;white-space:nowrap">The Wedding of</span>
+<div style="font-size:72px;font-weight:800;letter-spacing:-.05em;line-height:.95;margin-top:16px">Andi &amp; Sari</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);margin-top:20px;border-top:1.5px dashed #1D1D1B;padding-top:14px;font-size:13px"><div><div style="color:#5F5E5A">Tanggal</div><div style="font-weight:700;margin-top:3px">12 Okt 2026</div></div><div><div style="color:#5F5E5A">Venue</div><div style="font-weight:700;margin-top:3px">Gedung Kirana, Bogor</div></div><div><div style="color:#5F5E5A">Foto</div><div style="font-weight:700;margin-top:3px;font-family:'Geist Mono',monospace">1.284</div></div></div>
+</div>
+</div>
+<div style="margin:20px 48px 0;background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;padding:10px 10px 10px 16px;display:flex;align-items:center;gap:14px">
+<div style="display:flex;gap:6px;flex:1">
+<sc-for list="{{ chipsD }}" as="c" hint-placeholder-count="3"><span style="height:38px;padding:0 14px;border-radius:10px;border:1.5px solid #1D1D1B;background:{{ c.bg }};font-size:13px;font-weight:700;display:flex;align-items:center;white-space:nowrap">{{ c.t }}</span></sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:5px;width:190px;padding:0 8px"><span style="font-size:11px;font-weight:700">Tersedia 72 hari lagi</span><div style="height:7px;border-radius:4px;border:1.5px solid #1D1D1B;overflow:hidden"><div style="width:80%;height:100%;background:#1D1D1B"></div></div></div>
+<span style="height:40px;padding:0 14px;border-radius:10px;border:1.5px solid #1D1D1B;font-size:13px;font-weight:700;display:flex;align-items:center;white-space:nowrap">♥ Favorit (12)</span>
+<span style="height:40px;padding:0 14px;border-radius:10px;border:1.5px solid #1D1D1B;font-size:13px;font-weight:700;display:flex;align-items:center">Pilih</span>
+<span style="height:40px;padding:0 14px;border-radius:10px;border:1.5px solid #1D1D1B;font-size:13px;font-weight:700;display:flex;align-items:center;white-space:nowrap">Download Semua</span>
+<span style="height:40px;padding:0 16px;border-radius:10px;border:1.5px solid #1D1D1B;background:#F8D98B;font-size:13px;font-weight:800;display:flex;align-items:center;white-space:nowrap">▶ Putar Slideshow</span>
+</div>
+<sc-for list="{{ sections }}" as="sec" hint-placeholder-count="2">
+<div style="padding:32px 48px 4px">
+<div style="display:flex;align-items:center;gap:14px;padding-bottom:18px"><span style="font-size:26px;font-weight:800;letter-spacing:-.03em">{{ sec.title }}</span><span style="flex:1;border-top:1.5px dashed #1D1D1B"></span><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#5F5E5A">{{ sec.count }}</span></div>
+<div style="columns:4;column-gap:12px">
+<sc-for list="{{ sec.d }}" as="p" hint-placeholder-count="8"><div style="height:{{ p.h }};margin-bottom:12px;break-inside:avoid;border-radius:12px;border:1.5px solid #1D1D1B;background:repeating-linear-gradient(135deg,#EFEDE8 0 12px,#E6E3DD 12px 24px)"></div></sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div id="C2" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:16px;padding:5px 12px;border-radius:8px">C2</span><span style="font-size:19px;font-weight:600;color:#3A3936">Lightbox · Mobile &amp; Desktop</span></div>
+<div style="display:flex;gap:48px;align-items:flex-start">
+<div data-screen-label="C2 Lightbox Mobile" style="flex:none;width:390px;height:844px;background:#F8F7F4;overflow:hidden;border-radius:40px;border:1.5px solid #1D1D1B;display:flex;flex-direction:column">
+<div style="padding:54px 16px 14px;display:flex;justify-content:space-between;align-items:center"><span style="width:40px;height:40px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px">✕</span><div style="text-align:center"><div style="font-family:'Geist Mono',monospace;font-size:14px">214 / 1.284</div><div style="font-size:12px;color:#5F5E5A;margin-top:2px">19.42 · Resepsi</div></div><span style="width:40px"></span></div>
+<div style="flex:1;display:flex;align-items:center;padding:0 14px"><div style="width:100%;height:500px;border-radius:18px;border:1.5px solid #1D1D1B;background:repeating-linear-gradient(135deg,#DAD7D1 0 12px,#D0CCC5 12px 24px);display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',monospace;font-size:12px;color:#6A6864">foto · geser untuk berikutnya</div></div>
+<div style="margin:16px 14px 30px;background:#fff;border:1.5px solid #1D1D1B;border-radius:18px;display:flex;overflow:hidden">
+<sc-for list="{{ lbActions }}" as="a" hint-placeholder-count="3"><div style="flex:1;height:60px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:700;background:{{ a.bg }};border-left:{{ a.bl }}">{{ a.i }} {{ a.t }}</div></sc-for>
+</div>
+</div>
+<div data-screen-label="C2 Lightbox Desktop" style="flex:none;width:1440px;height:900px;background:#F8F7F4;overflow:hidden;border-radius:18px;border:1.5px solid #1D1D1B;display:flex;flex-direction:column">
+<div style="padding:22px 32px;display:flex;justify-content:space-between;align-items:center">
+<div style="display:flex;align-items:baseline;gap:16px"><span style="font-family:'Geist Mono',monospace;font-size:16px">214 / 1.284</span><span style="font-size:14px;color:#5F5E5A">19.42 · Resepsi</span></div>
+<div style="display:flex;border:1.5px solid #1D1D1B;border-radius:12px;overflow:hidden;background:#fff">
+<span style="height:42px;padding:0 18px;background:#F7D5CC;font-size:13px;font-weight:700;display:flex;align-items:center">♥ Favorit</span>
+<span style="height:42px;padding:0 18px;border-left:1.5px solid #1D1D1B;font-size:13px;font-weight:700;display:flex;align-items:center">↓ Download</span>
+<span style="height:42px;padding:0 18px;border-left:1.5px solid #1D1D1B;font-size:13px;font-weight:700;display:flex;align-items:center">↗ Bagikan</span>
+<span style="height:42px;padding:0 18px;border-left:1.5px solid #1D1D1B;font-size:13px;font-weight:700;display:flex;align-items:center">✕ Tutup</span>
+</div>
+</div>
+<div style="flex:1;display:flex;align-items:center;justify-content:space-between;padding:0 32px;gap:28px">
+<span style="width:56px;height:56px;border-radius:50%;border:1.5px solid #1D1D1B;background:#fff;box-shadow:4px 4px 0 -1.5px #fff,4px 4px 0 0 #1D1D1B;display:flex;align-items:center;justify-content:center;font-size:20px">←</span>
+<div style="width:900px;height:600px;border-radius:20px;border:1.5px solid #1D1D1B;background:repeating-linear-gradient(135deg,#DAD7D1 0 14px,#D0CCC5 14px 28px);display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',monospace;font-size:13px;color:#6A6864">foto terpilih</div>
+<span style="width:56px;height:56px;border-radius:50%;border:1.5px solid #1D1D1B;background:#8EDCCB;box-shadow:4px 4px 0 -1.5px #fff,4px 4px 0 0 #1D1D1B;display:flex;align-items:center;justify-content:center;font-size:20px">→</span>
+</div>
+<div style="padding:18px 32px 26px;display:flex;gap:8px;justify-content:center">
+<sc-for list="{{ film }}" as="f" hint-placeholder-count="11"><div style="width:84px;height:56px;border-radius:8px;border:{{ f.b }};background:repeating-linear-gradient(135deg,#EFEDE8 0 6px,#E6E3DD 6px 12px);box-shadow:{{ f.sh }};opacity:{{ f.op }}"></div></sc-for>
+</div>
+</div>
+</div>
+</div>
+
+<div style="display:flex;flex-wrap:wrap;gap:64px">
+<div id="C3" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:16px;padding:5px 12px;border-radius:8px">C3</span><span style="font-size:19px;font-weight:600;color:#3A3936">Mode Pilih → ZIP</span></div>
+<div style="display:flex;gap:40px">
+<div data-screen-label="C3 Pilih" style="flex:none;width:390px;height:844px;background:#F8F7F4;overflow:hidden;border-radius:40px;border:1.5px solid #1D1D1B;display:flex;flex-direction:column">
+<div style="padding:54px 16px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid #1D1D1B;background:#fff">
+<span style="font-size:14px;font-weight:700">Batal</span><span style="font-size:17px;font-weight:800">23 dipilih</span><span style="font-size:12px;font-weight:700;max-width:110px;text-align:right;line-height:1.25;text-decoration:underline">Pilih Semua di Bagian Ini</span>
+</div>
+<div style="padding:14px 16px 10px;font-size:15px;font-weight:800">19.00 – Resepsi</div>
+<div style="flex:1;padding:0 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;align-content:start;overflow:hidden">
+<sc-for list="{{ selGrid }}" as="g" hint-placeholder-count="18"><div style="aspect-ratio:1;position:relative;border-radius:10px;border:{{ g.b }};background:repeating-linear-gradient(135deg,#EFEDE8 0 8px,#E6E3DD 8px 16px)"><span style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:{{ g.bg }};border:1.5px solid #1D1D1B;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">{{ g.c }}</span></div></sc-for>
+</div>
+<div style="padding:14px 16px 28px;border-top:1.5px solid #1D1D1B;background:#fff;display:flex;flex-direction:column;gap:10px">
+<div style="height:54px;border-radius:14px;border:1.5px solid #1D1D1B;background:#F8D98B;box-shadow:4px 4px 0 -1.5px #fff,4px 4px 0 0 #1D1D1B;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:800">Download ZIP <span style="font-family:'Geist Mono',monospace;font-weight:400;font-size:12px">23 foto · ±86 MB</span></div>
+<div style="height:46px;border-radius:14px;border:1.5px solid #1D1D1B;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">Tambah ke Favorit</div>
+</div>
+</div>
+<div data-screen-label="C3 Menyiapkan ZIP" style="flex:none;width:390px;height:844px;background:#F8F7F4;overflow:hidden;border-radius:40px;border:1.5px solid #1D1D1B;display:flex;align-items:center;justify-content:center;padding:0 22px">
+<div style="width:100%;background:#fff;border:1.5px solid #1D1D1B;border-radius:22px;box-shadow:5px 5px 0 -1.5px #fff,5px 5px 0 0 #1D1D1B;padding:24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="width:48px;height:48px;border-radius:12px;border:1.5px dashed #1D1D1B;background:#D6EEF8;display:flex;align-items:center;justify-content:center;font-size:18px">↓</span><div><div style="font-size:17px;font-weight:800">Menyiapkan file ZIP…</div><div style="font-family:'Geist Mono',monospace;font-size:11px;color:#5F5E5A;margin-top:3px">23 foto · ±86 MB</div></div></div>
+<div style="display:flex;align-items:center;gap:12px"><div style="flex:1;height:14px;border-radius:7px;border:1.5px solid #1D1D1B;overflow:hidden"><div style="width:60%;height:100%;background:#8EDCCB;border-right:1.5px solid #1D1D1B"></div></div><span style="font-family:'Geist Mono',monospace;font-size:14px">60%</span></div>
+<div style="border-top:1.5px dashed #1D1D1B;padding-top:14px;font-size:13px;font-weight:700">Jangan tutup halaman ini</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="C4" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:16px;padding:5px 12px;border-radius:8px">C4</span><span style="font-size:19px;font-weight:600;color:#3A3936">Pengaturan Klien · Galeri Publik</span></div>
+<div data-screen-label="C4 Pengaturan" style="flex:none;width:390px;height:844px;background:#BDB9B3;position:relative;overflow:hidden;border-radius:40px;border:1.5px solid #1D1D1B">
+<div style="position:absolute;inset:0;background:repeating-linear-gradient(135deg,#C9C5BF 0 12px,#BFBBB4 12px 24px)"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;background:#F8F7F4;border-top:1.5px solid #1D1D1B;border-radius:28px 28px 0 0;padding:10px 18px 30px;display:flex;flex-direction:column;gap:14px">
+<div style="width:36px;height:4px;border-radius:2px;background:#1D1D1B;align-self:center"></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:20px;font-weight:800;letter-spacing:-.02em">Pengaturan Galeri</span><span style="font-size:14px">✕</span></div>
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;padding:14px;display:flex;gap:14px;align-items:flex-start">
+<div style="flex:1"><div style="font-size:14px;font-weight:700">Galeri publik</div><div style="font-size:12px;color:#5F5E5A;line-height:1.5;margin-top:4px">Kalau aktif, tamu bisa lihat semua foto acara dari halaman foto mereka</div></div>
+<div style="width:50px;height:30px;flex:none;border-radius:15px;border:1.5px solid #1D1D1B;background:#8EDCCB;position:relative"><span style="position:absolute;right:3px;top:3px;width:21px;height:21px;border-radius:50%;background:#fff;border:1.5px solid #1D1D1B"></span></div>
+</div>
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;overflow:hidden">
+<div style="padding:14px 14px 10px;font-size:14px;font-weight:700">Bagikan galeri</div>
+<div style="margin:0 14px;display:flex;border:1.5px solid #1D1D1B;border-radius:12px;overflow:hidden"><div style="flex:1;height:46px;padding:0 12px;display:flex;align-items:center;font-family:'Geist Mono',monospace;font-size:12px;white-space:nowrap;overflow:hidden">tetra.id/g/andi-sari-8KQ2</div><div style="height:46px;padding:0 14px;border-left:1.5px dashed #1D1D1B;background:#F8D98B;font-size:13px;font-weight:800;display:flex;align-items:center;white-space:nowrap">Salin Link</div></div>
+<div style="padding:10px 14px 14px;font-size:12px;color:#5F5E5A;line-height:1.5">Link ini hanya untuk kamu dan keluarga. Jangan dibagikan ke publik kalau galeri privat.</div>
+</div>
+<div style="background:#FCE3C6;border:1.5px dashed #1D1D1B;border-radius:14px;padding:12px 14px;font-size:13px;font-weight:700">Semua foto akan dihapus pada <span style="font-family:'Geist Mono',monospace;font-weight:500">10 Jan 2027</span></div>
+</div>
+</div>
+</div>
+
+<div id="C5" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:16px;padding:5px 12px;border-radius:8px">C5</span><span style="font-size:19px;font-weight:600;color:#3A3936">Temukan Foto Saya (Fase 5)</span></div>
+<div style="display:flex;gap:40px">
+<div data-screen-label="C5 Selfie" style="flex:none;width:390px;height:844px;background:#F8F7F4;overflow:hidden;border-radius:40px;border:1.5px solid #1D1D1B;display:flex;flex-direction:column;padding:54px 20px 28px;gap:18px">
+<span style="font-size:14px;font-weight:700">‹ Galeri</span>
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px;text-align:center">
+<div style="width:210px;height:210px;border-radius:50%;background:#D6F1EA;border:1.5px solid #1D1D1B;display:flex;align-items:center;justify-content:center"><div style="width:150px;height:150px;border-radius:50%;border:1.5px dashed #1D1D1B;background:#fff;display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',monospace;font-size:11px;color:#8A8883">area selfie</div></div>
+<div style="font-size:26px;font-weight:800;letter-spacing:-.03em">Temukan Foto Saya</div>
+<div style="font-size:14px;color:#5F5E5A;line-height:1.5">Ambil selfie, kami carikan foto-foto yang ada wajahmu</div>
+</div>
+<div style="display:flex;gap:12px;align-items:flex-start;border:1.5px dashed #1D1D1B;border-radius:12px;padding:12px;background:#fff"><span style="width:22px;height:22px;flex:none;border-radius:50%;border:1.5px solid #1D1D1B;background:#5DB978;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">✓</span><span style="font-size:12px;color:#3A3936;line-height:1.5">Saya setuju wajah saya diproses hanya untuk pencarian ini dan tidak disimpan</span></div>
+<div style="height:54px;border-radius:14px;border:1.5px solid #1D1D1B;background:#F8D98B;box-shadow:4px 4px 0 -1.5px #F8F7F4,4px 4px 0 0 #1D1D1B;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800">Ambil Selfie</div>
+</div>
+<div data-screen-label="C5 Hasil" style="flex:none;width:390px;height:844px;background:#F8F7F4;overflow:hidden;border-radius:40px;border:1.5px solid #1D1D1B;display:flex;flex-direction:column">
+<div style="padding:54px 20px 16px;display:flex;flex-direction:column;gap:14px"><span style="font-size:14px;font-weight:700">‹ Galeri</span>
+<div style="display:flex;align-items:center;gap:12px;background:#D6F1EA;border:1.5px solid #1D1D1B;border-radius:16px;padding:12px"><span style="width:44px;height:44px;border-radius:50%;border:1.5px solid #1D1D1B;background:#fff;flex:none"></span><div><div style="font-size:20px;font-weight:800;letter-spacing:-.02em">Ketemu 18 foto kamu</div><div style="font-size:12px;color:#3A3936;margin-top:2px">dari 1.284 foto acara</div></div></div>
+</div>
+<div style="flex:1;padding:0 16px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;align-content:start;overflow:hidden">
+<sc-for list="{{ found }}" as="g" hint-placeholder-count="18"><div style="aspect-ratio:1;border-radius:10px;border:1.5px solid #1D1D1B;background:repeating-linear-gradient(135deg,#EFEDE8 0 8px,#E6E3DD 8px 16px)"></div></sc-for>
+</div>
+<div style="padding:14px 16px 28px"><div style="height:54px;border-radius:14px;border:1.5px solid #1D1D1B;background:#F8D98B;box-shadow:4px 4px 0 -1.5px #F8F7F4,4px 4px 0 0 #1D1D1B;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800">Download Semua (18)</div></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const hs = (arr, k) => arr.map(h => ({ h: h * k + 'px' }));
+    const base = [1.3, 0.9, 1, 1.4, 0.8, 1.2, 1, 1.3];
+    const chip = (t, on) => ({ t, bg: on ? '#1D1D1B' : '#fff' });
+    const chips = ['18.00 – Akad', '19.00 – Resepsi', '20.00 – Photobooth'];
+    return {
+      tools: [{ i: '▶', t: 'Slideshow', bg: '#F8D98B' }, { i: '↓', t: 'Download Semua', bg: '#D6EEF8' }, { i: '☐', t: 'Pilih', bg: '#fff' }, { i: '♥', t: 'Favorit (12)', bg: '#F7D5CC' }],
+      chipsM: chips.map((t, i) => ({ t, bg: i === 0 ? '#CEC8F6' : '#fff' })),
+      chipsD: chips.map((t, i) => ({ t, bg: i === 0 ? '#CEC8F6' : '#fff' })),
+      sections: [
+        { title: '18.00 – Akad', count: '186 foto', m: hs(base.slice(0, 6), 150), d: hs(base, 240) },
+        { title: '19.00 – Resepsi', count: '642 foto', m: hs(base.slice(2, 8), 150), d: hs([...base].reverse(), 240) },
+      ],
+      lbActions: [
+        { i: '♥', t: 'Favorit', bg: '#F7D5CC', bl: 'none' },
+        { i: '↓', t: 'Download', bg: '#fff', bl: '1.5px solid #1D1D1B' },
+        { i: '↗', t: 'Bagikan', bg: '#fff', bl: '1.5px solid #1D1D1B' },
+      ],
+      film: Array.from({ length: 11 }, (_, i) => ({ b: i === 5 ? '2px solid #1D1D1B' : '1.5px solid #9A9892', sh: i === 5 ? '0 0 0 3px #8EDCCB' : 'none', op: i === 5 ? 1 : 0.7 })),
+      selGrid: Array.from({ length: 18 }, (_, i) => {
+        const on = ![2, 7, 11, 16].includes(i);
+        return { b: on ? '2.5px solid #1D1D1B' : '1.5px solid #9A9892', bg: on ? '#5DB978' : '#fff', c: on ? '✓' : '' };
+      }),
+      found: Array.from({ length: 18 }, (_, i) => i),
+    };
+  }
+}
+</script>
+</body>
+</html>

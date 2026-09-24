@@ -69,16 +69,14 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await expect(w.getByRole("heading", { name: "Mode crew" })).toBeVisible();
 
   // Pilih event dari bundle lokal → attract menampilkan nama event.
+  await w.getByRole("button", { name: "Ganti Event" }).click();
   await w.getByRole("button", { name: /Andi & Sari/ }).click();
   await w.getByRole("button", { name: /ganti roll/i }).click();
   await w.getByRole("textbox").fill("25");
   await w.getByRole("button", { name: /simpan/i }).click();
   await expect(w.getByText(/Kertas 25 \/ 25 lembar/)).toBeVisible();
   await w.screenshot({ path: "test-results/crew-menu.png" });
-  await w
-    .getByRole("button", { name: /kembali/i })
-    .first()
-    .click();
+  await w.getByRole("button", { name: /keluar ke mode tamu/i }).click();
 
   await expect(w.getByRole("heading", { name: "Andi & Sari" })).toBeVisible();
   await expect(w.getByTestId("printer-alert")).toContainText("Kertas hampir habis (25)");
@@ -152,6 +150,11 @@ test("kiosk: tidak bisa ditutup, keluar hanya lewat mode crew", async () => {
   await typePin(w, "1357");
   await expect(w.getByText("Auto-start hanya di app hasil build")).toBeVisible();
   const closed = app.waitForEvent("close");
-  await w.getByRole("button", { name: /keluar aplikasi/i }).click();
+  await w.getByRole("button", { name: "Tutup Aplikasi", exact: true }).click();
+  // Jendela tertutup di tengah klik: Playwright menolak klik itu, yang penting event close datang.
+  await w
+    .getByRole("button", { name: "Ya, Tutup Aplikasi" })
+    .click()
+    .catch(() => {});
   await closed;
 });

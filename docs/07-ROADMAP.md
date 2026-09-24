@@ -16,7 +16,7 @@ Prinsip:
 ## Fase 0 — Fondasi
 - [x] Monorepo pnpm + Turborepo, lint, format, CI dasar.
 - [x] `packages/shared`: tipe, skema zod, protokol Camera Service.
-- [x] `packages/ui`: design tokens sesuai `08-DESIGN.md` (tema per event).
+- [x] `packages/ui`: design tokens sesuai `08-DESIGN.md` (tema per event). _(2026-09-24: diganti token desain v2, DECISIONS #45; layar booth Fase 1 sudah v2)_
 - [x] `packages/booth-core` + interface `BoothPlatform` + `packages/platform-electron` (hanya adapter Electron).
 - [x] `packages/template-engine`: render 4R & 2x6x2 + test snapshot.
 - [x] Supabase project dev: migrasi awal (semua tabel + RLS), seed organisasi Tetra. _(2026-09-24: `0001_init.sql` di-push ke project dev, owner tetrabooth.app@gmail.com di-seed, `/api/health` → `db:true`; RLS teruji: `pnpm --filter @tetra/db test`)_

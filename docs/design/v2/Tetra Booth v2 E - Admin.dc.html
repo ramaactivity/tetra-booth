@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#EDECE8;font-family:'Plus Jakarta Sans',sans-serif;color:#1D1D1B;-webkit-font-smoothing:antialiased}a{color:#1D1D1B;text-decoration-thickness:1.5px}a:hover{color:#5F5E5A}*{box-sizing:border-box}</style>
+</helmet>
+<section style="padding:80px;display:flex;flex-direction:column;gap:56px;font-family:'Plus Jakarta Sans',sans-serif">
+<div style="display:flex;flex-direction:column;gap:12px;max-width:900px">
+<div style="display:flex;gap:10px;align-items:center"><span style="font-family:'Geist Mono',monospace;font-size:14px;background:#1D1D1B;color:#fff;padding:5px 12px;border-radius:999px">v2</span><span style="font-size:16px;font-weight:600;color:#5F5E5A">Tetra Booth · Bagian E</span></div>
+<div style="font-size:56px;font-weight:800;letter-spacing:-.035em">Admin</div>
+<div style="font-size:19px;color:#5F5E5A;line-height:1.5">Desktop 1440px. Padat tapi mudah dipindai. Status dengan pill berisi pastel, aksi destruktif selalu lewat konfirmasi.</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:72px 56px">
+
+<div id="E0" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:16px;padding:5px 12px;border-radius:8px">E0</span><span style="font-size:19px;font-weight:600;color:#3A3936">Baru · Masuk</span></div>
+<div data-screen-label="E0 Masuk" style="flex:none;width:1440px;height:900px;background:#F8F7F4;overflow:hidden;border-radius:18px;border:1.5px solid #1D1D1B;display:grid;grid-template-columns:1fr 1fr;position:relative">
+<div style="padding:56px 72px;display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:10px"><span style="width:36px;height:36px;border-radius:10px;border:1.5px solid #1D1D1B;background:#8EDCCB;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">T</span><span style="font-weight:800;font-size:20px;letter-spacing:-.02em">tetra</span></div>
+<div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px;max-width:420px">
+<div style="font-size:40px;font-weight:800;letter-spacing:-.035em">Masuk ke Admin</div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Email</span><div style="height:48px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;box-shadow:0 0 0 3px #8EDCCB;padding:0 14px;display:flex;align-items:center;font-size:14px">rama@tetraphotobooth.id</div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Kata sandi</span><div style="height:48px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;padding:0 14px;display:flex;align-items:center;font-size:18px;letter-spacing:.2em">••••••••</div></div>
+<div style="height:52px;border-radius:14px;border:1.5px solid #1D1D1B;background:#F8D98B;box-shadow:4px 4px 0 -1.5px #F8F7F4,4px 4px 0 0 #1D1D1B;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;margin-top:6px">Masuk</div>
+<div style="font-size:13px;color:#5F5E5A">Lupa kata sandi? <a href="#" style="font-weight:700">Atur ulang</a></div>
+</div>
+</div>
+<div style="background:#D6EEF8;border-left:1.5px solid #1D1D1B;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center">
+<div style="position:absolute;right:-160px;bottom:-160px;width:520px;height:520px;border-radius:50%;border:1.5px solid #fff"></div>
+<div style="position:absolute;right:-60px;bottom:-60px;width:320px;height:320px;border-radius:50%;border:1.5px solid #fff"></div>
+<div style="display:flex;flex-direction:column;gap:14px;width:380px">
+<sc-for list="{{ loginCards }}" as="c" hint-placeholder-count="3"><div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;box-shadow:5px 5px 0 -1.5px #fff,5px 5px 0 0 #1D1D1B;padding:14px;display:flex;align-items:center;gap:12px;margin-left:{{ c.ml }}"><span style="width:44px;height:44px;border-radius:12px;border:1.5px dashed #1D1D1B;background:{{ c.bg }};display:flex;align-items:center;justify-content:center;font-size:18px">{{ c.i }}</span><div style="flex:1"><div style="font-size:14px;font-weight:700">{{ c.t }}</div><div style="font-size:12px;color:#5F5E5A;margin-top:2px">{{ c.d }}</div></div></div></sc-for>
+</div>
+</div>
+</div>
+</div>
+
+<div id="E1" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:16px;padding:5px 12px;border-radius:8px">E1</span><span style="font-size:19px;font-weight:600;color:#3A3936">Daftar Event</span></div>
+<div data-screen-label="E1 Daftar Event" style="flex:none;width:1440px;height:900px;background:#F8F7F4;overflow:hidden;border-radius:18px;border:1.5px solid #1D1D1B;display:flex">
+<div style="width:236px;flex:none;border-right:1.5px solid #1D1D1B;background:#fff;padding:24px 14px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;padding:0 8px 24px"><span style="width:34px;height:34px;border-radius:9px;border:1.5px solid #1D1D1B;background:#8EDCCB;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">T</span><span style="font-weight:800;font-size:18px;letter-spacing:-.02em">tetra</span></div>
+<sc-for list="{{ nav.e1 }}" as="n" hint-placeholder-count="6"><div style="height:42px;border-radius:11px;padding:0 10px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:{{ n.w }};background:{{ n.bg }};border:{{ n.b }}"><span style="width:22px;text-align:center;font-size:14px">{{ n.i }}</span>{{ n.t }}</div></sc-for>
+<div style="margin-top:auto;border:1.5px dashed #1D1D1B;border-radius:14px;padding:10px;display:flex;align-items:center;gap:10px"><span style="width:32px;height:32px;border-radius:50%;border:1.5px solid #1D1D1B;background:#FCE3C6;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">R</span><div><div style="font-size:13px;font-weight:700">Rama</div><div style="font-size:11px;color:#5F5E5A">Owner</div></div></div>
+</div>
+<div style="flex:1;padding:32px 40px;display:flex;flex-direction:column;gap:20px;min-width:0">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:30px;font-weight:800;letter-spacing:-.03em">Event</div><div style="height:44px;padding:0 18px;border-radius:12px;border:1.5px solid #1D1D1B;background:#F8D98B;box-shadow:4px 4px 0 -1.5px #F8F7F4,4px 4px 0 0 #1D1D1B;font-size:14px;font-weight:800;display:flex;align-items:center">+ Buat Event</div></div>
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div style="display:flex;border:1.5px solid #1D1D1B;border-radius:12px;overflow:hidden;background:#fff">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4"><span style="height:38px;padding:0 16px;font-size:13px;font-weight:{{ t.w }};background:{{ t.bg }};border-left:{{ t.bl }};display:flex;align-items:center">{{ t.t }}</span></sc-for>
+</div>
+<div style="display:flex;gap:8px;align-items:center;font-size:13px;font-weight:600"><span style="color:#5F5E5A">Mode</span><span style="height:34px;padding:0 14px;border-radius:999px;border:1.5px solid #1D1D1B;background:#D6EEF8;display:flex;align-items:center">✓ Event</span><span style="height:34px;padding:0 14px;border-radius:999px;border:1.5px solid #1D1D1B;background:#fff;display:flex;align-items:center">Photobox</span></div>
+</div>
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;overflow:hidden">
+<div style="display:grid;grid-template-columns:2.2fr 1.2fr 1fr 1.4fr .7fr 1.2fr 1fr;padding:0 20px;height:46px;align-items:center;font-size:12px;font-weight:700;color:#5F5E5A;background:#F8F7F4;border-bottom:1.5px solid #1D1D1B"><span>Nama event</span><span>Tanggal</span><span>Mode</span><span>Device</span><span>Sesi</span><span>Status</span><span>Retensi</span></div>
+<sc-for list="{{ events }}" as="e" hint-placeholder-count="6">
+<div style="display:grid;grid-template-columns:2.2fr 1.2fr 1fr 1.4fr .7fr 1.2fr 1fr;padding:0 20px;height:62px;align-items:center;font-size:14px;border-bottom:1.5px dashed #D6D3CC">
+<span style="display:flex;align-items:center;gap:10px;font-weight:700"><span style="width:32px;height:32px;border-radius:9px;border:1.5px dashed #1D1D1B;background:{{ e.ic }};flex:none"></span>{{ e.name }}</span><span style="color:#3A3936">{{ e.date }}</span>
+<span><span style="font-size:12px;font-weight:700;padding:4px 10px;border-radius:8px;border:1.5px solid #1D1D1B;background:{{ e.mbg }};white-space:nowrap">{{ e.mode }}</span></span>
+<span style="color:#3A3936">{{ e.device }}</span><span style="font-family:'Geist Mono',monospace;font-size:13px">{{ e.sesi }}</span>
+<span><span style="font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;border:1.5px {{ e.sb }} #1D1D1B;background:{{ e.sbg }};white-space:nowrap">{{ e.status }}</span></span>
+<span style="color:#5F5E5A;font-size:13px">{{ e.ret }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+
+<div id="E2" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:16px;padding:5px 12px;border-radius:8px">E2</span><span style="font-size:19px;font-weight:600;color:#3A3936">Dashboard Event</span></div>
+<div data-screen-label="E2 Dashboard Event" style="flex:none;width:1440px;height:900px;background:#F8F7F4;overflow:hidden;border-radius:18px;border:1.5px solid #1D1D1B;display:flex">
+<div style="width:236px;flex:none;border-right:1.5px solid #1D1D1B;background:#fff;padding:24px 14px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;padding:0 8px 24px"><span style="width:34px;height:34px;border-radius:9px;border:1.5px solid #1D1D1B;background:#8EDCCB;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">T</span><span style="font-weight:800;font-size:18px;letter-spacing:-.02em">tetra</span></div>
+<sc-for list="{{ nav.e1 }}" as="n" hint-placeholder-count="6"><div style="height:42px;border-radius:11px;padding:0 10px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:{{ n.w }};background:{{ n.bg }};border:{{ n.b }}"><span style="width:22px;text-align:center;font-size:14px">{{ n.i }}</span>{{ n.t }}</div></sc-for>
+</div>
+<div style="flex:1;padding:28px 40px;display:flex;flex-direction:column;gap:18px;min-width:0">
+<div style="display:flex;justify-content:space-between;align-items:flex-end">
+<div><div style="font-size:13px;color:#5F5E5A;font-weight:600">Event ›</div><div style="font-size:28px;font-weight:800;letter-spacing:-.03em;margin-top:4px">Andi &amp; Sari Wedding</div><div style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px"><span style="color:#3A3936">12 Okt 2026 · Gedung Kirana, Bogor</span><span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:8px;border:1.5px solid #1D1D1B;background:#D6EEF8">Event</span><span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;border:1.5px solid #1D1D1B;background:#D6F1EA;white-space:nowrap">● Berlangsung</span></div></div>
+<div style="display:flex;gap:8px"><span style="height:40px;padding:0 14px;border-radius:11px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;font-weight:700;display:flex;align-items:center">Buka Galeri Klien</span><span style="height:40px;padding:0 14px;border-radius:11px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;font-weight:700;display:flex;align-items:center">Buka Slideshow</span><span style="height:40px;padding:0 14px;border-radius:11px;border:1.5px solid #1D1D1B;background:#1D1D1B;color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center">Pengaturan</span></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+<sc-for list="{{ stats }}" as="s" hint-placeholder-count="4"><div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;box-shadow:5px 5px 0 -1.5px {{ s.bg }},5px 5px 0 0 #1D1D1B;padding:16px 18px;display:flex;gap:14px;align-items:center"><span style="width:44px;height:44px;border-radius:12px;border:1.5px dashed #1D1D1B;background:{{ s.bg }};display:flex;align-items:center;justify-content:center;font-size:17px;flex:none">{{ s.i }}</span><div><div style="font-size:12px;font-weight:600;color:#5F5E5A">{{ s.l }}</div><div style="font-size:26px;font-weight:800;letter-spacing:-.03em;margin-top:2px">{{ s.v }} <span style="font-size:13px;font-weight:700;color:#3A3936">{{ s.x }}</span></div></div></div></sc-for>
+</div>
+<div style="display:grid;grid-template-columns:1.45fr 1fr;gap:16px;flex:1;min-height:0">
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;padding:18px 20px;display:flex;flex-direction:column">
+<div style="display:flex;justify-content:space-between"><span style="font-size:15px;font-weight:800">Sesi per jam</span><span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A">puncak 20.00 · 96 sesi</span></div>
+<div style="flex:1;display:flex;align-items:flex-end;gap:14px;padding:16px 0 0;border-bottom:1.5px solid #1D1D1B">
+<sc-for list="{{ hours }}" as="h" hint-placeholder-count="8"><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end"><span style="font-family:'Geist Mono',monospace;font-size:11px">{{ h.v }}</span><div style="width:100%;height:{{ h.h }};background:{{ h.c }};border:1.5px solid #1D1D1B;border-bottom:none;border-radius:8px 8px 0 0"></div></div></sc-for>
+</div>
+<div style="display:flex;gap:14px;padding-top:8px"><sc-for list="{{ hours }}" as="h" hint-placeholder-count="8"><span style="flex:1;text-align:center;font-family:'Geist Mono',monospace;font-size:11px;color:#5F5E5A">{{ h.t }}</span></sc-for></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:16px;min-height:0">
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+<div style="font-size:15px;font-weight:800">Sesi → QR dibuka → Disimpan</div>
+<sc-for list="{{ funnel }}" as="f" hint-placeholder-count="3"><div style="display:flex;flex-direction:column;gap:5px"><div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600"><span>{{ f.l }}</span><span style="font-family:'Geist Mono',monospace">{{ f.v }}</span></div><div style="height:14px;border-radius:7px;border:1.5px solid #1D1D1B;overflow:hidden"><div style="width:{{ f.w }};height:100%;background:{{ f.c }};border-right:1.5px solid #1D1D1B"></div></div></div></sc-for>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:#5F5E5A;border-top:1.5px dashed #1D1D1B;padding-top:10px"><span>Download <b style="color:#1D1D1B">164</b></span><span>Kunjungan galeri <b style="color:#1D1D1B">93</b></span></div>
+</div>
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;padding:16px 20px;flex:1;display:flex;flex-direction:column;overflow:hidden">
+<div style="font-size:15px;font-weight:800;padding-bottom:8px">Sesi terbaru</div>
+<sc-for list="{{ recent }}" as="r" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1.5px dashed #D6D3CC"><div style="width:28px;height:40px;flex:none;border:1.5px solid #1D1D1B;border-radius:4px;background:repeating-linear-gradient(135deg,#EFEDE8 0 5px,#E6E3DD 5px 10px)"></div><span style="flex:1;font-family:'Geist Mono',monospace;font-size:12px">{{ r.id }}</span><span style="font-size:12px;color:#5F5E5A">{{ r.t }}</span><span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;border:1.5px solid #1D1D1B;background:{{ r.bg }};white-space:nowrap">{{ r.s }}</span></div></sc-for>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="E3" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:16px;padding:5px 12px;border-radius:8px">E3</span><span style="font-size:19px;font-weight:600;color:#3A3936">Pengaturan Event</span></div>
+<div data-screen-label="E3 Pengaturan Event" style="flex:none;width:1440px;height:1640px;background:#F8F7F4;overflow:hidden;border-radius:18px;border:1.5px solid #1D1D1B;display:flex">
+<div style="width:236px;flex:none;border-right:1.5px solid #1D1D1B;background:#fff;padding:24px 14px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;padding:0 8px 24px"><span style="width:34px;height:34px;border-radius:9px;border:1.5px solid #1D1D1B;background:#8EDCCB;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">T</span><span style="font-weight:800;font-size:18px;letter-spacing:-.02em">tetra</span></div>
+<sc-for list="{{ nav.e1 }}" as="n" hint-placeholder-count="6"><div style="height:42px;border-radius:11px;padding:0 10px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:{{ n.w }};background:{{ n.bg }};border:{{ n.b }}"><span style="width:22px;text-align:center;font-size:14px">{{ n.i }}</span>{{ n.t }}</div></sc-for>
+</div>
+<div style="flex:1;padding:28px 40px;display:grid;grid-template-columns:1fr 280px;gap:28px;align-items:start;min-width:0">
+<div style="display:flex;flex-direction:column;gap:16px">
+<div><div style="font-size:13px;color:#5F5E5A;font-weight:600">Andi &amp; Sari Wedding ›</div><div style="font-size:28px;font-weight:800;letter-spacing:-.03em;margin-top:4px">Pengaturan</div></div>
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;overflow:hidden">
+<div style="padding:14px 20px;font-size:15px;font-weight:800;border-bottom:1.5px dashed #1D1D1B">Informasi</div>
+<div style="padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<sc-for list="{{ infoFields }}" as="f" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">{{ f.l }}</span><div style="height:42px;border-radius:11px;border:1.5px solid #1D1D1B;padding:0 12px;display:flex;align-items:center;font-size:14px">{{ f.v }}</div></div></sc-for>
+</div>
+</div>
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;overflow:hidden">
+<div style="padding:14px 20px;font-size:15px;font-weight:800;border-bottom:1.5px dashed #1D1D1B">Mode</div>
+<div style="padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<div style="border-radius:14px;border:1.5px solid #1D1D1B;background:#D6EEF8;box-shadow:4px 4px 0 -1.5px #fff,4px 4px 0 0 #1D1D1B;padding:14px 16px;display:flex;gap:12px;align-items:center"><span style="width:40px;height:40px;border-radius:11px;border:1.5px dashed #1D1D1B;background:#fff;display:flex;align-items:center;justify-content:center;flex:none">♥</span><div style="flex:1"><div style="font-size:14px;font-weight:700">Mode Event</div><div style="font-size:12px;color:#3A3936;margin-top:2px">Klien bayar paket, 1 layout, cetak gratis</div></div><span style="width:22px;height:22px;border-radius:50%;border:1.5px solid #1D1D1B;background:#5DB978;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">✓</span></div>
+<div style="border-radius:14px;border:1.5px solid #1D1D1B;padding:14px 16px;display:flex;gap:12px;align-items:center"><span style="width:40px;height:40px;border-radius:11px;border:1.5px dashed #1D1D1B;background:#CEC8F6;display:flex;align-items:center;justify-content:center;flex:none">▣</span><div style="flex:1"><div style="font-size:14px;font-weight:700">Mode Photobox</div><div style="font-size:12px;color:#5F5E5A;margin-top:2px">Tamu bayar per sesi via QRIS</div></div><span style="width:22px;height:22px;border-radius:50%;border:1.5px solid #1D1D1B;background:#fff"></span></div>
+</div>
+</div>
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;overflow:hidden">
+<div style="padding:14px 20px;font-size:15px;font-weight:800;border-bottom:1.5px dashed #1D1D1B">Sesi</div>
+<div style="padding:18px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+<sc-for list="{{ sesiFields }}" as="f" hint-placeholder-count="6"><div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">{{ f.l }}</span><div style="height:42px;border-radius:11px;border:1.5px {{ f.bs }} #1D1D1B;background:{{ f.bg }};padding:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:14px;color:{{ f.c }}">{{ f.v }}<span style="font-size:11px;color:#8A8883">{{ f.u }}</span></div></div></sc-for>
+</div>
+</div>
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;overflow:hidden">
+<div style="padding:14px 20px;font-size:15px;font-weight:800;border-bottom:1.5px dashed #1D1D1B">Halaman tamu</div>
+<div style="padding:8px 20px 18px;display:flex;flex-direction:column">
+<sc-for list="{{ guestToggles }}" as="t" hint-placeholder-count="2"><div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1.5px dashed #D6D3CC"><div><div style="font-size:14px;font-weight:700">{{ t.l }}</div><div style="font-size:12px;color:#5F5E5A;margin-top:2px">{{ t.d }}</div></div><div style="width:46px;height:28px;border-radius:14px;border:1.5px solid #1D1D1B;background:{{ t.bg }};position:relative"><span style="position:absolute;top:2.5px;left:{{ t.x }};width:20px;height:20px;border-radius:50%;background:#fff;border:1.5px solid #1D1D1B"></span></div></div></sc-for>
+<div style="display:flex;flex-direction:column;gap:6px;margin-top:14px"><span style="font-size:12px;font-weight:700">Teks consent</span><div style="height:68px;border-radius:11px;border:1.5px dashed #1D1D1B;padding:10px 12px;font-size:13px;color:#8A8883">Aktifkan lead capture untuk mengisi teks consent</div></div>
+</div>
+</div>
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;overflow:hidden">
+<div style="padding:14px 20px;font-size:15px;font-weight:800;border-bottom:1.5px dashed #1D1D1B">Galeri klien</div>
+<div style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:14px;font-weight:700">Galeri publik</div><div style="font-size:12px;color:#5F5E5A;margin-top:2px">Tamu bisa lihat semua foto dari halaman fotonya</div></div><div style="width:46px;height:28px;border-radius:14px;border:1.5px solid #1D1D1B;background:#8EDCCB;position:relative"><span style="position:absolute;top:2.5px;right:2.5px;width:20px;height:20px;border-radius:50%;background:#fff;border:1.5px solid #1D1D1B"></span></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Retensi tamu</span><div style="height:42px;border-radius:11px;border:1.5px solid #1D1D1B;padding:0 12px;display:flex;align-items:center;font-size:14px">30 hari</div></div><div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Retensi klien</span><div style="height:42px;border-radius:11px;border:1.5px solid #1D1D1B;padding:0 12px;display:flex;align-items:center;font-size:14px">90 hari</div></div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Link klien</span><div style="display:flex;gap:8px"><div style="flex:1;display:flex;border:1.5px solid #1D1D1B;border-radius:11px;overflow:hidden"><div style="flex:1;height:42px;padding:0 12px;display:flex;align-items:center;font-family:'Geist Mono',monospace;font-size:12px;background:#F8F7F4">tetra.id/g/andi-sari-8KQ2</div><span style="height:42px;padding:0 16px;border-left:1.5px dashed #1D1D1B;font-size:13px;font-weight:700;display:flex;align-items:center">Salin</span></div><span style="height:42px;padding:0 14px;border-radius:11px;border:1.5px dashed #1D1D1B;background:#F7D5CC;font-size:13px;font-weight:700;display:flex;align-items:center;white-space:nowrap">Cabut &amp; Buat Ulang Link</span></div></div>
+</div>
+</div>
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;overflow:hidden">
+<div style="padding:14px 20px;font-size:15px;font-weight:800;border-bottom:1.5px dashed #1D1D1B">Device</div>
+<div style="padding:16px 20px"><div style="height:42px;border-radius:11px;border:1.5px solid #1D1D1B;padding:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:14px">Booth 01 – Laptop Asus<span>▾</span></div></div>
+</div>
+</div>
+<div style="position:sticky;top:28px;background:#FCE3C6;border:1.5px solid #1D1D1B;border-radius:16px;box-shadow:5px 5px 0 -1.5px #F8F7F4,5px 5px 0 0 #1D1D1B;padding:18px;display:flex;flex-direction:column;gap:12px;margin-top:64px">
+<div style="font-size:14px;font-weight:800">Perubahan belum disimpan</div>
+<div style="font-size:12px;color:#3A3936;line-height:1.5">2 bagian diubah: Sesi, Halaman tamu. Booth menerima pengaturan baru saat online.</div>
+<div style="height:44px;border-radius:12px;border:1.5px solid #1D1D1B;background:#F8D98B;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center">Simpan</div>
+<div style="height:40px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">Buang perubahan</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="E4" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:16px;padding:5px 12px;border-radius:8px">E4</span><span style="font-size:19px;font-weight:600;color:#3A3936">Editor Template</span></div>
+<div data-screen-label="E4 Editor Template" style="flex:none;width:1440px;height:900px;background:#F8F7F4;overflow:hidden;border-radius:18px;border:1.5px solid #1D1D1B;display:flex;flex-direction:column">
+<div style="height:64px;flex:none;border-bottom:1.5px solid #1D1D1B;background:#fff;padding:0 20px;display:flex;align-items:center;justify-content:space-between">
+<div style="display:flex;align-items:center;gap:14px"><span style="height:36px;padding:0 12px;border-radius:10px;border:1.5px solid #1D1D1B;font-size:13px;font-weight:700;display:flex;align-items:center">‹ Template</span><span style="font-size:16px;font-weight:800">Andi &amp; Sari — 4R Grid</span><span style="font-family:'Geist Mono',monospace;font-size:11px;color:#5F5E5A">tersimpan 21.40</span></div>
+<div style="display:flex;gap:8px"><span style="height:38px;padding:0 14px;border-radius:10px;border:1.5px solid #1D1D1B;font-size:13px;font-weight:700;display:flex;align-items:center">Preview Cetak</span><span style="height:38px;padding:0 16px;border-radius:10px;border:1.5px solid #1D1D1B;background:#F8D98B;font-size:13px;font-weight:800;display:flex;align-items:center">Simpan</span></div>
+</div>
+<div style="flex:1;display:grid;grid-template-columns:260px 1fr 300px;min-height:0">
+<div style="border-right:1.5px solid #1D1D1B;background:#fff;padding:18px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;border:1.5px solid #1D1D1B;border-radius:10px;overflow:hidden"><span style="flex:1;height:34px;background:#CEC8F6;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">4x6</span><span style="flex:1;height:34px;border-left:1.5px solid #1D1D1B;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center">2x6 strip</span></div>
+<div style="display:flex;border:1.5px solid #1D1D1B;border-radius:10px;overflow:hidden"><span style="flex:1;height:34px;background:#CEC8F6;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center">Portrait</span><span style="flex:1;height:34px;border-left:1.5px solid #1D1D1B;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center">Landscape</span></div>
+<div style="font-size:12px;font-weight:700;color:#5F5E5A;margin-top:4px">Template</div>
+<sc-for list="{{ tplList }}" as="t" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:12px;padding:8px;border-radius:12px;border:1.5px {{ t.bs }} #1D1D1B;background:{{ t.bg }}"><div style="width:30px;height:45px;border:1.5px solid #1D1D1B;border-radius:3px;background:repeating-linear-gradient(135deg,#EFEDE8 0 5px,#E6E3DD 5px 10px);flex:none"></div><div><div style="font-size:13px;font-weight:700">{{ t.n }}</div><div style="font-size:11px;color:#5F5E5A">{{ t.m }}</div></div></div></sc-for>
+<div style="margin-top:auto;height:92px;border-radius:14px;border:1.5px dashed #1D1D1B;background:#D6EEF8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:13px;font-weight:700">+ Upload Overlay PNG<span style="font-family:'Geist Mono',monospace;font-size:10.5px;font-weight:400;color:#3A3936">1200×1800 px, transparan</span></div>
+</div>
+<div style="background:#EDECE8;background-image:radial-gradient(#C9C6BF 1px,transparent 1px);background-size:20px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;position:relative">
+<div style="position:absolute;top:14px;right:14px;display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #1D1D1B;padding:7px 10px 7px 12px;border-radius:11px;font-size:12px;font-weight:700">Tampilkan sample foto<div style="width:38px;height:22px;border-radius:11px;border:1.5px solid #1D1D1B;background:#8EDCCB;position:relative"><span style="position:absolute;top:2px;right:2px;width:15px;height:15px;border-radius:50%;background:#fff;border:1.5px solid #1D1D1B"></span></div></div>
+<div style="width:440px;height:660px;background:#fff;position:relative;border:1.5px solid #1D1D1B;box-shadow:6px 6px 0 -1.5px #fff,6px 6px 0 0 #1D1D1B">
+<sc-for list="{{ tplSlots }}" as="s" hint-placeholder-count="4"><div style="position:absolute;left:{{ s.x }};top:{{ s.y }};width:{{ s.w }};height:{{ s.h }};background:repeating-linear-gradient(135deg,#EFEDE8 0 10px,#E6E3DD 10px 20px);border:{{ s.o }};display:flex;align-items:center;justify-content:center"><span style="font-size:12px;font-weight:800;border:1.5px solid #1D1D1B;background:#fff;border-radius:999px;padding:3px 10px;white-space:nowrap">Slot {{ s.n }}</span></div></sc-for>
+<div style="position:absolute;left:24px;top:24px;width:188px;height:252px;pointer-events:none"><span style="position:absolute;left:-6px;top:-6px;width:12px;height:12px;border-radius:3px;background:#8EDCCB;border:1.5px solid #1D1D1B"></span><span style="position:absolute;right:-6px;top:-6px;width:12px;height:12px;border-radius:3px;background:#8EDCCB;border:1.5px solid #1D1D1B"></span><span style="position:absolute;left:-6px;bottom:-6px;width:12px;height:12px;border-radius:3px;background:#8EDCCB;border:1.5px solid #1D1D1B"></span><span style="position:absolute;right:-6px;bottom:-6px;width:12px;height:12px;border-radius:3px;background:#8EDCCB;border:1.5px solid #1D1D1B"></span></div>
+<div style="position:absolute;left:0;right:0;bottom:34px;text-align:center"><div style="font-size:24px;font-weight:800;letter-spacing:-.03em;border:1.5px dashed #1D1D1B;display:inline-block;padding:2px 10px;border-radius:6px">Andi &amp; Sari</div><div style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A;margin-top:8px">12.10.2026</div></div>
+</div>
+<div style="font-size:12px;color:#5F5E5A;font-weight:600">Overlay PNG di atas slot · 4x6 portrait</div>
+</div>
+<div style="border-left:1.5px solid #1D1D1B;background:#fff;padding:18px;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:15px;font-weight:800">Slot 1</span><span style="font-size:11px;font-weight:700;border:1.5px solid #1D1D1B;border-radius:999px;padding:3px 9px;background:#8EDCCB">terpilih</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<sc-for list="{{ slotProps }}" as="p" hint-placeholder-count="5"><div style="display:flex;border:1.5px solid #1D1D1B;border-radius:9px;overflow:hidden;height:36px"><span style="width:52px;flex:none;border-right:1.5px dashed #1D1D1B;background:#F8F7F4;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ p.l }}</span><span style="flex:1;padding:0 8px;display:flex;align-items:center;font-size:12.5px;font-family:'Geist Mono',monospace">{{ p.v }}</span></div></sc-for>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:11px;font-weight:700;color:#5F5E5A">Urutan layer</span><div style="display:flex;border:1.5px solid #1D1D1B;border-radius:9px;overflow:hidden"><span style="flex:1;height:32px;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center">Di atas overlay</span><span style="flex:1;height:32px;border-left:1.5px solid #1D1D1B;background:#CEC8F6;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">Di bawah overlay</span></div></div>
+<div style="border-top:1.5px dashed #1D1D1B"></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:800">Slot</span><span style="font-size:12px;font-weight:700;border:1.5px solid #1D1D1B;border-radius:8px;padding:3px 9px">+ Tambah</span></div>
+<sc-for list="{{ tplSlots }}" as="s" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;font-size:13px;padding:1px 0"><span style="font-weight:600">Slot {{ s.n }}</span><span style="color:#8A8883">Hapus</span></div></sc-for>
+<div style="border-top:1.5px dashed #1D1D1B"></div>
+<div style="font-size:13px;font-weight:800">Teks dinamis</div>
+<div style="display:flex;justify-content:space-between;font-size:13px"><span style="font-weight:600">Nama event</span><span style="color:#5F5E5A;font-family:'Geist Mono',monospace;font-size:11.5px">X 220 · Y 1580</span></div>
+<div style="display:flex;justify-content:space-between;font-size:13px"><span style="font-weight:600">Tanggal</span><span style="color:#5F5E5A;font-family:'Geist Mono',monospace;font-size:11.5px">X 220 · Y 1660</span></div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="E5" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:16px;padding:5px 12px;border-radius:8px">E5</span><span style="font-size:19px;font-weight:600;color:#3A3936">Device</span></div>
+<div data-screen-label="E5 Device" style="flex:none;width:1440px;height:900px;background:#F8F7F4;overflow:hidden;border-radius:18px;border:1.5px solid #1D1D1B;display:flex">
+<div style="width:236px;flex:none;border-right:1.5px solid #1D1D1B;background:#fff;padding:24px 14px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;padding:0 8px 24px"><span style="width:34px;height:34px;border-radius:9px;border:1.5px solid #1D1D1B;background:#8EDCCB;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">T</span><span style="font-weight:800;font-size:18px;letter-spacing:-.02em">tetra</span></div>
+<sc-for list="{{ nav.e5 }}" as="n" hint-placeholder-count="6"><div style="height:42px;border-radius:11px;padding:0 10px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:{{ n.w }};background:{{ n.bg }};border:{{ n.b }}"><span style="width:22px;text-align:center;font-size:14px">{{ n.i }}</span>{{ n.t }}</div></sc-for>
+</div>
+<div style="flex:1;padding:32px 40px;display:flex;flex-direction:column;gap:22px;min-width:0">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:30px;font-weight:800;letter-spacing:-.03em">Device</div><div style="height:44px;padding:0 18px;border-radius:12px;border:1.5px solid #1D1D1B;background:#F8D98B;box-shadow:4px 4px 0 -1.5px #F8F7F4,4px 4px 0 0 #1D1D1B;font-size:14px;font-weight:800;display:flex;align-items:center">+ Daftarkan Device</div></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+<sc-for list="{{ devices }}" as="d" hint-placeholder-count="3">
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:18px;box-shadow:5px 5px 0 -1.5px {{ d.under }},5px 5px 0 0 #1D1D1B;display:flex;flex-direction:column;overflow:hidden">
+<div style="padding:16px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div style="display:flex;gap:12px;align-items:center"><span style="width:42px;height:42px;border-radius:11px;border:1.5px dashed #1D1D1B;background:{{ d.under }};display:flex;align-items:center;justify-content:center;flex:none">▭</span><div><div style="font-size:15px;font-weight:800">{{ d.name }}</div><div style="font-family:'Geist Mono',monospace;font-size:11px;color:#5F5E5A;margin-top:3px">v{{ d.ver }} · {{ d.hb }}</div></div></div><span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;border:1.5px solid #1D1D1B;background:{{ d.sbg }};white-space:nowrap">{{ d.status }}</span></div>
+<div style="margin:0 18px;font-size:13px;border:1.5px dashed #1D1D1B;border-radius:11px;padding:9px 12px"><span style="color:#5F5E5A">Event · </span><b>{{ d.event }}</b></div>
+<div style="padding:12px 18px;display:flex;flex-direction:column;font-size:13px">
+<div style="display:flex;justify-content:space-between;padding:6px 0"><span style="color:#5F5E5A">Kamera</span><span style="font-weight:600">{{ d.cam }}</span></div>
+<div style="display:flex;justify-content:space-between;padding:6px 0"><span style="color:#5F5E5A">Printer</span><span style="font-weight:600">{{ d.printer }}</span></div>
+<div style="display:flex;justify-content:space-between;padding:6px 0"><span style="color:#5F5E5A">Sisa kertas</span><span style="font-weight:700">{{ d.paper }}</span></div>
+<div style="display:flex;justify-content:space-between;padding:6px 0"><span style="color:#5F5E5A">Antrean upload</span><span style="font-family:'Geist Mono',monospace;font-size:12px">{{ d.queue }}</span></div>
+</div>
+<sc-if value="{{ d.warn }}" hint-placeholder-val="{{ false }}"><div style="margin:0 18px 12px;background:#FCE3C6;border:1.5px solid #1D1D1B;border-radius:11px;padding:9px 12px;font-size:12px;font-weight:700">! Kertas tinggal 18 lembar</div></sc-if>
+<div style="display:flex;border-top:1.5px solid #1D1D1B;margin-top:auto"><span style="flex:1;height:42px;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">Lihat Detail</span><span style="flex:1;height:42px;border-left:1.5px solid #1D1D1B;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">Ganti Event</span><span style="flex:1;height:42px;border-left:1.5px solid #1D1D1B;background:#F7D5CC;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">Nonaktifkan</span></div>
+</div>
+</sc-for>
+</div>
+<div style="background:#D6EEF8;border:1.5px dashed #1D1D1B;border-radius:18px;padding:18px 22px;display:flex;align-items:center;gap:24px;max-width:680px">
+<div style="display:flex;gap:6px"><sc-for list="{{ pairCode }}" as="c" hint-placeholder-count="7"><span style="width:40px;height:50px;border-radius:10px;border:1.5px solid #1D1D1B;background:{{ c.bg }};display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',monospace;font-size:22px">{{ c.t }}</span></sc-for></div>
+<div><div style="font-size:14px;font-weight:800">Kode pairing device baru</div><div style="font-size:12px;color:#3A3936;margin-top:3px;line-height:1.5">Masukkan kode ini di aplikasi booth. Berlaku 10 menit.</div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="E6" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:16px;padding:5px 12px;border-radius:8px">E6</span><span style="font-size:19px;font-weight:600;color:#3A3936">Transaksi Photobox</span></div>
+<div data-screen-label="E6 Transaksi" style="flex:none;width:1440px;height:900px;background:#F8F7F4;overflow:hidden;border-radius:18px;border:1.5px solid #1D1D1B;display:flex">
+<div style="width:236px;flex:none;border-right:1.5px solid #1D1D1B;background:#fff;padding:24px 14px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;padding:0 8px 24px"><span style="width:34px;height:34px;border-radius:9px;border:1.5px solid #1D1D1B;background:#8EDCCB;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">T</span><span style="font-weight:800;font-size:18px;letter-spacing:-.02em">tetra</span></div>
+<sc-for list="{{ nav.e6 }}" as="n" hint-placeholder-count="6"><div style="height:42px;border-radius:11px;padding:0 10px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:{{ n.w }};background:{{ n.bg }};border:{{ n.b }}"><span style="width:22px;text-align:center;font-size:14px">{{ n.i }}</span>{{ n.t }}</div></sc-for>
+</div>
+<div style="flex:1;padding:32px 40px;display:flex;flex-direction:column;gap:18px;min-width:0">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:30px;font-weight:800;letter-spacing:-.03em">Transaksi</div><div style="height:42px;padding:0 16px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;font-size:14px;font-weight:700;display:flex;align-items:center">↓ Export CSV</div></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+<sc-for list="{{ txStats }}" as="s" hint-placeholder-count="4"><div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;box-shadow:5px 5px 0 -1.5px {{ s.bg }},5px 5px 0 0 #1D1D1B;padding:16px 18px"><div style="font-size:12px;font-weight:600;color:#5F5E5A">{{ s.l }}</div><div style="font-size:26px;font-weight:800;letter-spacing:-.03em;margin-top:4px">{{ s.v }}</div></div></sc-for>
+</div>
+<div style="display:flex;gap:8px">
+<sc-for list="{{ txFilters }}" as="f" hint-placeholder-count="4"><span style="height:38px;padding:0 12px;border-radius:11px;border:1.5px solid #1D1D1B;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;background:#fff">{{ f }} <span>▾</span></span></sc-for>
+</div>
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;overflow:hidden">
+<div style="display:grid;grid-template-columns:.6fr 1.1fr 1.7fr .8fr .9fr 1fr .9fr 1fr .5fr;padding:0 20px;height:44px;align-items:center;font-size:12px;font-weight:700;color:#5F5E5A;background:#F8F7F4;border-bottom:1.5px solid #1D1D1B"><span>Waktu</span><span>ID</span><span>Lokasi</span><span>Device</span><span>Layout</span><span>Item</span><span>Nominal</span><span>Status</span><span></span></div>
+<sc-for list="{{ txs }}" as="t" hint-placeholder-count="8">
+<div style="display:grid;grid-template-columns:.6fr 1.1fr 1.7fr .8fr .9fr 1fr .9fr 1fr .5fr;padding:0 20px;height:50px;align-items:center;font-size:13px;border-bottom:1.5px dashed #D6D3CC">
+<span style="font-family:'Geist Mono',monospace;font-size:12px">{{ t.w }}</span><span style="font-family:'Geist Mono',monospace;font-size:12px">{{ t.id }}</span><span>Photobox Mall Botani Square</span><span style="color:#3A3936">Booth 02</span><span>{{ t.l }}</span><span style="color:#3A3936">{{ t.i }}</span><span style="font-weight:700">{{ t.n }}</span>
+<span><span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;border:1.5px solid #1D1D1B;background:{{ t.bg }};white-space:nowrap">{{ t.s }}</span></span>
+<span style="font-size:12px;font-weight:700">Sesi ›</span>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+
+<div id="E7" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:16px;padding:5px 12px;border-radius:8px">E7</span><span style="font-size:19px;font-weight:600;color:#3A3936">Tim &amp; Role · dengan modal undangan</span></div>
+<div data-screen-label="E7 Tim" style="flex:none;width:1440px;height:900px;background:#F8F7F4;overflow:hidden;border-radius:18px;border:1.5px solid #1D1D1B;display:flex;position:relative">
+<div style="width:236px;flex:none;border-right:1.5px solid #1D1D1B;background:#fff;padding:24px 14px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;padding:0 8px 24px"><span style="width:34px;height:34px;border-radius:9px;border:1.5px solid #1D1D1B;background:#8EDCCB;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">T</span><span style="font-weight:800;font-size:18px;letter-spacing:-.02em">tetra</span></div>
+<sc-for list="{{ nav.e7 }}" as="n" hint-placeholder-count="6"><div style="height:42px;border-radius:11px;padding:0 10px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:{{ n.w }};background:{{ n.bg }};border:{{ n.b }}"><span style="width:22px;text-align:center;font-size:14px">{{ n.i }}</span>{{ n.t }}</div></sc-for>
+</div>
+<div style="flex:1;padding:32px 40px;display:grid;grid-template-columns:1fr 420px;gap:20px;align-content:start;min-width:0">
+<div style="grid-column:span 2;display:flex;justify-content:space-between;align-items:center"><div style="font-size:30px;font-weight:800;letter-spacing:-.03em">Tim</div><div style="height:44px;padding:0 18px;border-radius:12px;border:1.5px solid #1D1D1B;background:#F8D98B;box-shadow:4px 4px 0 -1.5px #F8F7F4,4px 4px 0 0 #1D1D1B;font-size:14px;font-weight:800;display:flex;align-items:center">+ Undang Anggota</div></div>
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;overflow:hidden;align-self:start">
+<div style="display:grid;grid-template-columns:1.3fr 1.7fr .8fr 1fr .4fr;padding:0 20px;height:44px;align-items:center;font-size:12px;font-weight:700;color:#5F5E5A;background:#F8F7F4;border-bottom:1.5px solid #1D1D1B"><span>Nama</span><span>Email</span><span>Role</span><span>Aktif</span><span></span></div>
+<sc-for list="{{ team }}" as="m" hint-placeholder-count="5"><div style="display:grid;grid-template-columns:1.3fr 1.7fr .8fr 1fr .4fr;padding:0 20px;height:56px;align-items:center;font-size:13px;border-bottom:1.5px dashed #D6D3CC"><span style="display:flex;align-items:center;gap:10px;font-weight:700"><span style="width:30px;height:30px;border-radius:50%;border:1.5px solid #1D1D1B;background:{{ m.bg }};font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">{{ m.in }}</span>{{ m.n }}</span><span style="color:#3A3936">{{ m.e }}</span><span><span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:8px;border:1.5px solid #1D1D1B;background:{{ m.rb }}">{{ m.r }}</span></span><span style="color:#5F5E5A">{{ m.a }}</span><span style="font-weight:800">···</span></div></sc-for>
+</div>
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;overflow:hidden">
+<div style="padding:14px 18px;font-size:15px;font-weight:800;border-bottom:1.5px dashed #1D1D1B">Hak akses per role</div>
+<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;font-size:11px;font-weight:700;color:#5F5E5A;padding:10px 18px;border-bottom:1.5px solid #1D1D1B;background:#F8F7F4"><span>Fitur</span><span>Owner</span><span>Admin</span><span>Crew</span></div>
+<sc-for list="{{ matrix }}" as="r" hint-placeholder-count="7"><div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;font-size:12px;height:40px;align-items:center;padding:0 18px;border-bottom:1.5px dashed #D6D3CC"><span style="font-weight:600">{{ r.f }}</span><span><span style="font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px;border:1.5px {{ r.s0 }} #1D1D1B;background:{{ r.c0 }}">{{ r.o }}</span></span><span><span style="font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px;border:1.5px {{ r.s1 }} #1D1D1B;background:{{ r.c1 }}">{{ r.a }}</span></span><span><span style="font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:6px;border:1.5px {{ r.s2 }} #1D1D1B;background:{{ r.c2 }}">{{ r.c }}</span></span></div></sc-for>
+</div>
+</div>
+<div style="position:absolute;inset:0;background:rgba(29,29,27,.35);display:flex;align-items:center;justify-content:center">
+<div style="width:440px;background:#fff;border:1.5px solid #1D1D1B;border-radius:22px;box-shadow:6px 6px 0 -1.5px #fff,6px 6px 0 0 #1D1D1B;padding:24px;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:20px;font-weight:800;letter-spacing:-.02em">Undang Anggota</span><span style="width:32px;height:32px;border-radius:9px;border:1.5px solid #1D1D1B;display:flex;align-items:center;justify-content:center;font-size:13px">✕</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Email</span><div style="height:46px;border-radius:12px;border:1.5px solid #1D1D1B;box-shadow:0 0 0 3px #8EDCCB;padding:0 12px;display:flex;align-items:center;font-size:14px">dimas@tetraphotobooth.id</div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Role</span>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="border:1.5px solid #1D1D1B;border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:13px;font-weight:700">Admin</div><div style="font-size:11px;color:#5F5E5A">Kelola event</div></div><span style="width:18px;height:18px;border-radius:50%;border:1.5px solid #1D1D1B"></span></div><div style="border:1.5px solid #1D1D1B;border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;background:#D6EEF8"><div><div style="font-size:13px;font-weight:700">Crew</div><div style="font-size:11px;color:#3A3936">Akses terbatas</div></div><span style="width:18px;height:18px;border-radius:50%;border:1.5px solid #1D1D1B;background:#5DB978;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center">✓</span></div></div>
+</div>
+<div style="height:50px;border-radius:14px;border:1.5px solid #1D1D1B;background:#F8D98B;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:4px">Kirim Undangan</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="E8" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:16px;padding:5px 12px;border-radius:8px">E8</span><span style="font-size:19px;font-weight:600;color:#3A3936">Moderasi (dengan konfirmasi hapus) · Audit Log</span></div>
+<div style="display:flex;gap:48px">
+<div data-screen-label="E8 Moderasi" style="flex:none;width:1440px;height:900px;background:#F8F7F4;overflow:hidden;border-radius:18px;border:1.5px solid #1D1D1B;display:flex;position:relative">
+<div style="width:236px;flex:none;border-right:1.5px solid #1D1D1B;background:#fff;padding:24px 14px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;padding:0 8px 24px"><span style="width:34px;height:34px;border-radius:9px;border:1.5px solid #1D1D1B;background:#8EDCCB;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">T</span><span style="font-weight:800;font-size:18px;letter-spacing:-.02em">tetra</span></div>
+<sc-for list="{{ nav.e8 }}" as="n" hint-placeholder-count="6"><div style="height:42px;border-radius:11px;padding:0 10px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:{{ n.w }};background:{{ n.bg }};border:{{ n.b }}"><span style="width:22px;text-align:center;font-size:14px">{{ n.i }}</span>{{ n.t }}</div></sc-for>
+</div>
+<div style="flex:1;padding:32px 40px;display:flex;flex-direction:column;gap:16px;min-width:0">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:30px;font-weight:800;letter-spacing:-.03em">Moderasi</div><div style="height:42px;padding:0 14px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px">Andi &amp; Sari Wedding <span>▾</span></div></div>
+<div style="display:flex;border:1.5px solid #1D1D1B;border-radius:12px;overflow:hidden;align-self:flex-start;background:#fff"><span style="height:38px;padding:0 18px;background:#CEC8F6;font-size:13px;font-weight:700;display:flex;align-items:center">Foto</span><span style="height:38px;padding:0 18px;border-left:1.5px solid #1D1D1B;font-size:13px;font-weight:600;display:flex;align-items:center">Audit Log</span></div>
+<div style="background:#1D1D1B;color:#fff;border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:16px;font-size:13px"><b>3 dipilih</b><span style="flex:1"></span><span style="font-weight:700;border:1.5px solid #fff;border-radius:8px;padding:4px 10px">Sembunyikan</span><span style="font-weight:700;background:#F7D5CC;color:#1D1D1B;border-radius:8px;padding:5px 11px">Hapus</span><span style="opacity:.7">Batal</span></div>
+<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px">
+<sc-for list="{{ modGrid }}" as="g" hint-placeholder-count="12"><div style="aspect-ratio:2/3;border-radius:12px;position:relative;border:{{ g.b }};background:repeating-linear-gradient(135deg,#EFEDE8 0 8px,#E6E3DD 8px 16px);opacity:{{ g.op }}">
+<span style="position:absolute;top:8px;left:8px;width:22px;height:22px;border-radius:6px;background:{{ g.cb }};border:1.5px solid #1D1D1B;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">{{ g.ck }}</span>
+<sc-if value="{{ g.hidden }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:8px;right:8px;bottom:8px;background:#fff;border:1.5px solid #1D1D1B;border-radius:9px;padding:6px 8px;font-size:11px;font-weight:700;display:flex;flex-direction:column;gap:2px"><span>Disembunyikan</span><span style="text-decoration:underline">Tampilkan lagi</span></div></sc-if>
+<sc-if value="{{ g.hover }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:8px;right:8px;bottom:8px;display:flex;border:1.5px solid #1D1D1B;border-radius:9px;overflow:hidden;background:#fff"><span style="flex:1;height:30px;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center">Sembunyikan</span><span style="flex:1;height:30px;border-left:1.5px solid #1D1D1B;background:#F7D5CC;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center">Hapus</span></div></sc-if>
+</div></sc-for>
+</div>
+</div>
+<div style="position:absolute;inset:0;background:rgba(29,29,27,.35);display:flex;align-items:center;justify-content:center">
+<div style="width:460px;background:#fff;border:1.5px solid #1D1D1B;border-radius:22px;box-shadow:6px 6px 0 -1.5px #fff,6px 6px 0 0 #1D1D1B;padding:24px;display:flex;flex-direction:column;gap:14px">
+<span style="width:52px;height:52px;border-radius:14px;border:1.5px dashed #1D1D1B;background:#F7D5CC;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800">!</span>
+<div style="font-size:20px;font-weight:800;letter-spacing:-.02em">Hapus permanen 3 foto?</div>
+<div style="font-size:14px;color:#5F5E5A">Tindakan ini tidak bisa dibatalkan</div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Alasan *</span><div style="height:80px;border-radius:12px;border:1.5px solid #1D1D1B;box-shadow:0 0 0 3px #8EDCCB;padding:10px 12px;font-size:14px">Permintaan klien, foto tidak pantas</div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px"><span style="height:46px;border-radius:12px;border:1.5px solid #1D1D1B;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center">Batal</span><span style="height:46px;border-radius:12px;border:1.5px solid #1D1D1B;background:#E8836F;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center">Hapus Permanen</span></div>
+</div>
+</div>
+</div>
+
+<div data-screen-label="E8 Audit Log" style="flex:none;width:1440px;height:900px;background:#F8F7F4;overflow:hidden;border-radius:18px;border:1.5px solid #1D1D1B;display:flex">
+<div style="width:236px;flex:none;border-right:1.5px solid #1D1D1B;background:#fff;padding:24px 14px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;padding:0 8px 24px"><span style="width:34px;height:34px;border-radius:9px;border:1.5px solid #1D1D1B;background:#8EDCCB;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">T</span><span style="font-weight:800;font-size:18px;letter-spacing:-.02em">tetra</span></div>
+<sc-for list="{{ nav.e8 }}" as="n" hint-placeholder-count="6"><div style="height:42px;border-radius:11px;padding:0 10px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:{{ n.w }};background:{{ n.bg }};border:{{ n.b }}"><span style="width:22px;text-align:center;font-size:14px">{{ n.i }}</span>{{ n.t }}</div></sc-for>
+</div>
+<div style="flex:1;padding:32px 40px;display:flex;flex-direction:column;gap:16px;min-width:0">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:30px;font-weight:800;letter-spacing:-.03em">Moderasi</div><div style="height:42px;padding:0 14px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px">Andi &amp; Sari Wedding <span>▾</span></div></div>
+<div style="display:flex;border:1.5px solid #1D1D1B;border-radius:12px;overflow:hidden;align-self:flex-start;background:#fff"><span style="height:38px;padding:0 18px;font-size:13px;font-weight:600;display:flex;align-items:center">Foto</span><span style="height:38px;padding:0 18px;border-left:1.5px solid #1D1D1B;background:#CEC8F6;font-size:13px;font-weight:700;display:flex;align-items:center">Audit Log</span></div>
+<div style="background:#fff;border:1.5px solid #1D1D1B;border-radius:16px;padding:8px 24px">
+<sc-for list="{{ audit }}" as="a" hint-placeholder-count="5">
+<div style="display:flex;gap:18px">
+<div style="display:flex;flex-direction:column;align-items:center;padding-top:16px"><span style="width:36px;height:36px;border-radius:10px;border:1.5px dashed #1D1D1B;background:{{ a.bg }};display:flex;align-items:center;justify-content:center;font-size:14px;flex:none">{{ a.i }}</span><span style="flex:1;border-left:1.5px dashed #1D1D1B;opacity:{{ a.line }}"></span></div>
+<div style="flex:1;display:grid;grid-template-columns:1.4fr 1fr 1.8fr;gap:16px;align-items:center;padding:16px 0;border-bottom:{{ a.bb }}">
+<div><div style="font-size:14px;font-weight:700">{{ a.a }}</div><div style="font-size:12px;color:#5F5E5A;margin-top:3px">oleh <b style="color:#1D1D1B">{{ a.u }}</b></div></div>
+<span style="font-family:'Geist Mono',monospace;font-size:12px">{{ a.g }}</span>
+<div style="display:flex;justify-content:space-between;gap:12px"><span style="font-size:13px;color:#3A3936">{{ a.r }}</span><span style="font-family:'Geist Mono',monospace;font-size:11.5px;color:#5F5E5A;white-space:nowrap">{{ a.t }}</span></div>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const mint = '#D6F1EA', lav = '#CEC8F6', peach = '#FCE3C6', sky = '#D6EEF8', butter = '#F8D98B', coral = '#F7D5CC', grey = '#EFEDE8';
+    const items = [['Event', '◷'], ['Template', '▦'], ['Device', '▭'], ['Transaksi', '⇄'], ['Tim', '☺'], ['Moderasi', '⚑']];
+    const navFor = a => items.map(([t, i]) => ({ t, i, w: t === a ? 700 : 500, bg: t === a ? butter : 'transparent', b: t === a ? '1.5px solid #1D1D1B' : '1.5px solid transparent' }));
+    const st = { Berlangsung: [mint, 'solid'], Mendatang: [lav, 'solid'], Selesai: [grey, 'solid'], Arsip: ['#fff', 'dashed'], Berhasil: [mint], Menunggu: [butter], Kedaluwarsa: [grey], Gagal: [coral] };
+    const ic = [peach, sky, lav, mint, peach, grey];
+    const ev = (name, date, mode, device, sesi, status, ret, i) => ({ name, date, mode, device, sesi, status, ret, ic: ic[i], mbg: mode === 'Photobox' ? lav : sky, sbg: st[status][0], sb: st[status][1] });
+    const tx = (w, id, l, i, n, s) => ({ w, id, l, i, n, s, bg: st[s][0] });
+    const acc = v => v === 'Penuh' ? [mint, 'solid'] : v === 'Lihat' ? [sky, 'solid'] : ['#fff', 'dashed'];
+    const mx = (f, o, a, c) => { const [c0, s0] = acc(o), [c1, s1] = acc(a), [c2, s2] = acc(c); return { f, o, a, c, c0, s0, c1, s1, c2, s2 }; };
+    const P = (n, x, y, w, h, sel) => ({ n, x: x + 'px', y: y + 'px', w: w + 'px', h: h + 'px', o: sel ? '2px solid #1D1D1B' : '1px dashed #9A9892' });
+    const rs = (id, t, s) => ({ id, t, s, bg: s === 'Terkirim' ? mint : butter });
+    const audits = [
+      { t: '12 Okt · 22.14', u: 'Fikri', a: 'Hapus foto', g: 'SES-0398 · 3 foto', r: 'Permintaan klien, foto tidak pantas', bg: coral, i: '✕' },
+      { t: '12 Okt · 21.50', u: 'Fikri', a: 'Sembunyikan foto', g: 'SES-0377', r: 'Mata tertutup, diminta tamu', bg: grey, i: '◌' },
+      { t: '12 Okt · 20.05', u: 'Rama', a: 'Buat ulang link klien', g: 'andi-sari-8KQ2', r: 'Link lama tersebar di grup', bg: lav, i: '↻' },
+      { t: '11 Okt · 16.30', u: 'Nadia', a: 'Export lead', g: 'Gathering PT Nusantara', r: 'Diminta PIC brand', bg: butter, i: '↓' },
+      { t: '10 Okt · 10.12', u: 'Rama', a: 'Sembunyikan foto', g: 'SES-0211', r: 'Duplikat', bg: grey, i: '◌' },
+    ];
+    return {
+      loginCards: [
+        { t: 'Booth 01 · Online', d: 'Andi & Sari Wedding · 412 sesi', bg: mint, i: '▭', ml: '0px' },
+        { t: 'Rp 1.240.000 hari ini', d: 'Photobox Mall Botani Square', bg: butter, i: '⇄', ml: '48px' },
+        { t: '287 QR dibuka', d: '70% dari total sesi', bg: lav, i: '◷', ml: '16px' },
+      ],
+      nav: { e1: navFor('Event'), e5: navFor('Device'), e6: navFor('Transaksi'), e7: navFor('Tim'), e8: navFor('Moderasi') },
+      tabs: ['Semua', 'Mendatang', 'Berlangsung', 'Selesai'].map((t, i) => ({ t, w: i === 0 ? 700 : 600, bg: i === 0 ? lav : 'transparent', bl: i === 0 ? 'none' : '1.5px solid #1D1D1B' })),
+      events: [
+        ev('Andi & Sari Wedding', '12 Okt 2026', 'Event', 'Booth 01 – Asus', 412, 'Berlangsung', '—', 0),
+        ev('Photobox Mall Botani Square', '1–31 Okt 2026', 'Photobox', 'Booth 02 – Lenovo', 1086, 'Berlangsung', '—', 1),
+        ev('Gathering PT Nusantara', '19 Okt 2026', 'Event', 'Booth 03 – HP', 0, 'Mendatang', '—', 2),
+        ev('Wisuda IPB', '26 Okt 2026', 'Event', 'Booth 01 – Asus', 0, 'Mendatang', '—', 3),
+        ev('Rina & Bagas Wedding', '28 Sep 2026', 'Event', 'Booth 03 – HP', 356, 'Selesai', '74 hari lagi', 4),
+        ev('Launching Kopi Senja', '2 Agu 2026', 'Photobox', 'Booth 02 – Lenovo', 208, 'Arsip', 'Dihapus', 5),
+      ],
+      stats: [{ l: 'Total sesi', v: '412', x: '', bg: peach, i: '◷' }, { l: 'Lembar dicetak', v: '698', x: '', bg: sky, i: '▤' }, { l: 'QR dibuka', v: '287', x: '70%', bg: lav, i: '▦' }, { l: 'Rata-rata foto → print', v: '14 dtk', x: '', bg: mint, i: '⚡' }],
+      hours: [['17.00', 12], ['18.00', 38], ['19.00', 74], ['20.00', 96], ['21.00', 88], ['22.00', 62], ['23.00', 30], ['00.00', 12]].map(([t, v]) => ({ t, v, h: v + '%', c: v === 96 ? '#8EDCCB' : sky })),
+      funnel: [{ l: 'Sesi', v: '412', w: '100%', c: sky }, { l: 'QR dibuka', v: '287 · 70%', w: '70%', c: lav }, { l: 'Disimpan ke HP', v: '231 · 56%', w: '56%', c: '#8EDCCB' }],
+      recent: [rs('SES-0412', '21.48', 'Menunggu upload'), rs('SES-0411', '21.46', 'Terkirim'), rs('SES-0410', '21.43', 'Terkirim'), rs('SES-0409', '21.41', 'Terkirim')],
+      infoFields: [{ l: 'Nama event', v: 'Andi & Sari Wedding' }, { l: 'Tanggal', v: '12 Oktober 2026' }, { l: 'Venue', v: 'Gedung Kirana, Bogor' }, { l: 'Nama klien', v: 'Andi Pratama & Sari Wulandari' }, { l: 'Jenis event', v: 'Wedding' }],
+      sesiFields: [
+        { l: 'Layout', v: '4R Grid', u: '▾', c: '#1D1D1B', bs: 'solid', bg: '#fff' }, { l: 'Foto per sesi', v: '4', u: 'foto', c: '#1D1D1B', bs: 'solid', bg: '#fff' }, { l: 'Timer sesi', v: 'Nonaktif', u: 'detik', c: '#8A8883', bs: 'dashed', bg: '#F8F7F4' },
+        { l: 'Maks. cetak per sesi', v: '4', u: 'lembar', c: '#1D1D1B', bs: 'solid', bg: '#fff' }, { l: 'Harga lembar tambahan', v: 'Khusus photobox', u: 'Rp', c: '#8A8883', bs: 'dashed', bg: '#F8F7F4' }, { l: 'Retake per foto', v: '1', u: 'kali', c: '#1D1D1B', bs: 'solid', bg: '#fff' },
+      ],
+      guestToggles: [{ l: 'Lead capture', d: 'Minta nama & WhatsApp sebelum lihat foto', bg: '#fff', x: '2.5px' }, { l: 'Animasi', d: 'Tampilkan GIF/boomerang di halaman tamu', bg: '#8EDCCB', x: '20px' }],
+      tplList: [{ n: '4R Grid', m: '4x6 · 4 slot', bg: sky, bs: 'solid' }, { n: 'Strip Klasik', m: '2x6 · 3 slot', bg: '#fff', bs: 'dashed' }, { n: '4R Single', m: '4x6 · 1 slot', bg: '#fff', bs: 'dashed' }],
+      tplSlots: [P(1, 24, 24, 188, 252, true), P(2, 228, 24, 188, 252), P(3, 24, 292, 188, 252), P(4, 228, 292, 188, 252)],
+      slotProps: [{ l: 'X', v: '72' }, { l: 'Y', v: '72' }, { l: 'Lebar', v: '564' }, { l: 'Tinggi', v: '756' }, { l: 'Rotasi', v: '0°' }],
+      devices: [
+        { name: 'Booth 01 – Laptop Asus', ver: '1.2.0', hb: '5 dtk lalu', status: '● Online', sbg: mint, under: mint, event: 'Andi & Sari Wedding', cam: 'Canon 700D · OK', printer: 'DNP RX1HS · Siap', paper: '142 lembar', queue: '0 sesi', warn: false },
+        { name: 'Booth 02 – Lenovo', ver: '1.2.0', hb: '12 dtk lalu', status: '● Online', sbg: mint, under: peach, event: 'Photobox Mall Botani', cam: 'Canon 60D · OK', printer: 'DNP RX1HS · Siap', paper: '18 lembar', queue: '2 sesi', warn: true },
+        { name: 'Booth 03 – HP', ver: '1.1.4', hb: 'terakhir 14.20', status: 'Offline sejak 14.20', sbg: grey, under: grey, event: 'Gathering PT Nusantara', cam: 'Canon 70D · —', printer: 'DNP RX1HS · —', paper: '300 lembar', queue: '37 sesi', warn: false },
+      ],
+      pairCode: ['K', '7', 'Q', '–', '4', 'Z', 'P'].map(t => ({ t, bg: t === '–' ? 'transparent' : '#fff' })),
+      txStats: [{ l: 'Pendapatan hari ini', v: 'Rp 1.240.000', bg: butter }, { l: 'Transaksi', v: '38', bg: sky }, { l: 'Sukses', v: '97%', bg: mint }, { l: 'Kedaluwarsa / gagal', v: '3', bg: coral }],
+      txFilters: ['24 Okt 2026', 'Semua lokasi', 'Semua device', 'Semua status'],
+      txs: [
+        tx('16.42', 'TRX-8F21A', '4R Grid', 'Paket', 'Rp 35.000', 'Berhasil'),
+        tx('16.44', 'TRX-8F21B', '4R Grid', '+1 lembar', 'Rp 10.000', 'Berhasil'),
+        tx('16.31', 'TRX-8F1F9', 'Strip Duo', 'Paket', 'Rp 40.000', 'Menunggu'),
+        tx('16.20', 'TRX-8F1E2', 'Strip Klasik', 'Paket', 'Rp 25.000', 'Kedaluwarsa'),
+        tx('16.08', 'TRX-8F1C7', '4R Single', 'Paket', 'Rp 30.000', 'Berhasil'),
+        tx('15.52', 'TRX-8F1A0', '4R Grid', 'Paket', 'Rp 35.000', 'Gagal'),
+        tx('15.40', 'TRX-8F19C', 'Strip Klasik', 'Paket', 'Rp 25.000', 'Berhasil'),
+        tx('15.33', 'TRX-8F193', '4R Grid', '+2 lembar', 'Rp 20.000', 'Berhasil'),
+      ],
+      team: [
+        { n: 'Rama', in: 'R', bg: peach, e: 'rama@tetraphotobooth.id', r: 'Owner', rb: butter, a: 'Baru saja' },
+        { n: 'Nadia', in: 'N', bg: lav, e: 'nadia@tetraphotobooth.id', r: 'Owner', rb: butter, a: '2 jam lalu' },
+        { n: 'Fikri', in: 'F', bg: sky, e: 'fikri@tetraphotobooth.id', r: 'Admin', rb: lav, a: 'Kemarin' },
+        { n: 'Yoga', in: 'Y', bg: mint, e: 'yoga@tetraphotobooth.id', r: 'Crew', rb: sky, a: '12 Okt 2026' },
+        { n: 'Tia', in: 'T', bg: coral, e: 'tia@tetraphotobooth.id', r: 'Crew', rb: sky, a: '12 Okt 2026' },
+      ],
+      matrix: [mx('Event', 'Penuh', 'Penuh', 'Lihat'), mx('Template', 'Penuh', 'Penuh', 'Tidak'), mx('Device', 'Penuh', 'Penuh', 'Lihat'), mx('Transaksi', 'Penuh', 'Lihat', 'Tidak'), mx('Tim & Billing', 'Penuh', 'Tidak', 'Tidak'), mx('Moderasi', 'Penuh', 'Penuh', 'Tidak'), mx('Export Lead', 'Penuh', 'Penuh', 'Tidak')],
+      modGrid: Array.from({ length: 12 }, (_, i) => {
+        const sel = [1, 4, 8].includes(i), hidden = i === 6 || i === 10;
+        return { b: sel ? '2.5px solid #1D1D1B' : '1.5px solid #1D1D1B', op: hidden ? 0.6 : 1, cb: sel ? '#5DB978' : '#fff', ck: sel ? '✓' : '', hidden, hover: i === 3 };
+      }),
+      audit: audits.map((a, i) => ({ ...a, line: i === audits.length - 1 ? 0 : 1, bb: i === audits.length - 1 ? 'none' : '1.5px dashed #D6D3CC' })),
+    };
+  }
+}
+</script>
+</body>
+</html>

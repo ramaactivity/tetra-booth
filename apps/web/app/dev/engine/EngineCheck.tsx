@@ -22,7 +22,7 @@ export function EngineCheck() {
   }, []);
   return (
     <div className="flex flex-col gap-2 text-xs text-muted">
-      <canvas ref={ref} width={300} height={450} className="border border-line bg-surface" />
+      <canvas ref={ref} width={300} height={450} className="border border-line-soft bg-white" />
       <code data-testid="hash" className="break-all">
         {hash}
       </code>

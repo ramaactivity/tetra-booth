@@ -1,5 +1,5 @@
 import { newSessionId } from "@tetra/shared";
-import { useEffect, useReducer, useRef } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { composeStrip } from "./compose";
 import { copy } from "./copy";
 import { errText } from "./errors";
@@ -10,18 +10,12 @@ import { Attract } from "./screens/Attract";
 import { Capturing } from "./screens/Capturing";
 import { Countdown } from "./screens/Countdown";
 import { LiveView } from "./screens/LiveView";
-import { Message } from "./screens/Message";
+import { CameraError, Message } from "./screens/Message";
 import { PhotoPreview } from "./screens/PhotoPreview";
 import { PrintSelect } from "./screens/PrintSelect";
 import { Qr } from "./screens/Qr";
 import { Review } from "./screens/Review";
-import {
-  canRetake,
-  initialSession,
-  type Photo,
-  type SessionEvent,
-  sessionReducer,
-} from "./session";
+import { initialSession, type Photo, type SessionEvent, sessionReducer } from "./session";
 
 const RECONNECT_EVERY_MS = 2000;
 /** Mode demo: jeda "tamu" di layar yang butuh sentuhan (dipersingkat di mode cepat stress test). */
@@ -57,6 +51,8 @@ export function SessionRunner({
   const cfg = event.settings;
   const [s, dispatch] = useReducer(sessionReducer, initialSession);
   const urls = useRef<string[]>([]);
+  /** Percobaan sambung ulang kamera yang gagal, untuk layar A10. */
+  const [reconnects, setReconnects] = useState(0);
   const send = (e: SessionEvent) => () => dispatch(e);
 
   // Log setiap transisi (TSD §1) + kabari shell.
@@ -122,6 +118,7 @@ export function SessionRunner({
   useEffect(() => {
     if (s.phase !== "camera_error") return;
     let live = true;
+    setReconnects(0);
     let timer: ReturnType<typeof setTimeout>;
     const tryReconnect = () =>
       p.camera
@@ -129,6 +126,7 @@ export function SessionRunner({
         .then(() => live && dispatch({ type: "CAMERA_READY" }))
         .catch((e: unknown) => {
           console.warn(`[session] reconnect gagal: ${errText(e)}`);
+          if (live) setReconnects((n) => n + 1);
           if (live) timer = setTimeout(tryReconnect, RECONNECT_EVERY_MS);
         });
     timer = setTimeout(tryReconnect, RECONNECT_EVERY_MS);
@@ -209,17 +207,33 @@ export function SessionRunner({
         copies: s.prints,
         paper: event.layout.paper,
       })
-      .catch((e: unknown) =>
-        console.warn(`[session] cetak gagal, sesi tetap lanjut: ${errText(e)}`),
-      )
-      .finally(() => dispatch({ type: "PRINT_DONE" }));
+      .then(
+        () => dispatch({ type: "PRINT_DONE", ok: true }),
+        (e: unknown) => {
+          console.warn(`[session] cetak gagal, sesi tetap lanjut: ${errText(e)}`);
+          dispatch({ type: "PRINT_DONE", ok: false });
+        },
+      );
   }, [p, s.phase, s.strip, s.sessionId, s.prints, event.layout.paper]);
+
+  // Hasil akhir cetak sesi ini (event Camera Service) → layar A8 "Sudah tercetak" atau A11.
+  useEffect(() => {
+    if (!s.sessionId) return;
+    const id = s.sessionId;
+    return p.crew.onPrintUpdated((u) => {
+      if (u.jobId === id) dispatch({ type: "PRINT_RESULT", ok: u.ok });
+    });
+  }, [p, s.sessionId]);
 
   const shooting = s.phase === "countdown" || s.phase === "capture";
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-bg">
+    <div className="relative h-full w-full overflow-hidden bg-paper">
       {shooting && <LiveView />}
-      <div key={s.phase} className="absolute inset-0 animate-[enter_250ms_ease-out]">
+      {/* printing → qr satu layar (A8): jangan animasi masuk dua kali. */}
+      <div
+        key={s.phase === "printing" ? "qr" : s.phase}
+        className="absolute inset-0 animate-[enter_250ms_ease-out]"
+      >
         {screen()}
       </div>
     </div>
@@ -232,6 +246,7 @@ export function SessionRunner({
         return (
           <Attract
             eventName={event.name}
+            date={event.date}
             onStart={() => dispatch(startEvent(event))}
             onCrew={onCrew}
           />
@@ -242,21 +257,22 @@ export function SessionRunner({
             key={`${s.index}-${s.retakesUsed[s.index]}`}
             seconds={cfg.countdownSec}
             index={s.index}
-            total={s.slots}
+            photos={s.photos}
             onDone={send({ type: "COUNTDOWN_DONE" })}
           />
         );
       case "capture":
-        return <Capturing />;
+        return <Capturing index={s.index} total={s.slots} />;
       case "preview":
         return photo ? <PhotoPreview url={photo.url} index={s.index} total={s.slots} /> : null;
       case "camera_error":
-        return <Message>{copy.camera.preparing}</Message>;
+        return <CameraError attempt={reconnects + 1} />;
       case "review":
         return (
           <Review
             photos={s.photos}
-            canRetake={(i) => canRetake(s, i)}
+            retakesUsed={s.retakesUsed}
+            retakeMax={s.retakeMax}
             onRetake={(index) => dispatch({ type: "RETAKE", index })}
             onNext={send({ type: "CONTINUE" })}
           />
@@ -272,9 +288,18 @@ export function SessionRunner({
           />
         ) : null;
       case "printing":
-        return <Message image={s.strip?.url}>{copy.print.busy}</Message>;
       case "qr":
-        return <Qr url={`${guestBaseUrl}/s/${s.sessionId}`} onDone={send({ type: "FINISH" })} />;
+        return (
+          <Qr
+            url={`${guestBaseUrl}/s/${s.sessionId}`}
+            stripUrl={s.strip?.url}
+            sheets={s.prints}
+            counting={s.phase === "qr"}
+            seconds={cfg.qrScreenSec}
+            print={s.print}
+            onDone={send({ type: "FINISH" })}
+          />
+        );
     }
   }
 }

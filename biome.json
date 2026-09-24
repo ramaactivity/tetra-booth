@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!packages/db/src/database.types.ts"]
+    "includes": ["**", "!packages/db/src/database.types.ts", "!docs/design"]
   },
   "formatter": {
     "indentStyle": "space",

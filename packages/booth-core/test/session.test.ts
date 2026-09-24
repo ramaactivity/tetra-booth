@@ -40,14 +40,50 @@ describe("sessionReducer", () => {
         { type: "CONTINUE" },
         { type: "COMPOSED", strip: { path: "/s/strip.jpg", url: "blob:s" } },
         { type: "PRINTS_SELECTED", count: 2 },
-        { type: "PRINT_DONE" },
+        { type: "PRINT_DONE", ok: true },
       ],
       review,
     );
     expect(qr.phase).toBe("qr");
     expect(qr.prints).toBe(2);
+    expect(qr.print).toBe("pending");
     expect(qr.sessionId).toBe("abc");
     expect(sessionReducer(qr, { type: "FINISH" })).toEqual(initialSession);
+  });
+
+  it("hasil cetak: event bisa datang sebelum balasan submit; gagal tidak tertimpa", () => {
+    const printing = run([
+      start,
+      ...shootAll,
+      { type: "CONTINUE" },
+      { type: "COMPOSED", strip: { path: "/s/strip.jpg", url: "blob:s" } },
+      { type: "PRINTS_SELECTED", count: 1 },
+    ]);
+    expect(
+      run(
+        [
+          { type: "PRINT_RESULT", ok: true },
+          { type: "PRINT_DONE", ok: true },
+        ],
+        printing,
+      ).print,
+    ).toBe("done");
+    expect(
+      run(
+        [
+          { type: "PRINT_RESULT", ok: false },
+          { type: "PRINT_DONE", ok: true },
+        ],
+        printing,
+      ).print,
+    ).toBe("failed");
+    expect(run([{ type: "PRINT_DONE", ok: false }], printing)).toMatchObject({
+      phase: "qr",
+      print: "failed",
+    });
+    expect(sessionReducer(initialSession, { type: "PRINT_RESULT", ok: false }).print).toBe(
+      "pending",
+    );
   });
 
   it("preview antar foto menaikkan index; foto terakhir ke review", () => {

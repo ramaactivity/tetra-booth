@@ -81,7 +81,7 @@ tetra-booth/
 │  ├─ platform-electron/       # adapter BoothPlatform untuk Electron
 │  ├─ template-engine/         # render strip (dipakai booth & admin)
 │  ├─ shared/                  # tipe, skema zod, konstanta, protokol camera service
-│  ├─ ui/                      # design tokens (08-DESIGN.md) + komponen bersama
+│  ├─ ui/                      # design tokens v2 (08-DESIGN.md) + komponen bersama
 │  └─ db/                      # tipe hasil generate Supabase + helper
 └─ supabase/                   # config Supabase CLI + migrations/ + seed.sql
 ```
