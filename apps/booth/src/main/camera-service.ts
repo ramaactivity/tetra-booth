@@ -23,6 +23,22 @@ function findBinary(): string | undefined {
   return candidates.find((p): p is string => !!p && existsSync(p));
 }
 
+/** Health berulang tiap 150 ms sampai berhasil atau batas waktu habis. */
+async function waitHealthy(timeoutMs: number): Promise<boolean> {
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    if (
+      await cameraHealth().then(
+        () => true,
+        () => false,
+      )
+    )
+      return true;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return false;
+}
+
 const freePort = () =>
   new Promise<number>((resolve, reject) => {
     const srv = createServer();
@@ -70,6 +86,12 @@ export async function startCameraService(log: (m: string) => void, db: BoothDb, 
     log,
   });
   sup.start();
+  // Tunggu service siap sebelum jendela dibuka, supaya health pertama di renderer tidak gagal palsu (M-008).
+  const t0 = Date.now();
+  const ready = await waitHealthy(5000);
+  log(
+    `[supervisor] Camera Service ${ready ? `siap dalam ${Date.now() - t0} ms` : "belum siap setelah 5 s, booth tetap jalan"}`,
+  );
   const stopEvents = watchPrintEvents(log, db, alerts);
   app.on("will-quit", () => {
     stopEvents();

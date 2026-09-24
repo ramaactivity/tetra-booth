@@ -68,7 +68,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   3. Preview foto tidak di-mirror padahal live view di-mirror (keputusan UX).
   4. Portrait 450×800: thumbnail review ±90 px dengan setengah layar kosong; tombol attract terbungkus 2 baris.
   5. Webcam booth meminta 1920×1080. Max 2560×1920 (lihat M-006). → Terverifikasi beres di W-012: raw 2560×1920, capture → preview 138–287 ms.
-- [ ] **M-008 Temuan W-012 (M2/M3 di Windows).**
+- [x] **M-008 Temuan W-012 (M2/M3 di Windows).** → Selesai (Mac): (1) `parseFlags` menerima `--nama nilai` dan `--nama=nilai`, flag nilai tanpa nilai → `WARN [config] … butuh nilai` di log; (2) main menunggu health pertama Camera Service (maks 5 s, Mac 447 ms) sebelum membuka jendela; (3) sudah beres di M-007 (`3feeaaf`), W-012 diuji di basis sebelumnya.
   1. Flag booth hanya membaca `--flag=value`. `--printer "Microsoft Print to PDF"` (bentuk spasi, dipakai di WINDOWS.md §5 dan W-013) diabaikan tanpa pesan, jadi booth jalan tanpa printer. Perbaiki parser (terima `--flag value`) atau dokumen, dan sebaiknya log peringatan kalau flag dikenal tanpa nilai.
   2. Race saat boot: renderer memanggil `health` ±200 ms setelah spawn, Camera Service Windows baru siap ±0,5 s. Setiap boot mencatat `ERROR … Camera Service tidak terhubung` + `R-WARN [boot] camera service: tidak terhubung`. Tunggu `[camera] … siap`/health pertama supervisor sebelum health renderer, atau ulangi.
   3. `print_jobs` tetap `queued` walau PDF sudah jadi, karena `print.done`/`print.failed` tidak pernah sampai ke booth (sama dengan M-007 no. 1).
@@ -77,6 +77,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-24 | Mac | Merge W-012. M-008 selesai (parser flag dua bentuk, tunggu Camera Service siap sebelum jendela). |
 | 2026-09-24 | Mac | M6 mode crew di `main`: PIN (scrypt, kunci 60 s), event dari bundle lokal (+overlay/font), cek kamera, test print, counter kertas (berkurang saat print.done, peringatan ≤ 30), cetak gagal + cetak ulang, peringatan printer di pojok layar. E2E Playwright-Electron (`pnpm --filter booth e2e`) + CI (xvfb). W-014 ditambahkan. |
 | 2026-09-24 | Windows | W-012 selesai: M2 lulus (WAL, 9 aset/sesi, prioritas upload 0/1/2, print_jobs queued, abandoned setelah kill, log harian main+renderer). Webcam dengan M-006: raw 2560×1920, capture → preview 138–287 ms. Temuan M-008. Laporan: `docs/reports/windows/2026-09-24-m2-penyimpanan.md`. |
 | 2026-09-24 | Mac | Merge W-011. CI merah sejak W-009 diperbaiki: test B Print to PDF sadar driver (runner CI punya 4×6 → wajib PDF 4×6). M-007 selesai. W-013 ditambah uji event print & portrait. |
