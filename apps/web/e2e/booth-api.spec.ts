@@ -30,6 +30,7 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
   expect(error).toBeNull();
   // IP uji unik per run: rate limit pair per IP (10 / 10 menit) tidak terbawa antar-run.
   const ip = { "x-forwarded-for": `e2e-${code}` };
+  let eventId = "";
   try {
     expect(
       (await request.post("/api/booth/pair", { headers: ip, data: { code: "12" } })).status(),
@@ -60,6 +61,48 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
     expect(row).toMatchObject({ app_version: "0.0.1-e2e", status: { printer: "ok" } });
     expect(row?.last_seen_at).toBeTruthy();
 
+    // N3: event bertanda bundle yang ditugaskan → daftar + manifest; event lain → 404.
+    const { data: ev } = await db
+      .from("events")
+      .insert({
+        organization_id: org?.id ?? "",
+        name: "e2e event",
+        mode: "event",
+        event_date: "2026-10-12",
+        bundle_version: 2,
+        bundle: {
+          config: { name: "e2e event" },
+          files: [{ file: "overlay.png", sha256: "a".repeat(64), key: "o/e/bundle/aaa.png" }],
+        },
+      })
+      .select("id")
+      .single();
+    eventId = ev?.id ?? "";
+    expect(
+      (await (await request.get("/api/booth/events", { headers: auth })).json()).events,
+    ).toEqual([]);
+    await db
+      .from("event_devices")
+      .insert({ organization_id: org?.id ?? "", event_id: eventId, device_id: deviceId });
+    expect(
+      (await (await request.get("/api/booth/events", { headers: auth })).json()).events,
+    ).toEqual([{ id: eventId, name: "e2e event", bundleVersion: 2 }]);
+    const m = await (
+      await request.get(`/api/booth/events/${eventId}/bundle`, { headers: auth })
+    ).json();
+    expect(m).toMatchObject({ bundleVersion: 2, config: { id: eventId, name: "e2e event" } });
+    expect(m.files[0].url).toMatch(/\/o\/e\/bundle\/aaa\.png$/);
+    expect(
+      (
+        await request.get("/api/booth/events/7c9e6679-7425-40de-944b-e07fc1f90ae7/bundle", {
+          headers: auth,
+        })
+      ).status(),
+    ).toBe(404);
+    expect(
+      (await request.get("/api/booth/events/bukan-uuid/bundle", { headers: auth })).status(),
+    ).toBe(404);
+
     expect(
       (await request.post("/api/booth/heartbeat", { data: { appVersion: "x" } })).status(),
     ).toBe(401);
@@ -75,6 +118,7 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
     const limited = await request.post("/api/booth/pair", { headers: ip, data: { code } });
     expect(limited.status()).toBe(429);
   } finally {
+    if (eventId) await db.from("events").delete().eq("id", eventId);
     await db
       .from("devices")
       .delete()

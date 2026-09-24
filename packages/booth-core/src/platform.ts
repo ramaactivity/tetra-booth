@@ -84,6 +84,8 @@ export interface BoothCrew {
   setAutoStart(on: boolean): Promise<{ enabled: boolean; supported: boolean }>;
   /** Pasangkan booth ke cloud dengan kode 6 digit dari owner (FSD §1.2); gagal → Error berpesan untuk crew. */
   pair(code: string): Promise<CloudDevice>;
+  /** Tarik bundle event yang ditugaskan dari cloud; kembalikan jumlah event yang diperbarui. */
+  syncEvents(): Promise<number>;
   printerAlert(): Promise<PrinterAlert>;
   onPrinterAlert(cb: (a: PrinterAlert) => void): Unsubscribe;
   /** Setiap print selesai/gagal (menyegarkan kertas & daftar gagal, dan hasil test print di menu crew). */

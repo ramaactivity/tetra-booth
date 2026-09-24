@@ -301,6 +301,7 @@ export type Database = {
       events: {
         Row: {
           branding: NonNullable<Json>
+          bundle: Json | null
           bundle_version: number
           client_expires_at: string | null
           client_token: string | null
@@ -325,6 +326,7 @@ export type Database = {
         }
         Insert: {
           branding?: NonNullable<Json>
+          bundle?: Json | null
           bundle_version?: number
           client_expires_at?: string | null
           client_token?: string | null
@@ -349,6 +351,7 @@ export type Database = {
         }
         Update: {
           branding?: NonNullable<Json>
+          bundle?: Json | null
           bundle_version?: number
           client_expires_at?: string | null
           client_token?: string | null

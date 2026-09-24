@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
@@ -162,11 +163,16 @@ test("kiosk: tidak bisa ditutup, keluar hanya lewat mode crew", async () => {
   await closed;
 });
 
-test("pairing cloud dari mode crew: kode salah, kode benar, heartbeat bertoken", async () => {
+test("cloud dari mode crew: pairing, heartbeat bertoken, sync bundle event", async () => {
   // Server palsu API booth (kontrak @tetra/shared); server asli diuji di apps/web/e2e/booth-api.spec.ts.
   const { createServer } = await import("node:http");
   const TOKEN = "t".repeat(54);
   const beats: string[] = [];
+  const EVENT = "7c9e6679-7425-40de-944b-e07fc1f90ae8";
+  const pngSha = createHash("sha256").update(PNG).digest("hex");
+  const config = JSON.parse(
+    readFileSync(join(makeData(), "events/andi-sari/bundle/config.json"), "utf8"),
+  );
   const server = createServer((req, res) => {
     let body = "";
     req.on("data", (c) => {
@@ -189,6 +195,19 @@ test("pairing cloud dari mode crew: kode salah, kode benar, heartbeat bertoken",
               : { error: "invalid_code" },
           ),
         );
+      } else if (req.url === "/api/booth/events") {
+        res.end(JSON.stringify({ events: [{ id: EVENT, name: "Cloud", bundleVersion: 3 }] }));
+      } else if (req.url === `/api/booth/events/${EVENT}/bundle`) {
+        res.end(
+          JSON.stringify({
+            bundleVersion: 3,
+            config: { ...config, id: EVENT, name: "Rina & Dimas" },
+            files: [{ file: "overlay.png", sha256: pngSha, url: `http://127.0.0.1:${port}/m/ov` }],
+          }),
+        );
+      } else if (req.url === "/m/ov") {
+        res.setHeader("content-type", "image/png");
+        res.end(PNG);
       } else {
         beats.push(req.headers.authorization ?? "");
         res.end(JSON.stringify({ ok: true }));
@@ -225,6 +244,13 @@ test("pairing cloud dari mode crew: kode salah, kode benar, heartbeat bertoken",
   await typePin(w, "123456");
   await expect(w.getByTestId("cloud-device")).toHaveText("Booth Uji · B07");
   await expect.poll(() => beats).toContain(`Bearer ${TOKEN}`);
+
+  // Bundle sudah ditarik otomatis setelah pairing; tombol sync tetap aman dipanggil ulang.
+  await w.getByRole("button", { name: "Ganti Event" }).click();
+  await w.getByRole("button", { name: "Sync dari Cloud" }).click();
+  await w.getByRole("button", { name: /Rina & Dimas/ }).click();
+  await w.getByRole("button", { name: /keluar ke mode tamu/i }).click();
+  await expect(w.getByRole("heading", { name: "Rina & Dimas" })).toBeVisible();
 
   await app.close();
   server.close();

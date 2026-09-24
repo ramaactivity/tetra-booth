@@ -38,13 +38,15 @@ export function BoothApp({
     [p],
   );
 
-  useEffect(() => {
-    (async () => {
-      const list = await p.events.list();
-      setBundles(list);
-      await activate(await p.events.active(), list);
-    })().catch((e: unknown) => console.error(`[event] gagal memuat: ${errText(e)}`));
+  // Muat ulang daftar bundle + event aktif: saat mulai, dan setelah sync dari mode crew (bukan di tengah sesi).
+  const reload = useCallback(async () => {
+    const list = await p.events.list();
+    setBundles(list);
+    await activate(await p.events.active(), list);
   }, [p, activate]);
+  useEffect(() => {
+    reload().catch((e: unknown) => console.error(`[event] gagal memuat: ${errText(e)}`));
+  }, [reload]);
 
   useEffect(() => {
     p.crew.printerAlert().then(setAlert, () => {});
@@ -73,6 +75,7 @@ export function BoothApp({
           event={event}
           bundles={bundles}
           onSelectEvent={select}
+          onReloadEvents={reload}
           onClose={() => setCrewOpen(false)}
         />
       </Stage>

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useState } from "react";
 import { copy } from "../copy";
-import { errText } from "../errors";
+import { crewText, errText } from "../errors";
 import type { BoothEvent } from "../event";
 import { usePlatform } from "../PlatformContext";
 import type { CrewStatus, FailedPrint } from "../platform";
@@ -120,6 +120,7 @@ export function CrewMenu({
   bundles,
   activeId,
   onSelectEvent,
+  onReloadEvents,
   onCameraCheck,
   onChangePin,
   onPair,
@@ -129,6 +130,7 @@ export function CrewMenu({
   bundles: EventBundle[];
   activeId: string;
   onSelectEvent: (id: string) => void;
+  onReloadEvents: () => Promise<void>;
   onCameraCheck: () => void;
   onChangePin: () => void;
   onPair: () => void;
@@ -179,7 +181,7 @@ export function CrewMenu({
         if (done) setNote(done);
         return refresh();
       })
-      .catch((e: unknown) => setNote(errText(e)));
+      .catch((e: unknown) => setNote(crewText(e)));
 
   const printerTone: Tone =
     status?.printer.status === "ready"
@@ -409,6 +411,20 @@ export function CrewMenu({
 
       {sheet === "events" && (
         <Sheet title={copy.crew.changeEvent} onClose={() => setSheet(null)}>
+          {status?.device && (
+            <Button
+              variant="secondary"
+              className={action}
+              onClick={act(async () => {
+                setNote(copy.crew.syncing);
+                const n = await p.crew.syncEvents();
+                await onReloadEvents();
+                setNote(copy.crew.synced(n));
+              })}
+            >
+              {copy.crew.syncEvents}
+            </Button>
+          )}
           <div className="flex flex-col gap-3 overflow-y-auto">
             {[{ id: "local", name: copy.crew.defaultEvent, date: "" }, ...bundles].map((b) => (
               <button

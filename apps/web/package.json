@@ -8,6 +8,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "r2:check": "node --env-file-if-exists=.env.local scripts/r2-check.mjs",
+    "event:push": "node --env-file-if-exists=.env.local scripts/event-push.mjs",
     "e2e": "playwright test"
   },
   "dependencies": {

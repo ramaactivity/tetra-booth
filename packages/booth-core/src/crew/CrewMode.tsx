@@ -13,11 +13,13 @@ export function CrewMode({
   event,
   bundles,
   onSelectEvent,
+  onReloadEvents,
   onClose,
 }: {
   event: BoothEvent;
   bundles: EventBundle[];
   onSelectEvent: (id: string) => void;
+  onReloadEvents: () => Promise<void>;
   onClose: () => void;
 }) {
   const { crew } = usePlatform();
@@ -60,6 +62,7 @@ export function CrewMode({
           bundles={bundles}
           activeId={event.id}
           onSelectEvent={onSelectEvent}
+          onReloadEvents={onReloadEvents}
           onCameraCheck={() => setView("camera")}
           onChangePin={() => setView("change")}
           onPair={() => setView("pair")}

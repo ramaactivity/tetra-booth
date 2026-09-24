@@ -50,7 +50,7 @@ Prinsip:
 
 ## Fase 2 — Cloud + halaman tamu
 - [x] Pairing device. _(N2, 2026-09-25: API + skrip owner + mode crew; DECISIONS #55–56)_
-- [ ] Pull event + bundle, cache offline.
+- [x] Pull event + bundle, cache offline. _(N3, 2026-09-25; DECISIONS #57)_
 - [ ] Antrean upload + presigned R2 + retry backoff.
 - [ ] Heartbeat.
 - [ ] Halaman tamu: state unknown/pending/ready/expired/removed, simpan via share sheet, branding event.

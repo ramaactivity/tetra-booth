@@ -119,5 +119,8 @@ export const copy = {
     pair: "Pasangkan",
     paired: (name: string, code: string) => `${name} · ${code}`,
     unpaired: "Belum dipasangkan",
+    syncEvents: "Sync dari Cloud",
+    syncing: "Mengunduh event dari cloud…",
+    synced: (n: number) => (n ? `${n} event diperbarui` : "Event sudah terbaru"),
   },
 } as const;

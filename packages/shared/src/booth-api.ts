@@ -27,4 +27,35 @@ export type BoothApiError =
   | "unauthorized"
   | "invalid_code"
   | "rate_limited"
+  | "not_found"
   | "server_error";
+
+/** GET /api/booth/events: event yang ditugaskan ke device ini. */
+export const BoothEventsResponse = z.object({
+  events: z.array(z.object({ id: z.uuid(), name: z.string(), bundleVersion: z.number().int() })),
+});
+export type BoothEventsResponse = z.infer<typeof BoothEventsResponse>;
+
+/**
+ * GET /api/booth/events/{id}/bundle: `config` = config.json bundle lokal (EventBundleSchema, id = id event),
+ * `files` = isi folder bundle; booth mengunduh file yang sha256-nya berbeda.
+ */
+export const BundleManifest = z.object({
+  bundleVersion: z.number().int(),
+  config: z.record(z.string(), z.unknown()),
+  files: z.array(
+    z.object({
+      file: z.string(),
+      sha256: z.string().regex(/^[0-9a-f]{64}$/),
+      url: z.url(),
+    }),
+  ),
+});
+export type BundleManifest = z.infer<typeof BundleManifest>;
+
+/** Isi kolom events.bundle (ditulis skrip event:push, Fase 3: admin). */
+export const StoredBundle = z.object({
+  config: z.record(z.string(), z.unknown()),
+  files: z.array(z.object({ file: z.string(), sha256: z.string(), key: z.string() })),
+});
+export type StoredBundle = z.infer<typeof StoredBundle>;

@@ -173,6 +173,10 @@ export function registerIpc(
       device: cloud.device(),
     };
   });
+  ipcMain.handle("crewSyncEvents", () => {
+    crewOnly();
+    return cloud.syncEvents();
+  });
   ipcMain.handle("crewPair", (_e, code: unknown) => {
     crewOnly();
     return cloud.pair(PairRequest.shape.code.parse(code));
