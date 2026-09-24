@@ -43,7 +43,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   5. **Event print (M-007):** jalankan tanpa `--printer` lalu dengan `--paper-2x6x2` yang salah (mis. `TidakAda`): log booth harus `[print] GAGAL <id>: printer_unavailable …` / `paper_not_supported …` dan `print_jobs.status = failed` berisi kode itu. Dengan config benar: `[print] selesai <id>` dan status `done`.
   6. Portrait `--size=450x800`: review (foto kiri, tombol Ulang kanan), attract (judul tengah, tombol satu baris), print_select muat.
   - Laporan `docs/reports/windows/<tanggal>-m3-supervisor.md`. Hapus `$W\data` dan `$W\prints` setelahnya.
-- [ ] **W-014 Verifikasi M6 (mode crew) di Windows.** Merge `origin/main`, build booth.
+- [x] **W-014 Verifikasi M6 (mode crew) di Windows.** → `docs/reports/windows/2026-09-24-m6-crew.md` Merge `origin/main`, build booth.
   1. **E2E otomatis:** `pnpm --filter booth e2e` (Playwright mengendalikan Electron: tap 5x → buat PIN → pilih event bundle → roll 25 → peringatan → PIN salah 5x terkunci). Harus lulus; lampirkan durasi.
   2. **Manual dengan printer PDF** (`--camera=webcam --data=$W\data --printer "Microsoft Print to PDF" --paper-4r A5 --paper-2x6x2 A5 --print-to-file "$W\prints"`), kendalikan dengan Playwright atau skrip, screenshot via `--shots`/`capturePage` saja:
      - Test print dari menu crew → PDF terbentuk, `[print] selesai test-…`, kertas berkurang 1.
@@ -76,11 +76,13 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   1. **Print hilang saat Camera Service crash.** Dari 20× kill, 2 dari 9 print hilang: satu `failed: Camera Service tidak terhubung` (submit saat service mati, tanpa coba ulang), satu `queued` selamanya (diterima, lalu service mati sebelum mencetak; antrean di memori hilang tanpa event). Saran: setelah restart + health OK, kirim ulang `print_jobs` `queued` (dan `failed` karena koneksi) dengan `jobId` yang sama. Putuskan risiko cetak ganda kalau crash tepat setelah spool.
   2. Proses yatim **tidak terjadi** di Windows: booth dibunuh paksa (semua proses atau hanya proses utama) → `TetraCamera.exe` ikut mati (job object libuv). Catatan ponytail di `camera-service.ts` hanya berlaku di macOS/Linux.
   3. M-008 no. 1 (flag dengan spasi diabaikan) dan no. 2 (race health saat boot → `R-WARN … tidak terhubung` setiap boot) masih terjadi di `3feeaaf`.
+- [ ] **M-010 Temuan W-014 (M6 di Windows).** Semua uji lulus. Kecil: (1) peringatan cetak gagal di attract (layar tamu) menampilkan teks teknis (`--paper-2x6x2`, "driver"); cukup "Printer bermasalah, hubungi crew", detail di menu crew. (2) Counter kertas di menu crew baru berubah pada refresh 5 s berikutnya setelah Cetak ulang/test print.
 
 ## Log
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-24 | Windows | W-014 selesai: e2e lulus (5,1 s), test print & cetak ulang ke PDF, kertas berkurang, print gagal tampil di attract & menu crew, cek kamera 2560×1920 (121–209 ms setelah hangat), bundle overlay+font terpakai di strip, portrait bisa discroll. Temuan kecil M-010. Laporan: `docs/reports/windows/2026-09-24-m6-crew.md`. |
 | 2026-09-24 | Mac | M6 mode crew di `main`: PIN (scrypt, kunci 60 s), event dari bundle lokal (+overlay/font), cek kamera, test print, counter kertas (berkurang saat print.done, peringatan ≤ 30), cetak gagal + cetak ulang, peringatan printer di pojok layar. E2E Playwright-Electron (`pnpm --filter booth e2e`) + CI (xvfb). W-014 ditambahkan. |
 | 2026-09-24 | Windows | W-013 selesai: supervisor pulih 20/20 kill (±0,6 s), tanpa proses yatim, build dist menemukan Camera Service, event print → `print_jobs` failed/done berkode, portrait beres. Temuan M-009: print bisa hilang saat Camera Service crash. Laporan: `docs/reports/windows/2026-09-24-m3-supervisor.md`. |
 | 2026-09-24 | Windows | W-012 selesai: M2 lulus (WAL, 9 aset/sesi, prioritas upload 0/1/2, print_jobs queued, abandoned setelah kill, log harian main+renderer). Webcam dengan M-006: raw 2560×1920, capture → preview 138–287 ms. Temuan M-008. Laporan: `docs/reports/windows/2026-09-24-m2-penyimpanan.md`. |
