@@ -46,6 +46,7 @@ pnpm --filter @tetra/db push   # migrasi ke project dev (SUPABASE_DB_URL di .env
 pnpm --filter @tetra/db seed   # seed organisasi Tetra + owner
 pnpm --filter @tetra/db types  # generate tipe ke packages/db/src/database.types.ts
 pnpm --filter web r2:check   # uji kredensial R2 (butuh apps/web/.env.local)
+node apps/booth/scripts/stress.mjs --sessions 500 --fast   # stress test M8 (lulus = exit 0)
 pnpm dist:dev                # build win-x64 (Electron + Camera Service) → zip → R2; laptop Windows: update.cmd
 ```
 Catatan: Node 24 (`.node-version`), pnpm via corepack, .NET 10 SDK. Kalau .NET tidak di lokasi standar (mis. `~/.dotnet`), set `DOTNET_ROOT` supaya binary dev Camera Service jalan. Flag uji booth: lihat `apps/booth/src/main/config.ts`. Di macOS, `ELECTRON_RUN_AS_NODE` harus kosong saat menjalankan Electron dari terminal editor.

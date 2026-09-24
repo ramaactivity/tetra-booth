@@ -85,6 +85,12 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   3. Hot folder kosong (`--camera hotfolder --hot-folder "$W\hot"`, tanpa file): teks "Sebentar, menunggu foto dari kamera…" muncul ±3 s setelah capture (screenshot `--shots`).
   4. `pnpm --filter booth e2e` tetap 4/4.
   - Laporan `docs/reports/windows/<tanggal>-m12-quit-print.md`. Hapus `$W\data`, `$W\prints`, `$W\hot`, `$W\shots`.
+- [ ] **W-020 M8: stress test 500 sesi (kriteria selesai Fase 1).** Setelah W-019. Merge `origin/main`, build booth + `dotnet build services/camera`. Printer: Print to PDF (**bukan** Epson; jangan cetak fisik). Pastikan laptop dicolok charger & keep-awake jalan.
+  1. **Cepat:** `node apps/booth/scripts/stress.mjs --sessions 500 --fast --data "$W\stress-fast" -- --printer "Microsoft Print to PDF" --paper-2x6x2 A5 --print-to-file "$W\stress-fast\prints"` (±45–60 menit). Skrip keluar 0 = lulus. Tempel isi `stress-report.json` ke laporan.
+  2. **Semalaman (waktu normal):** sama tanpa `--fast` (±25 s/sesi → 500 sesi ±3,5 jam), `--data "$W\stress-normal"`. Kalau dijalankan saat Rama tidak memantau, tetap di dalam `$W`.
+  3. Kalau ada kriteria GAGAL: jangan ubah kode; lampirkan baris `[metrics]` awal/akhir, jumlah dan contoh `ERROR`, dan grafik sederhana (tabel sesi vs memori per 50 sesi).
+  4. Catat ukuran `$W\stress-*` (disk) setelah 500 sesi, lalu hapus kedua folder (PDF & foto uji).
+  - Laporan `docs/reports/windows/<tanggal>-m8-stress.md`.
 
 ## Untuk Mac
 
@@ -123,6 +129,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 | 2026-09-24 | Windows | W-016 selesai: env.ps1 baru (tanpa `pnpm_config_*`), e2e 2/2, kiosk di app hasil build (tutup/shortcut ditolak, crash pulih), auto-start aktif→mati (registry bersih), jurnal print: kill 10× → 6 sesi = 6 PDF, 0 spooled ganda. Temuan kecil M-011. Laporan: `docs/reports/windows/2026-09-24-m5-kiosk.md`. |
 | 2026-09-24 | Windows | W-015 selesai: flag bentuk spasi & boot tanpa "tidak terhubung" (M-008) beres; 20/20 kill pulih, 9 sesi = 9 PDF = 9 `done`, 3 kirim ulang, 0 cetak ganda menurut log (cetak ganda fisik tidak terdeteksi lewat PDF, lihat laporan). Laporan: `docs/reports/windows/2026-09-24-m9-print-crash.md`. |
 | 2026-09-24 | Windows | W-014 selesai: e2e lulus (5,1 s), test print & cetak ulang ke PDF, kertas berkurang, print gagal tampil di attract & menu crew, cek kamera 2560×1920 (121–209 ms setelah hangat), bundle overlay+font terpakai di strip, portrait bisa discroll. Temuan kecil M-010. Laporan: `docs/reports/windows/2026-09-24-m6-crew.md`. |
+| 2026-09-24 | Mac | Stress Mac `--fast` 100 sesi: LULUS semua (7,7 menit, 0 crash/restart/error, memori aplikasi 231 → 206 MB, total akhir 392 MB, puncak 554 MB karena GPU macOS). W-020 (stress 500 sesi di Windows) ditambahkan. |
 | 2026-09-24 | Mac | M-012 selesai (write-ahead print_jobs, status final tidak mundur, tunggu print saat keluar, print_uncertain di menu crew) + umpan balik capture lambat. W-019 ditambahkan (setelah W-018). |
 | 2026-09-24 | Mac | Merge W-017. W-018 (tes Epson L121 sungguhan, maks 2 lembar) ditambahkan. M-012 dikerjakan. Harness stress M8 (`pnpm --filter booth stress`, `--fast`, log `[metrics]`) di `main`. |
 | 2026-09-24 | Mac | Merge W-016. M-011 selesai (+ jeda tombol mulai 800 ms). M7 hot folder di `main` (DECISIONS #41) dengan e2e. W-017 ditambahkan. |

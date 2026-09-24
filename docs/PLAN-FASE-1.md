@@ -31,7 +31,7 @@ Status M3 (2026-09-24): supervisor di `main`, teruji di Mac. Verifikasi Windows 
 Status M4 (2026-09-24): `WindowsPrinterAdapter` selesai (W-009), kriteria uji 1 & 2 lulus.
 Status M6 (2026-09-24): mode crew di `main` (PIN, event bundle, cek kamera, test print, kertas, cetak ulang, peringatan printer), e2e Playwright-Electron lulus di Mac. Verifikasi Windows: W-014 (lulus).
 Status M5 (2026-09-24): kiosk di `main`, e2e kiosk lulus di Mac. Verifikasi Windows: W-016. M5 terverifikasi Windows (W-016).
-Status M7 (2026-09-24): hot folder di `main` (C# + booth), e2e lulus di Mac. Verifikasi Windows: W-017. Sisa Fase 1: M8 stress test.
+Status M7 (2026-09-24): hot folder di `main` (C# + booth), e2e lulus di Mac. Verifikasi Windows: W-017. Status M8 (2026-09-24): harness di `main` (`[metrics]` log, `--fast`, `apps/booth/scripts/stress.mjs`); stress di Mac lulus (lihat log HANDOFF). Uji 500 sesi di Windows: W-020 — kriteria selesai Fase 1.
 
 Urutan kerja: **M4 (Windows) paralel dengan M1 → M2 → M3 (Mac)** → M9 → M5/M6 → M7 → M8.
 
