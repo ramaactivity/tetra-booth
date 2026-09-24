@@ -21,6 +21,14 @@ describe("EventBundleSchema", () => {
       assets: { ov: "overlay.png" },
     });
     expect(b.settings).toEqual(DEFAULT_SETTINGS);
+    expect(b.tagline).toBeUndefined();
+  });
+  it("tagline opsional, maksimal 40 karakter", () => {
+    const base = { id: "e1", name: "x", date: "x", layout, assets: { ov: "overlay.png" } };
+    expect(EventBundleSchema.parse({ ...base, tagline: "The Wedding of" }).tagline).toBe(
+      "The Wedding of",
+    );
+    expect(EventBundleSchema.safeParse({ ...base, tagline: "x".repeat(41) }).success).toBe(false);
   });
   it("tolak aset yang dirujuk layout tapi tidak ada", () => {
     expect(EventBundleSchema.safeParse({ id: "e1", name: "x", date: "x", layout }).success).toBe(

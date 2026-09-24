@@ -246,6 +246,7 @@ export function SessionRunner({
         return (
           <Attract
             eventName={event.name}
+            tagline={event.tagline}
             date={event.date}
             onStart={() => dispatch(startEvent(event))}
             onCrew={onCrew}

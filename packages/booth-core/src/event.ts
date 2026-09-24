@@ -6,6 +6,7 @@ export type BoothEvent = {
   /** ID event cloud; "local" sampai event dari bundle ada (M6). */
   id: string;
   name: string;
+  tagline?: string | undefined;
   /** Tanggal tampil di strip, mis. "12 Oktober 2026". */
   date: string;
   layout: LayoutSpec;
@@ -35,6 +36,7 @@ export async function loadEvent(bundle: EventBundle, events: BoothEvents): Promi
   return {
     id: bundle.id,
     name: bundle.name,
+    tagline: bundle.tagline,
     date: bundle.date,
     layout: bundle.layout,
     settings: bundle.settings,

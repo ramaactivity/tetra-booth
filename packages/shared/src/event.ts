@@ -27,6 +27,8 @@ export const EventBundleSchema = z
   .object({
     id: z.string().regex(/^[\w-]{1,64}$/),
     name: z.string().min(1).max(120),
+    /** Label kecil di atas nama event di layar attract, mis. "The Wedding of" (desain v2 A1). */
+    tagline: z.string().min(1).max(40).optional(),
     date: z.string().min(1).max(60),
     layout: LayoutSpecSchema,
     settings: EventSettingsSchema.default(DEFAULT_SETTINGS),

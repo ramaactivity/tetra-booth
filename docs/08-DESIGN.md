@@ -67,7 +67,7 @@ Minimum teks booth 20px (terbaca dari 2 m).
 
 | Layar v2 | Kode | Catatan penyesuaian |
 |---|---|---|
-| A1 Attract | `screens/Attract.tsx` | Pill "The Wedding of" belum ada (event belum punya field tagline). Kolom strip contoh = placeholder sampai ada foto contoh; bergerak lambat, mati saat `prefers-reduced-motion`. Hotspot crew 72×72 kanan atas (tap 5×). |
+| A1 Attract | `screens/Attract.tsx` | Pill "The Wedding of" = field opsional `tagline` di bundle event (maks 40 karakter), tidak tampil kalau kosong. Kolom strip contoh = placeholder sampai ada foto contoh; bergerak lambat, mati saat `prefers-reduced-motion`. Hotspot crew 72×72 kanan atas (tap 5×). |
 | A5 Countdown / Cekrek | `screens/Countdown.tsx`, `Capturing.tsx`, `PhotoPreview.tsx` | Timer pill hanya mode photobox (Fase 4). Thumbnail selesai = foto asli. Preview antar foto: foto berlapis + pill progres. |
 | A6 Review | `screens/Review.tsx` | Kolom = jumlah slot layout. Label aturan & tombol Ulangi hanya jika `retakeMax > 0`. |
 | A7 Jumlah cetak (event) | `screens/PrintSelect.tsx` | Kiri = strip hasil compose asli. |

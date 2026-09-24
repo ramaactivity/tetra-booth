@@ -24,6 +24,7 @@ function makeData() {
     JSON.stringify({
       id: "andi-sari",
       name: "Andi & Sari",
+      tagline: "The Wedding of",
       date: "12 Oktober 2026",
       layout: {
         id: "l1",
@@ -79,6 +80,8 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await w.getByRole("button", { name: /keluar ke mode tamu/i }).click();
 
   await expect(w.getByRole("heading", { name: "Andi & Sari" })).toBeVisible();
+  await expect(w.getByText("The Wedding of")).toBeVisible();
+  await w.screenshot({ path: "test-results/attract-event.png" });
   await expect(w.getByTestId("printer-alert")).toContainText("Kertas hampir habis (25)");
 
   // PIN salah 5x → terkunci; PIN benar pun ditolak saat terkunci.

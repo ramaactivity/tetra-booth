@@ -29,11 +29,13 @@ function SampleStrip({ name, under }: { name: string; under: string }) {
 
 export function Attract({
   eventName,
+  tagline,
   date,
   onStart,
   onCrew,
 }: {
   eventName: string;
+  tagline?: string | undefined;
   date: string;
   onStart: () => void;
   onCrew?: (() => void) | undefined;
@@ -84,6 +86,12 @@ export function Attract({
       />
 
       <div className="absolute inset-y-0 left-24 flex w-[860px] flex-col justify-center gap-9 portrait:right-24 portrait:w-auto">
+        {tagline && (
+          <span className="flex items-center gap-3.5 self-start rounded-full border-[2.5px] border-ink bg-white py-3 pr-[26px] pl-3.5 text-[26px] font-bold whitespace-nowrap">
+            <span className="size-9 rounded-full border-2 border-ink bg-lavender" />
+            {tagline}
+          </span>
+        )}
         <h1
           className={`${size} max-w-[680px] leading-[0.92] font-extrabold tracking-[-0.05em] break-words`}
         >
