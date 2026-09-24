@@ -221,13 +221,14 @@ test("cloud dari mode crew: pairing, heartbeat bertoken, sync bundle event", asy
   delete env.ELECTRON_RUN_AS_NODE;
   const app = await electron.launch({
     executablePath: electronPath,
-    // --use-mock-keychain: safeStorage di macOS tanpa dialog Keychain.
+    // safeStorage tanpa keyring OS: mock Keychain (macOS), basic store (Linux CI tanpa keyring).
     args: [
       appDir,
       "--camera=simulated",
       "--no-spawn",
       `--data=${makeData()}`,
       "--use-mock-keychain",
+      "--password-store=basic",
     ],
     env: env as Record<string, string>,
   });
