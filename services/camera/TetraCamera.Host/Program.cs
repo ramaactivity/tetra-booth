@@ -9,6 +9,8 @@ var token = Environment.GetEnvironmentVariable("TETRA_CAMERA_TOKEN") ?? "dev";
 // Printer (M4): sementara dari argumen, nanti dari config device lewat Electron.
 string? printerName = null, paper4R = null, paper2x6x2 = null, printToFile = null, printJournal = null, hotFolder = null;
 var paperFitMargin = false;
+(double X, double Y)? printOffset = null;
+string? printer2x6x2 = null;
 Uri? hotFolderTrigger = null;
 for (var i = 0; i + 1 < args.Length; i++)
 {
@@ -23,6 +25,11 @@ for (var i = 0; i + 1 < args.Length; i++)
         case "--print-journal": printJournal = Path.GetFullPath(args[i + 1]); break;
         case "--hot-folder": hotFolder = Path.GetFullPath(args[i + 1]); break;
         case "--paper-fit": paperFitMargin = args[i + 1] == "margin"; break;
+        case "--printer-2x6x2": printer2x6x2 = args[i + 1]; break;
+        case "--print-offset":
+            printOffset = PaperSelector.ParseOffset(args[i + 1]);
+            if (printOffset is null) Console.Error.WriteLine($"--print-offset '{args[i + 1]}' tidak valid (format \"x,y\" dalam 1/100 in), diabaikan");
+            break;
         case "--hot-folder-trigger": hotFolderTrigger = new Uri(args[i + 1]); break;
     }
 }
@@ -36,7 +43,7 @@ app.UseWebSockets();
 
 IPrinterAdapter printer = OperatingSystem.IsWindows()
     ? new TetraCamera.Print.Windows.WindowsPrinterAdapter(
-        new(printerName, new PaperConfig(paper4R, paper2x6x2, paperFitMargin), printToFile))
+        new(printerName, new PaperConfig(paper4R, paper2x6x2, paperFitMargin), printToFile, printer2x6x2, printOffset))
     {
         // Jurnal job print di disk: kirim ulang setelah crash tidak mencetak dua kali (DECISIONS #39).
         Journal = printJournal is null ? null : new PrintJournal(printJournal),

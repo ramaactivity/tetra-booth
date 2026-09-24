@@ -129,4 +129,36 @@ public class PaperSelectorTests
         Assert.Equal(-x, x + w - 614.67, 3);         // di tengah
         Assert.True(w / 600 < 1.04);                  // pembesaran kecil (≈3,3%)
     }
+
+    [Fact]
+    public void Tepat_4x6_default_di_tengah_halaman_DNP()
+    {
+        var (x, y, w, h) = PaperSelector.ExactRect(614.67, 413.33, 600, 400);
+        Assert.Equal((600.0, 400.0), (w, h));          // tanpa skala: margin desain (mm) terjaga
+        Assert.Equal(7.335, x, 3);
+        Assert.Equal(6.665, y, 3);
+    }
+
+    [Fact]
+    public void Tepat_4x6_memakai_offset_kalibrasi()
+    {
+        var (x, y, w, h) = PaperSelector.ExactRect(614.67, 413.33, 600, 400, (5.5, 8.25));
+        Assert.Equal((5.5, 8.25, 600.0, 400.0), (x, y, w, h));
+    }
+
+    [Theory]
+    [InlineData("7.3,6.7", 7.3, 6.7)]
+    [InlineData(" 5 , -1.5 ", 5, -1.5)]
+    [InlineData("0,0", 0, 0)]
+    [InlineData("7,3", 7, 3)] // koma selalu pemisah x,y; desimal pakai titik
+    public void Offset_dari_flag(string value, double x, double y) =>
+        Assert.Equal((x, y), PaperSelector.ParseOffset(value));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("7;3")]
+    [InlineData("a,b")]
+    [InlineData("1,2,3")]
+    public void Offset_tidak_valid(string? value) => Assert.Null(PaperSelector.ParseOffset(value));
 }

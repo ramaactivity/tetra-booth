@@ -94,6 +94,28 @@ public static class PaperSelector
     }
 
     /// <summary>
+    /// Kotak gambar tepat 4×6 in tanpa skala di halaman kertas kelas 4×6 (M-021, DECISIONS #53), supaya margin desain
+    /// (mm) terjaga setelah DNP memotong overscan. <paramref name="offset"/> = pojok kiri-atas area 4×6 fisik di
+    /// koordinat halaman (1/100 in, dari kalibrasi `--print-offset`); tanpa offset = tengah halaman.
+    /// </summary>
+    public static (double X, double Y, double W, double H) ExactRect(
+        double pageW, double pageH, double imgW, double imgH, (double X, double Y)? offset = null)
+    {
+        var (x, y) = offset ?? ((pageW - imgW) / 2, (pageH - imgH) / 2);
+        return (x, y, imgW, imgH);
+    }
+
+    /// <summary>Nilai `--print-offset "x,y"` (1/100 in, titik desimal). Tidak valid → <c>null</c>.</summary>
+    public static (double X, double Y)? ParseOffset(string? value)
+    {
+        var parts = value?.Split(',', StringSplitOptions.TrimEntries);
+        if (parts is not { Length: 2 }) return null;
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        const System.Globalization.NumberStyles s = System.Globalization.NumberStyles.Float;
+        return double.TryParse(parts[0], s, inv, out var x) && double.TryParse(parts[1], s, inv, out var y) ? (x, y) : null;
+    }
+
+    /// <summary>
     /// PrintableArea dari driver harus menutup kertas terpilih, tapi tidak jauh lebih besar
     /// (driver yang mengabaikan pilihan kertas melaporkan area kertas lain, mis. Letter). Orientasi diabaikan.
     /// </summary>
