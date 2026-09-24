@@ -53,7 +53,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   3. Portrait `--size=450x800`: menu crew & pad PIN muat dan bisa discroll.
   - Laporan `docs/reports/windows/<tanggal>-m6-crew.md`. Hapus `$W\data`, `$W\prints`, `$W\shots` setelahnya.
 - [x] **W-015 Ulang uji kill 20× dengan print (M-009).** → `docs/reports/windows/2026-09-24-m9-print-crash.md` Setelah W-014. Sama seperti W-013 langkah 2 (demo + Print to PDF + bunuh `TetraCamera.exe` 20× jeda ±5 s), flag bentuk spasi (`--printer "Microsoft Print to PDF"`). Lulus jika **setiap sesi yang selesai punya ≥ 1 PDF** (hitung PDF vs sesi `completed`), `print_jobs` tidak ada yang tertinggal `queued` > 1 menit setelah uji selesai, log berisi `[print] tertunda`/`[print] kirim ulang` saat relevan. Catat jumlah PDF ganda (cetak ganda yang diterima). Juga pastikan log boot tidak lagi berisi `camera service: tidak terhubung` (M-008).
-- [ ] **W-016 Perbarui env.ps1 + verifikasi M5 (kiosk) & jurnal print.** Merge `origin/main`.
+- [x] **W-016 Perbarui env.ps1 + verifikasi M5 (kiosk) & jurnal print.** → `docs/reports/windows/2026-09-24-m5-kiosk.md` Merge `origin/main`.
   0. **env.ps1:** tambahkan baris baru dari WINDOWS.md §3 **kecuali tiga baris `pnpm_config_*`** (store lama tetap dipakai, dihapus saat laptop dikembalikan). Jangan pindahkan/hapus cache AppData sekarang.
   1. `pnpm --filter booth e2e`: dua test (mode crew + kiosk) harus lulus.
   2. **App hasil build** (seperti W-013 langkah 4: `electron-builder --win --x64 --dir` + `dotnet publish … -r win-x64 --self-contained` → `app\booth`, `app\camera`), jalankan `Tetra Booth.exe --camera=simulated --data=… --printer "Microsoft Print to PDF" --paper-2x6x2 A5 --print-to-file …` **tanpa** `--kiosk` (harus kiosk karena app hasil build). Kendalikan dengan Playwright `_electron.launch({ executablePath: '…\\Tetra Booth.exe' })`:
@@ -90,10 +90,13 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   3. M-008 no. 1 (flag dengan spasi diabaikan) dan no. 2 (race health saat boot → `R-WARN … tidak terhubung` setiap boot) masih terjadi di `3feeaaf`.
 - [x] **M-010 Temuan W-014 (M6 di Windows).** → Selesai (Mac): peringatan di layar tamu = "Printer bermasalah, hubungi crew" / "Kertas hampir habis (N)", detail tetap di menu crew & log; event `printUpdated` menyegarkan menu crew seketika setelah print selesai/gagal. Semua uji lulus. Kecil: (1) peringatan cetak gagal di attract (layar tamu) menampilkan teks teknis (`--paper-2x6x2`, "driver"); cukup "Printer bermasalah, hubungi crew", detail di menu crew. (2) Counter kertas di menu crew baru berubah pada refresh 5 s berikutnya setelah Cetak ulang/test print.
 
+- [ ] **M-011 Temuan W-016 (M5 kiosk di Windows).** Semua uji lulus, auto-start berakhir mati. Kecil: (1) kursor terlihat di atas tombol saat kiosk: `cursor-none` hanya di wrapper, `button` tetap `cursor: default`; (2) entri auto-start bernama `electron.app.Electron`, set AppUserModelId/nama app `id.tetraphoto.booth`; (3) setiap crash renderer mencatat `R-ERROR … preloadScripts … startupData is null` walau pulih normal; tunda `reload()` di `render-process-gone`. Detail: laporan m5-kiosk.
+
 ## Log
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-24 | Windows | W-016 selesai: env.ps1 baru (tanpa `pnpm_config_*`), e2e 2/2, kiosk di app hasil build (tutup/shortcut ditolak, crash pulih), auto-start aktif→mati (registry bersih), jurnal print: kill 10× → 6 sesi = 6 PDF, 0 spooled ganda. Temuan kecil M-011. Laporan: `docs/reports/windows/2026-09-24-m5-kiosk.md`. |
 | 2026-09-24 | Windows | W-015 selesai: flag bentuk spasi & boot tanpa "tidak terhubung" (M-008) beres; 20/20 kill pulih, 9 sesi = 9 PDF = 9 `done`, 3 kirim ulang, 0 cetak ganda menurut log (cetak ganda fisik tidak terdeteksi lewat PDF, lihat laporan). Laporan: `docs/reports/windows/2026-09-24-m9-print-crash.md`. |
 | 2026-09-24 | Windows | W-014 selesai: e2e lulus (5,1 s), test print & cetak ulang ke PDF, kertas berkurang, print gagal tampil di attract & menu crew, cek kamera 2560×1920 (121–209 ms setelah hangat), bundle overlay+font terpakai di strip, portrait bisa discroll. Temuan kecil M-010. Laporan: `docs/reports/windows/2026-09-24-m6-crew.md`. |
 | 2026-09-24 | Mac | Merge W-014/W-015. Protokol: Mac tidak lagi push ke `win`. M-010 selesai. env.ps1 diperbarui (pnpm 12 `pnpm_config_*`, NuGet, electron-builder, TEMP) + daftar bersih-bersih AppData. Cetak ganda dicegah jurnal print Camera Service (DECISIONS #39). M5 kiosk di `main` (DECISIONS #40), e2e kiosk. W-016 ditambahkan. |
