@@ -37,6 +37,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 function Field({ label, unit, children }: { label: string; unit?: string; children: ReactNode }) {
   return (
+    // biome-ignore lint/a11y/noLabelWithoutControl: input dikirim lewat children
     <label className="flex flex-col gap-1.5 text-xs font-bold">
       {label}
       <span className="flex items-center gap-2">
