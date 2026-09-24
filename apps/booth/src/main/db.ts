@@ -31,7 +31,9 @@ create table if not exists print_jobs (
 );
 `;
 
-export type AssetKind = "strip" | "strip_web" | "original" | "thumb_strip" | "thumb_original";
+import type { AssetKindName } from "@tetra/shared";
+
+export type AssetKind = AssetKindName;
 
 /** Urutan upload TSD §4.2: strip_web & thumb strip → original → sisanya. */
 export const UPLOAD_PRIORITY: Record<AssetKind, number> = {
@@ -40,6 +42,7 @@ export const UPLOAD_PRIORITY: Record<AssetKind, number> = {
   original: 1,
   strip: 2,
   thumb_original: 2,
+  animation: 2,
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { SignResponse } from "@tetra/shared";
+import { assetFile, SignResponse } from "@tetra/shared";
 import type { BoothDb, DueUpload } from "./db";
 
 /** Backoff per percobaan gagal (TSD §4.2): 5 dtk, 15 dtk, 1 mnt, lalu 5 mnt. */
@@ -15,7 +15,7 @@ export type Api = (path: string, body: unknown) => Promise<unknown>;
 export function createUploader(o: {
   db: BoothDb;
   api: Api;
-  put: (url: string, bytes: Uint8Array) => Promise<void>;
+  put: (url: string, bytes: Uint8Array, contentType: string) => Promise<void>;
   log: (m: string) => void;
   now?: () => number;
 }) {
@@ -36,7 +36,7 @@ export function createUploader(o: {
       );
       const up = uploads[0];
       if (!up) throw new Error("server tidak memberi URL upload");
-      await o.put(up.url, await readFile(u.path));
+      await o.put(up.url, await readFile(u.path), assetFile(u.kind).contentType);
       await o.api(`/api/booth/sessions/${u.sessionId}/assets`, {
         assets: [{ kind: u.kind, idx: u.idx, bytes: u.bytes }],
       });

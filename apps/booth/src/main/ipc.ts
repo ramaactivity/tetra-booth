@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
-import { PairRequest, PaperSchema, SESSION_ID_PATTERN } from "@tetra/shared";
+import { AssetKindSchema, PairRequest, PaperSchema, SESSION_ID_PATTERN } from "@tetra/shared";
 import { app, ipcMain, net } from "electron";
 import { z } from "zod";
 import type { Alerts } from "./alerts";
@@ -50,7 +50,7 @@ const SessionCompleted = z.object({
   assets: z
     .array(
       z.object({
-        kind: z.enum(["strip", "strip_web", "original", "thumb_strip", "thumb_original"]),
+        kind: AssetKindSchema,
         idx: Count,
         path: Path,
         bytes: z.number().int().min(0),

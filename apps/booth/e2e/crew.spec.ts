@@ -171,6 +171,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   const sessions: { eventId: string; assetCount: number }[] = [];
   const puts: string[] = [];
   const recorded: string[] = [];
+  let gifHead = "";
   const EVENT = "7c9e6679-7425-40de-944b-e07fc1f90ae8";
   const pngSha = createHash("sha256").update(PNG).digest("hex");
   const config = JSON.parse(
@@ -204,7 +205,16 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
         res.end(
           JSON.stringify({
             bundleVersion: 3,
-            config: { ...config, id: EVENT, name: "Rina & Dimas" },
+            // 2 slot foto → GIF animasi ikut terbentuk.
+            config: {
+              ...config,
+              id: EVENT,
+              name: "Rina & Dimas",
+              layout: {
+                ...config.layout,
+                slots: [config.layout.slots[0], { ...config.layout.slots[0], id: "b", y: 900 }],
+              },
+            },
             files: [{ file: "overlay.png", sha256: pngSha, url: `http://127.0.0.1:${port}/m/ov` }],
           }),
         );
@@ -224,6 +234,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
         );
       } else if (req.url?.startsWith("/r2/")) {
         puts.push(req.url);
+        if (req.url.includes("animation")) gifHead = body.slice(0, 6);
         res.end();
       } else if (req.url?.endsWith("/assets")) {
         recorded.push(...JSON.parse(body).assets.map((a: { kind: string }) => a.kind));
@@ -288,6 +299,8 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
     .toBe(true);
   expect(sessions[0]?.eventId).toBe(EVENT);
   expect(recorded).toContain("strip_web");
+  expect(recorded).toContain("animation");
+  expect(gifHead).toBe("GIF89a");
   expect(new Set(puts).size).toBe(recorded.length);
 
   await app.close();

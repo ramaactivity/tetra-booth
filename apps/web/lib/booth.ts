@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import type { BoothApiError } from "@tetra/shared";
+import { type AssetKindName, assetFile, type BoothApiError } from "@tetra/shared";
 import type { ZodType } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -62,6 +62,7 @@ export const sessionAssetKey = (
   device: Device,
   eventId: string,
   sessionId: string,
-  kind: string,
+  kind: AssetKindName,
   idx: number,
-) => `${device.organizationId}/${eventId}/sessions/${sessionId}/${kind}_${idx}.jpg`;
+) =>
+  `${device.organizationId}/${eventId}/sessions/${sessionId}/${kind}_${idx}.${assetFile(kind).ext}`;

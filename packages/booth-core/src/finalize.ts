@@ -1,10 +1,15 @@
+/// <reference path="./gifenc.d.ts" />
 import { cpuCanvas } from "@tetra/template-engine";
+import { applyPalette, GIFEncoder, quantize } from "gifenc";
 import type { BoothEvent } from "./event";
 import type { AssetKind, BoothStorage, SessionAsset } from "./platform";
 import type { Photo, Strip } from "./session";
 
 export const ORIGINAL_LONG_SIDE = 2400;
 export const THUMB_LONG_SIDE = 480;
+/** GIF animasi foto sesi (DECISIONS #62): sisi panjang & jeda antar-frame. */
+export const ANIMATION_LONG_SIDE = 720;
+export const ANIMATION_FRAME_MS = 500;
 /** Foto untuk layar booth (preview, review, thumbnail). Raw 3000×2000 = ±24 MB tekstur GPU per foto (W-020). */
 export const PREVIEW_LONG_SIDE = 1600;
 
@@ -43,7 +48,8 @@ export async function previewUrl(bytes: Uint8Array<ArrayBuffer>, w: number, h: n
 
 /**
  * Output upload sesi (FSD §1.9) dari strip & foto mentah, dijalankan di belakang layar setelah cetak:
- * strip_web (satu strip, bukan lembar 2x6x2 ganda), original_n (2400 px), thumb 480 px.
+ * strip_web (satu strip, bukan lembar 2x6x2 ganda), original_n (2400 px), thumb 480 px,
+ * animation (GIF berulang dari foto sesi, ≥ 2 foto).
  * Full-res mentah tetap di raw/ dan tidak masuk daftar aset.
  */
 export async function buildOutputs(
@@ -85,9 +91,18 @@ export async function buildOutputs(
     sheet.close();
   }
 
+  const frames: ImageData[] = [];
   for (const [i, p] of photos.entries()) {
     const raw = await load(p.path);
     try {
+      const a = fit(raw.width, raw.height, ANIMATION_LONG_SIDE);
+      const c = cpuCanvas(a.width, a.height);
+      const g = c.getContext("2d");
+      if (g) {
+        g.imageSmoothingQuality = "high";
+        g.drawImage(raw, 0, 0, a.width, a.height);
+        frames.push(g.getImageData(0, 0, a.width, a.height));
+      }
       const o = fit(raw.width, raw.height, ORIGINAL_LONG_SIDE);
       await save("original", i + 1, `original_${i + 1}.jpg`, await encode(raw, o.width, o.height));
       const t = fit(raw.width, raw.height, THUMB_LONG_SIDE);
@@ -100,6 +115,18 @@ export async function buildOutputs(
     } finally {
       raw.close();
     }
+  }
+  if (frames.length > 1) {
+    const gif = GIFEncoder();
+    for (const f of frames) {
+      const palette = quantize(f.data, 256);
+      gif.writeFrame(applyPalette(f.data, palette), f.width, f.height, {
+        palette,
+        delay: ANIMATION_FRAME_MS,
+      });
+    }
+    gif.finish();
+    await save("animation", 0, "animation.gif", gif.bytes());
   }
   return assets;
 }

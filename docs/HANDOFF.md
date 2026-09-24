@@ -180,6 +180,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-25 | Mac | GIF animasi (DECISIONS #62): booth membuat `animation.gif` dari foto sesi (≥ 2 foto), diunggah sebagai kind `animation`, tab Animasi di halaman tamu. Domain `booth.tetraphoto.com` aktif (DECISIONS #61). Video live view ditunda. |
 | 2026-09-25 | Mac | Fase 2 N7: `POST /api/track` (qr_open/save/save_all → analytics_events, rate limit 60/menit per IP), dikirim lewat sendBeacon dari halaman tamu. Function Vercel dipindah ke sin1 (TTFB 0,2–1 dtk). |
 | 2026-09-25 | Mac | Fase 2 N6: halaman tamu `/s/{id}` (unknown/pending/ready/expired/removed, desain v2 B1–B3, refresh otomatis 5/15 dtk, Simpan via share sheet), e2e mobile 390 px terhadap Supabase dev. Butuh CORS R2 (Rama). |
 | 2026-09-25 | Windows | W-023 selesai: 60D lewat digiCamControl 2.1.7.0 (web server, `--hot-folder-trigger http://localhost:5513/?CMD=Capture`) → hot folder → sesi 3 foto 5184×3456 → DNP 1 lembar (kertas 695) → QR; capture→preview 1,7–3,7 s, compose 250 ms; pemicu mati → A10 → pulih 34 s setelah digiCamControl hidup. Booth sebelumnya tidak meneruskan `--hot-folder-trigger` (diperbaiki di `adec4a4`). Laporan: `docs/reports/windows/2026-09-25-60d-hotfolder.md`. |

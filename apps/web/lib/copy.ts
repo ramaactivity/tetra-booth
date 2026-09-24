@@ -3,6 +3,8 @@ export const copy = {
   guest: {
     strip: "Strip",
     original: "Original",
+    animation: "Animasi",
+    saveGif: "Simpan GIF ke HP",
     saveStrip: "Simpan ke Galeri HP",
     saveAll: "Simpan Semua Original",
     saving: "Menyimpan…",

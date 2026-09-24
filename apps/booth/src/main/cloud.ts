@@ -112,10 +112,10 @@ export function createCloud(
     db,
     api,
     log,
-    put: async (url, bytes) => {
+    put: async (url, bytes, contentType) => {
       const res = await fetch(url, {
         method: "PUT",
-        headers: { "content-type": "image/jpeg" },
+        headers: { "content-type": contentType },
         body: new Uint8Array(bytes),
         signal: AbortSignal.timeout(120_000),
       });

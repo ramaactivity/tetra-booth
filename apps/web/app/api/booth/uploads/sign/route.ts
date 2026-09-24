@@ -1,4 +1,4 @@
-import { SignRequest, type SignResponse } from "@tetra/shared";
+import { assetFile, SignRequest, type SignResponse } from "@tetra/shared";
 import { apiError, authDevice, deviceSession, parseBody, sessionAssetKey } from "@/lib/booth";
 import { presignPut } from "@/lib/r2";
 
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   const uploads = await Promise.all(
     body.assets.map(async (a) => {
       const key = sessionAssetKey(device, session.event_id, session.id, a.kind, a.idx);
-      return { ...a, key, url: await presignPut(key, "image/jpeg") };
+      return { ...a, key, url: await presignPut(key, assetFile(a.kind).contentType) };
     }),
   );
   return Response.json({ uploads } satisfies SignResponse);

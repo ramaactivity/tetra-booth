@@ -86,6 +86,7 @@ test.beforeAll(async () => {
       asset(ids.partial, "strip_web", 0),
       asset(ids.ready, "strip_web", 0),
       asset(ids.ready, "original", 1),
+    asset(ids.ready, "animation", 0),
     ]);
 });
 
@@ -118,6 +119,9 @@ test("ready: strip, tab original, simpan, masa berlaku", async ({ page }) => {
   await expect(page.getByText("11 Nov 2026")).toBeVisible();
   await expect(page.getByRole("button", { name: "Simpan ke Galeri HP" })).toBeEnabled();
   await page.screenshot({ path: "test-results/guest-ready.png" });
+  await page.getByRole("tab", { name: "Animasi" }).click();
+  await expect(page.getByRole("button", { name: "Simpan GIF ke HP" })).toBeEnabled();
+  await page.getByRole("tab", { name: "Strip" }).click();
   await page.getByRole("tab", { name: "Original" }).click();
   await expect(page.getByRole("button", { name: "Original 1" })).toBeVisible();
 

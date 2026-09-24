@@ -1,4 +1,4 @@
-import type { CommandResult, EventBundle, Paper } from "@tetra/shared";
+import type { AssetKindName, CommandResult, EventBundle, Paper } from "@tetra/shared";
 
 /**
  * Satu-satunya pintu booth-core ke perangkat. TSD §0.
@@ -27,7 +27,7 @@ export interface BoothStorage {
   readFile(path: string): Promise<Uint8Array<ArrayBuffer>>;
 }
 
-export type AssetKind = "strip" | "strip_web" | "original" | "thumb_strip" | "thumb_original";
+export type AssetKind = AssetKindName;
 export type SessionAsset = { kind: AssetKind; idx: number; path: string; bytes: number };
 
 /** Repositori SQLite lokal (06-DATA-MODEL §3). Semua idempotent. */

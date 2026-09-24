@@ -14,8 +14,10 @@ async function save(assets: GuestAsset[], sessionId: string) {
       assets.map(async (a) => {
         const res = await fetch(a.url);
         if (!res.ok) throw new Error(String(res.status));
-        return new File([await res.blob()], `tetra-${sessionId}-${a.kind}-${a.idx}.jpg`, {
-          type: "image/jpeg",
+        const blob = await res.blob();
+        const ext = a.kind === "animation" ? "gif" : "jpg";
+        return new File([blob], `tetra-${sessionId}-${a.kind}-${a.idx}.${ext}`, {
+          type: blob.type || (ext === "gif" ? "image/gif" : "image/jpeg"),
         });
       }),
     );
@@ -45,10 +47,12 @@ export function GuestReady({
   assets: GuestAsset[];
   expiresAt: string | null;
 }) {
-  const [tab, setTab] = useState<"strip" | "original">("strip");
+  const [tab, setTab] = useState<"strip" | "original" | "animation">("strip");
   const [busy, setBusy] = useState(false);
   const strip = assets.find((a) => a.kind === "strip_web");
   const originals = assets.filter((a) => a.kind === "original");
+  const gif = assets.find((a) => a.kind === "animation");
+  const main = tab === "animation" ? gif : strip;
   const run =
     (list: GuestAsset[], all = false) =>
     async () => {
@@ -84,6 +88,17 @@ export function GuestReady({
         >
           {t.original}
         </button>
+        {gif && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "animation"}
+            className={`${tabClass(tab === "animation")} border-l-[1.5px] border-ink`}
+            onClick={() => setTab("animation")}
+          >
+            {t.animation}
+          </button>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col items-center px-5 pt-5 pb-6">
@@ -93,6 +108,13 @@ export function GuestReady({
             alt=""
             fetchPriority="high"
             className="layered max-h-[62vh] max-w-[66%] rounded-lg border-[1.5px] border-ink bg-white [--lb:1.5px] [--lx:5px] [--under:#fff]"
+          />
+        )}
+        {tab === "animation" && gif && (
+          <img
+            src={gif.url}
+            alt=""
+            className="layered max-w-full rounded-lg border-[1.5px] border-ink bg-white [--lb:1.5px] [--lx:5px] [--under:#fff]"
           />
         )}
         {tab === "original" && (
@@ -129,11 +151,11 @@ export function GuestReady({
           </button>
           <button
             type="button"
-            disabled={busy || !strip}
-            onClick={run(strip ? [strip] : [])}
+            disabled={busy || !main}
+            onClick={run(main ? [main] : [])}
             className="pressable layered h-[52px] rounded-[14px] border-[1.5px] border-ink bg-butter text-[15px] font-extrabold [--lb:1.5px] [--lx:4px] disabled:opacity-40"
           >
-            {busy ? t.saving : t.saveStrip}
+            {busy ? t.saving : tab === "animation" ? t.saveGif : t.saveStrip}
           </button>
         </div>
         <div className="flex justify-between text-[11px] text-text-2">
