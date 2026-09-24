@@ -40,6 +40,8 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   2. **Bunuh `TetraCamera.exe` 20x** (`Stop-Process -Force`, jeda ±5 s) selama demo berjalan. Lulus jika tiap kali log `[supervisor] … berhenti` lalu `start`, sesi demo tidak macet, dan setelah 20x Camera Service masih hidup & health OK.
   3. Tutup booth normal: tidak ada `TetraCamera.exe` yang tertinggal. Lalu bunuh `Tetra Booth`/`electron` paksa: catat apakah `TetraCamera.exe` yatim tertinggal (dugaan: ya, lihat catatan ponytail di `camera-service.ts`). Bersihkan manual.
   4. Build `dist`-style: `pnpm exec electron-builder --win --x64 --dir` + `dotnet publish … -r win-x64 --self-contained -o <app>\camera`, susun `app\booth` + `app\camera` seperti `dist:dev`, jalankan `app\booth\Tetra Booth.exe --camera=simulated --demo --data=…`: booth harus menemukan `..\camera\TetraCamera.exe` sendiri.
+  5. **Event print (M-007):** jalankan tanpa `--printer` lalu dengan `--paper-2x6x2` yang salah (mis. `TidakAda`): log booth harus `[print] GAGAL <id>: printer_unavailable …` / `paper_not_supported …` dan `print_jobs.status = failed` berisi kode itu. Dengan config benar: `[print] selesai <id>` dan status `done`.
+  6. Portrait `--size=450x800`: review (foto kiri, tombol Ulang kanan), attract (judul tengah, tombol satu baris), print_select muat.
   - Laporan `docs/reports/windows/<tanggal>-m3-supervisor.md`. Hapus `$W\data` dan `$W\prints` setelahnya.
 
 ## Untuk Mac
@@ -51,7 +53,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 - [x] **M-005 Integrasi printer ke booth (M3/M6).** Camera Service sekarang punya `print.submit`/`print.status` + event `print.done`/`print.failed`/`printer.status` (W-009). Saat spawn, Electron main perlu meneruskan `--printer`, `--paper-4r`, `--paper-2x6x2` dari config device; `--print-to-file <dir>` hanya untuk uji/stress (tanpa itu, printer ber-port `PORTPROMPT:` seperti Print to PDF ditolak `output_file_required`). Gambar yang dikirim harus 1200×1800. Petakan kode error baru ke UI/log. Daftar lengkap: laporan m4-printer §"Untuk Mac / booth". → Selesai (M3): booth meneruskan `--printer`, `--paper-4r`, `--paper-2x6x2`, `--print-to-file` ke Camera Service yang di-spawn. Pemetaan kode error ke UI crew menyusul di M6.
 - [x] **M-006 `webcam.ts`: frame video dulu, bukan `takePhoto`.** W-010: di HP 5MP Camera `ImageCapture` tidak punya resolusi still lebih tinggi dari stream. `takePhoto()` hanya meng-encode frame ke PNG, 1,3–1,6 s @1080p dan 1,8–3,1 s @2560×1920. Frame video → JPEG hanya 107/174 ms dengan resolusi sama. Resolusi max stream 2560×1920 (4:3) @30 fps; tanpa constraint ukuran didapat 640×480. Saran: frame video dulu (`takePhoto` hanya kalau `imageWidth.max > videoWidth`), stream minta 2560×1920. Detail: laporan webcam. → Selesai (Mac): stream `ideal` 2560×1920 @30, foto = frame video → JPEG q0,95; `takePhoto` hanya kalau `getPhotoCapabilities().imageWidth.max` > `videoWidth`. Log `[webcam] <w>×<h>, foto: …`. Diverifikasi di W-011.
-- [ ] **M-007 Temuan W-011 (M1 di Windows).** Semua uji lulus. Yang perlu diputuskan/diperbaiki di `main`:
+- [x] **M-007 Temuan W-011 (M1 di Windows).** Semua uji lulus. Yang perlu diputuskan/diperbaiki di `main`: → Selesai (Mac): (1) koneksi event tetap di main (`listenEvents`, sambung ulang 2 s), `print.done/print.failed` memperbarui `print_jobs` + log `[print] …`; (2) `errText` → `Nama: pesan`; (3) preview tetap tidak di-mirror (DECISIONS #35); (4) portrait: review foto kiri + tombol kanan, judul attract tengah, tombol tidak terbungkus, angka tanpa `tnum` global; (5) = M-006.
   1. Booth belum mendengarkan event Camera Service (koneksi per-permintaan), jadi `print.failed` (mis. `printer_unavailable`, `paper_not_supported`) tidak pernah sampai. Sesi tetap jalan, tapi log `cetak gagal` tidak muncul dan crew tidak tahu. Perlu koneksi WebSocket tetap (M3) atau `print.status` polling.
   2. Log error kamera `[object DOMException]`: tulis `e.name: e.message`.
   3. Preview foto tidak di-mirror padahal live view di-mirror (keputusan UX).
@@ -62,6 +64,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-24 | Mac | Merge W-011. CI merah sejak W-009 diperbaiki: test B Print to PDF sadar driver (runner CI punya 4×6 → wajib PDF 4×6). M-007 selesai. W-013 ditambah uji event print & portrait. |
 | 2026-09-24 | Mac | M3 di `main`: supervisor Camera Service (spawn port/token acak, health 5 s, restart setelah 3x gagal atau proses mati, backoff), argumen printer diteruskan (M-005). Teruji di Mac: dibunuh 5x → pulih 5x, tidak ada proses yatim saat tutup normal. 4 test baru. W-013 ditambahkan. |
 | 2026-09-24 | Windows | W-011 selesai: M1 lulus di Windows (simulasi landscape/portrait, webcam dengan mirror benar, kamera diblokir → pulih, print ke PDF lewat W-009). Temuan di M-007. Laporan: `docs/reports/windows/2026-09-24-m1-sesi.md`. |
 | 2026-09-24 | Mac | Merge `win` (W-009 printer, W-010 webcam) ke `main`; DECISIONS Mac dinomori ulang #32/#33. M-006 selesai. M-005 masuk M3. |

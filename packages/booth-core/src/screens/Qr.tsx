@@ -2,6 +2,7 @@ import { Button } from "@tetra/ui";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { copy } from "../copy";
+import { errText } from "../errors";
 
 /** QR ke halaman tamu. Langsung muncul walau offline (FSD §1.11). */
 export function Qr({ url, onDone }: { url: string; onDone: () => void }) {
@@ -9,7 +10,7 @@ export function Qr({ url, onDone }: { url: string; onDone: () => void }) {
   useEffect(() => {
     QRCode.toDataURL(url, { margin: 0, width: 640, color: { dark: "#1a1714", light: "#ffffff" } })
       .then(setSrc)
-      .catch((e: unknown) => console.error("[qr] gagal membuat QR", e));
+      .catch((e: unknown) => console.error(`[qr] gagal membuat QR: ${errText(e)}`));
   }, [url]);
   return (
     <main className="flex h-full w-full flex-col items-center justify-center gap-12 bg-bg p-16 text-fg">

@@ -4,8 +4,9 @@ import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, join } from "node:path";
 import { app } from "electron";
-import { cameraHealth, setEndpoint } from "./camera-client";
+import { cameraHealth, listenEvents, setEndpoint } from "./camera-client";
 import { cameraServiceFlags } from "./config";
+import type { BoothDb } from "./db";
 import { createSupervisor } from "./supervisor";
 
 const EXE = process.platform === "win32" ? "TetraCamera.exe" : "TetraCamera";
@@ -37,7 +38,7 @@ const freePort = () =>
  * Jalankan Camera Service di bawah supervisor dengan port & token acak (TSD §1).
  * Token lewat env, bukan argumen, supaya tidak terlihat di daftar proses.
  */
-export async function startCameraService(log: (m: string) => void) {
+export async function startCameraService(log: (m: string) => void, db: BoothDb) {
   const bin = findBinary();
   if (!bin) {
     log(
@@ -68,6 +69,27 @@ export async function startCameraService(log: (m: string) => void) {
     log,
   });
   sup.start();
-  app.on("will-quit", () => sup.stop());
+  const stopEvents = watchPrintEvents(log, db);
+  app.on("will-quit", () => {
+    stopEvents();
+    sup.stop();
+  });
   return sup;
+}
+
+/** Hasil cetak datang sebagai event, bukan balasan print.submit: catat ke print_jobs + log (M-007). */
+export function watchPrintEvents(log: (m: string) => void, db: BoothDb) {
+  return listenEvents((e) => {
+    if (e.type === "print.done") {
+      db.printJobResult(e.payload.jobId, "done");
+      log(`[print] selesai ${e.payload.jobId}`);
+    } else if (e.type === "print.failed") {
+      db.printJobResult(e.payload.jobId, "failed", `${e.payload.code}: ${e.payload.message}`);
+      log(`[print] GAGAL ${e.payload.jobId}: ${e.payload.code} ${e.payload.message}`);
+    } else if (e.type === "printer.status") {
+      log(
+        `[print] printer ${e.payload.status}${e.payload.message ? `: ${e.payload.message}` : ""}`,
+      );
+    }
+  });
 }

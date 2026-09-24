@@ -56,13 +56,14 @@ export type SessionDone = {
   printCount: number;
   assets: { kind: AssetKind; idx: number; path: string; bytes: number }[];
 };
+export type PrintJobStatus = "queued" | "done" | "failed";
 export type PrintJobRow = {
   id: string;
   sessionId: string;
   path: string;
   copies: number;
   paper: string;
-  status: "queued" | "failed";
+  status: PrintJobStatus;
   error?: string | undefined;
 };
 
@@ -110,6 +111,8 @@ export function openDb(file: string) {
      on conflict (id) do update set status = excluded.status, attempts = attempts + 1, error = excluded.error`,
   );
 
+  const updatePrint = db.prepare("update print_jobs set status = ?, error = ? where id = ?");
+
   return {
     abandoned: Number(abandoned),
 
@@ -147,6 +150,11 @@ export function openDb(file: string) {
         j.error ?? null,
         new Date().toISOString(),
       );
+    },
+
+    /** Hasil akhir dari event Camera Service (print.done / print.failed). */
+    printJobResult(id: string, status: PrintJobStatus, error?: string) {
+      updatePrint.run(status, error ?? null, id);
     },
 
     /** Untuk test & mode crew nanti. */

@@ -32,7 +32,6 @@ html {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-sans);
-  font-feature-settings: "tnum";
 }
 
 /* Gerak (08-DESIGN §5): transisi layar fade + geser 12px, hasil foto fade, flash putih singkat. */

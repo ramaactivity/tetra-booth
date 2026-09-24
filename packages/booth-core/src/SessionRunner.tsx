@@ -2,6 +2,7 @@ import { newSessionId } from "@tetra/shared";
 import { useEffect, useReducer, useRef } from "react";
 import { composeStrip } from "./compose";
 import { copy } from "./copy";
+import { errText } from "./errors";
 import type { BoothEvent } from "./event";
 import { buildOutputs } from "./finalize";
 import { usePlatform } from "./PlatformContext";
@@ -101,7 +102,7 @@ export function SessionRunner({
         if (live) dispatch({ type: "CAPTURED", photo: { ...r, url } });
       })
       .catch((e: unknown) => {
-        console.warn("[session] capture gagal", e);
+        console.warn(`[session] capture gagal: ${errText(e)}`);
         if (live) dispatch({ type: "CAPTURE_FAILED" });
       });
     return () => {
@@ -119,7 +120,7 @@ export function SessionRunner({
         .reconnect()
         .then(() => live && dispatch({ type: "CAMERA_READY" }))
         .catch((e: unknown) => {
-          console.warn("[session] reconnect gagal", e);
+          console.warn(`[session] reconnect gagal: ${errText(e)}`);
           if (live) timer = setTimeout(tryReconnect, RECONNECT_EVERY_MS);
         });
     timer = setTimeout(tryReconnect, RECONNECT_EVERY_MS);
@@ -139,7 +140,7 @@ export function SessionRunner({
         layoutVersionId: `${event.layout.id}@${event.layout.version}`,
         startedAt: new Date().toISOString(),
       })
-      .catch((e: unknown) => console.error("[session] gagal mencatat sesi", e));
+      .catch((e: unknown) => console.error(`[session] gagal mencatat sesi: ${errText(e)}`));
   }, [p, s.sessionId, event]);
 
   // QR tampil = sesi selesai. Output upload & catatan DB dibuat di belakang layar; tamu tidak menunggu.
@@ -162,7 +163,7 @@ export function SessionRunner({
           `[session] selesai ${id}: ${n} aset, ${Math.round(performance.now() - t0)} ms`,
         ),
       )
-      .catch((e: unknown) => console.error(`[session] gagal menyelesaikan ${id}`, e));
+      .catch((e: unknown) => console.error(`[session] gagal menyelesaikan ${id}: ${errText(e)}`));
   }, [p, s.phase, s.sessionId, s.photos, s.retakesUsed, s.strip, s.prints, event]);
 
   // Compose strip.
@@ -182,7 +183,7 @@ export function SessionRunner({
         if (live) dispatch({ type: "COMPOSED", strip });
       })
       .catch((e: unknown) => {
-        console.error("[session] compose gagal", e);
+        console.error(`[session] compose gagal: ${errText(e)}`);
         if (live) dispatch({ type: "COMPOSE_FAILED" });
       });
     return () => {
@@ -200,7 +201,9 @@ export function SessionRunner({
         copies: s.prints,
         paper: event.layout.paper,
       })
-      .catch((e: unknown) => console.warn("[session] cetak gagal, sesi tetap lanjut", e))
+      .catch((e: unknown) =>
+        console.warn(`[session] cetak gagal, sesi tetap lanjut: ${errText(e)}`),
+      )
       .finally(() => dispatch({ type: "PRINT_DONE" }));
   }, [p, s.phase, s.strip, s.sessionId, s.prints, event.layout.paper]);
 
