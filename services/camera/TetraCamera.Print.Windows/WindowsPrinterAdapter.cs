@@ -105,6 +105,7 @@ public sealed class WindowsPrinterAdapter : QueuedPrinterAdapter
             ? new RectangleF(0, 0, PaperSelector.FourBySixLong, PaperSelector.FourBySixShort)
             : new RectangleF(0, 0, PaperSelector.FourBySixShort, PaperSelector.FourBySixLong);
 
+        var coverPage = PaperSelector.IsFourBySix(chosen);
         var printed = 0;
         doc.PrintPage += (_, e) =>
         {
@@ -114,9 +115,10 @@ public sealed class WindowsPrinterAdapter : QueuedPrinterAdapter
             if (!margins) g.TranslateTransform(-e.PageSettings.HardMarginX, -e.PageSettings.HardMarginY);
             g.InterpolationMode = InterpolationMode.HighQualityBicubic;
             g.PixelOffsetMode = PixelOffsetMode.Half;
-            // Borderless: tutup seluruh halaman (termasuk overscan) tanpa tepi putih. Ber-margin: tepat 4×6 in.
+            // Kertas 4×6 dye-sub (overscan borderless): tutup seluruh halaman tanpa tepi putih.
+            // Kertas lain (mis. A5 di uji PDF) dan mode ber-margin: tepat 4×6 in di origin.
             RectangleF target = fourBySix;
-            if (!margins)
+            if (!margins && coverPage)
             {
                 var b = e.PageSettings.Bounds;
                 var c = PaperSelector.CoverRect(b.Width, b.Height, fourBySix.Width, fourBySix.Height);
