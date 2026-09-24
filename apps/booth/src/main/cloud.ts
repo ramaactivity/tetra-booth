@@ -118,6 +118,9 @@ export function createCloud(
     syncEvents,
     token,
     async pair(code: string): Promise<CloudDevice> {
+      // Booth hanya Windows (DPAPI) & macOS dev (Keychain); Linux = CI tanpa keyring.
+      if (process.platform === "linux" && !safeStorage.isEncryptionAvailable())
+        safeStorage.setUsePlainTextEncryption(true);
       if (!safeStorage.isEncryptionAvailable())
         throw new Error("Penyimpanan terenkripsi tidak tersedia di laptop ini");
       let res: Response;
