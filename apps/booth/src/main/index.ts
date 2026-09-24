@@ -12,9 +12,10 @@ import {
   windowSize,
 } from "./config";
 import { openDb } from "./db";
+import { createFrameWatch } from "./frame-watch";
 import { createGpuWatch } from "./gpu-watch";
 import { registerIpc } from "./ipc";
-import { APP_ID, applyKiosk } from "./kiosk";
+import { APP_ID, allowQuit, applyKiosk } from "./kiosk";
 import { setupLogging } from "./log";
 import { startMetrics } from "./metrics";
 
@@ -31,14 +32,15 @@ console.info(
 );
 
 const alerts = createAlerts(db);
-// Pemulihan GPU (M-016, M-017): relaunch (lewat before-quit yang menunggu print) saat kembali ke attract.
-const gpu = createGpuWatch({
-  log: (m) => console.warn(m),
-  relaunch: () => {
-    app.relaunch({ args: process.argv.slice(1) });
-    app.quit();
-  },
-});
+// Boot ulang booth: lewat before-quit (print ditunggu), juga di kiosk. Kalau quit tersangkut (jendela beku), paksa.
+const relaunch = () => {
+  allowQuit();
+  app.relaunch({ args: process.argv.slice(1) });
+  app.quit();
+  setTimeout(() => app.exit(0), 30_000).unref();
+};
+// Pemulihan GPU (M-016, M-017): relaunch saat kembali ke attract.
+const gpu = createGpuWatch({ log: (m) => console.warn(m), relaunch });
 app.on("child-process-gone", (_e, d) => {
   if (d.type === "GPU") gpu.gpuGone(d.reason);
 });
@@ -84,6 +86,19 @@ const createWindow = () => {
     );
   });
   if (kiosk) applyKiosk(win, (m) => console.info(m));
+  // Layar beku tanpa event GPU (M-018) → relaunch langsung; sesi yang beku memang sudah tidak bisa dilanjutkan.
+  const frames = createFrameWatch({
+    probe: () =>
+      win.webContents.executeJavaScript("new Promise((r) => requestAnimationFrame(() => r(0)))"),
+    active: () =>
+      !win.isDestroyed() && win.isVisible() && !win.isMinimized() && !win.webContents.isLoading(),
+    frozen: () => {
+      console.error("[watchdog] layar tidak menggambar > 15 s, relaunch booth");
+      relaunch();
+    },
+  });
+  const timer = setInterval(() => frames.tick(), 5000);
+  win.on("closed", () => clearInterval(timer));
   void load();
 };
 
