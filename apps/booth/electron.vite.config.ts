@@ -13,6 +13,7 @@ const workspace = [
 
 export default defineConfig({
   main: { plugins: [externalizeDepsPlugin({ exclude: workspace })] },
-  preload: { plugins: [externalizeDepsPlugin({ exclude: workspace })] },
+  // Preload jalan di sandbox (tanpa require node_modules), jadi Sentry ikut di-bundle.
+  preload: { plugins: [externalizeDepsPlugin({ exclude: [...workspace, "@sentry/electron"] })] },
   renderer: { plugins: [react(), tailwindcss()] },
 });

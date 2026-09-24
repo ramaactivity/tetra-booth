@@ -12,6 +12,7 @@
     "stress": "node scripts/stress.mjs"
   },
   "dependencies": {
+    "@sentry/electron": "^7.20.0",
     "@tetra/booth-core": "workspace:*",
     "@tetra/platform-electron": "workspace:*",
     "@tetra/shared": "workspace:*",

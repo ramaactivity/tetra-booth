@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { init as sentryInit } from "@sentry/electron/main";
 import { app, BrowserWindow } from "electron";
 import { createAlerts } from "./alerts";
 import { startCameraService, watchPrintEvents } from "./camera-service";
@@ -19,6 +20,23 @@ import { registerIpc } from "./ipc";
 import { APP_ID, allowQuit, applyKiosk } from "./kiosk";
 import { setupLogging } from "./log";
 import { startMetrics } from "./metrics";
+
+// Sentry hanya di build terpasang (dev & e2e tidak mengirim). Event antre di disk saat offline, tidak pernah menunggu jaringan.
+if (app.isPackaged)
+  sentryInit({
+    dsn: "https://7ab8a1a1fcc2015dd5bd4b7b6b117907@o4512143875309568.ingest.us.sentry.io/4512143898050560",
+    includeServerName: false,
+    tracesSampleRate: 0,
+    // Tanpa data pribadi tamu: SDK v11 default-nya mengumpulkan semua.
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: false,
+      httpBodies: [],
+      urlQueryParams: false,
+      stackFrameVariables: false,
+    },
+  });
 
 if (process.platform === "win32") app.setAppUserModelId(APP_ID);
 

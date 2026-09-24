@@ -64,4 +64,5 @@ export const copy = {
     nav: { events: "Event", devices: "Device" },
     roles: { owner: "Owner", admin: "Admin", crew: "Crew" } as Record<string, string>,
   },
+  crash: "Ada yang error. Coba muat ulang halaman.",
 } as const;

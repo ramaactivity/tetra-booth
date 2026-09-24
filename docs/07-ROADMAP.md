@@ -55,7 +55,7 @@ Prinsip:
 - [x] Heartbeat. _(N2/N5, 2026-09-25: tiap 60 dtk — versi, layar, event aktif, kamera, printer, kertas, antrean, error terakhir)_
 - [x] Halaman tamu: state unknown/pending/ready/expired/removed, simpan via share sheet, branding event. _(N6, 2026-09-25: branding = nama & tanggal event; warna/logo menyusul admin Fase 3, DECISIONS #60)_
 - [x] Tracking `qr_open`, `save`, `save_all`. _(N7, 2026-09-25: `POST /api/track`, 60/menit per IP)_
-- [ ] Sentry web + booth.
+- [x] Sentry web + booth. _(N8, 2026-09-25: tanpa data tamu, DECISIONS #68)_
 
 **Selesai jika:** di event nyata, ≥ 95% sesi ter-upload ≤ 5 menit saat online; tes cabut internet 1 jam lalu sambung lagi → semua sesi terkirim tanpa campur tangan.
 
@@ -64,13 +64,13 @@ Prinsip:
 - [x] Daftar event, pengaturan event lengkap, penugasan device. _(A3, 2026-09-25)_
 - [ ] Editor template (overlay + slot + teks + font) dengan versi. _(A4 sementara: preset + overlay + warna latar, DECISIONS #66)_
 - [x] Halaman device. _(A2, 2026-09-25)_
-- [ ] Dashboard event: statistik, share analytics, status booth, grid + aksi massal.
-- [ ] Moderasi: sembunyikan/hapus + audit log.
+- [x] Dashboard event: statistik, share analytics, status booth, grid + aksi massal. _(A5, 2026-09-25)_
+- [x] Moderasi: sembunyikan/hapus + audit log. _(A5, 2026-09-25)_
 - [x] Galeri klien: hero, timeline per jam, lightbox, favorit, slideshow, toggle galeri publik, hitung mundur. _(A7, 2026-09-25: semua kecuali toggle galeri publik = Fase 5; + download semua ZIP)_
-- [ ] Worker ZIP.
-- [ ] Live slideshow realtime.
-- [ ] Cron retensi + lifecycle rule bucket.
-- [ ] Link klien: salin, buat ulang, cabut.
+- [x] Worker ZIP. _(A9, 2026-09-25: ZIP dirakit di browser dengan `client-zip`, tanpa worker server)_
+- [x] Live slideshow realtime. _(A8, 2026-09-25: polling, bukan websocket)_
+- [x] Cron retensi + lifecycle rule bucket. _(A9, 2026-09-25: Vercel Cron + `CRON_SECRET`; lifecycle R2 cuma abort multipart 7 hari, retensi diatur cron)_
+- [x] Link klien: salin, buat ulang, cabut. _(A6, 2026-09-25)_
 
 **Selesai jika:** satu event disiapkan 100% dari admin tanpa menyentuh file lokal, dan klien sungguhan menerima & memakai galerinya.
 

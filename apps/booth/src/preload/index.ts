@@ -1,3 +1,4 @@
+import "@sentry/electron/preload";
 import type { TetraBridge } from "@tetra/platform-electron";
 import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
 
