@@ -52,7 +52,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
      - Bundle event: salin contoh bundle dari `apps/booth/e2e/crew.spec.ts` (atau buat dengan overlay PNG + font TTF/OTF milik Windows yang bebas lisensi, mis. dari `C:\Windows\Fonts` hanya untuk uji lokal, jangan di-commit) ke `$W\data\events\<id>\bundle`, pilih di menu crew, jalankan satu sesi: strip memakai overlay & font bundle.
   3. Portrait `--size=450x800`: menu crew & pad PIN muat dan bisa discroll.
   - Laporan `docs/reports/windows/<tanggal>-m6-crew.md`. Hapus `$W\data`, `$W\prints`, `$W\shots` setelahnya.
-- [ ] **W-015 Ulang uji kill 20× dengan print (M-009).** Setelah W-014. Sama seperti W-013 langkah 2 (demo + Print to PDF + bunuh `TetraCamera.exe` 20× jeda ±5 s), flag bentuk spasi (`--printer "Microsoft Print to PDF"`). Lulus jika **setiap sesi yang selesai punya ≥ 1 PDF** (hitung PDF vs sesi `completed`), `print_jobs` tidak ada yang tertinggal `queued` > 1 menit setelah uji selesai, log berisi `[print] tertunda`/`[print] kirim ulang` saat relevan. Catat jumlah PDF ganda (cetak ganda yang diterima). Juga pastikan log boot tidak lagi berisi `camera service: tidak terhubung` (M-008).
+- [x] **W-015 Ulang uji kill 20× dengan print (M-009).** → `docs/reports/windows/2026-09-24-m9-print-crash.md` Setelah W-014. Sama seperti W-013 langkah 2 (demo + Print to PDF + bunuh `TetraCamera.exe` 20× jeda ±5 s), flag bentuk spasi (`--printer "Microsoft Print to PDF"`). Lulus jika **setiap sesi yang selesai punya ≥ 1 PDF** (hitung PDF vs sesi `completed`), `print_jobs` tidak ada yang tertinggal `queued` > 1 menit setelah uji selesai, log berisi `[print] tertunda`/`[print] kirim ulang` saat relevan. Catat jumlah PDF ganda (cetak ganda yang diterima). Juga pastikan log boot tidak lagi berisi `camera service: tidak terhubung` (M-008).
 
 ## Untuk Mac
 
@@ -83,6 +83,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-24 | Windows | W-015 selesai: flag bentuk spasi & boot tanpa "tidak terhubung" (M-008) beres; 20/20 kill pulih, 9 sesi = 9 PDF = 9 `done`, 3 kirim ulang, 0 cetak ganda menurut log (cetak ganda fisik tidak terdeteksi lewat PDF, lihat laporan). Laporan: `docs/reports/windows/2026-09-24-m9-print-crash.md`. |
 | 2026-09-24 | Windows | W-014 selesai: e2e lulus (5,1 s), test print & cetak ulang ke PDF, kertas berkurang, print gagal tampil di attract & menu crew, cek kamera 2560×1920 (121–209 ms setelah hangat), bundle overlay+font terpakai di strip, portrait bisa discroll. Temuan kecil M-010. Laporan: `docs/reports/windows/2026-09-24-m6-crew.md`. |
 | 2026-09-24 | Mac | Merge W-013. M-009 selesai: print tertunda disimpan `queued` & dikirim ulang setelah Camera Service pulih. W-015 ditambahkan. |
 | 2026-09-24 | Mac | Merge W-012. M-008 selesai (parser flag dua bentuk, tunggu Camera Service siap sebelum jendela). |
