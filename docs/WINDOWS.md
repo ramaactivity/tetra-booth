@@ -1,6 +1,24 @@
 # Runbook: Claude Code di laptop Windows
 
-Dibaca oleh Claude Code yang berjalan di laptop Windows. Rama (pemilik proyek) memantau lewat Remote Control dari claude.ai dan **tidak berada di depan laptop**. Laptop ini pinjaman dari teman Rama yang tidak paham teknis.
+Dibaca oleh Claude Code yang berjalan di laptop Windows.
+
+## 0. Profil mesin (baca dulu)
+
+| Profil | Status | Aturan |
+|---|---|---|
+| **A. Laptop booth milik Rama** | **Aktif sejak 2026-09-24** | §0.1 di bawah. §2 (aturan laptop pinjaman) **tidak berlaku**. |
+| B. Laptop pinjaman teman Rama | Selesai dipakai 2026-09-24, deploy key sudah dicabut | §2, §3 (`env.ps1`), §7 |
+
+### 0.1 Aturan laptop booth Rama (profil A)
+
+1. Workspace `C:\TetraBooth` (path pendek, tanpa spasi), repo di `C:\TetraBooth\tetra-booth`. Data uji booth di `C:\TetraBooth\data`, folder hot folder `C:\TetraBooth\hot`, output PDF `C:\TetraBooth\prints`.
+2. Tool dipasang permanen lewat `winget` (Rama ada di depan laptop untuk klik izin Windows). Driver DNP dan EOS Utility boleh dipasang **setelah Rama setuju**; unduh dari situs resmi DNP/Canon.
+3. GitHub lewat login Rama sendiri (`gh auth login` yang dijalankan Rama). `gh` boleh dipakai untuk melihat CI (`gh run list --branch win`).
+4. **Cetak fisik DNP menghabiskan kertas & ribbon.** Setiap tugas menyebut jatah lembar; jangan lewati tanpa izin Rama. Catat jumlah lembar yang keluar di laporan.
+5. Stress test & uji panjang pakai **Microsoft Print to PDF**, bukan DNP.
+6. Canon EDSDK belum ada (menunggu pendaftaran developer Canon). Kamera 60D diuji lewat **EOS Utility → hot folder** (M7). DLL EDSDK nanti di `services\camera\TetraCamera.Canon\sdk\` (tidak di-commit).
+7. Protokol git tetap §4 (Windows di `win`, Mac di `main`). Env: cukup `$env:ELECTRON_RUN_AS_NODE` dikosongkan sebelum menjalankan Electron; `env.ps1` dan prefix §3 hanya untuk profil B.
+8. Rama ada di depan laptop: aksi fisik (tekan shutter, ganti kertas, colok USB) boleh diminta langsung di chat, satu kalimat jelas per langkah.
 
 ## 1. Peran
 
