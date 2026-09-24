@@ -13,7 +13,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 - [x] **W-006 Riset printer untuk M4 (tanpa kode fitur).** Dengan skrip PowerShell sementara (tidak di-commit), cetak gambar uji 1200×1800 px ke "Microsoft Print to PDF" memakai `System.Drawing.Printing`: coba paper size 4×6 jika ada, catat `PrinterSettings.DefaultPageSettings` (margin, `PrintableArea`, `HardMarginX/Y`, resolusi), dan apakah hasil PDF tepat 4×6 inci tanpa scaling/margin. Kalau ada DNP terpasang, catat hal yang sama tanpa benar-benar mencetak. Tulis temuan di laporan: ini dasar desain `WindowsPrinterAdapter`.
 - [x] **W-007 Performa dasar.** Di booth hasil build, ukur: waktu dari start proses sampai `[fase0] engine hash` tercatat, waktu render fixture 4R (tambahkan `performance.now()` sementara secara lokal, jangan di-commit), pemakaian RAM Electron + Camera Service setelah 5 menit idle (`Get-Process`). Bandingkan dengan target 03-TSD §14.
 - [x] **W-008 Laporan lanjutan.** Tulis `docs/reports/windows/<tanggal>-uji-lanjutan.md` (W-005..W-007), push ke `win`, ringkas di chat. → `docs/reports/windows/2026-09-24-uji-lanjutan.md`
-- [ ] **W-009 M4: `WindowsPrinterAdapter` (kode, pertama di Fase 1).** Ikuti PLAN-FASE-1 §"Desain M4" dan penuhi "Kriteria uji M4" poin 1 dan 2. Rincian:
+- [x] **W-009 M4: `WindowsPrinterAdapter` (kode, pertama di Fase 1).** → `docs/reports/windows/2026-09-24-m4-printer.md` Ikuti PLAN-FASE-1 §"Desain M4" dan penuhi "Kriteria uji M4" poin 1 dan 2. Rincian:
   - Logika pemilihan kertas murni di `TetraCamera.Print` + xUnit (jalan juga di CI Ubuntu).
   - Adapter di `TetraCamera.Print.Windows`. Paket NuGet yang dibutuhkan (mis. `System.Drawing.Common`, `System.Management` untuk status spooler) hanya di proyek itu.
   - `Dispatcher`: implementasikan `print.submit` & `print.status` sesuai `packages/shared/src/camera-protocol.ts`, event `print.done`/`print.failed`/`printer.status`. Argumen Host: `--printer`, `--paper-4r`, `--paper-2x6x2`.
@@ -29,10 +29,13 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 - [x] **M-003 Kamera: webcam dulu.** Arahan Rama 2026-09-24: belum ada kamera Canon. Uji kamera sementara pakai webcam laptop (HP 5MP Camera). Uji Canon/EDSDK dipindah ke fase berikutnya. Sesuaikan PLAN-FASE-1 bila perlu. → Selesai: PLAN M1/M7/M8, ROADMAP Fase 1b, DECISIONS #26.
 - [x] **M-004 Desain `WindowsPrinterAdapter` (M4).** Pilih PaperSize dari `PrinterSettings.PaperSizes` driver, jangan PaperSize custom: Print to PDF mengabaikannya diam-diam dan tetap mencetak Letter, walaupun `PageBounds` melaporkan 4×6. Validasi lewat `PrintableArea`. Uji M4 "PDF 4×6" tidak mungkin dengan Print to PDF bawaan. Detail: laporan uji-lanjutan §W-006. → Selesai: desain & kriteria uji di PLAN-FASE-1 §"Desain M4", DECISIONS #27.
 
+- [ ] **M-005 Integrasi printer ke booth (M3/M6).** Camera Service sekarang punya `print.submit`/`print.status` + event `print.done`/`print.failed`/`printer.status` (W-009). Saat spawn, Electron main perlu meneruskan `--printer`, `--paper-4r`, `--paper-2x6x2` dari config device; `--print-to-file <dir>` hanya untuk uji/stress (tanpa itu, printer ber-port `PORTPROMPT:` seperti Print to PDF ditolak `output_file_required`). Gambar yang dikirim harus 1200×1800. Petakan kode error baru ke UI/log. Daftar lengkap: laporan m4-printer §"Untuk Mac / booth".
+
 ## Log
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-24 | Windows | W-009 selesai: `WindowsPrinterAdapter` + antrean + `print.*` di Dispatcher. `dotnet test` 55/55 (Debug & Release), kriteria M4 1 & 2 lulus di Print to PDF. DECISIONS #30. Laporan: `docs/reports/windows/2026-09-24-m4-printer.md`. |
 | 2026-09-24 | Mac | Rama setuju: W-005 tidak berlaku di laptop ini; target start ≤ 3 s & RAM idle ≤ 500 MB masuk 03-TSD §14. Mac mulai M1 (alur sesi + webcam) paralel dengan W-009. |
 | 2026-09-24 | Mac | Merge `win` → `main`. M-001..M-004 selesai. PLAN-FASE-1 disetujui & direvisi (webcam, EDSDK ke Fase 1b, desain printer). Tugas coding W-009 (printer) & riset W-010 (webcam) ditambahkan. W-005 menunggu keputusan Rama. |
 | 2026-09-24 | Windows | W-006..W-008 selesai, W-005 terblokir (permission unduh skrip R2). Print to PDF abaikan PaperSize custom; start booth 0,44–1,09 s; RAM idle 258 MB. Laporan: `docs/reports/windows/2026-09-24-uji-lanjutan.md`. |

@@ -6,10 +6,19 @@ using TetraCamera.Print;
 // Port & token diberikan Electron main saat spawn (TSD §1). Default hanya untuk dev manual.
 var port = int.Parse(Environment.GetEnvironmentVariable("TETRA_CAMERA_PORT") ?? "8765");
 var token = Environment.GetEnvironmentVariable("TETRA_CAMERA_TOKEN") ?? "dev";
+// Printer (M4): sementara dari argumen, nanti dari config device lewat Electron.
+string? printerName = null, paper4R = null, paper2x6x2 = null, printToFile = null;
 for (var i = 0; i + 1 < args.Length; i++)
 {
-    if (args[i] == "--port") port = int.Parse(args[i + 1]);
-    if (args[i] == "--token") token = args[i + 1];
+    switch (args[i])
+    {
+        case "--port": port = int.Parse(args[i + 1]); break;
+        case "--token": token = args[i + 1]; break;
+        case "--printer": printerName = args[i + 1]; break;
+        case "--paper-4r": paper4R = args[i + 1]; break;
+        case "--paper-2x6x2": paper2x6x2 = args[i + 1]; break;
+        case "--print-to-file": printToFile = Path.GetFullPath(args[i + 1]); break;
+    }
 }
 var tokenBytes = Encoding.UTF8.GetBytes(token);
 
@@ -20,8 +29,11 @@ var app = builder.Build();
 app.UseWebSockets();
 
 IPrinterAdapter printer = OperatingSystem.IsWindows()
-    ? new TetraCamera.Print.Windows.WindowsPrinterAdapter()
+    ? new TetraCamera.Print.Windows.WindowsPrinterAdapter(
+        new(printerName, new PaperConfig(paper4R, paper2x6x2), printToFile))
     : new NullPrinterAdapter();
+var events = new EventHub();
+printer.Event += e => events.Publish(Dispatcher.SerializeEvent(e));
 var dispatcher = new Dispatcher(printer);
 
 app.Map("/ws", async (HttpContext ctx) =>
@@ -34,8 +46,9 @@ app.Map("/ws", async (HttpContext ctx) =>
         return;
     }
     using var ws = await ctx.WebSockets.AcceptWebSocketAsync();
-    await SocketSession.RunAsync(ws, dispatcher, ctx.RequestAborted);
+    await SocketSession.RunAsync(ws, dispatcher, events, ctx.RequestAborted);
 });
 
 Console.WriteLine($"TetraCamera siap di ws://127.0.0.1:{port}/ws");
+if (printerName is not null) Console.WriteLine($"Printer: {printerName} (4R: {paper4R ?? "ukuran 4x6"}, 2x6x2: {paper2x6x2 ?? "-"})");
 app.Run();
