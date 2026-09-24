@@ -7,9 +7,11 @@ import {
   ResultSchemas,
 } from "@tetra/shared";
 
-// ponytail: port & token tetap untuk dev. Fase 1: main spawn Camera Service dengan port & token acak (TSD §1).
-const PORT = process.env.TETRA_CAMERA_PORT ?? "8765";
-const TOKEN = process.env.TETRA_CAMERA_TOKEN ?? "dev";
+// Default = Camera Service yang dijalankan manual (--no-spawn). Supervisor mengganti dengan port & token acak (TSD §1).
+let endpoint = { port: 8765, token: "dev" };
+export const setEndpoint = (port: number, token: string) => {
+  endpoint = { port, token };
+};
 const TIMEOUT_MS = 3000;
 
 /** Kirim satu perintah ke Camera Service dan tunggu balasan dengan id yang sama. */
@@ -17,7 +19,9 @@ export function request<T extends CommandType>(
   cmd: Command & { type: T },
 ): Promise<CommandResult<T>> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws?token=${encodeURIComponent(TOKEN)}`);
+    const ws = new WebSocket(
+      `ws://127.0.0.1:${endpoint.port}/ws?token=${encodeURIComponent(endpoint.token)}`,
+    );
     const timer = setTimeout(() => {
       ws.close();
       reject(new Error("Camera Service tidak menjawab"));

@@ -27,6 +27,8 @@ Target selesai (07-ROADMAP, direvisi): alur sesi lengkap berjalan di Windows den
 
 Status M1 (2026-09-24): kode selesai di `main`, teruji di Mac dengan kamera simulasi (landscape & portrait). Menunggu verifikasi webcam di Windows (W-011).
 Status M2 (2026-09-24): kode selesai di `main`: DB + output + log harian, teruji di Mac (compose 84–118 ms, output 181–323 ms di belakang layar). Verifikasi Windows: W-012.
+Status M3 (2026-09-24): supervisor di `main`, teruji di Mac. Verifikasi Windows + print end-to-end: W-013.
+Status M4 (2026-09-24): `WindowsPrinterAdapter` selesai (W-009), kriteria uji 1 & 2 lulus.
 
 Urutan kerja: **M4 (Windows) paralel dengan M1 → M2 → M3 (Mac)** → M9 → M5/M6 → M7 → M8.
 

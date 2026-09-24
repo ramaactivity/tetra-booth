@@ -27,8 +27,8 @@ Prinsip:
 
 ## Fase 1 — Booth offline (mode event)
 - [ ] Kamera uji: webcam (renderer) + kamera simulasi di Camera Service; hot-folder fallback. _(Canon EDSDK dipindah ke Fase 1b, DECISIONS #26)_
-- [ ] Camera Service: print DNP (4R & 2x6x2), status spooler.
-- [ ] Supervisor & watchdog di Electron main.
+- [x] Camera Service: print lewat `WindowsPrinterAdapter` (4R & 2x6x2), status spooler. _(M4/W-009; cetak fisik DNP di Fase 1b)_
+- [x] Supervisor & watchdog di Electron main. _(M3, 2026-09-24; verifikasi Windows W-013)_
 - [ ] Kiosk: auto-start, fullscreen, anti-sleep.
 - [x] State machine sesi: attract → countdown → capture → review/retake → compose → print select → printing → QR. _(M1, 2026-09-24)_
 - [x] SQLite lokal, struktur folder sesi, output strip/original/thumb. _(M2, 2026-09-24; verifikasi Windows W-012)_

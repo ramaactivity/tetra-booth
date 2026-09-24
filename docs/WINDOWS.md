@@ -47,8 +47,9 @@ Set-ExecutionPolicy -Scope Process Bypass -Force; . "$HOME\TetraBooth\env.ps1"; 
 pnpm install --frozen-lockfile
 pnpm lint; pnpm typecheck; pnpm test
 dotnet test services/camera
-# Camera Service (jendela terpisah, biarkan jalan)
-Start-Process -WindowStyle Minimized dotnet -ArgumentList 'run','--project','services/camera/TetraCamera.Host','--','--port','8765','--token','dev'
+# Camera Service: sejak M3 booth menjalankan & mengawasi Camera Service sendiri (port/token acak).
+# Cukup pastikan binary dev ter-build (dicari di services/camera/TetraCamera.Host/bin/Debug/net10.0):
+dotnet build services/camera
 # Booth (build lalu jalankan dengan log konsol ke file)
 pnpm --filter booth build
 Start-Process apps\booth\node_modules\electron\dist\electron.exe -ArgumentList 'apps\booth','--enable-logging' -RedirectStandardError "$W\logs\electron.log"
@@ -63,6 +64,7 @@ electron.exe apps\booth --camera=simulated --demo --data="$W\data" --shots="$W\s
 ```
 
 - `--camera=webcam|simulated`, `--demo` (sesi jalan sendiri), `--size=WxH` (mis. `450x800` untuk portrait di layar 1280×800 logis).
+- Camera Service di-spawn booth. `--no-spawn` = pakai Camera Service yang dijalankan manual (port 8765, token `dev`). Printer diteruskan: `--printer "Microsoft Print to PDF" --paper-2x6x2 A5 --print-to-file "$W\prints"` (tanpa `--print-to-file`, Print to PDF ditolak `output_file_required`).
 - `--data` **wajib** di laptop ini: foto & data sesi masuk `$W\data`, bukan `%APPDATA%`.
 - `--shots` menyimpan screenshot **isi jendela booth** per fase (`capturePage`, hanya konten app). Ini cara utama melihat UI.
 - Log: `[boot]`, `[session] <fase> <id>`, `[phase]`, `[session] compose <ms> ms`, `[session] selesai <id>: <n> aset`. Semua juga tertulis ke `$W\data\logs\YYYY-MM-DD.log` (sejak M2).
@@ -77,7 +79,7 @@ Kalau butuh screenshot di luar booth, gunakan **jendela aplikasi saja**:
 - Simpan ke `$W\shots\`, perkecil, lihat dengan Read, hapus setelahnya. Skripnya simpan lokal di `$W`, jangan di-commit.
 - Baca log UTF-8 dengan `Get-Content -Encoding UTF8`.
 
-Menghentikan: `Get-Process electron,TetraCamera,dotnet -ErrorAction SilentlyContinue | Stop-Process`.
+Menghentikan: `Get-Process 'Tetra Booth',electron,TetraCamera,dotnet -ErrorAction SilentlyContinue | Stop-Process`. Menutup booth normal ikut menghentikan Camera Service.
 
 ## 6. Menjaga laptop tetap menyala
 

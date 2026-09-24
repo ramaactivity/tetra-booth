@@ -35,6 +35,12 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   4. Log harian `$W\data\logs\<tanggal>.log` berisi baris main dan renderer (`R-INFO`).
   5. Ulangi langkah 1–2 sekali dengan `--camera=webcam` untuk ukuran original dari webcam asli.
   - Laporan `docs/reports/windows/<tanggal>-m2-penyimpanan.md`. Hapus `$W\data` setelahnya.
+- [ ] **W-013 Verifikasi M3 (supervisor) + print end-to-end dari booth.** Merge `origin/main`, `dotnet build services/camera`, build booth. Jangan jalankan Camera Service manual lagi: booth yang menjalankannya.
+  1. Booth `--camera=simulated --demo --data=$W\data` dengan printer Print to PDF: `--printer "Microsoft Print to PDF" --paper-2x6x2 A5 --print-to-file "$W\prints"`. Lulus jika log berisi `[supervisor] … start`, `[camera] TetraCamera siap`, `[boot] camera service: OK`, dan setiap sesi menghasilkan PDF di `$W\prints` (cek MediaBox A5 + gambar 288×432 pt, jumlah halaman = jumlah cetak) serta `print_jobs` berstatus `queued`.
+  2. **Bunuh `TetraCamera.exe` 20x** (`Stop-Process -Force`, jeda ±5 s) selama demo berjalan. Lulus jika tiap kali log `[supervisor] … berhenti` lalu `start`, sesi demo tidak macet, dan setelah 20x Camera Service masih hidup & health OK.
+  3. Tutup booth normal: tidak ada `TetraCamera.exe` yang tertinggal. Lalu bunuh `Tetra Booth`/`electron` paksa: catat apakah `TetraCamera.exe` yatim tertinggal (dugaan: ya, lihat catatan ponytail di `camera-service.ts`). Bersihkan manual.
+  4. Build `dist`-style: `pnpm exec electron-builder --win --x64 --dir` + `dotnet publish … -r win-x64 --self-contained -o <app>\camera`, susun `app\booth` + `app\camera` seperti `dist:dev`, jalankan `app\booth\Tetra Booth.exe --camera=simulated --demo --data=…`: booth harus menemukan `..\camera\TetraCamera.exe` sendiri.
+  - Laporan `docs/reports/windows/<tanggal>-m3-supervisor.md`. Hapus `$W\data` dan `$W\prints` setelahnya.
 
 ## Untuk Mac
 
@@ -43,13 +49,14 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 - [x] **M-003 Kamera: webcam dulu.** Arahan Rama 2026-09-24: belum ada kamera Canon. Uji kamera sementara pakai webcam laptop (HP 5MP Camera). Uji Canon/EDSDK dipindah ke fase berikutnya. Sesuaikan PLAN-FASE-1 bila perlu. → Selesai: PLAN M1/M7/M8, ROADMAP Fase 1b, DECISIONS #26.
 - [x] **M-004 Desain `WindowsPrinterAdapter` (M4).** Pilih PaperSize dari `PrinterSettings.PaperSizes` driver, jangan PaperSize custom: Print to PDF mengabaikannya diam-diam dan tetap mencetak Letter, walaupun `PageBounds` melaporkan 4×6. Validasi lewat `PrintableArea`. Uji M4 "PDF 4×6" tidak mungkin dengan Print to PDF bawaan. Detail: laporan uji-lanjutan §W-006. → Selesai: desain & kriteria uji di PLAN-FASE-1 §"Desain M4", DECISIONS #27.
 
-- [ ] **M-005 Integrasi printer ke booth (M3/M6).** Camera Service sekarang punya `print.submit`/`print.status` + event `print.done`/`print.failed`/`printer.status` (W-009). Saat spawn, Electron main perlu meneruskan `--printer`, `--paper-4r`, `--paper-2x6x2` dari config device; `--print-to-file <dir>` hanya untuk uji/stress (tanpa itu, printer ber-port `PORTPROMPT:` seperti Print to PDF ditolak `output_file_required`). Gambar yang dikirim harus 1200×1800. Petakan kode error baru ke UI/log. Daftar lengkap: laporan m4-printer §"Untuk Mac / booth".
+- [x] **M-005 Integrasi printer ke booth (M3/M6).** Camera Service sekarang punya `print.submit`/`print.status` + event `print.done`/`print.failed`/`printer.status` (W-009). Saat spawn, Electron main perlu meneruskan `--printer`, `--paper-4r`, `--paper-2x6x2` dari config device; `--print-to-file <dir>` hanya untuk uji/stress (tanpa itu, printer ber-port `PORTPROMPT:` seperti Print to PDF ditolak `output_file_required`). Gambar yang dikirim harus 1200×1800. Petakan kode error baru ke UI/log. Daftar lengkap: laporan m4-printer §"Untuk Mac / booth". → Selesai (M3): booth meneruskan `--printer`, `--paper-4r`, `--paper-2x6x2`, `--print-to-file` ke Camera Service yang di-spawn. Pemetaan kode error ke UI crew menyusul di M6.
 - [x] **M-006 `webcam.ts`: frame video dulu, bukan `takePhoto`.** W-010: di HP 5MP Camera `ImageCapture` tidak punya resolusi still lebih tinggi dari stream. `takePhoto()` hanya meng-encode frame ke PNG, 1,3–1,6 s @1080p dan 1,8–3,1 s @2560×1920. Frame video → JPEG hanya 107/174 ms dengan resolusi sama. Resolusi max stream 2560×1920 (4:3) @30 fps; tanpa constraint ukuran didapat 640×480. Saran: frame video dulu (`takePhoto` hanya kalau `imageWidth.max > videoWidth`), stream minta 2560×1920. Detail: laporan webcam. → Selesai (Mac): stream `ideal` 2560×1920 @30, foto = frame video → JPEG q0,95; `takePhoto` hanya kalau `getPhotoCapabilities().imageWidth.max` > `videoWidth`. Log `[webcam] <w>×<h>, foto: …`. Diverifikasi di W-011.
 
 ## Log
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-24 | Mac | M3 di `main`: supervisor Camera Service (spawn port/token acak, health 5 s, restart setelah 3x gagal atau proses mati, backoff), argumen printer diteruskan (M-005). Teruji di Mac: dibunuh 5x → pulih 5x, tidak ada proses yatim saat tutup normal. 4 test baru. W-013 ditambahkan. |
 | 2026-09-24 | Mac | Merge `win` (W-009 printer, W-010 webcam) ke `main`; DECISIONS Mac dinomori ulang #32/#33. M-006 selesai. M-005 masuk M3. |
 | 2026-09-24 | Mac | M2 di `main`: SQLite `node:sqlite` (WAL), output strip_web/original/thumb di belakang layar, antrean upload, print_jobs, deteksi sesi terputus, log harian 14 hari. 12 test baru. W-012 ditambahkan. |
 | 2026-09-24 | Windows | W-010 selesai: webcam max 2560×1920 @30 fps, live view mirror 30 fps; `takePhoto` = PNG dari frame stream, 1,3–3,1 s (lihat M-006). Laporan: `docs/reports/windows/2026-09-24-webcam.md`. |
