@@ -47,7 +47,8 @@ export async function composeStrip(
     const { piece, sheet } = await renderEvent(event, bitmaps);
     const dir = `${await storage.sessionDir(sessionId)}/out`;
     const write = async (c: OffscreenCanvas, name: string) => {
-      const blob = await c.convertToBlob({ type: "image/jpeg", quality: 0.92 });
+      // Lembar cetak DNP (juga diunggah sebagai aset `strip`): 0.95, detail foto DSLR tidak lembek di cetakan.
+      const blob = await c.convertToBlob({ type: "image/jpeg", quality: 0.95 });
       await storage.writeFile(`${dir}/${name}`, new Uint8Array(await blob.arrayBuffer()));
       return blob;
     };

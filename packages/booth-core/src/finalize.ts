@@ -18,14 +18,21 @@ export const fit = (w: number, h: number, max: number) => {
   return { width: Math.round(w * k), height: Math.round(h * k) };
 };
 
-const encode = async (src: ImageBitmap, w: number, h: number) => {
+/**
+ * Kualitas JPEG: thumb 0.85 (kecil, daftar), foto yang dilihat/diunduh tamu 0.92. 0.85 membuat foto DSLR
+ * ISO tinggi tampak lembek di HP (W-031, masukan Rama); 0.92 menaikkan ukuran ±60–70%, tetap < 1 MB per foto.
+ */
+const THUMB_QUALITY = 0.85;
+const VIEW_QUALITY = 0.92;
+
+const encode = async (src: ImageBitmap, w: number, h: number, quality = THUMB_QUALITY) => {
   const c = cpuCanvas(w, h);
   const g = c.getContext("2d");
   if (!g) throw new Error("canvas 2d tidak tersedia");
   g.imageSmoothingQuality = "high";
   g.drawImage(src, 0, 0, w, h);
   return new Uint8Array(
-    await (await c.convertToBlob({ type: "image/jpeg", quality: 0.85 })).arrayBuffer(),
+    await (await c.convertToBlob({ type: "image/jpeg", quality })).arrayBuffer(),
   );
 };
 
@@ -72,7 +79,12 @@ export async function buildOutputs(
   // strip_web & thumb = satu potong desain dalam orientasi aslinya, bukan lembar cetak.
   const piece = await load(strip.piecePath);
   try {
-    await save("strip_web", 0, "strip_web.jpg", await encode(piece, piece.width, piece.height));
+    await save(
+      "strip_web",
+      0,
+      "strip_web.jpg",
+      await encode(piece, piece.width, piece.height, VIEW_QUALITY),
+    );
     const t = fit(piece.width, piece.height, THUMB_LONG_SIDE);
     await save("thumb_strip", 0, "thumb_strip.jpg", await encode(piece, t.width, t.height));
   } finally {
@@ -92,7 +104,12 @@ export async function buildOutputs(
         frames.push(g.getImageData(0, 0, a.width, a.height));
       }
       const o = fit(raw.width, raw.height, ORIGINAL_LONG_SIDE);
-      await save("original", i + 1, `original_${i + 1}.jpg`, await encode(raw, o.width, o.height));
+      await save(
+        "original",
+        i + 1,
+        `original_${i + 1}.jpg`,
+        await encode(raw, o.width, o.height, VIEW_QUALITY),
+      );
       const t = fit(raw.width, raw.height, THUMB_LONG_SIDE);
       await save(
         "thumb_original",
