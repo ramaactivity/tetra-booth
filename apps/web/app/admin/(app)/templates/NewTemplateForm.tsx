@@ -53,24 +53,22 @@ export function NewTemplateForm() {
         className="h-11 w-32 rounded-xl"
         options={FORMATS.map((f) => ({ value: f, label: f }))}
       />
-      <div
-        role="radiogroup"
+      <fieldset
         aria-label="Orientasi"
-        className="flex h-11 overflow-hidden rounded-xl border-[1.5px] border-ink bg-white text-[13px] font-bold"
+        className="m-0 flex p-0 h-11 overflow-hidden rounded-xl border-[1.5px] border-ink bg-white text-[13px] font-bold"
       >
         {ORIENTS.map(([v, l]) => (
           <button
             key={v}
             type="button"
-            role="radio"
-            aria-checked={orient === v}
+            aria-pressed={orient === v}
             onClick={() => pick(format, v)}
             className={`px-3.5 not-first:border-l-[1.5px] not-first:border-ink ${orient === v ? "bg-lavender" : "hover:bg-paper"}`}
           >
             {l}
           </button>
         ))}
-      </div>
+      </fieldset>
       <Select
         name="preset"
         label="Tata letak"

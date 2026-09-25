@@ -224,7 +224,7 @@ test("format polaroid landscape: kanvas, label, dan tata letak cepat sesuai form
     await page.getByPlaceholder(/Nama template/).fill(tplName);
     await page.getByRole("combobox", { name: "Format" }).click();
     await page.getByRole("option", { name: "Polaroid" }).click();
-    await page.getByRole("radio", { name: "Landscape" }).click();
+    await page.getByRole("button", { name: "Landscape" }).click();
     await page.getByRole("combobox", { name: "Tata letak" }).click();
     await expect(page.getByRole("option")).toHaveCount(2);
     await page.getByRole("option", { name: /Polaroid Duo/ }).click();
