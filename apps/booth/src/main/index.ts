@@ -7,10 +7,10 @@ import { createCloud } from "./cloud";
 import {
   cameraServiceFlags,
   config,
-  dataDir,
   flagWarnings,
   kioskFlag,
   metricsEverySec,
+  userDir,
   windowSize,
 } from "./config";
 import { openDb } from "./db";
@@ -41,7 +41,7 @@ if (app.isPackaged)
 if (process.platform === "win32") app.setAppUserModelId(APP_ID);
 
 // Data lokal di %APPDATA%/TetraBooth (TSD §3), bukan nama produk dengan spasi.
-app.setPath("userData", dataDir ?? join(app.getPath("appData"), "TetraBooth"));
+app.setPath("userData", userDir);
 
 const logToFile = setupLogging(join(app.getPath("userData"), "logs"));
 for (const w of flagWarnings) console.warn(w);

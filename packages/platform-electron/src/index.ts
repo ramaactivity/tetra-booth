@@ -36,7 +36,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
         ? createSimulatedCamera(storage)
         : cfg.camera === "hotfolder"
           ? serviceCamera(bridge)
-          : createWebcamCamera(storage),
+          : createWebcamCamera(storage, cfg.webcamId),
     printer: { submit: (job) => bridge.printSubmit(job) },
     storage,
     db: {
@@ -60,6 +60,10 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       syncEvents: () => bridge.crewSyncEvents(),
       retryUploads: () => bridge.crewRetryUploads(),
       checkUpdate: () => bridge.crewCheckUpdate(),
+      device: () => bridge.crewDevice(),
+      saveDevice: (s) => bridge.crewSaveDevice(s),
+      cameraProps: () => bridge.crewCameraProps(),
+      setCameraProp: (n, v) => bridge.crewSetCameraProp(n, v),
       installUpdate: () => bridge.crewInstallUpdate(),
       printerAlert: () => bridge.printerAlert(),
       onPrinterAlert: (cb) => bridge.onPrinterAlert(cb),

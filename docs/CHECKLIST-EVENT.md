@@ -14,12 +14,8 @@ LumaBooth disiapkan sebagai cadangan, tapi **jangan dipakai kecuali booth benar-
 
 ### Laptop booth
 - [ ] Aplikasi versi terbaru: mode crew → **Update Aplikasi**, atau pasang dari **https://booth.tetraphoto.com/download/booth** (SmartScreen: *More info → Run anyway*).
-- [ ] File **`%APPDATA%\Tetra Booth\booth-flags.txt`** ada dan berisi (sekali per laptop, lihat bagian E):
-  ```
-  --camera hotfolder --hot-folder C:\TetraBooth\hot
-  --hot-folder-trigger "http://localhost:5513/?CMD=Capture"
-  --printer DS-RX1 --paper-2x6x2 "(6x4)" --print-offset "7.335,6.70"
-  ```
+- [ ] Mode crew → **Kamera & Printer**: kamera **DSLR (digiCamControl)** (folder `C:\TetraBooth\hot`, pemicu `http://localhost:5513/?CMD=Capture`), printer **DS-RX1** → Simpan & Mulai Ulang (sekali per laptop, tersimpan).
+- [ ] Offset kalibrasi DNP: file `booth-flags.txt` (bagian E), sekali per laptop.
 - [ ] Booth sudah dipasangkan (mode crew → kartu Koneksi menunjukkan nama booth, bukan "Belum dipasangkan").
 - [ ] Mode crew → **Ganti Event → Sync dari Cloud** → pilih event. Layar awal menampilkan nama event.
 - [ ] **Windows Update dijeda** (Settings → Windows Update → Pause updates 1 minggu). Update driver grafis di tengah event pernah membuat booth macet.
@@ -35,6 +31,7 @@ LumaBooth disiapkan sebagai cadangan, tapi **jangan dipakai kecuali booth benar-
 - [ ] Bawa roll + ribbon cadangan. Polaroid: kertas berperforasi.
 
 ### Kamera 60D
+- [ ] ISO/shutter/aperture/white balance: mode crew → Kamera & Printer (saat digiCamControl menyala), atau langsung di kamera (dial **M**).
 - [ ] Baterai penuh + cadangan (atau dummy battery). Auto power off = **Off**.
 - [ ] digiCamControl: folder sesi `C:\TetraBooth\hot`, hanya JPG, web server port 5513 aktif.
 - [ ] Mode crew → **Tes Jepret**: foto muncul.
@@ -71,12 +68,15 @@ LumaBooth disiapkan sebagai cadangan, tapi **jangan dipakai kecuali booth benar-
 - [ ] Cek galeri klien (`/g/…`) berisi semua sesi. Kirim ulang link ke klien kalau perlu.
 - [ ] Laporkan ke Claude Mac: jumlah sesi & lembar tercetak, catatan masalah, foto hasil cetak yang janggal. Ini untuk menutup kriteria Fase 1b & 2 (≥95% sesi terunggah dalam 5 menit saat online).
 
-## E. Sekali per laptop: `booth-flags.txt`
+## E. Sekali per laptop: `booth-flags.txt` (hanya untuk setelan yang tidak ada di mode crew)
 
-Shortcut dari installer tidak membawa pengaturan kamera & printer, jadi booth membacanya dari file (DECISIONS #83).
+Kamera & printer diatur dari mode crew → **Kamera & Printer** (DECISIONS #85). Setelan lain (offset kalibrasi DNP, nama kertas) ditulis di file (DECISIONS #83):
 
-1. Tekan **Win + R**, ketik `%APPDATA%\Tetra Booth`, Enter (folder ini ada setelah booth pernah dibuka sekali).
-2. Buat file teks bernama **`booth-flags.txt`** (pastikan bukan `booth-flags.txt.txt`), isi seperti di bagian A.
-3. Tutup booth lewat mode crew, buka lagi. Log booth mencatat `[config] flag dari …`.
+1. Tekan **Win + R**, ketik `%APPDATA%\TetraBooth`, Enter (folder data booth, ada setelah booth pernah dibuka sekali).
+2. Buat file teks bernama **`booth-flags.txt`** (pastikan bukan `booth-flags.txt.txt`), isi:
+   ```
+   --paper-2x6x2 "(6x4)" --print-offset "7.335,6.70"
+   ```
+3. Tutup booth lewat mode crew, buka lagi. Log booth (`%APPDATA%\TetraBooth\logs`) mencatat `[config] flag dari …`.
 
 Baris yang diawali `#` diabaikan. Nilai yang berisi spasi ditulis dalam tanda kutip. `--print-offset` = hasil kalibrasi DNP di laptop ini; laptop lain perlu kalibrasi sendiri (docs/WINDOWS.md).

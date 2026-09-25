@@ -14,9 +14,10 @@ import { z } from "zod";
 import type { Alerts } from "./alerts";
 import { cameraHealth, request, ServiceUnavailable } from "./camera-client";
 import type { Cloud } from "./cloud";
-import { config, printerName } from "./config";
+import { config, DeviceSettings, deviceFile, deviceNow, lockedByArgv, printerName } from "./config";
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
 import type { BoothDb } from "./db";
+import { CAMERA_PROPS, dcc, dccBase, dccProp } from "./dcc";
 import { allowQuit, autoStart, setAutoStart } from "./kiosk";
 import { onPhase } from "./shots";
 import { downloadInstaller, runInstaller } from "./update";
@@ -276,6 +277,43 @@ export function registerIpc(
     app.quit();
   });
   // Dialog driver tampil di belakang jendela kiosk, jadi kiosk dilepas sampai dialog ditutup.
+  // Kamera & printer dari mode crew (DECISIONS #85). Simpan = tulis device.json lalu booth dibuka ulang.
+  ipcMain.handle("crewDevice", async (e) => {
+    crewOnly();
+    const printers = (await e.sender.getPrintersAsync()).map((p) => p.name);
+    const locked = ["camera", "printer", "hot-folder", "hot-folder-trigger"].filter(lockedByArgv);
+    return { now: deviceNow, locked, printers };
+  });
+  ipcMain.handle("crewSaveDevice", async (_e, s: unknown) => {
+    crewOnly();
+    const settings = DeviceSettings.parse(s);
+    await mkdir(dirname(deviceFile), { recursive: true });
+    await writeFile(deviceFile, JSON.stringify(settings, null, 2));
+    console.info(`[config] mode crew menyimpan ${JSON.stringify(settings)}, booth dibuka ulang`);
+    allowQuit();
+    app.relaunch({ args: process.argv.slice(1) });
+    app.quit();
+    setTimeout(() => app.exit(0), 30_000).unref();
+  });
+  ipcMain.handle("crewCameraProps", async () => {
+    crewOnly();
+    const base = dccBase();
+    if (!base) return [];
+    return (
+      await Promise.all(CAMERA_PROPS.map(([name, label]) => dccProp(base, name, label)))
+    ).filter((p) => p !== null);
+  });
+  ipcMain.handle("crewSetCameraProp", async (_e, name: unknown, value: unknown) => {
+    crewOnly();
+    const base = dccBase();
+    const n = z.enum(CAMERA_PROPS.map(([k]) => k) as [string, ...string[]]).parse(name);
+    const v = z.string().min(1).max(64).parse(value);
+    if (!base) throw new Error("Kamera DSLR (digiCamControl) belum dipakai");
+    const res = await dcc(base, { slc: "set", param1: n, param2: v }).catch(() => null);
+    if (!res?.ok) throw new Error("digiCamControl menolak setelan. Cek kamera menyala & dial di M");
+    console.info(`[camera] ${n} = ${v}`);
+  });
+
   ipcMain.handle("crewPrinterSettings", async (e) => {
     crewOnly();
     if (process.platform !== "win32") throw new Error("Pengaturan printer hanya di Windows");

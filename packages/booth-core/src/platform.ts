@@ -73,6 +73,18 @@ export type CrewStatus = {
 };
 
 export type CloudDevice = { name: string; shortCode: string };
+/** Kamera & printer dari mode crew (DECISIONS #85). */
+export type DeviceSettings = {
+  camera?: "webcam" | "simulated" | "hotfolder";
+  webcamId?: string;
+  hotFolder?: string;
+  hotFolderTrigger?: string;
+  printer?: string;
+};
+/** `locked` = flag yang dipaksa baris perintah (tidak bisa diubah dari mode crew). */
+export type DeviceInfo = { now: DeviceSettings; locked: string[]; printers: string[] };
+/** Setelan eksposur kamera DSLR (sementara lewat digiCamControl). */
+export type CameraProp = { name: string; label: string; value: string; options: string[] };
 export type UpdateCheck = { current: string; latest: string | null; available: boolean };
 export type FailedPrint = { id: string; copies: number; error: string | null; createdAt: string };
 /** Peringatan kecil untuk crew di pojok layar (printer error, cetak gagal, kertas menipis). */
@@ -103,6 +115,12 @@ export interface BoothCrew {
   syncEvents(): Promise<number>;
   /** Unggah antrean sekarang juga, lewati jeda backoff (FSD §1.3 "coba sekarang"). */
   retryUploads(): Promise<void>;
+  device(): Promise<DeviceInfo>;
+  /** Simpan pengaturan perangkat; booth dibuka ulang supaya kamera & printer baru dipakai. */
+  saveDevice(s: DeviceSettings): Promise<void>;
+  /** Setelan eksposur DSLR yang tersedia (kosong = bukan DSLR / digiCamControl tidak menjawab). */
+  cameraProps(): Promise<CameraProp[]>;
+  setCameraProp(name: string, value: string): Promise<void>;
   /** Bandingkan versi terpasang dengan rilis terbaru di cloud (DECISIONS #80). */
   checkUpdate(): Promise<UpdateCheck>;
   /** Unduh & pasang versi terbaru; aplikasi tertutup lalu terbuka lagi. Hanya booth Windows. */

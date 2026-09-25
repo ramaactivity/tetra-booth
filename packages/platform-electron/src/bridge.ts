@@ -12,6 +12,8 @@ export type BoothConfig = {
   guestUrl: string;
   /** Mode kiosk aktif (M5): kursor disembunyikan di luar mode crew. */
   kiosk?: boolean;
+  /** Webcam pilihan crew (`MediaDeviceInfo.deviceId`); kosong = bawaan. */
+  webcamId?: string;
 };
 
 /**
@@ -47,6 +49,10 @@ export type TetraBridge = {
   crewSyncEvents: BoothCrew["syncEvents"];
   crewRetryUploads: BoothCrew["retryUploads"];
   crewCheckUpdate: BoothCrew["checkUpdate"];
+  crewDevice: BoothCrew["device"];
+  crewSaveDevice: BoothCrew["saveDevice"];
+  crewCameraProps: BoothCrew["cameraProps"];
+  crewSetCameraProp: BoothCrew["setCameraProp"];
   crewInstallUpdate: BoothCrew["installUpdate"];
   printerAlert: BoothCrew["printerAlert"];
   onPrinterAlert: BoothCrew["onPrinterAlert"];
