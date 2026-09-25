@@ -8,19 +8,22 @@ import { input } from "../login/LoginForm";
 
 const t = copy.admin;
 
+// Dibuat saat dipakai (efek/submit), bukan saat render: halaman ini di-prerender tanpa env Supabase di CI.
+const make = () =>
+  createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+    { auth: { detectSessionInUrl: false } },
+  );
+let client: ReturnType<typeof make> | null = null;
+const sb = () => (client ??= make());
+
 /**
  * Token dari link email ada di hash URL (alur implicit): dipasang jadi sesi cookie, lalu user membuat kata sandi.
  * Tanpa token tapi sudah masuk (mis. muat ulang) tetap bisa mengganti sandi.
  */
 export function PasswordForm() {
   const router = useRouter();
-  const [sb] = useState(() =>
-    createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-      { auth: { detectSessionInUrl: false } },
-    ),
-  );
   const [state, setState] = useState<"loading" | "ready" | "bad">("loading");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -31,10 +34,14 @@ export function PasswordForm() {
     const access_token = h.get("access_token");
     const refresh_token = h.get("refresh_token");
     (access_token && refresh_token
-      ? sb.auth.setSession({ access_token, refresh_token }).then((r) => !r.error)
-      : sb.auth.getUser().then((r) => !!r.data.user)
+      ? sb()
+          .auth.setSession({ access_token, refresh_token })
+          .then((r) => !r.error)
+      : sb()
+          .auth.getUser()
+          .then((r) => !!r.data.user)
     ).then((ok) => setState(ok ? "ready" : "bad"));
-  }, [sb]);
+  }, []);
 
   if (state === "loading") return null;
   if (state === "bad")
@@ -60,7 +67,7 @@ export function PasswordForm() {
         if (password.length < 8) return setError(t.passwordShort);
         if (password !== f.get("repeat")) return setError(t.passwordMismatch);
         setPending(true);
-        const { error } = await sb.auth.updateUser({ password });
+        const { error } = await sb().auth.updateUser({ password });
         setPending(false);
         if (error) return setError(t.passwordFailed);
         router.replace("/admin");

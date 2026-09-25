@@ -153,6 +153,7 @@ test("photobox: layout → QRIS → foto dengan timer → tambah lembar → QRIS
 
     await expect(w.getByTestId("payment-total")).toHaveText("Rp 35.000");
     await expect(w.getByText(/QR berlaku 0[45]:/)).toBeVisible();
+    await w.waitForTimeout(400);
     await w.screenshot({ path: "test-results/photobox-A3-qris.png" });
     await expect(w.getByRole("heading", { name: "Pembayaran berhasil" })).toBeVisible({
       timeout: 10_000,
@@ -168,6 +169,15 @@ test("photobox: layout → QRIS → foto dengan timer → tambah lembar → QRIS
     });
     await w.getByRole("button", { name: "Tambah" }).click();
     await expect(w.getByTestId("extra-total")).toHaveText("Rp 10.000");
+    // Semua isi A7b muat di kanvas 1080 px (tombol tidak terpotong di layar booth).
+    expect(
+      await w.evaluate(() =>
+        [...document.querySelectorAll("main section")].every(
+          (s) => s.scrollHeight <= s.clientHeight + 1,
+        ),
+      ),
+    ).toBe(true);
+    await w.waitForTimeout(400);
     await w.screenshot({ path: "test-results/photobox-A7b-print.png" });
     await w.getByRole("button", { name: "Bayar & Cetak" }).click();
     await expect(w.getByTestId("payment-total")).toHaveText("Rp 10.000");

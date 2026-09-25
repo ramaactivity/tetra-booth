@@ -194,11 +194,13 @@ export function Paid({ amount, name, seconds }: { amount: number; name: string; 
   return (
     <main className="relative flex h-full w-full items-center justify-center overflow-hidden bg-paper">
       <div className="absolute -top-[260px] -right-[160px] size-[760px] rounded-full bg-mint-soft" />
-      <div className="layered relative flex w-[1000px] flex-col items-center gap-8 rounded-[40px] border-[3px] border-ink bg-white px-[72px] py-[80px] text-center [--lb:3px] [--lx:14px]">
+      <div className="layered relative flex w-[1100px] flex-col items-center gap-8 rounded-[40px] border-[3px] border-ink bg-white px-[72px] py-[80px] text-center [--lb:3px] [--lx:14px]">
         <span className="flex size-[160px] items-center justify-center rounded-full border-[3px] border-ink bg-green text-white">
           <Check size={90} strokeWidth={3} />
         </span>
-        <h1 className="text-[96px] leading-none font-extrabold tracking-[-0.045em]">{t.success}</h1>
+        <h1 className="text-[84px] leading-none font-extrabold tracking-[-0.045em] whitespace-nowrap">
+          {t.success}
+        </h1>
         <p className="text-[36px] text-text-2">
           {rupiah(amount)} · {name}
         </p>

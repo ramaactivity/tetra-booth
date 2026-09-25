@@ -41,7 +41,9 @@ export function PrintSelect({
           className="layered max-h-[840px] max-w-[560px] rounded-[10px] border-[2.5px] border-ink bg-white [--lx:14px] [--under:#fff] portrait:max-h-full"
         />
       </section>
-      <section className="flex flex-col justify-center gap-10 px-[110px] py-20 portrait:px-16 portrait:py-10">
+      <section
+        className={`flex flex-col justify-center px-[110px] portrait:px-16 portrait:py-10 ${photobox ? "gap-7 py-12" : "gap-10 py-20"}`}
+      >
         <span
           className={`self-start rounded-full border-2 border-ink px-[18px] py-2 text-xl font-bold ${photobox ? "bg-lavender" : "bg-mint-soft"}`}
         >
