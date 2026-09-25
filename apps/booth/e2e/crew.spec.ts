@@ -71,8 +71,20 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await expect(w.getByRole("heading", { name: "Mode crew" })).toBeVisible();
 
   // Pilih event dari bundle lokal → attract menampilkan nama event.
+  // Ganti Event = layar pilih mode (DECISIONS #86): Photobox kosong, Event berisi Andi & Sari.
   await w.getByRole("button", { name: "Ganti Event" }).click();
+  await expect(w.getByRole("heading", { name: "Pilih mode booth" })).toBeVisible();
+  await w.screenshot({ path: "test-results/start-mode.png" });
+  await w.getByRole("button", { name: /Mode Photobox/ }).click();
+  await expect(w.getByText(/Belum ada event untuk mode ini/)).toBeVisible();
+  await w.getByRole("button", { name: "Ganti mode" }).click();
+  await w.getByRole("button", { name: /Mode Event/ }).click();
+  await w.screenshot({ path: "test-results/start-events.png" });
   await w.getByRole("button", { name: /Andi & Sari/ }).click();
+  // Memilih event menutup mode crew → layar tamu event itu.
+  await expect(w.getByRole("heading", { name: "Andi & Sari" })).toBeVisible();
+  await openCrew(w);
+  await typePin(w, "2468");
   await w.getByRole("button", { name: /ganti roll/i }).click();
   await w.getByRole("textbox").fill("25");
   await w.getByRole("button", { name: /simpan/i }).click();
@@ -291,9 +303,9 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
 
   // Bundle sudah ditarik otomatis setelah pairing; tombol sync tetap aman dipanggil ulang.
   await w.getByRole("button", { name: "Ganti Event" }).click();
+  await w.getByRole("button", { name: /Mode Event/ }).click();
   await w.getByRole("button", { name: "Sync dari Cloud" }).click();
   await w.getByRole("button", { name: /Rina & Dimas/ }).click();
-  await w.getByRole("button", { name: /keluar ke mode tamu/i }).click();
   await expect(w.getByRole("heading", { name: "Rina & Dimas" })).toBeVisible();
 
   // Satu sesi (--fast) untuk event cloud → semua file masuk R2 palsu dan tercatat (N4).
@@ -314,4 +326,22 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
 
   await app.close();
   server.close();
+});
+
+test("layar awal: pilih mode lalu event sebelum layar tamu (DECISIONS #86)", async () => {
+  const env = { ...process.env };
+  delete env.ELECTRON_RUN_AS_NODE;
+  const app = await electron.launch({
+    executablePath: electronPath,
+    args: [appDir, "--camera=simulated", "--no-spawn", "--start-screen", `--data=${makeData()}`],
+    env: env as Record<string, string>,
+  });
+  const w = await app.firstWindow();
+  await expect(w.getByRole("heading", { name: "Pilih mode booth" })).toBeVisible();
+  await w.getByRole("button", { name: /Mode Event/ }).click();
+  // Pilih pertama saat app dibuka tidak butuh PIN.
+  await w.getByRole("button", { name: /Andi & Sari/ }).click();
+  await expect(w.getByRole("heading", { name: "Andi & Sari" })).toBeVisible();
+  await expect(w.getByRole("button", { name: /sentuh untuk mulai/i })).toBeVisible();
+  await app.close();
 });

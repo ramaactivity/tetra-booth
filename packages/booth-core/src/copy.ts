@@ -95,6 +95,22 @@ export const copy = {
     printOne: "Cetak 1 Saja",
     payPrint: "Bayar & Cetak",
   },
+  start: {
+    title: "Pilih mode booth",
+    sub: "Tentukan mode dulu, lalu pilih event.",
+    mode: { event: "Mode Event", photobox: "Mode Photobox" },
+    modeSub: {
+      event: "Satu desain khusus per event. Tamu cetak gratis.",
+      photobox: "Tamu memilih desain dan membayar QRIS per sesi.",
+    },
+    count: (n: number) => `${n} event`,
+    back: "Ganti mode",
+    pickEvent: "pilih event",
+    empty:
+      "Belum ada event untuk mode ini di booth. Buat event di admin (booth.tetraphoto.com/admin), tugaskan ke booth ini, lalu Sync dari Cloud.",
+    crew: "Mode Crew",
+    backToCrew: "Kembali ke Mode Crew",
+  },
   crew: {
     title: "Mode Crew",
     exit: "Tutup Aplikasi",

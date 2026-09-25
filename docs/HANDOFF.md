@@ -199,6 +199,7 @@ Selesai: kata sandi admin, CORS R2, `CRON_SECRET` (cron menolak tanpa secret: 40
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-25 | Mac | Layar awal pilih mode → event (DECISIONS #86), juga lewat mode crew → Ganti Event. e2e booth 7/7. Rilis installer menunggu merge `win` (perbaikan `dcc` socket mentah, `--digicam`, live view, JPEG 0.92/0.95). |
 | 2026-09-25 | Mac | Mode crew **Kamera & Printer** (DECISIONS #85): pilih sumber kamera/webcam, hot folder + pemicu digiCamControl, ISO/shutter/aperture/WB lewat API `slc` digiCamControl (perlu verifikasi 60D), pilih printer dari daftar Windows, pengingat 2inch cut per layout. Folder flag diperbaiki ke `%APPDATA%\TetraBooth` (data booth). Booth 0.5.3. |
 | 2026-09-25 | Mac | Sinkron dengan Windows: merge `win` (a5ee1df, ddf5de2, 7c38e50) ke `main`; photobox tetap mencetak lembar yang sudah dibayar saat tamu pergi (DECISIONS #84). Booth **0.5.2** dirilis (uji tombol Update Aplikasi dari 0.5.1). Panduan sambung 60D ↔ digiCamControl ↔ booth di issue #1. |
 | 2026-09-25 | Mac | Desain uji "Percontohan 4R" (v3) dibuat di editor produksi: overlay bingkai emas di dalam margin aman, latar krem, font Klasik. Event dummy diganti nama "Rama & Shinta" dan dikunci ke template itu. Tugas prioritas W-031 (4R nyata dengan 60D + DNP). |

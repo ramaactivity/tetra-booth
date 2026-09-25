@@ -14,7 +14,15 @@ import { z } from "zod";
 import type { Alerts } from "./alerts";
 import { cameraHealth, request, ServiceUnavailable } from "./camera-client";
 import type { Cloud } from "./cloud";
-import { config, DeviceSettings, deviceFile, deviceNow, lockedByArgv, printerName } from "./config";
+import {
+  config,
+  DeviceSettings,
+  deviceFile,
+  deviceNow,
+  lockedByArgv,
+  printerName,
+  RESUME_KEY,
+} from "./config";
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
 import type { BoothDb } from "./db";
 import { CAMERA_PROPS, dcc, dccBase, dccProp } from "./dcc";
@@ -228,6 +236,7 @@ export function registerIpc(
       throw new Error("Gagal mengunduh update. Cek internet lalu coba lagi");
     });
     console.info(`[update] memasang ${r.version}, aplikasi ditutup`);
+    db.kv.set(RESUME_KEY, "1");
     runInstaller(file);
     allowQuit();
     app.quit();
@@ -290,6 +299,7 @@ export function registerIpc(
     await mkdir(dirname(deviceFile), { recursive: true });
     await writeFile(deviceFile, JSON.stringify(settings, null, 2));
     console.info(`[config] mode crew menyimpan ${JSON.stringify(settings)}, booth dibuka ulang`);
+    db.kv.set(RESUME_KEY, "1");
     allowQuit();
     app.relaunch({ args: process.argv.slice(1) });
     app.quit();
@@ -352,8 +362,10 @@ export function registerIpc(
   ipcMain.handle("eventsList", () => reloadBundles().map(({ dir: _dir, ...b }) => b));
   ipcMain.handle("eventsActive", () => db.kv.get("active_event_id"));
   ipcMain.handle("eventsSetActive", (_e, id: unknown) => {
-    crewOnly();
+    // Layar awal saat app dibuka manual: satu kali pilih tanpa PIN (DECISIONS #86); selanjutnya lewat mode crew.
+    if (!config.startScreen) crewOnly();
     db.kv.set("active_event_id", z.string().min(1).max(64).parse(id));
+    config.startScreen = false;
   });
   ipcMain.handle("eventAsset", async (_e, eventId: unknown, assetId: unknown) => {
     const b = bundles.find((x) => x.id === z.string().parse(eventId));

@@ -42,10 +42,16 @@ export function applyKiosk(win: BrowserWindow, log: (m: string) => void) {
   log("[kiosk] aktif: layar penuh, anti-sleep, keluar hanya dari mode crew");
 }
 
+/** Auto-start = booth menyala sendiri (mis. setelah listrik mati) → lewati layar awal, lanjut event terakhir. */
+const LOGIN_ARGS = ["--resume"];
+
 /** Auto-start saat login Windows (HKCU Run). Hanya app hasil build; di dev menunjuk electron.exe. */
 export function autoStart(): { enabled: boolean; supported: boolean } {
   const supported = app.isPackaged && process.platform !== "linux";
-  return { enabled: supported && app.getLoginItemSettings().openAtLogin, supported };
+  return {
+    enabled: supported && app.getLoginItemSettings({ args: LOGIN_ARGS }).openAtLogin,
+    supported,
+  };
 }
 
 /** Nama entri auto-start (HKCU Run) dan identitas app di Windows = appId build, bukan "electron.app.Electron" (M-011). */
@@ -53,5 +59,5 @@ export const APP_ID = "id.tetraphoto.booth";
 
 export function setAutoStart(on: boolean) {
   if (!autoStart().supported) throw new Error("auto-start hanya untuk app hasil build");
-  app.setLoginItemSettings({ openAtLogin: on });
+  app.setLoginItemSettings({ openAtLogin: on, args: LOGIN_ARGS });
 }

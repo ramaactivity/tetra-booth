@@ -144,10 +144,11 @@ test("photobox: layout → QRIS → foto dengan timer → tambah lembar → QRIS
     await w.getByRole("button", { name: /^Pasangkan/ }).click();
     await typePin(w, "123456");
     await expect(w.getByTestId("cloud-device")).toHaveText("Booth Mall · B09");
+    // Ganti Event = layar pilih mode (DECISIONS #86) → Photobox → event → langsung ke layar tamu.
     await w.getByRole("button", { name: "Ganti Event" }).click();
+    await w.getByRole("button", { name: /Mode Photobox/ }).click();
     await w.getByRole("button", { name: "Sync dari Cloud" }).click();
     await w.getByRole("button", { name: /Photobox Mall/ }).click();
-    await w.getByRole("button", { name: /keluar ke mode tamu/i }).click();
     await w.waitForTimeout(1000);
 
     await w.getByRole("button", { name: /sentuh untuk mulai/i }).click();

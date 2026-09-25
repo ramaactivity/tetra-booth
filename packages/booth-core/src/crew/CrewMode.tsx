@@ -1,13 +1,15 @@
 import type { EventBundle } from "@tetra/shared";
 import { useEffect, useState } from "react";
+import { copy } from "../copy";
 import type { BoothEvent } from "../event";
 import { usePlatform } from "../PlatformContext";
+import { StartScreen } from "../screens/StartScreen";
 import { CameraCheck } from "./CameraCheck";
 import { CrewMenu } from "./CrewMenu";
 import { PairPad } from "./PairPad";
 import { PinPad } from "./PinPad";
 
-type View = "pin" | "create" | "menu" | "camera" | "change" | "pair";
+type View = "pin" | "create" | "menu" | "camera" | "change" | "pair" | "start";
 
 export function CrewMode({
   event,
@@ -55,14 +57,29 @@ export function CrewMode({
       return <PairPad onDone={() => setView("menu")} onCancel={() => setView("menu")} />;
     case "camera":
       return <CameraCheck onBack={() => setView("menu")} />;
+    case "start":
+      return (
+        <StartScreen
+          bundles={bundles}
+          activeId={event.id}
+          onPick={(id) => {
+            onSelectEvent(id);
+            close();
+          }}
+          onSync={async () => {
+            const n = await crew.syncEvents();
+            await onReloadEvents();
+            return n;
+          }}
+          onCrew={() => setView("menu")}
+          crewLabel={copy.start.backToCrew}
+        />
+      );
     case "menu":
       return (
         <CrewMenu
           event={event}
-          bundles={bundles}
-          activeId={event.id}
-          onSelectEvent={onSelectEvent}
-          onReloadEvents={onReloadEvents}
+          onChangeEvent={() => setView("start")}
           onCameraCheck={() => setView("camera")}
           onChangePin={() => setView("change")}
           onPair={() => setView("pair")}

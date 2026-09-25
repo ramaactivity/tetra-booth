@@ -12,6 +12,8 @@ export type BoothConfig = {
   guestUrl: string;
   /** Mode kiosk aktif (M5): kursor disembunyikan di luar mode crew. */
   kiosk?: boolean;
+  /** Layar awal pilih mode & event (DECISIONS #86): saat app dibuka manual, bukan saat dibuka ulang sendiri. */
+  startScreen?: boolean;
   /** Webcam pilihan crew (`MediaDeviceInfo.deviceId`); kosong = bawaan. */
   webcamId?: string;
 };

@@ -6,6 +6,7 @@ import { type BoothEvent, DEFAULT_EVENT, loadEvent } from "./event";
 import { usePlatform } from "./PlatformContext";
 import type { PrinterAlert } from "./platform";
 import { SessionRunner } from "./SessionRunner";
+import { StartScreen } from "./screens/StartScreen";
 import { Stage } from "./ui";
 
 /** Akar UI booth: event aktif (dari bundle lokal), mode crew, dan peringatan printer untuk crew. */
@@ -14,6 +15,7 @@ export function BoothApp({
   demo = false,
   fast = false,
   kiosk = false,
+  startScreen = false,
 }: {
   guestBaseUrl: string;
   demo?: boolean;
@@ -21,11 +23,14 @@ export function BoothApp({
   fast?: boolean;
   /** Kiosk (M5): kursor disembunyikan untuk tamu; mode crew tetap menampilkan kursor. */
   kiosk?: boolean;
+  /** Layar awal pilih mode & event saat app dibuka manual (DECISIONS #86). */
+  startScreen?: boolean;
 }) {
   const p = usePlatform();
   const [bundles, setBundles] = useState<EventBundle[]>([]);
   const [event, setEvent] = useState<BoothEvent>(DEFAULT_EVENT);
   const [crewOpen, setCrewOpen] = useState(false);
+  const [start, setStart] = useState(startScreen);
   const [alert, setAlert] = useState<PrinterAlert>(null);
 
   const activate = useCallback(
@@ -68,13 +73,32 @@ export function BoothApp({
       .then(() => activate(id, bundles))
       .catch((e: unknown) => console.error(`[event] gagal memilih ${id}: ${errText(e)}`));
 
+  if (start && !crewOpen) {
+    return (
+      <Stage>
+        <StartScreen
+          bundles={bundles}
+          activeId={event.id}
+          onPick={(id) => {
+            setStart(false);
+            void select(id);
+          }}
+          onCrew={() => setCrewOpen(true)}
+        />
+      </Stage>
+    );
+  }
   if (crewOpen) {
     return (
       <Stage>
         <CrewMode
           event={event}
           bundles={bundles}
-          onSelectEvent={select}
+          onSelectEvent={(id) => {
+            // Event dipilih lewat layar pilih mode di mode crew → layar awal selesai.
+            setStart(false);
+            void select(id);
+          }}
           onReloadEvents={reload}
           onClose={() => setCrewOpen(false)}
         />

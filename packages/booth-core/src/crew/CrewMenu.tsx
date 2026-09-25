@@ -1,4 +1,4 @@
-import { type EventBundle, printPaper } from "@tetra/shared";
+import { printPaper } from "@tetra/shared";
 import { Button } from "@tetra/ui";
 import {
   ArrowRight,
@@ -94,23 +94,18 @@ const big = "text-[64px] leading-none font-extrabold tracking-[-0.03em]";
 const sub = "mt-3 text-[22px] font-semibold text-text-2";
 const link = "pressable flex min-h-12 items-center gap-2 font-bold";
 
-/** Lembar pilihan di atas dashboard (ganti event, isi roll, konfirmasi tutup). */
+/** Dashboard mode crew; lembar pilihan di atasnya (isi roll, update, kamera & printer, konfirmasi tutup). */
 export function CrewMenu({
   event,
-  bundles,
-  activeId,
-  onSelectEvent,
-  onReloadEvents,
+  onChangeEvent,
   onCameraCheck,
   onChangePin,
   onPair,
   onClose,
 }: {
   event: BoothEvent;
-  bundles: EventBundle[];
-  activeId: string;
-  onSelectEvent: (id: string) => void;
-  onReloadEvents: () => Promise<void>;
+  /** Ganti event lewat layar pilih mode (DECISIONS #86). */
+  onChangeEvent: () => void;
   onCameraCheck: () => void;
   onChangePin: () => void;
   onPair: () => void;
@@ -120,7 +115,7 @@ export function CrewMenu({
   const [status, setStatus] = useState<CrewStatus>();
   const [failed, setFailed] = useState<FailedPrint[]>([]);
   const [roll, setRoll] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<"events" | "roll" | "exit" | "update" | "device" | null>(null);
+  const [sheet, setSheet] = useState<"roll" | "exit" | "update" | "device" | null>(null);
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [note, setNote] = useState<string>();
   /** Job test print / cetak ulang terakhir: hasil akhirnya menggantikan catatan "dikirim" (W-018). */
@@ -356,7 +351,7 @@ export function CrewMenu({
         </StatCard>
 
         <section className="col-span-2 grid grid-cols-5 content-center gap-5 rounded-[28px] border-[2.5px] border-ink bg-white p-8 portrait:col-span-1 portrait:grid-cols-2">
-          <Button variant="plain" className={action} onClick={() => setSheet("events")}>
+          <Button variant="plain" className={action} onClick={onChangeEvent}>
             {copy.crew.changeEvent}
           </Button>
           <Button
@@ -414,42 +409,6 @@ export function CrewMenu({
         </section>
       </div>
 
-      {sheet === "events" && (
-        <Sheet title={copy.crew.changeEvent} onClose={() => setSheet(null)}>
-          {status?.device && (
-            <Button
-              variant="secondary"
-              className={action}
-              onClick={act(async () => {
-                setNote(copy.crew.syncing);
-                const n = await p.crew.syncEvents();
-                await onReloadEvents();
-                setNote(copy.crew.synced(n));
-              })}
-            >
-              {copy.crew.syncEvents}
-            </Button>
-          )}
-          <div className="flex min-h-0 flex-col gap-3 overflow-y-auto">
-            {[{ id: "local", name: copy.crew.defaultEvent, date: "" }, ...bundles].map((b) => (
-              <button
-                key={b.id}
-                type="button"
-                onClick={() => {
-                  setSheet(null);
-                  onSelectEvent(b.id);
-                }}
-                className={`pressable flex min-h-[92px] items-center justify-between rounded-[20px] border-[2.5px] border-ink px-6 text-left text-2xl font-bold ${b.id === activeId ? "bg-mint-soft" : "bg-white"}`}
-              >
-                {b.name}
-                {b.date && (
-                  <span className="font-mono text-lg font-normal text-text-2">{b.date}</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </Sheet>
-      )}
       {sheet === "roll" && roll !== null && (
         <Sheet title={copy.crew.newRoll} onClose={() => setSheet(null)}>
           <label className="flex flex-col gap-3 text-xl font-semibold text-text-2">

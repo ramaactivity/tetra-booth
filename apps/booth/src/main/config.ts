@@ -121,6 +121,16 @@ export const flagWarnings = [
   ...flags.missing.map((m) => `[config] --${m} butuh nilai, diabaikan`),
 ];
 
+/** Tanda "booth membuka ulang sendiri" di kv: layar awal dilewati sekali (DECISIONS #86). */
+export const RESUME_KEY = "resume_once";
+/**
+ * Layar awal pilih mode & event: app hasil build yang dibuka manual. Dilewati kalau booth membuka ulang sendiri
+ * (`resume`), `--resume` (auto-start login), atau demo; `--start-screen` memaksa (uji).
+ */
+export const startScreenFlag = (isPackaged: boolean, resume: boolean) =>
+  flags.has("start-screen") ||
+  (isPackaged && !resume && !flags.has("resume") && !flags.has("demo"));
+
 /** Kiosk (M5): default aktif di app hasil build; `--kiosk` / `--no-kiosk` memaksa. */
 export const kioskFlag = (isPackaged: boolean) =>
   flags.has("kiosk") || (isPackaged && !flags.has("no-kiosk"));

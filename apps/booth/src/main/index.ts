@@ -10,6 +10,8 @@ import {
   flagWarnings,
   kioskFlag,
   metricsEverySec,
+  RESUME_KEY,
+  startScreenFlag,
   userDir,
   windowSize,
 } from "./config";
@@ -50,9 +52,15 @@ console.info(
   `[boot] Tetra Booth ${app.getVersion()} · data ${app.getPath("userData")} · sesi terputus ditandai: ${db.abandoned}`,
 );
 
+// Dibuka ulang oleh booth sendiri (update, setelan, pemulihan GPU) → langsung ke event terakhir.
+const resumed = db.kv.get(RESUME_KEY) === "1";
+db.kv.set(RESUME_KEY, "0");
+config.startScreen = startScreenFlag(app.isPackaged, resumed);
+
 const alerts = createAlerts(db);
 // Boot ulang booth: lewat before-quit (print ditunggu), juga di kiosk. Kalau quit tersangkut (jendela beku), paksa.
 const relaunch = () => {
+  db.kv.set(RESUME_KEY, "1");
   allowQuit();
   app.relaunch({ args: process.argv.slice(1) });
   app.quit();
