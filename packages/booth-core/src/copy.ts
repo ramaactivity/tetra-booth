@@ -99,6 +99,14 @@ export const copy = {
     exitBody:
       "Booth berhenti sampai aplikasi dibuka lagi. Cetakan yang sedang antre tetap diselesaikan dulu.",
     exitYes: "Ya, Tutup Aplikasi",
+    update: "Update Aplikasi",
+    updateChecking: "Mengecek versi terbaru…",
+    updateLatest: (v: string) => `Sudah versi terbaru (${v}).`,
+    updateNone: "Belum ada rilis di cloud.",
+    updateAvailable: (latest: string, current: string) =>
+      `Versi ${latest} tersedia (terpasang ${current}). Booth mengunduh ±150 MB, lalu tertutup dan terbuka lagi sendiri dalam ±1 menit. Jangan matikan laptop.`,
+    updateNow: "Pasang Sekarang",
+    updating: "Mengunduh update… booth akan tertutup lalu terbuka lagi",
     toGuest: "Keluar ke Mode Tamu",
     activeEvent: "Event aktif",
     changeEvent: "Ganti Event",
@@ -138,6 +146,9 @@ export const copy = {
     rollSize: "Isi roll baru (lembar)",
     save: "Simpan",
     testPrint: "Tes Cetak",
+    printerSettings: "Setel Printer",
+    printerSettingsDone:
+      "Dialog printer ditutup. 2inch cut: Enable untuk strip 2R, Disable untuk 4R & polaroid.",
     sent: "Dikirim ke printer, menunggu hasil…",
     printed: "Tercetak",
     printFailed: (m: string) => `Gagal cetak: ${m}`,

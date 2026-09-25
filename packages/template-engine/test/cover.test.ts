@@ -118,4 +118,27 @@ describe("cover & urutan gambar", () => {
     expect(idx("draw 100w")).toBeLessThan(idx("draw 900w"));
     expect(idx("draw 900w")).toBeLessThan(idx("draw 1200w"));
   });
+
+  it("overlay digambar di posisi & ukurannya; tanpa posisi = penuh kanvas", () => {
+    const run = (overlay: LayoutSpec["overlay"]) => {
+      const { calls, rc } = recorder();
+      render(
+        { ...spec, overlay },
+        {
+          photos: [
+            { width: 900, height: 600 },
+            { width: 100, height: 400 },
+          ],
+          assets: { ov: { width: 500, height: 500 } },
+          vars: {},
+        },
+        rc,
+      );
+      return calls.find((c) => c.startsWith("draw 500w"));
+    };
+    expect(run({ assetId: "ov" })).toBe("draw 500w 0.00 0.00 1200.00 1800.00");
+    expect(run({ assetId: "ov", x: 10, y: 20, w: 300, h: 400 })).toBe(
+      "draw 500w 10.00 20.00 300.00 400.00",
+    );
+  });
 });

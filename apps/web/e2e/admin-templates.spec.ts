@@ -116,6 +116,18 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
       mimeType: "image/png",
       buffer: png(1200, 1800),
     });
+    // Overlay = elemen biasa: dipilih, digeser, dihapus (Delete) lalu dikembalikan (⌘Z).
+    await page.getByRole("button", { name: "Layer", exact: true }).click();
+    await page.getByText("Overlay PNG", { exact: true }).click();
+    await expect(page.getByRole("button", { name: "Elemen overlay" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.keyboard.press("Shift+ArrowRight");
+    await page.keyboard.press("Delete");
+    await expect(page.getByRole("button", { name: "Elemen overlay" })).toHaveCount(0);
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(page.getByRole("button", { name: "Elemen overlay" })).toHaveCount(1);
 
     // Teks: kombinasi font (pustaka) + subjudul dengan warna dari color picker.
     await page.getByRole("button", { name: "Teks", exact: true }).click();
@@ -168,7 +180,11 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
       await request.get(`/api/booth/events/${ev.id}/bundle`, { headers: auth })
     ).json();
     const layout = m.config.layout;
-    expect(layout).toMatchObject({ paper: "4R", version: 2, overlay: { assetId: "ov" } });
+    expect(layout).toMatchObject({
+      paper: "4R",
+      version: 2,
+      overlay: { assetId: "ov", x: 10, y: 0, w: 1200, h: 1800 },
+    });
     expect(layout.slots).toHaveLength(5);
     expect(layout.slots[0]).toMatchObject({ x: 60, h: 700, z: "above_overlay" });
     expect(layout.slots[4].x).toBeGreaterThan(260 + 150);

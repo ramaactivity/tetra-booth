@@ -5,6 +5,7 @@
 // Butuh R2_* dan NEXT_PUBLIC_MEDIA_URL di apps/web/.env.local.
 
 import { execSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { cpSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
@@ -79,8 +80,16 @@ if (!process.argv.includes("--tools")) {
     "application/vnd.microsoft.portable-executable",
   );
   await put(`dev-builds/${setup}`, exe, "application/vnd.microsoft.portable-executable");
+  // Dibaca /api/booth/update (tombol Update di mode crew) & /download/booth (DECISIONS #80). Ditulis terakhir.
+  const release = {
+    version: pkg.version,
+    key: `dev-builds/${setup}`,
+    sha256: createHash("sha256").update(exe).digest("hex"),
+    size: exe.byteLength,
+  };
+  await put("dev-builds/latest.json", JSON.stringify(release, null, 2), "application/json");
   console.log(`  OK: ${media}/dev-builds/tetra-booth-dev.zip`);
-  console.log(`  Installer: ${media}/dev-builds/Tetra-Booth-Setup.exe`);
+  console.log(`  Installer ${pkg.version}: https://booth.tetraphoto.com/download/booth`);
 }
 
 await put("dev-builds/update.cmd", tool("update.cmd"), "text/plain");

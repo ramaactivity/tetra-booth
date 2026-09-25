@@ -47,7 +47,16 @@ export const LayoutSpecSchema = z
       .object({ color: hexColor.optional(), assetId: z.string().min(1).optional() })
       .optional(),
     slots: z.array(SlotSchema).min(1),
-    overlay: z.object({ assetId: z.string().min(1) }).optional(),
+    /** Posisi/ukuran kosong = ditarik penuh ke kanvas (perilaku lama). */
+    overlay: z
+      .object({
+        assetId: z.string().min(1),
+        x: z.number().optional(),
+        y: z.number().optional(),
+        w: z.number().positive().optional(),
+        h: z.number().positive().optional(),
+      })
+      .optional(),
     texts: z.array(TextSchema),
   })
   .refine((s) => canvasFits(s.paper, s.canvas), {

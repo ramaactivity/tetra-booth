@@ -183,3 +183,14 @@ export async function saveTemplate(
     message: `Tersimpan · versi ${version}. Event memakai versi ini setelah pengaturannya disimpan ulang.`,
   };
 }
+
+/** Hapus template = arsip (versi & event yang sudah memakainya tidak berubah, DECISIONS #74). */
+export async function archiveTemplate(id: string) {
+  const { db, orgId } = await requireMember(["owner", "admin"]);
+  await db
+    .from("layouts")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("organization_id", orgId);
+  revalidatePath("/admin/templates");
+}

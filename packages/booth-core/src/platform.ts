@@ -73,6 +73,7 @@ export type CrewStatus = {
 };
 
 export type CloudDevice = { name: string; shortCode: string };
+export type UpdateCheck = { current: string; latest: string | null; available: boolean };
 export type FailedPrint = { id: string; copies: number; error: string | null; createdAt: string };
 /** Peringatan kecil untuk crew di pojok layar (printer error, cetak gagal, kertas menipis). */
 export type PrinterAlert = { message: string } | null;
@@ -91,6 +92,8 @@ export interface BoothCrew {
   /** Cetak ulang job gagal sebagai job baru; kembalikan id job baru. */
   reprint(jobId: string): Promise<string>;
   exit(): Promise<void>;
+  /** Buka dialog Printing Preferences printer (potong 2 inci DNP hanya bisa diatur di sana, DECISIONS #59). */
+  printerSettings(): Promise<void>;
   /** Jalankan booth saat Windows login (M5). `supported` false di mode dev. */
   autoStart(): Promise<{ enabled: boolean; supported: boolean }>;
   setAutoStart(on: boolean): Promise<{ enabled: boolean; supported: boolean }>;
@@ -100,6 +103,10 @@ export interface BoothCrew {
   syncEvents(): Promise<number>;
   /** Unggah antrean sekarang juga, lewati jeda backoff (FSD §1.3 "coba sekarang"). */
   retryUploads(): Promise<void>;
+  /** Bandingkan versi terpasang dengan rilis terbaru di cloud (DECISIONS #80). */
+  checkUpdate(): Promise<UpdateCheck>;
+  /** Unduh & pasang versi terbaru; aplikasi tertutup lalu terbuka lagi. Hanya booth Windows. */
+  installUpdate(): Promise<void>;
   printerAlert(): Promise<PrinterAlert>;
   onPrinterAlert(cb: (a: PrinterAlert) => void): Unsubscribe;
   /** Setiap print selesai/gagal (menyegarkan kertas & daftar gagal, dan hasil test print di menu crew). */

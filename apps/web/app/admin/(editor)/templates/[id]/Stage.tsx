@@ -5,10 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import {
   type Guides,
   type Key,
+  OVERLAY,
+  overlayRect,
   type Rect,
   resizeRect,
   rotatedBounds,
   rotationAt,
+  setOverlayRect,
   snapLines,
   snapMove,
   snapValue,
@@ -17,7 +20,7 @@ import {
 
 export type Box = Rect & { rot: number };
 const SAMPLE = ["#CEC8F6", "#D6EEF8", "#FCE3C6", "#D6F1EA", "#F7D5CC", "#EFEDE8"];
-const VARS = { event_name: "Andi & Sari", date: "12 Oktober 2026", custom: "Teks bebas" };
+export const VARS = { event_name: "Andi & Sari", date: "12 Oktober 2026", custom: "Teks bebas" };
 export const GEIST = "Geist Variable";
 const SNAP_PX = 6; // ambang snap dalam px layar
 const HANDLES = [
@@ -43,7 +46,7 @@ const CURSOR: Record<string, string> = {
 
 const samples = new Map<string, ImageLike>();
 /** Foto contoh per slot: pastel + nomor foto (urutan pengambilan). */
-function samplePhoto(w: number, h: number, i: number): ImageLike {
+export function samplePhoto(w: number, h: number, i: number): ImageLike {
   const k = `${w}x${h}x${i}`;
   const hit = samples.get(k);
   if (hit) return hit;
@@ -178,20 +181,23 @@ export function Stage({
     );
 
   const setPos = (l: LayoutSpec, k: Key, x: number, y: number): LayoutSpec =>
-    k.startsWith("s:")
-      ? {
-          ...l,
-          slots: l.slots.map((s) =>
-            `s:${s.id}` === k ? { ...s, x: Math.round(x), y: Math.round(y) } : s,
-          ),
-        }
-      : {
-          ...l,
-          texts: l.texts.map((t) =>
-            `t:${t.id}` === k ? { ...t, x: Math.round(x), y: Math.round(y) } : t,
-          ),
-        };
+    k === OVERLAY
+      ? setOverlayRect(l, { ...overlayRect(l), x, y })
+      : k.startsWith("s:")
+        ? {
+            ...l,
+            slots: l.slots.map((s) =>
+              `s:${s.id}` === k ? { ...s, x: Math.round(x), y: Math.round(y) } : s,
+            ),
+          }
+        : {
+            ...l,
+            texts: l.texts.map((t) =>
+              `t:${t.id}` === k ? { ...t, x: Math.round(x), y: Math.round(y) } : t,
+            ),
+          };
   const posOf = (k: Key) => {
+    if (k === OVERLAY) return overlayRect(layout);
     const it = k.startsWith("s:")
       ? layout.slots.find((s) => `s:${s.id}` === k)
       : layout.texts.find((t) => `t:${t.id}` === k);
@@ -266,37 +272,39 @@ export function Stage({
       }
       setGuides(g);
       preview((l) =>
-        isText
-          ? {
-              ...l,
-              texts: l.texts.map((t) => {
-                if (`t:${t.id}` !== d.key) return t;
-                const f = r.w / d.box.w;
-                const size = d.hy ? Math.max(8, Math.round((d.size ?? t.size) * f)) : t.size;
-                const topOffset = (d.box.y - (d.textY ?? t.y)) * (d.hy ? f : 1);
-                return {
-                  ...t,
-                  x: Math.round(r.x),
-                  w: Math.round(r.w),
-                  size,
-                  y: Math.round(r.y - topOffset),
-                };
-              }),
-            }
-          : {
-              ...l,
-              slots: l.slots.map((s) =>
-                `s:${s.id}` === d.key
-                  ? {
-                      ...s,
-                      x: Math.round(r.x),
-                      y: Math.round(r.y),
-                      w: Math.round(r.w),
-                      h: Math.round(r.h),
-                    }
-                  : s,
-              ),
-            },
+        d.key === OVERLAY
+          ? setOverlayRect(l, r)
+          : isText
+            ? {
+                ...l,
+                texts: l.texts.map((t) => {
+                  if (`t:${t.id}` !== d.key) return t;
+                  const f = r.w / d.box.w;
+                  const size = d.hy ? Math.max(8, Math.round((d.size ?? t.size) * f)) : t.size;
+                  const topOffset = (d.box.y - (d.textY ?? t.y)) * (d.hy ? f : 1);
+                  return {
+                    ...t,
+                    x: Math.round(r.x),
+                    w: Math.round(r.w),
+                    size,
+                    y: Math.round(r.y - topOffset),
+                  };
+                }),
+              }
+            : {
+                ...l,
+                slots: l.slots.map((s) =>
+                  `s:${s.id}` === d.key
+                    ? {
+                        ...s,
+                        x: Math.round(r.x),
+                        y: Math.round(r.y),
+                        w: Math.round(r.w),
+                        h: Math.round(r.h),
+                      }
+                    : s,
+                ),
+              },
       );
     } else if (d.kind === "rotate") {
       const deg = rotationAt(d.box.x + d.box.w / 2, d.box.y + d.box.h / 2, p.x, p.y);
@@ -420,7 +428,7 @@ export function Stage({
       <div
         ref={page}
         data-testid="stage-page"
-        className="relative flex-none bg-white shadow-[0_0_0_1.5px_var(--ink),8px_8px_0_0_var(--ink)]"
+        className="relative flex-none bg-white shadow-[0_0_0_1.5px_var(--ink)]"
         style={{ width: px(W), height: px(H) }}
       >
         <canvas
@@ -441,42 +449,46 @@ export function Stage({
           </div>
         )}
 
-        {keys.map((k) => {
-          const b = boxOf(k);
-          if (!b) return null;
-          const on = sel.includes(k);
-          const slot = k.startsWith("s:");
-          return (
-            <button
-              key={k}
-              type="button"
-              aria-label={
-                slot
-                  ? `Foto ${photoNo(k)}`
-                  : `Teks ${layout.texts.find((t) => `t:${t.id}` === k)?.value ?? ""}`
-              }
-              aria-pressed={on}
-              onPointerDown={(e) => startItem(e, k)}
-              onPointerEnter={() => setHover(k)}
-              onPointerLeave={() => setHover(null)}
-              onDoubleClick={() => !slot && onEditText(k)}
-              className={`absolute cursor-move outline-none ${on ? "ring-2 ring-mint" : hover === k ? "ring-2 ring-lavender" : slot ? "ring-1 ring-ink/25 ring-inset" : ""}`}
-              style={{
-                left: px(b.x) - pad(k),
-                top: px(b.y) - pad(k),
-                width: px(b.w) + 2 * pad(k),
-                height: px(b.h) + 2 * pad(k),
-                transform: b.rot ? `rotate(${b.rot}deg)` : undefined,
-              }}
-            >
-              {slot && (
-                <span className="absolute top-1 left-1 rounded-md border border-ink bg-white/90 px-1.5 text-[10px] leading-4 font-bold">
-                  Foto {photoNo(k)}
-                </span>
-              )}
-            </button>
-          );
-        })}
+        {[...keys]
+          .sort((a, b) => Number(b === OVERLAY) - Number(a === OVERLAY))
+          .map((k) => {
+            const b = boxOf(k);
+            if (!b) return null;
+            const on = sel.includes(k);
+            const slot = k.startsWith("s:");
+            return (
+              <button
+                key={k}
+                type="button"
+                aria-label={
+                  k === OVERLAY
+                    ? "Elemen overlay"
+                    : slot
+                      ? `Foto ${photoNo(k)}`
+                      : `Teks ${layout.texts.find((t) => `t:${t.id}` === k)?.value ?? ""}`
+                }
+                aria-pressed={on}
+                onPointerDown={(e) => startItem(e, k)}
+                onPointerEnter={() => setHover(k)}
+                onPointerLeave={() => setHover(null)}
+                onDoubleClick={() => k.startsWith("t:") && onEditText(k)}
+                className={`absolute cursor-move outline-none ${on ? "ring-2 ring-mint" : hover === k ? "ring-2 ring-lavender" : slot ? "ring-1 ring-ink/25 ring-inset" : ""}`}
+                style={{
+                  left: px(b.x) - pad(k),
+                  top: px(b.y) - pad(k),
+                  width: px(b.w) + 2 * pad(k),
+                  height: px(b.h) + 2 * pad(k),
+                  transform: b.rot ? `rotate(${b.rot}deg)` : undefined,
+                }}
+              >
+                {slot && (
+                  <span className="absolute top-1 left-1 rounded-md border border-ink bg-white/90 px-1.5 text-[10px] leading-4 font-bold">
+                    Foto {photoNo(k)}
+                  </span>
+                )}
+              </button>
+            );
+          })}
 
         {groupBox && (
           <div

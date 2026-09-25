@@ -105,5 +105,8 @@ export const cameraServiceFlags = {
   }),
 };
 
+/** Antrean printer utama (`--printer`), untuk membuka dialog Printing Preferences dari menu crew. */
+export const printerName = flags.value("printer");
+
 /** Interval log metrik (detik), default 60. Stress test memakai nilai kecil. */
 export const metricsEverySec = Math.max(2, Number(flags.value("metrics-every") ?? 60) || 60);

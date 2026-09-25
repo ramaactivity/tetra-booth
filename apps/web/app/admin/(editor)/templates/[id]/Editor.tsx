@@ -28,8 +28,10 @@ import {
   layerStack,
   moveLayer,
   OVERLAY,
+  overlayRect,
   type Rect,
   rotatedBounds,
+  setOverlayRect,
   slotKey,
   textKey,
   union,
@@ -38,6 +40,7 @@ import { useHistory } from "@/lib/editor/history";
 import { type FontPack, LIB_FONTS } from "@/lib/fonts";
 import { type AssetId, FONT_IDS, SAFE_MARGIN_PX } from "@/lib/layouts";
 import { Panels, type Tab } from "./Panels";
+import { PrinterSettingsButton, TestPrintButton } from "./PrintButtons";
 import { type Box, GEIST, Stage } from "./Stage";
 import { Toolbar } from "./Toolbar";
 
@@ -140,9 +143,13 @@ function useEditorApi(p: {
     };
   }, [fonts]);
 
-  const keys = useMemo(() => layerStack(layout).filter((k): k is Key => k !== OVERLAY), [layout]);
+  const keys = useMemo(
+    () => layerStack(layout).filter((k) => k !== OVERLAY || !!layout.overlay),
+    [layout],
+  );
   const boxOf = useCallback(
     (k: Key): Box | null => {
+      if (k === OVERLAY) return layout.overlay ? { ...overlayRect(layout), rot: 0 } : null;
       if (k.startsWith("s:")) {
         const s = layout.slots.find((x) => slotKey(x) === k);
         return s ? { x: s.x, y: s.y, w: s.w, h: s.h, rot: s.rotation ?? 0 } : null;
@@ -269,9 +276,13 @@ function useEditorApi(p: {
     setSel([]);
   };
 
+  const shiftOverlay = (l: LayoutSpec, dx: number, dy: number) => {
+    const r = overlayRect(l);
+    return setOverlayRect(l, { ...r, x: r.x + dx, y: r.y + dy });
+  };
   const moveBy = (keysToMove: Key[], dx: number, dy: number) =>
     commit((l) => ({
-      ...l,
+      ...(keysToMove.includes(OVERLAY) ? shiftOverlay(l, dx, dy) : l),
       slots: l.slots.map((s) =>
         keysToMove.includes(slotKey(s))
           ? { ...s, x: Math.round(s.x + dx), y: Math.round(s.y + dy) }
@@ -302,6 +313,10 @@ function useEditorApi(p: {
         const b = bounds(k);
         if (!b) continue;
         const { dx, dy } = alignDelta(b, t, mode);
+        if (k === OVERLAY) {
+          next = shiftOverlay(next, dx, dy);
+          continue;
+        }
         next = {
           ...next,
           slots: next.slots.map((s) =>
@@ -321,8 +336,9 @@ function useEditorApi(p: {
   const remove = () => {
     if (!sel.length) return;
     const keepOne = layout.slots.length - selSlots.length < 1;
-    commit((l) => ({
+    commit(({ overlay, ...l }) => ({
       ...l,
+      ...(overlay && !sel.includes(OVERLAY) ? { overlay } : {}),
       slots: keepOne ? l.slots : l.slots.filter((s) => !sel.includes(slotKey(s))),
       texts: l.texts.filter((t) => !sel.includes(textKey(t))),
     }));
@@ -632,6 +648,8 @@ export function Editor({
               : `v${version} · tersimpan ${time.format(r?.ok ? new Date() : new Date(savedAt))}`}
         </span>
         <div className="ml-auto flex items-center gap-2">
+          <PrinterSettingsButton paper={ed.layout.paper} />
+          <TestPrintButton layout={ed.layout} images={ed.images} fontFamily={ed.fontFamily} />
           <button
             type="button"
             aria-pressed={ed.showSafe}

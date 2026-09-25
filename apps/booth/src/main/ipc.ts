@@ -1,22 +1,25 @@
+import { execFile } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import {
   AssetKindSchema,
+  newerVersion,
   PairRequest,
   PaperSchema,
   PaymentCreateRequest,
   SESSION_ID_PATTERN,
 } from "@tetra/shared";
-import { app, ipcMain, net } from "electron";
+import { app, BrowserWindow, ipcMain, net } from "electron";
 import { z } from "zod";
 import type { Alerts } from "./alerts";
 import { cameraHealth, request, ServiceUnavailable } from "./camera-client";
 import type { Cloud } from "./cloud";
-import { config } from "./config";
+import { config, printerName } from "./config";
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
 import type { BoothDb } from "./db";
 import { allowQuit, autoStart, setAutoStart } from "./kiosk";
 import { onPhase } from "./shots";
+import { downloadInstaller, runInstaller } from "./update";
 
 /** %APPDATA%/TetraBooth/sessions (TSD §3). Renderer hanya boleh baca/tulis di bawah folder ini. */
 const sessionsRoot = () => join(app.getPath("userData"), "sessions");
@@ -194,6 +197,40 @@ export function registerIpc(
       throw new Error("Tidak bisa mengunduh event dari cloud. Cek koneksi internet lalu coba lagi");
     }
   });
+  // Update aplikasi (aturan 7: hanya dari mode crew, DECISIONS #80).
+  const release = async () => {
+    const current = app.getVersion();
+    let r: Awaited<ReturnType<typeof cloud.latestRelease>>;
+    try {
+      r = await cloud.latestRelease();
+    } catch (e) {
+      console.warn(`[update] cek gagal: ${e instanceof Error ? e.message : String(e)}`);
+      throw new Error(
+        "Tidak bisa cek update. Pastikan booth sudah dipasangkan dan internet menyala",
+      );
+    }
+    return { current, r, available: !!r && newerVersion(r.version, current) };
+  };
+  ipcMain.handle("crewCheckUpdate", async () => {
+    crewOnly();
+    const { current, r, available } = await release();
+    return { current, latest: r?.version ?? null, available };
+  });
+  ipcMain.handle("crewInstallUpdate", async () => {
+    crewOnly();
+    if (process.platform !== "win32") throw new Error("Update hanya untuk booth Windows");
+    const { r, available } = await release();
+    if (!r || !available) throw new Error("Sudah versi terbaru");
+    console.info(`[update] mengunduh ${r.version} (${Math.round(r.size / 1e6)} MB)`);
+    const file = await downloadInstaller(r, app.getPath("temp")).catch((e: unknown) => {
+      console.warn(`[update] unduh gagal: ${e instanceof Error ? e.message : String(e)}`);
+      throw new Error("Gagal mengunduh update. Cek internet lalu coba lagi");
+    });
+    console.info(`[update] memasang ${r.version}, aplikasi ditutup`);
+    runInstaller(file);
+    allowQuit();
+    app.quit();
+  });
   ipcMain.handle("crewPair", (_e, code: unknown) => {
     crewOnly();
     return cloud.pair(PairRequest.shape.code.parse(code));
@@ -237,6 +274,29 @@ export function registerIpc(
     crewOnly();
     allowQuit();
     app.quit();
+  });
+  // Dialog driver tampil di belakang jendela kiosk, jadi kiosk dilepas sampai dialog ditutup.
+  ipcMain.handle("crewPrinterSettings", async (e) => {
+    crewOnly();
+    if (process.platform !== "win32") throw new Error("Pengaturan printer hanya di Windows");
+    const name = printerName;
+    if (!name) throw new Error("Printer belum dikonfigurasi (--printer)");
+    const win = BrowserWindow.fromWebContents(e.sender);
+    const kiosk = win?.isKiosk() ?? false;
+    if (kiosk) win?.setKiosk(false);
+    win?.minimize();
+    try {
+      await new Promise<void>((ok, fail) =>
+        execFile("rundll32.exe", ["printui.dll,PrintUIEntry", "/e", "/n", name], (err) =>
+          err ? fail(err) : ok(),
+        ),
+      );
+    } finally {
+      win?.restore();
+      if (kiosk) win?.setKiosk(true);
+      win?.focus();
+    }
+    console.info(`[print] dialog Printing Preferences ${name} ditutup`);
   });
   ipcMain.handle("crewAutoStart", () => {
     crewOnly();

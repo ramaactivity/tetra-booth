@@ -257,12 +257,13 @@ export function Panels({
   );
   const stack = layerStack(ed.layout);
   const labelOf = (k: Key) => {
+    if (k === OVERLAY) return "Overlay PNG";
     if (k.startsWith("s:"))
       return `Foto ${ed.layout.slots.findIndex((s) => `s:${s.id}` === k) + 1}`;
     const t = ed.layout.texts.find((x) => `t:${x.id}` === k);
     return `Teks · ${(t?.value ?? "").replace("{event_name}", "nama event").replace("{date}", "tanggal") || "(kosong)"}`;
   };
-  const dropOn = (target: Key | typeof OVERLAY) => {
+  const dropOn = (target: Key) => {
     if (!dragKey || dragKey === target) return;
     const src = stack.indexOf(dragKey);
     const without = stack.filter((k) => k !== dragKey);
@@ -553,10 +554,10 @@ export function Panels({
           {tab === "layer" && (
             <Section title="Layer" aside={<span className={small}>atas = depan</span>}>
               {[...stack].reverse().map((k) =>
-                k === OVERLAY ? (
+                k === OVERLAY && !ed.layout.overlay ? (
                   <LayerRow
                     key="overlay"
-                    label={ed.layout.overlay ? "Overlay PNG" : "Overlay (belum ada)"}
+                    label="Overlay (belum ada)"
                     sub="tetap"
                     onDrop={() => dropOn(OVERLAY)}
                   />
