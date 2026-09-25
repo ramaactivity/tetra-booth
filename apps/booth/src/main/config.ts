@@ -1,4 +1,5 @@
 import type { BoothConfig } from "@tetra/platform-electron";
+import { DIGICAM_TRIGGER } from "./digicam";
 
 /** Flag yang butuh nilai. Diterima `--nama=nilai` maupun `--nama nilai` (M-008). */
 export const VALUE_FLAGS = [
@@ -17,6 +18,7 @@ export const VALUE_FLAGS = [
   "hot-folder-trigger",
   "print-offset",
   "printer-2x6x2",
+  "digicam-exe",
 ] as const;
 type ValueFlag = (typeof VALUE_FLAGS)[number];
 
@@ -58,9 +60,18 @@ export const flagWarnings = flags.missing.map((m) => `[config] --${m} butuh nila
 export const kioskFlag = (isPackaged: boolean) =>
   flags.has("kiosk") || (isPackaged && !flags.has("no-kiosk"));
 
+/**
+ * `--digicam`: kamera DSLR lewat digiCamControl (lihat digicam.ts). Menyiratkan `--camera=hotfolder`,
+ * pemicu shutter ke web server digiCamControl, buka aplikasinya otomatis, dan live view.
+ * `--digicam-exe` untuk lokasi CameraControl.exe yang tidak standar.
+ */
+export const digicam = flags.has("digicam") ? { exe: flags.value("digicam-exe") } : undefined;
+
 export const config: BoothConfig = {
-  camera:
-    (["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ?? "webcam",
+  camera: digicam
+    ? "hotfolder"
+    : ((["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ?? "webcam"),
+  liveView: !!digicam,
   demo: flags.has("demo"),
   fast: flags.has("fast"),
   guestUrl: process.env.TETRA_GUEST_URL ?? "https://booth.tetraphoto.com",
@@ -100,7 +111,8 @@ export const cameraServiceFlags = {
       "hot-folder-trigger",
     ] as const
   ).flatMap((k) => {
-    const v = flags.value(k);
+    const v =
+      flags.value(k) ?? (k === "hot-folder-trigger" && digicam ? DIGICAM_TRIGGER : undefined);
     return v ? [`--${k}`, v] : [];
   }),
 };

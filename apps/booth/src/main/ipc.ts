@@ -17,6 +17,7 @@ import type { Cloud } from "./cloud";
 import { config, printerName } from "./config";
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
 import type { BoothDb } from "./db";
+import { liveViewFrame, liveViewStart, liveViewStop } from "./digicam";
 import { allowQuit, autoStart, setAutoStart } from "./kiosk";
 import { onPhase } from "./shots";
 import { downloadInstaller, runInstaller } from "./update";
@@ -128,6 +129,13 @@ export function registerIpc(
     return { ...r, path: inSessions(r.path) };
   });
   ipcMain.handle("cameraStatus", () => request({ id: crypto.randomUUID(), type: "camera.status" }));
+  // Live view DSLR lewat digiCamControl (--digicam). Diambil di main supaya CSP renderer tetap 'self'.
+  ipcMain.handle("liveViewStart", () => (config.liveView ? liveViewStart() : undefined));
+  ipcMain.handle("liveViewFrame", () => {
+    if (!config.liveView) throw new Error("live view tidak aktif");
+    return liveViewFrame();
+  });
+  ipcMain.handle("liveViewStop", () => (config.liveView ? liveViewStop() : undefined));
 
   ipcMain.handle("printSubmit", async (_e, job: unknown) => {
     const j = PrintJob.parse(job);

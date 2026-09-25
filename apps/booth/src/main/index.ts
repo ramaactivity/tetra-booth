@@ -8,12 +8,14 @@ import {
   cameraServiceFlags,
   config,
   dataDir,
+  digicam,
   flagWarnings,
   kioskFlag,
   metricsEverySec,
   windowSize,
 } from "./config";
 import { openDb } from "./db";
+import { ensureDigiCam } from "./digicam";
 import { createFrameWatch } from "./frame-watch";
 import { createGpuWatch } from "./gpu-watch";
 import { registerIpc } from "./ipc";
@@ -127,9 +129,16 @@ registerIpc(db, alerts, cloud, (p) => gpu.phase(p));
 app.on("will-quit", () => db.close());
 app.whenReady().then(async () => {
   const log = (m: string) => console.info(m);
-  if (cameraServiceFlags.spawn) await startCameraService(log, db, alerts);
+  // --digicam: digiCamControl bisa butuh ±1 menit untuk siap, jadi jendela booth tampil dulu; kamera menyusul
+  // (sesi yang dimulai sebelum itu masuk layar "kamera disiapkan ulang" dan lanjut sendiri).
+  // Tanpa --hot-folder, folder sesi digiCamControl dipakai sebagai hot folder.
+  if (digicam) createWindow();
+  const hot = digicam ? await ensureDigiCam(log, digicam.exe) : undefined;
+  const extra =
+    hot && !cameraServiceFlags.args.includes("--hot-folder") ? ["--hot-folder", hot] : [];
+  if (cameraServiceFlags.spawn) await startCameraService(log, db, alerts, extra);
   else app.on("will-quit", watchPrintEvents(log, db, alerts));
-  createWindow();
+  if (!digicam) createWindow();
   cloud.start();
   startMetrics(db, metricsEverySec, log);
 });

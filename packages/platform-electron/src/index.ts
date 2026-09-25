@@ -11,17 +11,51 @@ export type { BoothConfig, TetraBridge } from "./bridge";
 
 /**
  * Kamera di Camera Service (hot folder M7, Canon EDSDK Fase 1b): capture lewat main → WebSocket.
- * Hot folder tidak punya live view; layar countdown menampilkan ajakan melihat ke kamera.
+ * Tanpa live view (hot folder biasa) layar countdown menampilkan ajakan melihat ke kamera. Dengan
+ * `cfg.liveView` (digiCamControl) frame JPEG diambil berulang lewat main, satu permintaan pada satu waktu.
  */
-const serviceCamera = (bridge: TetraBridge): BoothCamera => ({
-  startLiveView: async () => {},
-  stopLiveView: async () => {},
-  capture: (req) => bridge.cameraCapture(req),
-  reconnect: async () => {
-    const s = await bridge.cameraStatus();
-    if (!s.connected) throw new Error("kamera Camera Service belum terhubung");
-  },
-});
+const LIVE_VIEW_IDLE_MS = 60_000;
+
+const serviceCamera = (bridge: TetraBridge, liveView: boolean): BoothCamera => {
+  let run = 0;
+  // Live view DSLR butuh 1–2 s untuk mulai; tetap nyala di antara foto satu sesi, mati setelah idle.
+  let hide: ReturnType<typeof setTimeout> | undefined;
+  return {
+    startLiveView: async (onFrame) => {
+      if (!liveView) return;
+      clearTimeout(hide);
+      const me = ++run;
+      await bridge.liveViewStart();
+      void (async () => {
+        while (me === run) {
+          const bytes = await bridge.liveViewFrame().catch(() => null);
+          if (me !== run) break;
+          if (!bytes) {
+            await new Promise((r) => setTimeout(r, 150));
+            continue;
+          }
+          const bmp = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" })).catch(
+            () => null,
+          );
+          if (!bmp) continue;
+          if (me === run) onFrame({ source: bmp, width: bmp.width, height: bmp.height });
+          bmp.close();
+        }
+      })();
+    },
+    stopLiveView: async () => {
+      if (!liveView) return;
+      run++;
+      clearTimeout(hide);
+      hide = setTimeout(() => void bridge.liveViewStop().catch(() => {}), LIVE_VIEW_IDLE_MS);
+    },
+    capture: (req) => bridge.cameraCapture(req),
+    reconnect: async () => {
+      const s = await bridge.cameraStatus();
+      if (!s.connected) throw new Error("kamera Camera Service belum terhubung");
+    },
+  };
+};
 
 /** Adapter BoothPlatform untuk Electron; berbicara ke main lewat `window.tetra`. */
 export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): BoothPlatform => {
@@ -35,7 +69,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       cfg.camera === "simulated"
         ? createSimulatedCamera(storage)
         : cfg.camera === "hotfolder"
-          ? serviceCamera(bridge)
+          ? serviceCamera(bridge, !!cfg.liveView)
           : createWebcamCamera(storage),
     printer: { submit: (job) => bridge.printSubmit(job) },
     storage,
