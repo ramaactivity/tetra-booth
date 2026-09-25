@@ -25,6 +25,8 @@ const drawSlot = (ctx: Ctx2D, slot: LayoutSlot, img: ImageLike | undefined): voi
   ctx.beginPath();
   ctx.rect(-slot.w / 2, -slot.h / 2, slot.w, slot.h);
   ctx.clip();
+  // Foto kamera (5184 px) diperkecil ±4× ke slot: kualitas "low" bawaan membuat foto bergerigi/kurang tajam (W-031).
+  ctx.imageSmoothingQuality = "high";
   ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
   ctx.restore();
 };

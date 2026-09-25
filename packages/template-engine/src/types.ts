@@ -9,6 +9,7 @@ export interface Ctx2D {
   font: string;
   textAlign: "left" | "center" | "right" | "start" | "end";
   textBaseline: "top" | "middle" | "bottom" | "alphabetic" | "hanging" | "ideographic";
+  imageSmoothingQuality?: "low" | "medium" | "high";
   save(): void;
   restore(): void;
   translate(x: number, y: number): void;
