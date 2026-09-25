@@ -189,11 +189,14 @@ Selesai: kata sandi admin, CORS R2, `CRON_SECRET` (cron menolak tanpa secret: 40
 6. **HP data seluler:** buka satu link `/s/{id}` dari booth B02 (W-026), foto tampil?
 7. Setelan **2inch cut** DNP sesuai event berikutnya (DECISIONS #59/#64).
 8. Jadwal **event percontohan** (kriteria Fase 1b & 2) dan **uji photobox di lokasi dengan modem 4G** (Fase 4).
+9. **Fase 5 — Temukan Foto Saya:** pilih model wajah. Model populer (ArcFace/InsightFace) berlisensi non-komersial; perlu model berlisensi komersial atau layanan berbayar. Keputusan bisnis & biaya → Rama.
+10. **Lead capture:** isi teks persetujuan asli (nama PT/brand + tujuan) di pengaturan event sebelum dipakai di event nyata.
 
 ## Log
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-25 | Mac | **Fase 5 (web)**, PLAN-FASE-5: L1 lead capture gate/optional + consent + export CSV + audit (DECISIONS #71); L2 galeri publik tamu `/s/{id}/galeri` + sheet Pengaturan C4 (#72); L3 animasi di galeri. e2e web 23 lulus (`--workers=2`; mesin sedang berat). Ditunda: Sony a7III, Temukan Foto Saya (pilih model wajah + lisensi, butuh Windows), boomerang. |
 | 2026-09-25 | Mac | **Fase 4 (photobox)**, DECISIONS #70: admin E3 Mode Event/Photobox + layout dijual + harga + lembar tambahan + timer; API `POST /api/booth/payments`, `GET /payments/{id}` (cek Xendit setelah 20 dtk), webhook `/api/webhooks/xendit` (status dicek ulang ke API), simulasi mode test; booth A2 → A3/A4 → foto + timer → A7b tambahan dibayar → cetak; halaman Transaksi E6 + CSV. Migrasi 0005 di Supabase dev. e2e: web 20, booth 6 (termasuk photobox dengan cloud palsu). Belum diuji dengan kunci Xendit asli. |
 | 2026-09-25 | Mac | Fase 3 sisa: undangan tim E7 (email Supabase, cadangan link untuk WA) + lupa kata sandi + `/admin/password` (DECISIONS #69). Fase 2 N8 Sentry web + booth tanpa data tamu (DECISIONS #68). `CRON_SECRET` aktif di production (401 tanpa secret). |
 | 2026-09-25 | Mac | **Fase 3 A1–A9** (PLAN-FASE-3): admin `/admin` (login, Device E5, Event E1/E3 + template preset & overlay, dashboard E2 + moderasi E8, link klien), galeri klien `/g/{token}` (C1–C2, favorit, slideshow, ZIP), live slideshow `/live/{token}` (D1), cron retensi. 15 e2e web terhadap Supabase dev. Sisa: editor template penuh, undangan tim, galeri publik (Fase 5). |
