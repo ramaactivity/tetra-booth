@@ -4,14 +4,20 @@ import { createServiceClient } from "@/lib/supabase/service";
 
 /** Live slideshow `/live/{token}` (FSD §4, desain D1): strip terbaru event yang tidak disembunyikan. */
 export type LiveStrip = { id: string; url: string; at: string };
-export type LiveEvent = { name: string; tagline: string | null; date: string };
+/** `publicGallery`: QR ke galeri publik `/l/{token}` tampil di slideshow (DECISIONS #75). */
+export type LiveEvent = {
+  name: string;
+  tagline: string | null;
+  date: string;
+  publicGallery: boolean;
+};
 
 export async function loadLive(token: string, limit = 24) {
   if (!/^[\w-]{20,64}$/.test(token)) return null;
   const db = createServiceClient();
   const { data: ev } = await db
     .from("events")
-    .select("id, organization_id, name, event_date, branding, purged_at")
+    .select("id, organization_id, name, event_date, branding, purged_at, public_gallery")
     .eq("live_token", token)
     .maybeSingle();
   if (!ev || ev.purged_at) return null;
@@ -38,6 +44,7 @@ export async function loadLive(token: string, limit = 24) {
       name: ev.name,
       tagline: branding.tagline ?? null,
       date: ev.event_date,
+      publicGallery: ev.public_gallery,
     } satisfies LiveEvent,
     strips,
   };

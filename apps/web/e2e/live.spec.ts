@@ -56,6 +56,18 @@ test("slideshow + sesi baru", async ({ page }) => {
     await add(`lvb${tag}a`, new Date().toISOString());
     await expect(page.getByText("Baru!")).toBeVisible({ timeout: 15_000 });
     await page.screenshot({ path: "test-results/live.png" });
+
+    // Galeri publik (DECISIONS #75): QR hanya saat klien mengaktifkannya; `/l/{token}` = galeri read-only.
+    await expect(page.getByText("Scan untuk lihat semua foto")).toHaveCount(0);
+    await page.goto(`/l/${token}`);
+    await expect(page.getByRole("heading", { name: "Galeri acara tidak tersedia" })).toBeVisible();
+    await db.from("events").update({ public_gallery: true }).eq("id", eventId);
+    await page.goto(`/live/${token}`);
+    await expect(page.getByText("Scan untuk lihat semua foto")).toBeVisible();
+    await expect(page.getByRole("img", { name: new RegExp(`/l/${token}$`) })).toBeVisible();
+    await page.goto(`/l/${token}`);
+    await expect(page.getByRole("heading", { name: "Andi & Sari" })).toBeVisible();
+    await expect(page.getByText("2 foto")).toBeVisible();
   } finally {
     await db.from("events").delete().eq("id", eventId);
   }

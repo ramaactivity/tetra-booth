@@ -1,4 +1,5 @@
 "use client";
+import { QrCode } from "@tetra/ui";
 import { useEffect, useState } from "react";
 import type { LiveEvent, LiveStrip } from "@/lib/live";
 
@@ -13,10 +14,13 @@ export function LiveView({
   token,
   event,
   initial,
+  galleryUrl,
 }: {
   token: string;
   event: LiveEvent;
   initial: LiveStrip[];
+  /** Galeri publik aktif → kartu QR "Scan untuk lihat semua foto" (desain D1). */
+  galleryUrl: string | null;
 }) {
   const [strips, setStrips] = useState(initial);
   const [i, setI] = useState(0);
@@ -120,6 +124,16 @@ export function LiveView({
               />
             ))}
           </div>
+          {galleryUrl && (
+            <div className="mt-auto flex items-center gap-[22px] rounded-3xl border-[2.5px] border-ink bg-sky p-[22px]">
+              <div className="flex-none rounded-[14px] border-2 border-ink bg-white p-2">
+                <QrCode url={galleryUrl} size={130} />
+              </div>
+              <p className="text-[26px] leading-[1.2] font-extrabold tracking-[-0.02em]">
+                Scan untuk lihat semua foto
+              </p>
+            </div>
+          )}
         </aside>
       </div>
     </div>

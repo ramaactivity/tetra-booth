@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { loadLive } from "@/lib/live";
 import { LiveView } from "./LiveView";
 
@@ -18,5 +19,14 @@ export default async function LivePage({ params }: { params: Promise<{ token: st
         Slideshow tidak tersedia
       </main>
     );
-  return <LiveView token={token} event={live.event} initial={live.strips} />;
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
+  return (
+    <LiveView
+      token={token}
+      event={live.event}
+      initial={live.strips}
+      galleryUrl={live.event.publicGallery ? `${origin}/l/${token}` : null}
+    />
+  );
 }

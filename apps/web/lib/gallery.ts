@@ -85,6 +85,22 @@ export async function loadPublicGallery(sessionId: string): Promise<Gallery> {
   return galleryOf(ev, false);
 }
 
+/** Galeri publik dari QR live slideshow (`/l/{liveToken}`): syarat sama dengan dari halaman tamu. */
+export async function loadPublicGalleryByLive(token: string): Promise<Gallery> {
+  if (!/^[\w-]{20,64}$/.test(token)) return { state: "gone" };
+  const { data: ev } = await createServiceClient()
+    .from("events")
+    .select(
+      "id, organization_id, name, event_date, location, branding, client_expires_at, guest_expires_at, purged_at, public_gallery",
+    )
+    .eq("live_token", token)
+    .maybeSingle();
+  const until = ev?.guest_expires_at ?? ev?.client_expires_at;
+  if (!ev?.public_gallery || ev.purged_at || (until && new Date(until) <= new Date()))
+    return { state: "gone" };
+  return galleryOf(ev, false);
+}
+
 async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gallery> {
   const db = createServiceClient();
   const { data: sessions } = await db
