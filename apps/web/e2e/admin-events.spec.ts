@@ -90,6 +90,22 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
       ["4r-grid", 35000],
     ]);
 
+    // Fase 5 L1: lead capture butuh teks persetujuan; versi = hash teks.
+    await page.getByLabel(/Minta data tamu/).check();
+    await page.getByRole("button", { name: "Simpan" }).click();
+    await expect(page.getByRole("status")).toContainText("isi teks persetujuan");
+    await page.getByLabel(/Teks persetujuan/).fill("Saya setuju data saya dipakai untuk promo.");
+    await page.getByLabel("Wajib: foto tampil setelah form diisi").check();
+    await page.getByRole("button", { name: "Simpan" }).click();
+    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v4");
+    const { data: lc } = await db.from("events").select("lead_capture").eq("id", ev.id).single();
+    expect(lc?.lead_capture).toMatchObject({
+      enabled: true,
+      mode: "gate",
+      fields: ["name", "whatsapp"],
+      consentVersion: expect.stringMatching(/^[0-9a-f]{10}$/),
+    });
+
     await page.goto("/admin");
     await expect(page.getByRole("link", { name: new RegExp(name) })).toContainText(dev?.name ?? "");
   } finally {

@@ -33,6 +33,8 @@ export async function GET(req: Request) {
         .delete()
         .eq("organization_id", ev.organization_id)
         .in("session_id", ids.slice(i, i + 200));
+    // Data pribadi tamu ikut dihapus bersama foto (UU PDP).
+    await db.from("leads").delete().eq("event_id", ev.id).eq("organization_id", ev.organization_id);
     await db
       .from("events")
       .update({ purged_at: new Date().toISOString() })

@@ -4,6 +4,7 @@ import { copy } from "@/lib/copy";
 import { clock, type GuestEvent, loadGuest, longDate, shortDate } from "@/lib/guest";
 import { AutoRefresh } from "./AutoRefresh";
 import { GuestReady } from "./GuestReady";
+import { LeadSheet } from "./LeadSheet";
 import { TrackOpen } from "./TrackOpen";
 
 /** Halaman tamu dari QR booth (FSD §2, desain v2 B1–B3). Mobile-first 390 px. */
@@ -74,6 +75,21 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
   const { sessionId } = await params;
   const g = await loadGuest(sessionId);
 
+  // Lead gate (B4): foto ter-blur di belakang form; URL foto belum dikirim server.
+  if ((g.state === "ready" || g.state === "pending") && g.lead?.mode === "gate")
+    return (
+      <Shell>
+        <TrackOpen sessionId={sessionId} />
+        <Header event={g.event} />
+        <div className="mx-auto mt-4 grid h-[384px] w-[256px] grid-cols-2 gap-1.5 bg-white p-3 opacity-80 blur-[9px]">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="bg-[#d9d5d0]" />
+          ))}
+        </div>
+        <LeadSheet sessionId={sessionId} lead={g.lead} />
+      </Shell>
+    );
+
   if (g.state === "ready")
     return (
       <Shell>
@@ -84,6 +100,7 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
           assets={g.assets}
           expiresAt={g.expiresAt ? shortDate(g.expiresAt) : null}
         />
+        {g.lead && <LeadSheet sessionId={sessionId} lead={g.lead} />}
       </Shell>
     );
 

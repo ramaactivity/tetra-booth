@@ -3,6 +3,7 @@ import { LAYOUT_PRESETS, type PresetId, StoredBundle } from "@tetra/shared";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { buildBundle, storeOverlay } from "@/lib/event-bundle";
+import { consentVersion, LEAD_FIELDS } from "@/lib/leads";
 import type { PhotoboxSettings } from "@/lib/payments";
 import { requireMember } from "@/lib/supabase/server";
 
@@ -26,6 +27,8 @@ const Form = z.object({
   reviewTimeoutSec: int(5, 120),
   qrScreenSec: int(10, 300),
   mode: z.enum(["event", "photobox"]),
+  lead_mode: z.enum(["gate", "optional"]),
+  consent_text: z.string().trim().max(600),
   sessionSec: int(60, 900),
   extraPrintPrice: int(0, 1_000_000),
   guest_days: int(1, 365),
@@ -79,6 +82,22 @@ export async function saveEvent(
     return { ok: false, message: "Mode photobox: centang minimal satu layout yang dijual" };
   const photobox: PhotoboxSettings = { layouts, extraPrintPrice: f.extraPrintPrice };
 
+  // Lead capture (FSD §2, DECISIONS #71): versi persetujuan = hash teks, berubah otomatis saat teks diubah.
+  const leadOn = form.get("lead_enabled") === "on";
+  const leadFields = LEAD_FIELDS.filter((k) => form.get(`lead_f_${k}`) === "on");
+  if (leadOn && (!leadFields.length || !f.consent_text))
+    return {
+      ok: false,
+      message: "Lead capture: pilih minimal satu field dan isi teks persetujuan",
+    };
+  const lead_capture = {
+    enabled: leadOn,
+    mode: f.lead_mode,
+    fields: leadFields,
+    consentText: f.consent_text,
+    consentVersion: consentVersion(f.consent_text),
+  };
+
   const settings = {
     sessionSec: f.sessionSec,
     countdownSec: f.countdownSec,
@@ -118,6 +137,7 @@ export async function saveEvent(
       event_date: f.event_date,
       location: f.location || null,
       mode: f.mode,
+      lead_capture,
       settings: {
         ...settings,
         template,

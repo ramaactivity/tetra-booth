@@ -1,11 +1,14 @@
 import "server-only";
 import { SESSION_ID_PATTERN } from "@tetra/shared";
+import { type LeadField, leadCapture } from "@/lib/leads";
 import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /** Data halaman tamu `/s/{id}` (FSD §2). Dibaca di server; service role tidak pernah ke browser. */
 export type GuestEvent = { name: string; date: string };
 export type GuestAsset = { kind: string; idx: number; url: string };
+/** Form lead yang harus/boleh diisi tamu ini (belum pernah mengisi untuk sesi ini). */
+export type GuestLead = { mode: "gate" | "optional"; fields: LeadField[]; consentText: string };
 export type GuestState =
   | { state: "unknown" }
   | { state: "removed"; event: GuestEvent }
@@ -16,8 +19,15 @@ export type GuestState =
       startedAt: string;
       assets: GuestAsset[];
       total: number;
+      lead: GuestLead | null;
     }
-  | { state: "ready"; event: GuestEvent; assets: GuestAsset[]; expiresAt: string | null };
+  | {
+      state: "ready";
+      event: GuestEvent;
+      assets: GuestAsset[];
+      expiresAt: string | null;
+      lead: GuestLead | null;
+    };
 
 export async function loadGuest(sessionId: string, now = new Date()): Promise<GuestState> {
   if (!SESSION_ID_PATTERN.test(sessionId)) return { state: "unknown" };
@@ -25,7 +35,7 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
   const { data: s } = await db
     .from("sessions")
     .select(
-      "id, organization_id, started_at, upload_status, asset_count, hidden_at, deleted_at, events!inner(name, event_date, guest_expires_at, client_expires_at, purged_at)",
+      "id, organization_id, started_at, upload_status, asset_count, hidden_at, deleted_at, events!inner(name, event_date, guest_expires_at, client_expires_at, purged_at, lead_capture)",
     )
     .eq("id", sessionId)
     .maybeSingle();
@@ -37,6 +47,19 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
   if (e.purged_at || (expiresAt && new Date(expiresAt) <= now))
     return { state: "expired", event, expiredAt: e.purged_at ?? expiresAt ?? now.toISOString() };
 
+  const cfg = leadCapture(e.lead_capture);
+  const { count: leads } = cfg
+    ? await db
+        .from("leads")
+        .select("id", { count: "exact", head: true })
+        .eq("session_id", s.id)
+        .eq("organization_id", s.organization_id)
+    : { count: 0 };
+  const lead =
+    cfg && !leads ? { mode: cfg.mode, fields: cfg.fields, consentText: cfg.consentText } : null;
+  // Mode gate: URL foto tidak pernah dikirim sebelum lead masuk (bukan sekadar disembunyikan di browser).
+  const locked = lead?.mode === "gate";
+
   const { data: rows } = await db
     .from("assets")
     .select("kind, idx, r2_key")
@@ -46,15 +69,22 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
     .order("idx");
   // Kunci "…#x" (data uji) → objek tanpa fragmen.
   const assets = await Promise.all(
-    (rows ?? []).map(async (a) => ({
+    (locked ? [] : (rows ?? [])).map(async (a) => ({
       kind: a.kind,
       idx: a.idx,
       url: await presignGet(a.r2_key.split("#")[0] ?? a.r2_key),
     })),
   );
   if (s.upload_status !== "complete")
-    return { state: "pending", event, startedAt: s.started_at, assets, total: s.asset_count ?? 0 };
-  return { state: "ready", event, assets, expiresAt };
+    return {
+      state: "pending",
+      event,
+      startedAt: s.started_at,
+      assets,
+      total: s.asset_count ?? 0,
+      lead,
+    };
+  return { state: "ready", event, assets, expiresAt, lead };
 }
 
 const tz = { timeZone: "Asia/Jakarta" } as const;

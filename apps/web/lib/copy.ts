@@ -1,5 +1,23 @@
 /** Semua teks UI web (CLAUDE.md: satu file copy per app). */
 export const copy = {
+  lead: {
+    title: "Satu langkah lagi",
+    fields: {
+      name: { label: "Nama", placeholder: "Nama lengkap", type: "text", auto: "name" },
+      whatsapp: {
+        label: "Nomor WhatsApp",
+        placeholder: "0812 3456 7890",
+        type: "tel",
+        auto: "tel",
+      },
+      email: { label: "Email", placeholder: "nama@email.com", type: "email", auto: "email" },
+    },
+    submit: "Lihat Fotoku",
+    sending: "Mengirim…",
+    skip: "Lewati",
+    invalid: "Periksa lagi isian dan centang persetujuan",
+    failed: "Gagal mengirim, coba lagi",
+  },
   guest: {
     strip: "Strip",
     original: "Original",

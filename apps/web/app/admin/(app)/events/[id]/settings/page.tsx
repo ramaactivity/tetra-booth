@@ -6,7 +6,7 @@ import { DEFAULT_TEMPLATE, type EventBranding, type EventTemplate } from "@/lib/
 import type { PhotoboxSettings } from "@/lib/payments";
 import { requireMember } from "@/lib/supabase/server";
 import { LinksPanel } from "./LinksPanel";
-import { SettingsForm } from "./SettingsForm";
+import { SettingsForm, type SettingsValues } from "./SettingsForm";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, name, mode, event_date, location, settings, branding, bundle, client_token, live_token, event_devices(device_id)",
+      "id, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, event_devices(device_id)",
     )
     .eq("id", id)
     .eq("organization_id", orgId)
@@ -75,6 +75,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           mode: ev.mode === "photobox" ? "photobox" : "event",
           sessionSec: s.sessionSec,
           extraPrintPrice: raw.photobox?.extraPrintPrice ?? 10000,
+          lead: ev.lead_capture as SettingsValues["lead"],
           prices: Object.fromEntries((raw.photobox?.layouts ?? []).map((l) => [l.preset, l.price])),
           guest_days: raw.guestDays ?? 30,
           client_days: raw.clientDays ?? 90,

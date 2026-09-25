@@ -27,7 +27,7 @@ const TILES = 60;
 /** Dashboard event (desain v2 E2) + moderasi sesi (E8). */
 export default async function EventDashboard({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { db, orgId } = await requireMember();
+  const { db, orgId, role } = await requireMember();
   const { data: ev } = await db
     .from("events")
     .select("id, name, event_date, location, mode, client_token, live_token")
@@ -35,7 +35,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     .eq("organization_id", orgId)
     .maybeSingle();
   if (!ev) notFound();
-  const [{ data: sessions }, { data: hits }] = await Promise.all([
+  const [{ data: sessions }, { data: hits }, { count: leadCount }] = await Promise.all([
     db
       .from("sessions")
       .select("id, started_at, print_count, upload_status, hidden_at")
@@ -50,6 +50,11 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
       .eq("event_id", id)
       .eq("organization_id", orgId)
       .limit(50000),
+    db
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", id)
+      .eq("organization_id", orgId),
   ]);
   const list = sessions ?? [];
   const opened = new Set((hits ?? []).filter((h) => h.type === "qr_open").map((h) => h.session_id));
@@ -129,6 +134,11 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
           </p>
         </div>
         <div className="flex gap-2">
+          {!!leadCount && role !== "crew" && (
+            <a href={`/admin/events/${ev.id}/leads`} className={`${btn} bg-white`}>
+              Export Lead ({leadCount})
+            </a>
+          )}
           {ev.client_token && (
             <a
               href={`/g/${ev.client_token}`}

@@ -22,6 +22,12 @@ export type SettingsValues = {
   extraPrintPrice: number;
   /** Harga per preset yang dijual di photobox (tidak ada = tidak dijual). */
   prices: Partial<Record<PresetId, number>>;
+  lead: {
+    enabled?: boolean;
+    mode?: "gate" | "optional";
+    fields?: string[];
+    consentText?: string;
+  } | null;
   guest_days: number;
   client_days: number;
   devices: { id: string; name: string; assigned: boolean }[];
@@ -228,6 +234,61 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           <Field label="Layar QR tampil" unit="detik">
             {num("qrScreenSec", 10, 300)}
           </Field>
+        </Section>
+
+        <Section title="Lead capture (halaman tamu)">
+          <label className="col-span-full flex items-center gap-2.5 text-sm font-bold">
+            <input type="checkbox" name="lead_enabled" defaultChecked={!!v.lead?.enabled} />
+            Minta data tamu sebelum / saat melihat foto
+          </label>
+          <fieldset className="flex flex-col gap-2 text-sm">
+            <legend className="mb-1.5 text-xs font-bold">Mode</legend>
+            {(
+              [
+                ["gate", "Wajib: foto tampil setelah form diisi"],
+                ["optional", "Opsional: tamu bisa melewati"],
+              ] as const
+            ).map(([m, l]) => (
+              <label key={m} className="flex items-center gap-2.5">
+                <input
+                  type="radio"
+                  name="lead_mode"
+                  value={m}
+                  defaultChecked={(v.lead?.mode ?? "optional") === m}
+                />
+                {l}
+              </label>
+            ))}
+          </fieldset>
+          <fieldset className="flex flex-col gap-2 text-sm">
+            <legend className="mb-1.5 text-xs font-bold">Field (semua wajib diisi)</legend>
+            {(
+              [
+                ["name", "Nama"],
+                ["whatsapp", "Nomor WhatsApp"],
+                ["email", "Email"],
+              ] as const
+            ).map(([k, l]) => (
+              <label key={k} className="flex items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  name={`lead_f_${k}`}
+                  defaultChecked={v.lead?.fields ? v.lead.fields.includes(k) : k !== "email"}
+                />
+                {l}
+              </label>
+            ))}
+          </fieldset>
+          <label className="col-span-full flex flex-col gap-1.5 text-xs font-bold">
+            Teks persetujuan (UU PDP) · sebut siapa yang memakai data dan untuk apa
+            <textarea
+              name="consent_text"
+              maxLength={600}
+              rows={3}
+              defaultValue={v.lead?.consentText ?? ""}
+              className="rounded-[11px] border-[1.5px] border-ink bg-white p-3 text-sm font-normal"
+            />
+          </label>
         </Section>
 
         <Section title="Masa simpan foto">
