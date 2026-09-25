@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { BoothConfig } from "@tetra/platform-electron";
 import { DIGICAM_TRIGGER } from "./digicam";
 
@@ -48,13 +50,38 @@ export function parseFlags(argv: readonly string[]) {
   };
 }
 
+/** Isi file flag jadi argumen: baris `#` = komentar, nilai berspasi pakai tanda kutip. */
+export const splitArgs = (text: string) =>
+  text
+    .split(/\r?\n/)
+    .filter((l) => !l.trim().startsWith("#"))
+    .flatMap((l) => [...l.matchAll(/"([^"]*)"|(\S+)/g)].map((m) => m[1] ?? m[2] ?? ""));
+
+/**
+ * Flag tetap per laptop (DECISIONS #83): shortcut installer tidak membawa argumen, jadi kamera/printer
+ * dibaca dari `%APPDATA%\Tetra Booth\booth-flags.txt`. Argumen baris perintah menang (dibaca belakangan).
+ */
+export const flagsFile = process.env.APPDATA
+  ? join(process.env.APPDATA, "Tetra Booth", "booth-flags.txt")
+  : undefined;
+const fileArgs = (() => {
+  try {
+    return flagsFile ? splitArgs(readFileSync(flagsFile, "utf8")) : [];
+  } catch {
+    return [];
+  }
+})();
+
 /**
  * Flag baris perintah (uji & dev). Contoh:
  *   electron apps/booth --camera=simulated --demo --size 1080x1920 --printer "Microsoft Print to PDF" --data C:/tmp/data
  */
-const flags = parseFlags(process.argv);
+const flags = parseFlags([...fileArgs, ...process.argv]);
 /** Dicatat di index setelah log file aktif. */
-export const flagWarnings = flags.missing.map((m) => `[config] --${m} butuh nilai, diabaikan`);
+export const flagWarnings = [
+  ...(fileArgs.length ? [`[config] flag dari ${flagsFile}: ${fileArgs.join(" ")}`] : []),
+  ...flags.missing.map((m) => `[config] --${m} butuh nilai, diabaikan`),
+];
 
 /** Kiosk (M5): default aktif di app hasil build; `--kiosk` / `--no-kiosk` memaksa. */
 export const kioskFlag = (isPackaged: boolean) =>

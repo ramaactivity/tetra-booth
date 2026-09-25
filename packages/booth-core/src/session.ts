@@ -154,8 +154,8 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
         case "review":
           return { ...s, phase: "compose", photos: fillPhotos(s.photos), retaking: false };
         case "print_select":
-          // Tamu pergi tanpa memilih: jangan cetak otomatis (masukan Rama), langsung QR.
-          return { ...s, phase: "qr", prints: 0 };
+          // Photobox (satu-satunya pemakai timer): lembar paket sudah dibayar → tetap dicetak 1 (DECISIONS #84).
+          return { ...s, phase: "printing", prints: 1 };
         default:
           // Pembayaran tambahan yang sedang berjalan tidak dipotong timer.
           return s;

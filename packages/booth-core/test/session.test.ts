@@ -212,7 +212,7 @@ describe("sessionReducer", () => {
       });
     });
 
-    it("waktu habis: slot kosong diisi foto terakhir → compose; di pilih cetak → tanpa cetak; saat bayar tidak dipotong", () => {
+    it("waktu habis: slot kosong diisi foto terakhir → compose; di pilih cetak → cetak 1 yang sudah dibayar; saat bayar tidak dipotong", () => {
       const one = run([pbStart, ...shoot(1)], paid);
       const up = run([{ type: "TIME_UP" }], one);
       expect(up.phase).toBe("compose");
@@ -226,7 +226,7 @@ describe("sessionReducer", () => {
         ],
         paid,
       );
-      expect(run([{ type: "TIME_UP" }], select)).toMatchObject({ phase: "qr", prints: 0 });
+      expect(run([{ type: "TIME_UP" }], select)).toMatchObject({ phase: "printing", prints: 1 });
       const paying = run([{ type: "PRINTS_SELECTED", count: 2 }], select);
       expect(run([{ type: "TIME_UP" }], paying).phase).toBe("payment");
     });
