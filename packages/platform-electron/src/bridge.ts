@@ -10,6 +10,8 @@ export type BoothConfig = {
   fast?: boolean;
   /** Base URL halaman tamu untuk QR, mis. https://booth.tetraphoto.com. */
   guestUrl: string;
+  /** Kamera Camera Service punya live view (digiCamControl, `--digicam`). */
+  liveView?: boolean;
   /** Mode kiosk aktif (M5): kursor disembunyikan di luar mode crew. */
   kiosk?: boolean;
   /** Layar awal pilih mode & event (DECISIONS #86): saat app dibuka manual, bukan saat dibuka ulang sendiri. */
@@ -31,6 +33,10 @@ export type TetraBridge = {
   readFile(path: string): Promise<Uint8Array<ArrayBuffer>>;
   cameraCapture(req: { sessionId: string; index: number }): Promise<CommandResult<"capture">>;
   cameraStatus(): Promise<CommandResult<"camera.status">>;
+  liveViewStart(): Promise<void>;
+  /** Satu frame JPEG live view yang baru; kosong = belum ada frame baru. */
+  liveViewFrame(): Promise<Uint8Array<ArrayBuffer>>;
+  liveViewStop(): Promise<void>;
   printSubmit(job: { jobId: string; path: string; copies: number; paper: Paper }): Promise<void>;
   phaseChanged(phase: string): void;
   sessionStarted: BoothDb["sessionStarted"];

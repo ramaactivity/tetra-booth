@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { BoothConfig } from "@tetra/platform-electron";
 import { z } from "zod";
+import { DIGICAM_TRIGGER, isDigiCamTrigger } from "./digicam";
 
 /** Flag yang butuh nilai. Diterima `--nama=nilai` maupun `--nama nilai` (M-008). */
 export const VALUE_FLAGS = [
@@ -21,6 +22,7 @@ export const VALUE_FLAGS = [
   "hot-folder-trigger",
   "print-offset",
   "printer-2x6x2",
+  "digicam-exe",
 ] as const;
 type ValueFlag = (typeof VALUE_FLAGS)[number];
 
@@ -135,9 +137,23 @@ export const startScreenFlag = (isPackaged: boolean, resume: boolean) =>
 export const kioskFlag = (isPackaged: boolean) =>
   flags.has("kiosk") || (isPackaged && !flags.has("no-kiosk"));
 
+/**
+ * `--digicam`: kamera DSLR lewat digiCamControl (lihat digicam.ts). Menyiratkan `--camera=hotfolder`,
+ * pemicu shutter ke web server digiCamControl, buka aplikasinya otomatis, dan live view.
+ * `--digicam-exe` untuk lokasi CameraControl.exe yang tidak standar. Mode crew "DSLR (digiCamControl)" (hot folder
+ * + pemicu ke port 5513) mendapat perilaku yang sama.
+ */
+export const digicam =
+  flags.has("digicam") ||
+  (flags.value("camera") === "hotfolder" && isDigiCamTrigger(flags.value("hot-folder-trigger")))
+    ? { exe: flags.value("digicam-exe") }
+    : undefined;
+
 export const config: BoothConfig = {
-  camera:
-    (["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ?? "webcam",
+  camera: digicam
+    ? "hotfolder"
+    : ((["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ?? "webcam"),
+  liveView: !!digicam,
   demo: flags.has("demo"),
   fast: flags.has("fast"),
   guestUrl: process.env.TETRA_GUEST_URL ?? "https://booth.tetraphoto.com",
@@ -175,7 +191,8 @@ export const cameraServiceFlags = {
       "hot-folder-trigger",
     ] as const
   ).flatMap((k) => {
-    const v = flags.value(k);
+    const v =
+      flags.value(k) ?? (k === "hot-folder-trigger" && digicam ? DIGICAM_TRIGGER : undefined);
     return v ? [`--${k}`, v] : [];
   }),
 };
@@ -188,8 +205,8 @@ export const deviceNow: DeviceSettings = {
   camera: config.camera,
   ...(device.webcamId ? { webcamId: device.webcamId } : {}),
   ...(flags.value("hot-folder") ? { hotFolder: flags.value("hot-folder") } : {}),
-  ...(flags.value("hot-folder-trigger")
-    ? { hotFolderTrigger: flags.value("hot-folder-trigger") }
+  ...(flags.value("hot-folder-trigger") || digicam
+    ? { hotFolderTrigger: flags.value("hot-folder-trigger") ?? DIGICAM_TRIGGER }
     : {}),
   ...(printerName ? { printer: printerName } : {}),
 };

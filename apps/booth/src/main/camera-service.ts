@@ -62,7 +62,12 @@ const freePort = () =>
  * Jalankan Camera Service di bawah supervisor dengan port & token acak (TSD §1).
  * Token lewat env, bukan argumen, supaya tidak terlihat di daftar proses.
  */
-export async function startCameraService(log: (m: string) => void, db: BoothDb, alerts: Alerts) {
+export async function startCameraService(
+  log: (m: string) => void,
+  db: BoothDb,
+  alerts: Alerts,
+  extraArgs: readonly string[] = [],
+) {
   const bin = findBinary();
   if (!bin) {
     log(
@@ -76,6 +81,7 @@ export async function startCameraService(log: (m: string) => void, db: BoothDb, 
   // Jurnal print di folder data booth: kirim ulang setelah crash tidak mencetak dua kali (DECISIONS #39).
   const args = [
     ...cameraServiceFlags.args,
+    ...extraArgs,
     "--print-journal",
     join(app.getPath("userData"), "print-journal.log"),
   ];

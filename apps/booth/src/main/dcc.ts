@@ -1,4 +1,5 @@
 import { config, deviceNow } from "./config";
+import { rawGet } from "./digicam";
 
 /** Setelan eksposur lewat web API digiCamControl (`/?slc=list|get|set`), sampai EDSDK tersedia. */
 export const CAMERA_PROPS = [
@@ -15,8 +16,9 @@ export const dccBase = () => {
     return null;
   }
 };
-export const dcc = (base: string, q: Record<string, string>) =>
-  fetch(`${base}/?${new URLSearchParams(q)}`, { signal: AbortSignal.timeout(3000) });
+/** Bukan fetch: digiCamControl mengirim Content-Length ganda yang ditolak fetch (lihat digicam.ts `rawGet`). */
+export const dcc = async (base: string, q: Record<string, string>) =>
+  new Response(new Uint8Array(await rawGet(`${base}/?${new URLSearchParams(q)}`, 3000)));
 /** Daftar nilai: JSON array atau teks per baris/koma (format belum diverifikasi di 60D). */
 export const parseDccList = (text: string): string[] => {
   try {
