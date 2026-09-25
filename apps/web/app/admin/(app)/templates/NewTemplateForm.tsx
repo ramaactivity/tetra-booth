@@ -1,6 +1,7 @@
 "use client";
 import { LAYOUT_PRESETS } from "@tetra/shared";
 import { useActionState, useState } from "react";
+import { Select } from "@/components/Select";
 import { createTemplate } from "./actions";
 
 const input = "h-11 rounded-xl border-[1.5px] border-ink bg-white px-3.5 text-sm";
@@ -24,13 +25,17 @@ export function NewTemplateForm() {
         placeholder="Nama template, mis. Andi & Sari — 4R"
         className={`${input} w-72`}
       />
-      <select name="preset" aria-label="Mulai dari" className={input} defaultValue="4r-grid">
-        {Object.entries(LAYOUT_PRESETS).map(([id, p]) => (
-          <option key={id} value={id}>
-            {p.name} · {p.info}
-          </option>
-        ))}
-      </select>
+      <Select
+        name="preset"
+        label="Mulai dari"
+        value="4r-grid"
+        className="h-11 w-56 rounded-xl"
+        options={Object.entries(LAYOUT_PRESETS).map(([id, p]) => ({
+          value: id,
+          label: p.name,
+          hint: p.info,
+        }))}
+      />
       <button type="submit" disabled={pending} className={primary}>
         Buat
       </button>

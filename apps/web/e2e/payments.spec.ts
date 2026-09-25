@@ -102,7 +102,10 @@ test("paket + tambahan cetak: harga server, webhook, lunas, sesi tertaut, transa
 
     await login(page, owner);
     await page.getByRole("link", { name: "Transaksi" }).click();
-    await page.getByLabel("Event").selectOption(ev?.id ?? "");
+    // Dropdown Tetra dengan pencarian (DECISIONS #77), bukan <select> bawaan.
+    await page.getByRole("combobox", { name: "Event" }).click();
+    await page.getByRole("textbox", { name: "Cari event" }).fill(code);
+    await page.getByRole("option", { name: `e2e photobox ${code}` }).click();
     await page.getByRole("button", { name: "Terapkan" }).click();
     await expect(page.getByTestId("tx-row")).toHaveCount(2);
     await expect(page.getByTestId("stat-Omzet")).toHaveText("Rp 35.000");

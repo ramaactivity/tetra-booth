@@ -91,4 +91,31 @@ describe("cover & urutan gambar", () => {
     expect(idx("draw 1200w")).toBeLessThan(idx("draw 100w"));
     expect(idx("draw 100w")).toBeLessThan(idx('text "X" 600 1700'));
   });
+
+  it("urutan layer editor: teks di bawah overlay & `order` mendahului urutan array", () => {
+    const { calls, rc } = recorder();
+    const ordered: LayoutSpec = {
+      ...spec,
+      slots: spec.slots.map((s, i) =>
+        i === 0 ? { ...s, order: 2 } : { ...s, z: "below_overlay" as const, order: 1 },
+      ),
+      texts: spec.texts.map((t) => ({ ...t, z: "below_overlay" as const, order: 0 })),
+    };
+    render(
+      ordered,
+      {
+        photos: [
+          { width: 900, height: 600 },
+          { width: 100, height: 400 },
+        ],
+        assets: { ov: { width: 1200, height: 1800 } },
+        vars: { event_name: "X" },
+      },
+      rc,
+    );
+    const idx = (p: string) => calls.findIndex((c) => c.startsWith(p));
+    expect(idx('text "X"')).toBeLessThan(idx("draw 100w"));
+    expect(idx("draw 100w")).toBeLessThan(idx("draw 900w"));
+    expect(idx("draw 900w")).toBeLessThan(idx("draw 1200w"));
+  });
 });

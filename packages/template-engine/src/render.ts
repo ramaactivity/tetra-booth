@@ -1,4 +1,10 @@
-import { type LayoutSlot, type LayoutSpec, LayoutSpecSchema, PRINT_CANVAS } from "@tetra/shared";
+import {
+  type LayoutSlot,
+  type LayoutSpec,
+  LayoutSpecSchema,
+  type LayoutText,
+  PRINT_CANVAS,
+} from "@tetra/shared";
 import type { CanvasLike, Ctx2D, ImageLike, RenderContext, RenderInputs } from "./types";
 
 const get2d = (c: CanvasLike): Ctx2D => {
@@ -29,7 +35,36 @@ const substitute = (value: string, vars: RenderInputs["vars"]): string =>
     (_, k: keyof RenderInputs["vars"]) => vars[k] ?? "",
   );
 
-/** Render satu kanvas layout (ukuran `spec.canvas`). Urutan: background → slot bawah → overlay → slot atas → teks. */
+const drawText = (c: Ctx2D, t: LayoutText, inputs: RenderInputs, ctx: RenderContext): void => {
+  c.save();
+  c.font = `${t.size}px "${ctx.fontFamily(t.fontAssetId)}"`;
+  c.fillStyle = t.color;
+  c.textAlign = t.align;
+  c.textBaseline = "top";
+  const x = t.align === "center" ? t.x + t.w / 2 : t.align === "right" ? t.x + t.w : t.x;
+  c.fillText(substitute(t.value, inputs.vars), x, t.y, t.w);
+  c.restore();
+};
+
+type Z = LayoutSlot["z"];
+/**
+ * Urutan gambar satu kelompok z: `order` bila ada, selain itu urutan array dengan slot sebelum teks
+ * (perilaku lama: semua teks di atas overlay).
+ */
+const layer = (spec: LayoutSpec, z: Z) =>
+  [
+    ...spec.slots.map((s, i) => ({ z: s.z, key: s.order ?? i, i, slot: true })),
+    ...spec.texts.map((t, i) => ({
+      z: t.z ?? "above_overlay",
+      key: t.order ?? 10_000 + i,
+      i,
+      slot: false,
+    })),
+  ]
+    .filter((l) => l.z === z)
+    .sort((a, b) => a.key - b.key);
+
+/** Render satu kanvas layout (ukuran `spec.canvas`). Urutan: background → kelompok bawah → overlay → kelompok atas. */
 const renderLayout = (spec: LayoutSpec, inputs: RenderInputs, ctx: RenderContext): CanvasLike => {
   const canvas = ctx.createCanvas(spec.canvas.width, spec.canvas.height);
   const c = get2d(canvas);
@@ -41,25 +76,18 @@ const renderLayout = (spec: LayoutSpec, inputs: RenderInputs, ctx: RenderContext
   const bgImg = spec.background?.assetId ? inputs.assets[spec.background.assetId] : undefined;
   if (bgImg) c.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
-  spec.slots.forEach((s, i) => {
-    if (s.z === "below_overlay") drawSlot(c, s, inputs.photos[i]);
-  });
+  const draw = (z: Z) => {
+    for (const l of layer(spec, z)) {
+      const slot = l.slot ? spec.slots[l.i] : undefined;
+      const text = l.slot ? undefined : spec.texts[l.i];
+      if (slot) drawSlot(c, slot, inputs.photos[l.i]);
+      if (text) drawText(c, text, inputs, ctx);
+    }
+  };
+  draw("below_overlay");
   const overlay = spec.overlay ? inputs.assets[spec.overlay.assetId] : undefined;
   if (overlay) c.drawImage(overlay, 0, 0, canvas.width, canvas.height);
-  spec.slots.forEach((s, i) => {
-    if (s.z === "above_overlay") drawSlot(c, s, inputs.photos[i]);
-  });
-
-  for (const t of spec.texts) {
-    c.save();
-    c.font = `${t.size}px "${ctx.fontFamily(t.fontAssetId)}"`;
-    c.fillStyle = t.color;
-    c.textAlign = t.align;
-    c.textBaseline = "top";
-    const x = t.align === "center" ? t.x + t.w / 2 : t.align === "right" ? t.x + t.w : t.x;
-    c.fillText(substitute(t.value, inputs.vars), x, t.y, t.w);
-    c.restore();
-  }
+  draw("above_overlay");
   return canvas;
 };
 

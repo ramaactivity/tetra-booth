@@ -12,9 +12,13 @@ export const SlotSchema = z.object({
   rotation: z.number().optional(),
   fit: z.literal("cover"),
   z: z.enum(["below_overlay", "above_overlay"]),
+  /** Urutan gambar di dalam kelompok z (kecil = belakang). Kosong = urutan array, slot sebelum teks. */
+  order: z.number().optional(),
 });
 
 export const TextSchema = z.object({
+  /** Identitas stabil untuk editor (tidak dipakai render). */
+  id: z.string().optional(),
   x: z.number(),
   y: z.number(),
   w: z.number().positive(),
@@ -24,6 +28,9 @@ export const TextSchema = z.object({
   align: z.enum(["left", "center", "right"]),
   /** Boleh berisi placeholder {event_name}, {date}, {custom}. */
   value: z.string(),
+  /** Kosong = di atas overlay (perilaku lama). */
+  z: z.enum(["below_overlay", "above_overlay"]).optional(),
+  order: z.number().optional(),
 });
 
 export const LayoutSpecSchema = z

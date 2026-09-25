@@ -1,10 +1,13 @@
 "use server";
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { Json } from "@tetra/db";
 import { LAYOUT_PRESETS, LayoutSpecSchema } from "@tetra/shared";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { libFont } from "@/lib/fonts";
 import { ASSET_IDS, type AssetId, StoredLayout } from "@/lib/layouts";
 import { putObject } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
@@ -41,6 +44,13 @@ export async function createTemplate(_prev: string | null, form: FormData): Prom
 }
 
 export type SaveTemplateResult = { ok: boolean; message: string; version?: number } | null;
+
+async function store(prefix: string, id: string, bytes: Uint8Array, ext: string) {
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
+  const key = `${prefix}/${sha256}.${ext}`;
+  await putObject(key, bytes, MIME[ext] ?? "application/octet-stream");
+  return { file: `${id}.${ext}`, sha256, key };
+}
 
 /** Ukuran PNG dari header IHDR (byte 16–23). */
 const pngSize = (b: Uint8Array) => {
@@ -130,10 +140,7 @@ export async function saveTemplate(
           message: `Overlay harus PNG ${layout.canvas.width}×${layout.canvas.height} px`,
         };
     }
-    const sha256 = createHash("sha256").update(bytes).digest("hex");
-    const key = `${orgId}/layouts/${layoutId}/${sha256}.${ext}`;
-    await putObject(key, bytes, MIME[ext] ?? "application/octet-stream");
-    files[id] = { file: `${id}.${ext}`, sha256, key };
+    files[id] = await store(`${orgId}/layouts/${layoutId}`, id, bytes, ext);
   }
 
   const refs = new Set(
@@ -143,6 +150,14 @@ export async function saveTemplate(
       ...layout.texts.map((t) => t.fontAssetId),
     ].filter((x): x is string => !!x && x !== "geist"),
   );
+  // Font pustaka: diambil dari public/fonts dan diunggah (key berbasis hash, jadi tidak dobel).
+  for (const id of refs) {
+    const lib = libFont(id);
+    if (lib && !files[id]) {
+      const bytes = new Uint8Array(await readFile(join(process.cwd(), "public/fonts", lib.file)));
+      files[id] = await store(`${orgId}/layouts/${layoutId}`, id, bytes, "woff2");
+    }
+  }
   for (const id of refs)
     if (!files[id]) return { ok: false, message: `File untuk "${id}" belum diunggah` };
   for (const id of Object.keys(files)) if (!refs.has(id)) delete files[id];

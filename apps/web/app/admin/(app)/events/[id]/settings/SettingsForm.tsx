@@ -1,7 +1,8 @@
 "use client";
 import { LAYOUT_PRESETS, type PresetId } from "@tetra/shared";
 import Link from "next/link";
-import { type ReactNode, startTransition, useActionState } from "react";
+import { type ReactNode, startTransition, useActionState, useState } from "react";
+import { ColorPicker } from "@/components/ColorPicker";
 import { type SaveResult, saveEvent } from "./actions";
 
 export type SettingsValues = {
@@ -71,6 +72,7 @@ function Field({ label, unit, children }: { label: string; unit?: string; childr
 }
 
 export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValues }) {
+  const [background, setBackground] = useState(v.background);
   const [r, action, pending] = useActionState<SaveResult, FormData>(
     saveEvent.bind(null, eventId),
     null,
@@ -201,11 +203,12 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
             <input name="overlay" type="file" accept="image/png" className="text-sm" />
           </Field>
           <Field label="Warna latar">
-            <input
+            <ColorPicker
               name="background"
-              type="color"
-              defaultValue={v.background}
-              className="h-[42px] w-20 rounded-[11px] border-[1.5px] border-ink"
+              label="Warna latar"
+              value={background}
+              onChange={setBackground}
+              showHex
             />
           </Field>
           {v.hasOverlay && (

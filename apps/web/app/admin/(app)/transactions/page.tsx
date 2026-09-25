@@ -1,3 +1,4 @@
+import { Select } from "@/components/Select";
 import { paymentProvider } from "@/lib/payments";
 import { layoutName, loadTransactions, parseFilter } from "./data";
 import { SimulateButton } from "./SimulateButton";
@@ -80,17 +81,20 @@ export default async function TransactionsPage({
           Sampai
           <input type="date" name="to" defaultValue={f.to} className={input} />
         </label>
-        <label className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           Event
-          <select name="event" defaultValue={f.event} className={input}>
-            <option value="">Semua event photobox</option>
-            {events.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name}
-              </option>
-            ))}
-          </select>
-        </label>
+          <Select
+            name="event"
+            label="Event"
+            value={f.event}
+            searchable
+            className="h-10 w-64"
+            options={[
+              { value: "", label: "Semua event photobox" },
+              ...events.map((e) => ({ value: e.id, label: e.name })),
+            ]}
+          />
+        </div>
         <button
           type="submit"
           className="h-10 rounded-[11px] border-[1.5px] border-ink bg-white px-4 text-sm"

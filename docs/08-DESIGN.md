@@ -62,6 +62,7 @@ Minimum teks booth 20px (terbaca dari 2 m).
 - Ikon: `lucide-react`, stroke 2–2.5 di booth, ukuran & posisi mengikuti glyph di desain.
 - Status = pill border tinta + isian pastel (`mint-soft` OK/online, `peach` offline/peringatan, `coral` rusak).
 - Komponen web (SegmentedControl, Toggle, Input focus ring mint, Sidebar admin, SummaryTable) dibuat saat layar web-nya dibangun, ikuti README v2 §"Komponen inti".
+- **Dropdown & warna di web wajib** `apps/web/components/Select.tsx` (pakai `searchable` untuk daftar nama) dan `ColorPicker.tsx`; jangan `<select>` / `<input type="color">` bawaan browser (DECISIONS #77).
 
 ## 4. Pemetaan layar booth (Fase 1, mode event)
 
