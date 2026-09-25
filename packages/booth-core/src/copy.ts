@@ -1,6 +1,10 @@
 /** Semua teks UI booth, Bahasa Indonesia. 08-DESIGN §7: pendek, label tombol maksimal 2 kata. */
 export const copy = {
-  attract: { cta: "Sentuh untuk Mulai" },
+  attract: {
+    cta: "Sentuh untuk Mulai",
+    // Hanya tampil sebelum PIN crew dibuat (setup pertama), supaya tamu tidak melihatnya saat event.
+    crewHint: "Pengaturan crew: tahan logo 2 detik, ketuk pojok kanan atas 5×, atau Ctrl+Shift+M",
+  },
   countdown: {
     ready: "Siap? Senyum!",
     lookAtCamera: "Lihat ke kamera",

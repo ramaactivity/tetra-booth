@@ -3,9 +3,19 @@ import { ArrowRight } from "lucide-react";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { createTapDetector } from "../crew/taps";
+import { usePlatform } from "../PlatformContext";
 import { Logo } from "../ui";
 
 export const START_GUARD_MS = 800;
+/** Tahan logo selama ini untuk membuka mode crew. */
+export const LOGO_HOLD_MS = 2000;
+
+/** Ukuran judul menurut panjang nama event, supaya kolom kiri muat di bawah logo (maks ±3 baris). */
+function titleSize(name: string) {
+  if (name.length <= 11) return "text-[176px]";
+  if (name.length <= 18) return "text-[132px]";
+  return "text-[100px]";
+}
 
 // Kolom strip contoh di kanan: offset vertikal & warna lapisan belakang per strip (A1).
 const UNDER = ["var(--peach)", "var(--sky)", "var(--lavender)", "var(--mint-soft)"];
@@ -48,8 +58,46 @@ export function Attract({
     const t = setTimeout(() => setReady(true), START_GUARD_MS);
     return () => clearTimeout(t);
   }, []);
-  // Nama panjang tetap muat di kolom kiri.
-  const size = eventName.length > 14 ? "text-[120px]" : "text-[176px]";
+  const size = titleSize(eventName);
+
+  // Jalan lain ke mode crew selain 5 ketukan pojok (UX, masukan Rama): tahan logo 2 detik, atau Ctrl+Shift+M
+  // di keyboard laptop. Hanya di layar ini, jadi sesi tamu tidak pernah terpotong.
+  const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdStart = () => {
+    if (hold.current) clearTimeout(hold.current);
+    hold.current = setTimeout(() => onCrew?.(), LOGO_HOLD_MS);
+  };
+  const holdEnd = () => {
+    if (hold.current) clearTimeout(hold.current);
+    hold.current = null;
+  };
+  useEffect(
+    () => () => {
+      if (hold.current) clearTimeout(hold.current);
+    },
+    [],
+  );
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        onCrew?.();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCrew]);
+
+  // Petunjuk cara masuk crew hanya selama PIN belum dibuat (setup pertama).
+  const { crew } = usePlatform();
+  const [needsSetup, setNeedsSetup] = useState(false);
+  useEffect(() => {
+    crew.pinStatus().then(
+      (s) => setNeedsSetup(!s.hasPin),
+      () => {},
+    );
+  }, [crew]);
+
   return (
     <main className="relative h-full w-full overflow-hidden bg-paper">
       <div className="absolute -bottom-[260px] -left-[220px] size-[760px] rounded-full bg-mint-soft" />
@@ -73,9 +121,24 @@ export function Attract({
         ))}
       </div>
 
-      <div className="absolute top-20 left-24">
+      <button
+        type="button"
+        aria-label="logo (tahan untuk mode crew)"
+        data-testid="crew-logo"
+        className="absolute top-20 left-24 select-none"
+        onPointerDown={holdStart}
+        onPointerUp={holdEnd}
+        onPointerLeave={holdEnd}
+        onPointerCancel={holdEnd}
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <Logo />
-      </div>
+      </button>
+      {needsSetup && (
+        <p className="absolute right-6 bottom-6 z-10 max-w-[760px] rounded-2xl border-2 border-dashed border-ink/40 bg-white px-5 py-3 text-right text-xl font-semibold text-text-3">
+          {copy.attract.crewHint}
+        </p>
+      )}
       {/* Pojok kanan atas tak terlihat: tap 5x dalam 3 detik → mode crew (FSD §1.3). */}
       <button
         type="button"
@@ -85,7 +148,8 @@ export function Attract({
         onClick={() => tap.current(Date.now()) && onCrew?.()}
       />
 
-      <div className="absolute inset-y-0 left-24 flex w-[860px] flex-col justify-center gap-9 portrait:right-24 portrait:w-auto">
+      {/* Kolom judul mulai di bawah logo (top 168 px) supaya tagline/judul panjang tidak menimpa logo. */}
+      <div className="absolute top-[168px] bottom-16 left-24 flex w-[860px] flex-col justify-center gap-8 portrait:right-24 portrait:w-auto">
         {tagline && (
           <span className="flex items-center gap-3.5 self-start rounded-full border-[2.5px] border-ink bg-white py-3 pr-[26px] pl-3.5 text-[26px] font-bold whitespace-nowrap">
             <span className="size-9 rounded-full border-2 border-ink bg-lavender" />
