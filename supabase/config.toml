@@ -242,7 +242,7 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Also pasted into the hosted project (Auth → Emails → Templates); keep both in sync.
+# Generated + pushed to the hosted project by scripts/email-templates.mjs (DECISIONS #73).
 [auth.email.template.invite]
 subject = "Undangan tim Tetra Booth"
 content_path = "./supabase/templates/invite.html"
@@ -251,11 +251,26 @@ content_path = "./supabase/templates/invite.html"
 subject = "Atur ulang kata sandi Tetra Booth"
 content_path = "./supabase/templates/recovery.html"
 
-# Uncomment to customize notification email template
-# [auth.email.notification.password_changed]
-# enabled = true
-# subject = "Your password has been changed"
-# content_path = "./supabase/templates/password_changed_notification.html"
+[auth.email.template.confirmation]
+subject = "Konfirmasi email Tetra Booth"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.magic_link]
+subject = "Link masuk Tetra Booth"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "Konfirmasi email baru Tetra Booth"
+content_path = "./supabase/templates/email_change.html"
+
+[auth.email.template.reauthentication]
+subject = "Kode verifikasi Tetra Booth"
+content_path = "./supabase/templates/reauthentication.html"
+
+[auth.email.notification.password_changed]
+enabled = true
+subject = "Kata sandi Tetra Booth diganti"
+content_path = "./supabase/templates/password_changed_notification.html"
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.
