@@ -11,5 +11,5 @@ Status: **dikerjakan sejak 2026-09-25** (Mac, Rama AFK dan mendelegasikan keputu
 
 ## Ditunda (butuh Windows / hardware / keputusan Rama)
 - **Sony a7III (Camera Remote SDK):** SDK + kamera + laptop Windows; laptop sedang dibawa crew.
-- **Temukan Foto Saya:** model wajah ONNX di Camera Service (C#, Windows), pgvector, consent wajah. Butuh pilihan model & lisensi, dan uji di booth Windows.
+- **Temukan Foto Saya:** model diputuskan (DECISIONS #76: YuNet + SFace, dijalankan di booth renderer dan browser tamu, bukan Camera Service). Menunggu foto event nyata untuk kalibrasi ambang + uji performa di laptop booth. Urutan kerja: L4a migrasi pgvector + endpoint embedding booth, L4b hitung embedding di booth setelah sesi, L4c halaman C5 (consent → selfie → hasil) + e2e dengan foto fixture.
 - **Boomerang / video live view:** butuh burst dari kamera asli (EDSDK Fase 1b).
