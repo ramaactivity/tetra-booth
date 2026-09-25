@@ -44,6 +44,11 @@ const bridge: TetraBridge = {
     ipcRenderer.on("printerAlert", h);
     return () => ipcRenderer.off("printerAlert", h);
   },
+  onUpdateProgress: (cb) => {
+    const h = (_e: IpcRendererEvent, p: Parameters<typeof cb>[0]) => cb(p);
+    ipcRenderer.on("updateProgress", h);
+    return () => ipcRenderer.off("updateProgress", h);
+  },
   onPrintUpdated: (cb) => {
     const h = (_e: IpcRendererEvent, u: Parameters<typeof cb>[0]) => cb(u);
     ipcRenderer.on("printUpdated", h);

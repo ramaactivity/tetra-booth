@@ -154,6 +154,32 @@ export function CrewMenu({
     };
   }, [p, refresh]);
 
+  // Kemajuan unduhan update (#89): MB, persen, perkiraan sisa waktu dari kecepatan rata-rata.
+  useEffect(() => {
+    let t0 = 0;
+    let r0 = 0;
+    return p.crew.onUpdateProgress(({ received, total }) => {
+      if (!t0) {
+        t0 = Date.now();
+        r0 = received;
+      }
+      const rate = (received - r0) / Math.max(1, (Date.now() - t0) / 1000);
+      const left = rate > 0 ? (total - received) / rate : 0;
+      const eta =
+        left > 5
+          ? ` · sisa ±${left < 90 ? `${Math.round(left)} dtk` : `${Math.round(left / 60)} menit`}`
+          : "";
+      setNote(
+        copy.crew.updateProgress(
+          Math.round(received / 1e6),
+          Math.round(total / 1e6),
+          Math.floor((received / total) * 100),
+          eta,
+        ),
+      );
+    });
+  }, [p]);
+
   const act = (fn: () => Promise<unknown>, done?: string) => () =>
     fn()
       .then(() => {

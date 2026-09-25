@@ -110,6 +110,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       cameraProps: () => bridge.crewCameraProps(),
       setCameraProp: (n, v) => bridge.crewSetCameraProp(n, v),
       installUpdate: () => bridge.crewInstallUpdate(),
+      onUpdateProgress: (cb) => bridge.onUpdateProgress(cb),
       printerAlert: () => bridge.printerAlert(),
       onPrinterAlert: (cb) => bridge.onPrinterAlert(cb),
       onPrintUpdated: (cb) => bridge.onPrintUpdated(cb),

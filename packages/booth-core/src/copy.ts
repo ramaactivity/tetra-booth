@@ -127,6 +127,8 @@ export const copy = {
       `Versi ${latest} tersedia (terpasang ${current}). Booth mengunduh ±150 MB, lalu tertutup dan terbuka lagi sendiri dalam ±1 menit. Jangan matikan laptop.`,
     updateNow: "Pasang Sekarang",
     updating: "Mengunduh update… booth akan tertutup lalu terbuka lagi",
+    updateProgress: (mb: number, total: number, pct: number, eta: string) =>
+      `Mengunduh update ${mb} / ${total} MB (${pct}%)${eta} · booth tertutup lalu terbuka lagi setelah selesai`,
     toGuest: "Keluar ke Mode Tamu",
     activeEvent: "Event aktif",
     changeEvent: "Ganti Event",

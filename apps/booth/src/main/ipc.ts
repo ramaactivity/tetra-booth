@@ -233,16 +233,38 @@ export function registerIpc(
     const { current, r, available } = await release();
     return { current, latest: r?.version ?? null, available };
   });
-  ipcMain.handle("crewInstallUpdate", async () => {
+  let updating = false;
+  ipcMain.handle("crewInstallUpdate", async (e) => {
     crewOnly();
     if (process.platform !== "win32") throw new Error("Update hanya untuk booth Windows");
     const { r, available } = await release();
     if (!r || !available) throw new Error("Sudah versi terbaru");
+    if (updating) throw new Error("Update sedang diunduh");
+    updating = true;
     console.info(`[update] mengunduh ${r.version} (${Math.round(r.size / 1e6)} MB)`);
-    const file = await downloadInstaller(r, app.getPath("temp")).catch((e: unknown) => {
-      console.warn(`[update] unduh gagal: ${e instanceof Error ? e.message : String(e)}`);
-      throw new Error("Gagal mengunduh update. Cek internet lalu coba lagi");
-    });
+    // Progress ke layar crew paling sering tiap 500 ms (#89).
+    let sent = 0;
+    const progress = (p: { received: number; total: number }) => {
+      const now = Date.now();
+      if (now - sent < 500 && p.received < p.total) return;
+      sent = now;
+      if (!e.sender.isDestroyed()) e.sender.send("updateProgress", p);
+    };
+    const fresh = async () => {
+      const x = await cloud.latestRelease();
+      if (!x) throw new Error("rilis tidak ditemukan");
+      return x;
+    };
+    const file = await downloadInstaller(fresh, app.getPath("temp"), progress)
+      .catch((err: unknown) => {
+        console.warn(`[update] unduh gagal: ${err instanceof Error ? err.message : String(err)}`);
+        throw new Error(
+          "Gagal mengunduh update. Cek internet lalu tekan Pasang Sekarang lagi (unduhan dilanjutkan)",
+        );
+      })
+      .finally(() => {
+        updating = false;
+      });
     console.info(`[update] memasang ${r.version}, aplikasi ditutup`);
     db.kv.set(RESUME_KEY, "1");
     runInstaller(file);

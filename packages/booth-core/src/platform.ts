@@ -125,6 +125,8 @@ export interface BoothCrew {
   checkUpdate(): Promise<UpdateCheck>;
   /** Unduh & pasang versi terbaru; aplikasi tertutup lalu terbuka lagi. Hanya booth Windows. */
   installUpdate(): Promise<void>;
+  /** Kemajuan unduhan update (byte), untuk ditampilkan ke crew (#89). */
+  onUpdateProgress(cb: (p: { received: number; total: number }) => void): Unsubscribe;
   printerAlert(): Promise<PrinterAlert>;
   onPrinterAlert(cb: (a: PrinterAlert) => void): Unsubscribe;
   /** Setiap print selesai/gagal (menyegarkan kertas & daftar gagal, dan hasil test print di menu crew). */
