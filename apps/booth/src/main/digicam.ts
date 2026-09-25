@@ -145,11 +145,21 @@ export async function ensureDigiCam(
   }
 }
 
-export const liveViewStart = () => get("/?CMD=LiveViewWnd_Show", 5000).then(() => undefined);
+/**
+ * Live view: `LiveView_NoProcess` = frame JPEG asli kamera diteruskan apa adanya (tanpa kotak fokus/grid/overlay
+ * digiCamControl dan tanpa encode ulang: 960×640 ±270 KB, bukan ±35 KB). digiCamControl menghasilkan ±6–7 frame
+ * baru/s dari 700D (batas pembacaan live view-nya, bukan booth); /liveview.jpg menjawab frame terakhir seketika.
+ */
+export const liveViewStart = async () => {
+  await get("/?CMD=LiveViewWnd_Show", 5000);
+  await get("/?CMD=LiveView_NoProcess", 5000);
+};
 export const liveViewStop = () => get("/?CMD=LiveViewWnd_Hide", 5000).then(() => undefined);
+let lastFrame: Buffer | undefined;
+/** Frame baru, atau array kosong kalau belum ada / sama dengan sebelumnya (renderer menunggu sebentar). */
 export const liveViewFrame = async () => {
   const b = await get(`/liveview.jpg?t=${Date.now()}`, 3000);
-  // Kosong = live view belum mengirim frame (baru dimulai).
-  if (b.length === 0) throw new Error("live view belum ada frame");
+  if (b.length === 0 || lastFrame?.equals(b)) return new Uint8Array(0);
+  lastFrame = b;
   return new Uint8Array(b);
 };

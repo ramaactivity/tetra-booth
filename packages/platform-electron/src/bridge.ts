@@ -30,7 +30,7 @@ export type TetraBridge = {
   cameraCapture(req: { sessionId: string; index: number }): Promise<CommandResult<"capture">>;
   cameraStatus(): Promise<CommandResult<"camera.status">>;
   liveViewStart(): Promise<void>;
-  /** Satu frame JPEG live view. */
+  /** Satu frame JPEG live view yang baru; kosong = belum ada frame baru. */
   liveViewFrame(): Promise<Uint8Array<ArrayBuffer>>;
   liveViewStop(): Promise<void>;
   printSubmit(job: { jobId: string; path: string; copies: number; paper: Paper }): Promise<void>;

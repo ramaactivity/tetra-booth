@@ -30,8 +30,9 @@ const serviceCamera = (bridge: TetraBridge, liveView: boolean): BoothCamera => {
         while (me === run) {
           const bytes = await bridge.liveViewFrame().catch(() => null);
           if (me !== run) break;
-          if (!bytes) {
-            await new Promise((r) => setTimeout(r, 150));
+          // Gagal → tunggu lebih lama; kosong = belum ada frame baru → cek lagi 40 ms (maks ±25 permintaan/s).
+          if (!bytes || bytes.length === 0) {
+            await new Promise((r) => setTimeout(r, bytes ? 40 : 300));
             continue;
           }
           const bmp = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" })).catch(
