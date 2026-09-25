@@ -27,7 +27,7 @@ export function Popover({
   onClose: () => void;
   children: ReactNode;
   /** Default = lebar anchor. */
-  width?: number;
+  width?: number | undefined;
   align?: "start" | "end";
   label?: string;
 }) {

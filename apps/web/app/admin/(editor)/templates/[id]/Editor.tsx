@@ -117,18 +117,20 @@ function useEditorApi(p: {
 
   const fontFamily = useCallback((id: string) => fonts[id] ?? GEIST, [fonts]);
 
-  // Kotak teks = lebar kotak × tinggi glyph sebenarnya (baseline "top" seperti engine).
+  // Kotak teks = glyph sebenarnya (baseline "top" seperti engine): lebar teks (maks. `w`, engine
+  // memampatkan teks yang lebih lebar), diletakkan sesuai rata di dalam `w`.
   const measure = useMemo(() => {
     const c =
       typeof OffscreenCanvas === "undefined" ? null : new OffscreenCanvas(1, 1).getContext("2d");
     return (t: LayoutText) => {
-      if (!c) return { top: 0, bottom: t.size * 1.2 };
+      if (!c) return { top: 0, bottom: t.size * 1.2, width: t.w };
       c.font = `${t.size}px "${fonts[t.fontAssetId] ?? GEIST}"`;
       c.textBaseline = "top";
       const m = c.measureText(fill(t.value) || "Ag");
       const top = -m.actualBoundingBoxAscent;
       const bottom = m.actualBoundingBoxDescent;
-      return bottom - top > 1 ? { top, bottom } : { top: 0, bottom: t.size };
+      const width = Math.min(t.w, Math.max(m.width, 1));
+      return bottom - top > 1 ? { top, bottom, width } : { top: 0, bottom: t.size, width };
     };
   }, [fonts]);
 
@@ -142,7 +144,9 @@ function useEditorApi(p: {
       const t = layout.texts.find((x) => textKey(x) === k);
       if (!t) return null;
       const m = measure(t);
-      return { x: t.x, y: t.y + m.top, w: t.w, h: m.bottom - m.top, rot: 0 };
+      const slack = t.w - m.width;
+      const x = t.x + (t.align === "center" ? slack / 2 : t.align === "right" ? slack : 0);
+      return { x, y: t.y + m.top, w: m.width, h: m.bottom - m.top, rot: 0 };
     },
     [layout, measure],
   );

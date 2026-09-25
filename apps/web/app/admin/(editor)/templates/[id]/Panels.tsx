@@ -88,7 +88,11 @@ export function AlignButtons({ ed, compact }: { ed: EditorApi; compact?: boolean
           }
         >
           <Icon className="size-4" />
-          {!compact && l.replace("Rata ", "").replace(" horizontal", "").replace(" vertikal", "")}
+          {!compact && (
+            <span className="capitalize">
+              {l.replace("Rata ", "").replace(" horizontal", "").replace(" vertikal", "")}
+            </span>
+          )}
         </button>
       ))}
     </div>
@@ -365,10 +369,11 @@ export function Panels({
                       type="button"
                       aria-label={`Kombinasi ${pk.name}`}
                       onClick={() => (ed.selTexts.length ? ed.applyPack(pk) : ed.addPack(pk))}
-                      className="flex h-[112px] flex-col items-center justify-center gap-1 rounded-[14px] border-[1.5px] border-ink bg-white px-2 text-center hover:bg-paper"
+                      title={`${pk.name} · ${pk.use}`}
+                      className="flex h-[104px] min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-[14px] border-[1.5px] border-ink bg-white px-2 text-center hover:bg-paper"
                     >
                       <span
-                        className="text-[24px] leading-none"
+                        className="whitespace-nowrap text-[17px] leading-tight"
                         style={{ fontFamily: `"${ed.fonts[pk.title.font] ?? ""}"` }}
                       >
                         Andi &amp; Sari
@@ -379,7 +384,7 @@ export function Panels({
                       >
                         12 Oktober 2026
                       </span>
-                      <span className="mt-1 text-[10px] font-bold text-text-2">
+                      <span className="mt-1 w-full truncate text-[10px] font-bold text-text-2">
                         {pk.name} · {pk.use}
                       </span>
                     </button>

@@ -106,6 +106,7 @@ export function Toolbar({
             label="Font"
             size="sm"
             searchable
+            menuWidth={280}
             value={t.fontAssetId}
             options={ed.fontOptions}
             onChange={(v) => set({ fontAssetId: v })}
@@ -180,7 +181,7 @@ export function Toolbar({
               <button
                 key={v}
                 type="button"
-                className="h-7 rounded-md border-[1.5px] border-dashed border-ink px-1.5 font-mono text-[11px]"
+                className="h-7 whitespace-nowrap rounded-md border-[1.5px] border-dashed border-ink px-1.5 font-mono text-[11px]"
                 onClick={() => ed.patchText(text.id ?? "", { value: `${text.value}${v}` })}
               >
                 + {v === "{event_name}" ? "nama event" : "tanggal"}

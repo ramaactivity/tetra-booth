@@ -406,6 +406,8 @@ export function Stage({
         )
       : null;
   const px = (n: number) => n * scale;
+  // Kotak teks diberi jarak layar supaya handle tidak menutup glyph (hanya visual, bukan geometri).
+  const pad = (k: string) => (k.startsWith("t:") ? 6 : 0);
   // Nomor foto = urutan slot di array (urutan pengambilan), bukan urutan layer.
   const photoNo = (k: Key) => layout.slots.findIndex((s) => `s:${s.id}` === k) + 1;
 
@@ -460,10 +462,10 @@ export function Stage({
               onDoubleClick={() => !slot && onEditText(k)}
               className={`absolute cursor-move outline-none ${on ? "ring-2 ring-mint" : hover === k ? "ring-2 ring-lavender" : slot ? "ring-1 ring-ink/25 ring-inset" : ""}`}
               style={{
-                left: px(b.x),
-                top: px(b.y),
-                width: px(b.w),
-                height: px(b.h),
+                left: px(b.x) - pad(k),
+                top: px(b.y) - pad(k),
+                width: px(b.w) + 2 * pad(k),
+                height: px(b.h) + 2 * pad(k),
                 transform: b.rot ? `rotate(${b.rot}deg)` : undefined,
               }}
             >
@@ -493,29 +495,31 @@ export function Stage({
           <div
             className="pointer-events-none absolute"
             style={{
-              left: px(singleBox.x),
-              top: px(singleBox.y),
-              width: px(singleBox.w),
-              height: px(singleBox.h),
+              left: px(singleBox.x) - pad(single),
+              top: px(singleBox.y) - pad(single),
+              width: px(singleBox.w) + 2 * pad(single),
+              height: px(singleBox.h) + 2 * pad(single),
               transform: singleBox.rot ? `rotate(${singleBox.rot}deg)` : undefined,
             }}
           >
-            {HANDLES.filter(([hx]) => (single.startsWith("t:") ? hx !== 0 : true)).map(
-              ([hx, hy]) => (
-                <span
-                  key={`${hx},${hy}`}
-                  data-handle={`${hx},${hy}`}
-                  onPointerDown={(e) => startHandle(e, single, hx, hy)}
-                  className={`pointer-events-auto absolute border-[1.5px] border-ink bg-white ${hx && hy ? "size-3 rounded-full" : hx ? "h-4 w-1.5 rounded-full" : "h-1.5 w-4 rounded-full"}`}
-                  style={{
-                    left: `${(hx + 1) * 50}%`,
-                    top: `${(hy + 1) * 50}%`,
-                    transform: "translate(-50%,-50%)",
-                    cursor: CURSOR[`${hx},${hy}`],
-                  }}
-                />
-              ),
-            )}
+            {HANDLES.filter(
+              // Teks: sudut (skala font) + sisi kiri/kanan (lebar); sisi disembunyikan di kotak pendek.
+              ([hx, hy]) =>
+                !single.startsWith("t:") || (hx !== 0 && (hy !== 0 || px(singleBox.h) >= 24)),
+            ).map(([hx, hy]) => (
+              <span
+                key={`${hx},${hy}`}
+                data-handle={`${hx},${hy}`}
+                onPointerDown={(e) => startHandle(e, single, hx, hy)}
+                className={`pointer-events-auto absolute border-[1.5px] border-ink bg-white ${hx && hy ? "size-3 rounded-full" : hx ? "h-4 w-1.5 rounded-full" : "h-1.5 w-4 rounded-full"}`}
+                style={{
+                  left: `${(hx + 1) * 50}%`,
+                  top: `${(hy + 1) * 50}%`,
+                  transform: "translate(-50%,-50%)",
+                  cursor: CURSOR[`${hx},${hy}`],
+                }}
+              />
+            ))}
             {single.startsWith("s:") && (
               <span
                 data-handle="rotate"

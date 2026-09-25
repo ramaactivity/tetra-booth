@@ -18,7 +18,7 @@ export function NewTemplateForm() {
       </button>
     );
   return (
-    <form action={action} className="flex flex-wrap items-center gap-2.5">
+    <form action={action} className="flex flex-wrap items-center justify-end gap-2.5">
       <input
         name="name"
         required

@@ -46,6 +46,7 @@ export function Select({
   size = "md",
   className = "",
   footer,
+  menuWidth,
 }: {
   value: string;
   onChange?: (v: string) => void;
@@ -58,6 +59,8 @@ export function Select({
   size?: "sm" | "md";
   className?: string;
   footer?: ReactNode;
+  /** Lebar daftar (px) kalau tombolnya lebih sempit dari isi, mis. nama font. */
+  menuWidth?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -116,14 +119,20 @@ export function Select({
         aria-haspopup="listbox"
         onClick={() => (open ? setOpen(false) : show())}
         onKeyDown={onKey}
-        className={`flex w-full min-w-0 items-center justify-between gap-2 rounded-[11px] border-[1.5px] border-ink bg-white px-3 text-left font-medium outline-none focus-visible:ring-2 focus-visible:ring-mint ${h} ${className}`}
+        className={`flex ${/(^|\s)w-/.test(className) ? "" : "w-full"} min-w-0 items-center justify-between gap-2 rounded-[11px] border-[1.5px] border-ink bg-white px-3 text-left font-medium outline-none focus-visible:ring-2 focus-visible:ring-mint ${h} ${className}`}
       >
         <span className={`truncate ${sel ? "" : "text-muted"}`} style={sel?.style}>
           {sel?.label ?? placeholder}
         </span>
         <Chevron open={open} />
       </button>
-      <Popover anchor={btn} open={open} onClose={() => setOpen(false)} label={label}>
+      <Popover
+        anchor={btn}
+        open={open}
+        onClose={() => setOpen(false)}
+        label={label}
+        width={menuWidth}
+      >
         {searchable && (
           <div className="border-b-[1.5px] border-dashed border-ink p-2">
             <input
