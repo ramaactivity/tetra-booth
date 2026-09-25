@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { rupiah } from "../format";
 
-/** Tamu pergi tanpa memilih (M-019): tanpa sentuhan selama ini → lanjut ke QR tanpa cetak (masukan Rama). */
+/** Tamu pergi tanpa memilih (M-019): tanpa sentuhan selama ini → event: QR tanpa cetak; photobox: cetak 1 yang sudah dibayar. */
 export const PRINT_SELECT_IDLE_MS = 30_000;
 
 export function PrintSelect({
@@ -25,10 +25,11 @@ export function PrintSelect({
   select.current = onSelect;
   // biome-ignore lint/correctness/useExhaustiveDependencies: n sengaja, supaya timer mulai ulang saat tamu memilih
   useEffect(() => {
-    // Hitung ulang tiap kali tamu mengubah jumlah; waktu habis = tidak cetak (tidak pernah cetak otomatis).
-    const t = setTimeout(() => select.current(0), PRINT_SELECT_IDLE_MS);
+    // Hitung ulang tiap kali tamu mengubah jumlah. Mode event: waktu habis = tidak cetak (masukan Rama).
+    // Photobox: lembar paket sudah dibayar → cetak 1, tanpa tagihan baru (DECISIONS #84).
+    const t = setTimeout(() => select.current(photobox ? 1 : 0), PRINT_SELECT_IDLE_MS);
     return () => clearTimeout(t);
-  }, [n]);
+  }, [n, photobox]);
   const step =
     "flex size-[150px] items-center justify-center border-dashed border-ink disabled:text-muted";
   return (

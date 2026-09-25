@@ -199,6 +199,7 @@ Selesai: kata sandi admin, CORS R2, `CRON_SECRET` (cron menolak tanpa secret: 40
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-25 | Mac | Sinkron dengan Windows: merge `win` (a5ee1df, ddf5de2, 7c38e50) ke `main`; photobox tetap mencetak lembar yang sudah dibayar saat tamu pergi (DECISIONS #84). Booth **0.5.2** dirilis (uji tombol Update Aplikasi dari 0.5.1). Panduan sambung 60D ↔ digiCamControl ↔ booth di issue #1. |
 | 2026-09-25 | Mac | Desain uji "Percontohan 4R" (v3) dibuat di editor produksi: overlay bingkai emas di dalam margin aman, latar krem, font Klasik. Event dummy diganti nama "Rama & Shinta" dan dikunci ke template itu. Tugas prioritas W-031 (4R nyata dengan 60D + DNP). |
 | 2026-09-25 | Mac | Booth 0.5.1: flag per laptop dari `%APPDATA%\Tetra Booth\booth-flags.txt` (DECISIONS #83; shortcut installer tidak membawa flag kamera/printer). Checklist event percontohan: `docs/CHECKLIST-EVENT.md`. |
 | 2026-09-25 | Mac | Update aplikasi dari mode crew (DECISIONS #80): `latest.json` di R2, `GET /api/booth/update`, tombol **Update Aplikasi** (unduh + sha256 + installer diam-diam + buka lagi). Link unduh crew `booth.tetraphoto.com/download/booth` (r2.dev diblokir di jaringan laptop). Installer 0.5.0 dibangun ulang dengan fitur ini. e2e booth-api, booth e2e 6/6, unit semua lulus. |
