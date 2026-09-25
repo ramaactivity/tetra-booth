@@ -7,7 +7,7 @@ Prinsip:
 
 ## Paralel sejak hari pertama (non-coding)
 - [ ] Daftar merchant Xendit (verifikasi butuh waktu).
-- [ ] Download Canon EDSDK (daftar developer Canon).
+- [ ] Download Canon EDSDK (daftar developer Canon). Diajukan 25 Sep 2026 lewat asia.canon (NIB perorangan, email ramadan@tetraphoto.com, model 60D/700D/70D); balasan 2–4 minggu.
 - [ ] Siapkan laptop booth khusus test + 1 kamera + DNP + roll kertas test.
 - [ ] Tentukan domain pendek.
 
