@@ -59,6 +59,8 @@ const typePin = async (w: Page, pin: string) => {
   await w.getByRole("button", { name: "OK" }).click();
 };
 
+let paymentsDown = false;
+
 test("photobox: layout → QRIS → foto dengan timer → tambah lembar → QRIS → cetak", async () => {
   const payments: { body: Record<string, unknown>; id: string; amount: number; polls: number }[] =
     [];
@@ -86,6 +88,10 @@ test("photobox: layout → QRIS → foto dengan timer → tambah lembar → QRIS
         );
       if (url === `/api/booth/events/${EVENT}/bundle`)
         return res.end(JSON.stringify({ bundleVersion: 1, config: CONFIG, files: [] }));
+      if (url === "/api/booth/payments" && paymentsDown) {
+        res.statusCode = 503;
+        return res.end(JSON.stringify({ error: "payment_unavailable" }));
+      }
       if (url === "/api/booth/payments") {
         const b = JSON.parse(body) as { layoutId: string; extraPrints?: number };
         const amount = b.extraPrints
@@ -196,6 +202,20 @@ test("photobox: layout → QRIS → foto dengan timer → tambah lembar → QRIS
     await expect
       .poll(() => sessions.find((s) => s.id === payments[0]?.body.sessionId), { timeout: 30_000 })
       .toMatchObject({ eventId: EVENT, photoCount: 2, printCount: 2, paymentId: payments[0]?.id });
+
+    // Tanpa bypass (FSD §1.12): cloud gagal membuat QRIS → "hubungi crew", tidak ada jalan ke sesi foto.
+    paymentsDown = true;
+    await w.getByRole("button", { name: "Selesai" }).click({ timeout: 60_000 });
+    await expect(w.getByRole("button", { name: /sentuh untuk mulai/i })).toBeVisible();
+    await w.waitForTimeout(1000); // tombol mulai aktif setelah START_GUARD_MS
+    await w.getByRole("button", { name: /sentuh untuk mulai/i }).click();
+    await w.getByTestId("layout-card").first().click();
+    await w.getByRole("button", { name: /Lanjut ke Pembayaran/ }).click();
+    await expect(
+      w.getByRole("heading", { name: "Pembayaran belum bisa diproses, hubungi crew" }),
+    ).toBeVisible();
+    await w.getByRole("button", { name: "Batalkan" }).click();
+    await expect(w.getByRole("heading", { name: "Pilih layout" })).toBeVisible();
   } finally {
     await app.close();
     server.close();
