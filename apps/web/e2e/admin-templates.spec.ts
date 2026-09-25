@@ -65,8 +65,8 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
     await page.getByRole("link", { name: "Template" }).click();
     await page.getByRole("button", { name: "+ Buat Template" }).click();
     await page.getByPlaceholder(/Nama template/).fill(tplName);
-    await page.getByRole("combobox", { name: "Mulai dari" }).click();
-    await page.getByRole("option", { name: /4R Grid.*4x6/ }).click();
+    // Bawaan: 4R portrait, 4R Grid.
+    await expect(page.getByRole("combobox", { name: "Tata letak" })).toHaveText(/4R Grid/);
     await page.getByRole("button", { name: "Buat", exact: true }).click();
     await expect(page.getByLabel("Nama template")).toHaveValue(tplName);
 
@@ -222,8 +222,12 @@ test("format polaroid landscape: kanvas, label, dan tata letak cepat sesuai form
     await page.goto("/admin/templates");
     await page.getByRole("button", { name: "+ Buat Template" }).click();
     await page.getByPlaceholder(/Nama template/).fill(tplName);
-    await page.getByRole("combobox", { name: "Mulai dari" }).click();
-    await page.getByRole("option", { name: /Polaroid Duo.*4x3/ }).click();
+    await page.getByRole("combobox", { name: "Format" }).click();
+    await page.getByRole("option", { name: "Polaroid" }).click();
+    await page.getByRole("radio", { name: "Landscape" }).click();
+    await page.getByRole("combobox", { name: "Tata letak" }).click();
+    await expect(page.getByRole("option")).toHaveCount(2);
+    await page.getByRole("option", { name: /Polaroid Duo/ }).click();
     await page.getByRole("button", { name: "Buat", exact: true }).click();
     await expect(page.getByText(/Polaroid 4x3 landscape · 1200×900 px/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Foto 2", exact: true })).toBeVisible();
