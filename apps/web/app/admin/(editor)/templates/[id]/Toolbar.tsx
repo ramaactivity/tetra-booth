@@ -14,6 +14,7 @@ import {
 import type { ReactNode, RefObject } from "react";
 import { ColorPicker } from "@/components/ColorPicker";
 import { Select } from "@/components/Select";
+import { OVERLAY, setOverlayRect } from "@/lib/editor/geometry";
 import type { EditorApi } from "./Editor";
 import type { Tab } from "./Panels";
 import { AlignButtons } from "./Panels";
@@ -252,7 +253,23 @@ export function Toolbar({
   } else {
     body = (
       <>
-        <span className="text-[13px] font-bold">{ed.sel.length} elemen</span>
+        <span className="text-[13px] font-bold">
+          {ed.sel.length === 1 && ed.sel[0] === OVERLAY ? "Overlay" : `${ed.sel.length} elemen`}
+        </span>
+        {ed.sel.includes(OVERLAY) && (
+          <button
+            type="button"
+            className={btn}
+            title="Kembalikan overlay ke ukuran penuh kanvas"
+            onClick={() =>
+              ed.commit((l) =>
+                setOverlayRect(l, { x: 0, y: 0, w: l.canvas.width, h: l.canvas.height }),
+              )
+            }
+          >
+            Penuhkan
+          </button>
+        )}
         <Sep />
         <AlignButtons ed={ed} compact />
         {common}

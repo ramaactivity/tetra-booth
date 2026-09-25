@@ -142,6 +142,9 @@ export const copy = {
     rollSize: "Isi roll baru (lembar)",
     save: "Simpan",
     testPrint: "Tes Cetak",
+    printerSettings: "Setel Printer",
+    printerSettingsDone:
+      "Dialog printer ditutup. 2inch cut: Enable untuk strip 2R, Disable untuk 4R & polaroid.",
     sent: "Dikirim ke printer, menunggu hasil…",
     printed: "Tercetak",
     printFailed: (m: string) => `Gagal cetak: ${m}`,

@@ -92,6 +92,8 @@ export interface BoothCrew {
   /** Cetak ulang job gagal sebagai job baru; kembalikan id job baru. */
   reprint(jobId: string): Promise<string>;
   exit(): Promise<void>;
+  /** Buka dialog Printing Preferences printer (potong 2 inci DNP hanya bisa diatur di sana, DECISIONS #59). */
+  printerSettings(): Promise<void>;
   /** Jalankan booth saat Windows login (M5). `supported` false di mode dev. */
   autoStart(): Promise<{ enabled: boolean; supported: boolean }>;
   setAutoStart(on: boolean): Promise<{ enabled: boolean; supported: boolean }>;

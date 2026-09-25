@@ -1,3 +1,4 @@
+import { execFile } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import {
@@ -8,12 +9,12 @@ import {
   PaymentCreateRequest,
   SESSION_ID_PATTERN,
 } from "@tetra/shared";
-import { app, ipcMain, net } from "electron";
+import { app, BrowserWindow, ipcMain, net } from "electron";
 import { z } from "zod";
 import type { Alerts } from "./alerts";
 import { cameraHealth, request, ServiceUnavailable } from "./camera-client";
 import type { Cloud } from "./cloud";
-import { config } from "./config";
+import { config, printerName } from "./config";
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
 import type { BoothDb } from "./db";
 import { allowQuit, autoStart, setAutoStart } from "./kiosk";
@@ -273,6 +274,29 @@ export function registerIpc(
     crewOnly();
     allowQuit();
     app.quit();
+  });
+  // Dialog driver tampil di belakang jendela kiosk, jadi kiosk dilepas sampai dialog ditutup.
+  ipcMain.handle("crewPrinterSettings", async (e) => {
+    crewOnly();
+    if (process.platform !== "win32") throw new Error("Pengaturan printer hanya di Windows");
+    const name = printerName;
+    if (!name) throw new Error("Printer belum dikonfigurasi (--printer)");
+    const win = BrowserWindow.fromWebContents(e.sender);
+    const kiosk = win?.isKiosk() ?? false;
+    if (kiosk) win?.setKiosk(false);
+    win?.minimize();
+    try {
+      await new Promise<void>((ok, fail) =>
+        execFile("rundll32.exe", ["printui.dll,PrintUIEntry", "/e", "/n", name], (err) =>
+          err ? fail(err) : ok(),
+        ),
+      );
+    } finally {
+      win?.restore();
+      if (kiosk) win?.setKiosk(true);
+      win?.focus();
+    }
+    console.info(`[print] dialog Printing Preferences ${name} ditutup`);
   });
   ipcMain.handle("crewAutoStart", () => {
     crewOnly();

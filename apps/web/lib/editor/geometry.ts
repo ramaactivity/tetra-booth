@@ -2,7 +2,7 @@ import type { LayoutSlot, LayoutSpec, LayoutText } from "@tetra/shared";
 
 /** Geometri editor template (DECISIONS #77): murni, tanpa DOM, supaya bisa diuji. Satuan = px kanvas. */
 export type Rect = { x: number; y: number; w: number; h: number };
-export type Key = `s:${string}` | `t:${string}`;
+export type Key = `s:${string}` | `t:${string}` | typeof OVERLAY;
 export const OVERLAY = "overlay" as const;
 type Z = LayoutSlot["z"];
 
@@ -158,7 +158,29 @@ export function rotationAt(cx: number, cy: number, px: number, py: number) {
  * Tumpukan layer dari bawah ke atas, termasuk penanda overlay, dengan aturan yang sama dengan engine:
  * `order` bila ada, selain itu urutan array dan slot sebelum teks.
  */
-export function layerStack(l: LayoutSpec): (Key | typeof OVERLAY)[] {
+/** Kotak overlay; posisi kosong = penuh kanvas. */
+export const overlayRect = (l: LayoutSpec): Rect => ({
+  x: l.overlay?.x ?? 0,
+  y: l.overlay?.y ?? 0,
+  w: l.overlay?.w ?? l.canvas.width,
+  h: l.overlay?.h ?? l.canvas.height,
+});
+/** Tetapkan kotak overlay (dibulatkan); tanpa overlay = tidak berubah. */
+export const setOverlayRect = (l: LayoutSpec, r: Rect): LayoutSpec =>
+  l.overlay
+    ? {
+        ...l,
+        overlay: {
+          ...l.overlay,
+          x: Math.round(r.x),
+          y: Math.round(r.y),
+          w: Math.round(r.w),
+          h: Math.round(r.h),
+        },
+      }
+    : l;
+
+export function layerStack(l: LayoutSpec): Key[] {
   const group = (z: Z) =>
     [
       ...l.slots.map((s, i) => ({ k: slotKey(s), z: s.z, o: s.order ?? i })),
@@ -175,7 +197,7 @@ export function layerStack(l: LayoutSpec): (Key | typeof OVERLAY)[] {
 }
 
 /** Terapkan tumpukan baru: posisi relatif terhadap overlay menentukan `z`, indeks menjadi `order`. */
-export function applyStack(l: LayoutSpec, stack: (Key | typeof OVERLAY)[]): LayoutSpec {
+export function applyStack(l: LayoutSpec, stack: Key[]): LayoutSpec {
   const ov = stack.indexOf(OVERLAY);
   const at = (k: Key) => {
     const i = stack.indexOf(k);

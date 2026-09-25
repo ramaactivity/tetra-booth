@@ -122,6 +122,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   - Laporan `docs/reports/windows/<tanggal>-m8-stress.md`.
   - **Status (Windows, 2026-09-24): langkah 1 dua kali, belum lulus** → `docs/reports/windows/2026-09-24-m8-stress.md`. Run ke-1 macet di 350 (Windows Update memasang driver Intel → GPU process hilang, main macet). Run ke-2 501/500, stabilitas lulus, memori GAGAL (total akhir 1.277 MB; GPU iGPU ±1,1–1,2 GB). Langkah 2 (waktu normal) belum dijalankan, menunggu keputusan M-017.
   → Ditutup 2026-09-25 atas keputusan Rama (DECISIONS #53): langkah 1 cukup (W-024), langkah 2 tidak dijalankan.
+- [ ] **W-030 Tombol Setel Printer di mode crew (DECISIONS #82).** `git merge origin/main` → build booth, jalankan dengan `--kiosk --printer "DS-RX1"`. Mode crew → **Setel Printer**: dialog Printing Preferences DS-RX1 harus tampil di depan (kiosk dilepas), ubah 2inch cut → OK → booth kembali layar penuh kiosk, catatan crew "Dialog printer ditutup…". Cek juga Cancel (tidak error) dan tanpa `--printer` (pesan "Printer belum dikonfigurasi"). Lalu admin di Chrome laptop booth → Template → editor → **Tes cetak**: dialog cetak Chrome, pilih DS-RX1, "Cetak menggunakan dialog sistem" → Preferences terbuka. Tanpa cetak fisik kecuali Rama minta. Lapor di issue #1.
 
 ## Untuk Mac
 

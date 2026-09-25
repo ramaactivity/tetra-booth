@@ -85,8 +85,10 @@ const renderLayout = (spec: LayoutSpec, inputs: RenderInputs, ctx: RenderContext
     }
   };
   draw("below_overlay");
-  const overlay = spec.overlay ? inputs.assets[spec.overlay.assetId] : undefined;
-  if (overlay) c.drawImage(overlay, 0, 0, canvas.width, canvas.height);
+  const ov = spec.overlay;
+  const overlay = ov ? inputs.assets[ov.assetId] : undefined;
+  if (ov && overlay)
+    c.drawImage(overlay, ov.x ?? 0, ov.y ?? 0, ov.w ?? canvas.width, ov.h ?? canvas.height);
   draw("above_overlay");
   return canvas;
 };

@@ -375,7 +375,7 @@ export function CrewMenu({
           )}
         </StatCard>
 
-        <section className="col-span-2 grid grid-cols-4 content-center gap-5 rounded-[28px] border-[2.5px] border-ink bg-white p-8 portrait:col-span-1 portrait:grid-cols-2">
+        <section className="col-span-2 grid grid-cols-5 content-center gap-5 rounded-[28px] border-[2.5px] border-ink bg-white p-8 portrait:col-span-1 portrait:grid-cols-2">
           <Button variant="plain" className={action} onClick={() => setSheet("events")}>
             {copy.crew.changeEvent}
           </Button>
@@ -388,6 +388,13 @@ export function CrewMenu({
             }}
           >
             {copy.crew.newRoll}
+          </Button>
+          <Button
+            variant="plain"
+            className={action}
+            onClick={act(() => p.crew.printerSettings(), copy.crew.printerSettingsDone)}
+          >
+            {copy.crew.printerSettings}
           </Button>
           <Button variant="plain" className={action} onClick={onChangePin}>
             {copy.crew.changePin}

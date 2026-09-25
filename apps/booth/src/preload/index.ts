@@ -23,6 +23,7 @@ const bridge: TetraBridge = {
   crewFailedPrints: () => ipcRenderer.invoke("crewFailedPrints"),
   crewReprint: (id) => ipcRenderer.invoke("crewReprint", id),
   crewExit: () => ipcRenderer.invoke("crewExit"),
+  crewPrinterSettings: () => ipcRenderer.invoke("crewPrinterSettings"),
   crewAutoStart: () => ipcRenderer.invoke("crewAutoStart"),
   crewSetAutoStart: (on) => ipcRenderer.invoke("crewSetAutoStart", on),
   crewPair: (code) => ipcRenderer.invoke("crewPair", code),
