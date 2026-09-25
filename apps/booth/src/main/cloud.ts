@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import {
   BoothEventsResponse,
+  BoothUpdateResponse,
   BundleManifest,
   type HeartbeatRequest,
   PairResponse,
@@ -165,6 +166,18 @@ export function createCloud(
       return uploader.drain();
     },
     token,
+    /** Rilis booth terbaru di cloud (DECISIONS #80); null = belum ada rilis. */
+    async latestRelease() {
+      const t = token();
+      if (!t) throw new Error("booth belum dipasangkan");
+      const res = await fetch(`${baseUrl}/api/booth/update`, {
+        headers: { authorization: `Bearer ${t}` },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`/api/booth/update: server ${res.status}`);
+      return BoothUpdateResponse.parse(await res.json());
+    },
     /** Tagihan QRIS photobox (TSD §8). Gagal apa pun (offline, belum dipasangkan, server) = Error. */
     async createPayment(req: PaymentCreateRequest) {
       return PaymentCreateResponse.parse(await api("/api/booth/payments", req));

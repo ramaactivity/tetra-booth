@@ -33,6 +33,28 @@ export type BoothApiError =
   | "payment_unavailable"
   | "server_error";
 
+/**
+ * Versi aplikasi booth terbaru (`dev-builds/latest.json` di R2, ditulis `pnpm dist:dev`, DECISIONS #80).
+ * GET /api/booth/update menambahkan `url` installer bertanda tangan (bukan *.r2.dev yang diblokir ISP).
+ */
+export const BoothRelease = z.object({
+  version: z.string().regex(/^\d+\.\d+\.\d+$/),
+  key: z.string().min(1),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  size: z.number().int().positive(),
+});
+export type BoothRelease = z.infer<typeof BoothRelease>;
+export const BoothUpdateResponse = BoothRelease.extend({ url: z.url() });
+export type BoothUpdateResponse = z.infer<typeof BoothUpdateResponse>;
+
+/** a > b untuk versi "x.y.z". */
+export const newerVersion = (a: string, b: string) => {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < 3; i++) if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) > (pb[i] ?? 0);
+  return false;
+};
+
 /** GET /api/booth/events: event yang ditugaskan ke device ini. */
 export const BoothEventsResponse = z.object({
   events: z.array(z.object({ id: z.uuid(), name: z.string(), bundleVersion: z.number().int() })),

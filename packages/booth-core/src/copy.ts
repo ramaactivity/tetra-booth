@@ -95,6 +95,14 @@ export const copy = {
     exitBody:
       "Booth berhenti sampai aplikasi dibuka lagi. Cetakan yang sedang antre tetap diselesaikan dulu.",
     exitYes: "Ya, Tutup Aplikasi",
+    update: "Update Aplikasi",
+    updateChecking: "Mengecek versi terbaru…",
+    updateLatest: (v: string) => `Sudah versi terbaru (${v}).`,
+    updateNone: "Belum ada rilis di cloud.",
+    updateAvailable: (latest: string, current: string) =>
+      `Versi ${latest} tersedia (terpasang ${current}). Booth mengunduh ±150 MB, lalu tertutup dan terbuka lagi sendiri dalam ±1 menit. Jangan matikan laptop.`,
+    updateNow: "Pasang Sekarang",
+    updating: "Mengunduh update… booth akan tertutup lalu terbuka lagi",
     toGuest: "Keluar ke Mode Tamu",
     activeEvent: "Event aktif",
     changeEvent: "Ganti Event",

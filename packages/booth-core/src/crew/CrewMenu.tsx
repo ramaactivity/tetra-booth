@@ -14,7 +14,7 @@ import { copy } from "../copy";
 import { crewText, errText } from "../errors";
 import type { BoothEvent } from "../event";
 import { usePlatform } from "../PlatformContext";
-import type { CrewStatus, FailedPrint } from "../platform";
+import type { CrewStatus, FailedPrint, UpdateCheck } from "../platform";
 import { Logo } from "../ui";
 import { testPrint } from "./testPrint";
 
@@ -140,7 +140,8 @@ export function CrewMenu({
   const [status, setStatus] = useState<CrewStatus>();
   const [failed, setFailed] = useState<FailedPrint[]>([]);
   const [roll, setRoll] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<"events" | "roll" | "exit" | null>(null);
+  const [sheet, setSheet] = useState<"events" | "roll" | "exit" | "update" | null>(null);
+  const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [note, setNote] = useState<string>();
   /** Job test print / cetak ulang terakhir: hasil akhirnya menggantikan catatan "dikirim" (W-018). */
   const [, setWatching] = useState<string | null>(null);
@@ -408,7 +409,21 @@ export function CrewMenu({
             {copy.crew.exit}
           </Button>
           <Button
-            className="col-span-3 h-[92px] rounded-[20px] text-[26px] [--lx:7px] [--under:#fff] portrait:col-span-1"
+            variant="plain"
+            className={action}
+            onClick={() => {
+              setUpdate(null);
+              setSheet("update");
+              p.crew.checkUpdate().then(setUpdate, (e: unknown) => {
+                setSheet(null);
+                setNote(crewText(e));
+              });
+            }}
+          >
+            {copy.crew.update}
+          </Button>
+          <Button
+            className="col-span-2 h-[92px] rounded-[20px] text-[26px] [--lx:7px] [--under:#fff] portrait:col-span-1"
             onClick={onClose}
           >
             {copy.crew.toGuest} <ArrowRight size={26} strokeWidth={2.5} />
@@ -476,6 +491,31 @@ export function CrewMenu({
           </Button>
         </Sheet>
       )}
+      {sheet === "update" && (
+        <Sheet title={copy.crew.update} onClose={() => setSheet(null)}>
+          <p className="text-2xl font-medium text-text-2">
+            {!update
+              ? copy.crew.updateChecking
+              : update.available && update.latest
+                ? copy.crew.updateAvailable(update.latest, update.current)
+                : update.latest
+                  ? copy.crew.updateLatest(update.current)
+                  : copy.crew.updateNone}
+          </p>
+          {update?.available && (
+            <Button
+              className="h-[92px] rounded-[20px] text-[26px]"
+              onClick={() => {
+                setNote(copy.crew.updating);
+                act1(() => p.crew.installUpdate());
+              }}
+            >
+              {copy.crew.updateNow}
+            </Button>
+          )}
+        </Sheet>
+      )}
+
       {sheet === "exit" && (
         <Sheet title={copy.crew.exitConfirm} onClose={() => setSheet(null)}>
           <p className="text-2xl font-medium text-text-2">{copy.crew.exitBody}</p>

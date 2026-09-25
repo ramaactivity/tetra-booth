@@ -7,6 +7,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { BoothRelease } from "@tetra/shared";
 
 const env = (k: string) => {
   const v = process.env[k];
@@ -93,4 +94,12 @@ export async function listKeys(prefix: string) {
 export async function getStream(key: string) {
   const r = await client().send(new GetObjectCommand({ Bucket: env("R2_BUCKET"), Key: key }));
   return r.Body?.transformToWebStream();
+}
+
+/** Rilis booth terbaru (`dev-builds/latest.json`, DECISIONS #80), null kalau belum ada. */
+export async function latestBoothRelease() {
+  const stream = await getStream("dev-builds/latest.json").catch(() => undefined);
+  if (!stream) return null;
+  const r = BoothRelease.safeParse(await new Response(stream).json().catch(() => null));
+  return r.success ? r.data : null;
 }

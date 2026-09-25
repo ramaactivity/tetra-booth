@@ -51,6 +51,17 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
       data: { appVersion: "0.0.1-e2e", status: { printer: "ok" } },
     });
     expect(hb.status()).toBe(200);
+
+    // Update aplikasi (DECISIONS #80): rilis terbaru + URL R2 bertanda tangan, bukan *.r2.dev.
+    expect((await request.get("/api/booth/update")).status()).toBe(401);
+    const upd = await request.get("/api/booth/update", { headers: auth });
+    expect(upd.status()).toBe(200);
+    const rel = await upd.json();
+    expect(rel.version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(rel.url).toContain(".r2.cloudflarestorage.com/");
+    const dl = await request.get("/download/booth", { maxRedirects: 0 });
+    expect(dl.status()).toBe(302);
+    expect(dl.headers().location).toContain(rel.key);
     const row = (
       await db
         .from("devices")
