@@ -77,10 +77,10 @@ export function Stage({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("resize", on);
   }, []);
   return (
-    <div className="fixed inset-0 overflow-hidden bg-paper">
+    <div className="fixed inset-0 overflow-clip bg-paper">
       <div
         style={{ width: s.width, height: s.height, transform: `scale(${s.scale})` }}
-        className="relative origin-top-left overflow-hidden"
+        className="relative origin-top-left overflow-clip"
       >
         {children}
       </div>

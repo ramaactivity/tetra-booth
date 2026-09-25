@@ -32,37 +32,41 @@ export function Review({
           </p>
         )}
       </div>
+      {/* Tiap sel = container ukuran; kartu 3:2 + tombol Ulangi (92 px + jarak 26 px) selalu muat di lebar
+          maupun tinggi sel, berapa pun jumlah foto (1 foto dulu meluap ke bawah dan menutupi tombol). */}
       <div
         style={{ "--n": photos.length } as CSSProperties}
-        className="grid flex-1 grid-cols-[repeat(var(--n),minmax(0,1fr))] items-center gap-10 portrait:grid-cols-2"
+        className="grid min-h-0 flex-1 auto-rows-[minmax(0,1fr)] grid-cols-[repeat(var(--n),minmax(0,1fr))] gap-10 py-8 portrait:grid-cols-2"
       >
         {photos.map((p, i) => {
           const used = retakesUsed[i] ?? 0;
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: urutan slot tetap
-            <div key={i} className="flex flex-col gap-[26px]">
-              <div className="layered relative aspect-[3/2] overflow-hidden rounded-[20px] border-[2.5px] border-ink bg-neutral [--under:#fff]">
-                {p && <img src={p.url} alt="" className="h-full w-full object-cover" />}
-                <span className="absolute top-3.5 left-3.5 flex size-[46px] items-center justify-center rounded-full border-2 border-ink bg-white text-xl font-extrabold">
-                  {i + 1}
-                </span>
+            <div key={i} className="flex min-h-0 items-center justify-center [container-type:size]">
+              <div className="flex w-[min(100cqw,calc((100cqh-118px)*1.5))] flex-col gap-[26px]">
+                <div className="layered relative aspect-[3/2] overflow-hidden rounded-[20px] border-[2.5px] border-ink bg-neutral [--under:#fff]">
+                  {p && <img src={p.url} alt="" className="h-full w-full object-cover" />}
+                  <span className="absolute top-3.5 left-3.5 flex size-[46px] items-center justify-center rounded-full border-2 border-ink bg-white text-xl font-extrabold">
+                    {i + 1}
+                  </span>
+                </div>
+                {used < retakeMax ? (
+                  <Button
+                    variant="plain"
+                    className="h-[92px] rounded-[22px] bg-white! text-[26px]"
+                    onClick={() => onRetake(i)}
+                  >
+                    <RotateCcw size={24} strokeWidth={2.5} />
+                    {copy.review.retake}
+                  </Button>
+                ) : (
+                  used > 0 && (
+                    <div className="flex h-[92px] items-center justify-center rounded-[22px] border-[2.5px] border-dashed border-[#9a9892] text-2xl font-bold text-[#7a7873]">
+                      {copy.review.retaken(used, retakeMax)}
+                    </div>
+                  )
+                )}
               </div>
-              {used < retakeMax ? (
-                <Button
-                  variant="plain"
-                  className="h-[92px] rounded-[22px] bg-white! text-[26px]"
-                  onClick={() => onRetake(i)}
-                >
-                  <RotateCcw size={24} strokeWidth={2.5} />
-                  {copy.review.retake}
-                </Button>
-              ) : (
-                used > 0 && (
-                  <div className="flex h-[92px] items-center justify-center rounded-[22px] border-[2.5px] border-dashed border-[#9a9892] text-2xl font-bold text-[#7a7873]">
-                    {copy.review.retaken(used, retakeMax)}
-                  </div>
-                )
-              )}
             </div>
           );
         })}
