@@ -62,6 +62,9 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
     const dl = await request.get("/download/booth", { maxRedirects: 0 });
     expect(dl.status()).toBe(302);
     expect(dl.headers().location).toContain(rel.key);
+    const old = await request.get("/download/booth?v=0.5.3", { maxRedirects: 0 });
+    expect(old.headers().location).toContain("dev-builds/Tetra-Booth-Setup-0.5.3.exe");
+    expect((await request.get("/download/booth?v=../x", { maxRedirects: 0 })).status()).toBe(400);
     const row = (
       await db
         .from("devices")
