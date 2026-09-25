@@ -1,7 +1,6 @@
 /// <reference path="./gifenc.d.ts" />
 import { cpuCanvas } from "@tetra/template-engine";
 import { applyPalette, GIFEncoder, quantize } from "gifenc";
-import type { BoothEvent } from "./event";
 import type { AssetKind, BoothStorage, SessionAsset } from "./platform";
 import type { Photo, Strip } from "./session";
 
@@ -19,12 +18,12 @@ export const fit = (w: number, h: number, max: number) => {
   return { width: Math.round(w * k), height: Math.round(h * k) };
 };
 
-const encode = async (src: ImageBitmap, w: number, h: number, sx = 0, sw = src.width) => {
+const encode = async (src: ImageBitmap, w: number, h: number) => {
   const c = cpuCanvas(w, h);
   const g = c.getContext("2d");
   if (!g) throw new Error("canvas 2d tidak tersedia");
   g.imageSmoothingQuality = "high";
-  g.drawImage(src, sx, 0, sw, src.height, 0, 0, w, h);
+  g.drawImage(src, 0, 0, w, h);
   return new Uint8Array(
     await (await c.convertToBlob({ type: "image/jpeg", quality: 0.85 })).arrayBuffer(),
   );
@@ -48,14 +47,13 @@ export async function previewUrl(bytes: Uint8Array<ArrayBuffer>, w: number, h: n
 
 /**
  * Output upload sesi (FSD §1.9) dari strip & foto mentah, dijalankan di belakang layar setelah cetak:
- * strip_web (satu strip, bukan lembar 2x6x2 ganda), original_n (2400 px), thumb 480 px,
+ * strip_web (satu potong desain, bukan lembar cetak), original_n (2400 px), thumb 480 px,
  * animation (GIF berulang dari foto sesi, ≥ 2 foto).
  * Full-res mentah tetap di raw/ dan tidak masuk daftar aset.
  */
 export async function buildOutputs(
   storage: BoothStorage,
   sessionId: string,
-  event: BoothEvent,
   photos: Photo[],
   strip: Strip,
 ): Promise<SessionAsset[]> {
@@ -71,24 +69,14 @@ export async function buildOutputs(
   const stripBytes = await storage.readFile(strip.path);
   assets.push({ kind: "strip", idx: 0, path: strip.path, bytes: stripBytes.byteLength });
 
-  const sheet = await createImageBitmap(new Blob([stripBytes]));
+  // strip_web & thumb = satu potong desain dalam orientasi aslinya, bukan lembar cetak.
+  const piece = await load(strip.piecePath);
   try {
-    const single = event.layout.paper === "2x6x2" ? event.layout.canvas.width : sheet.width;
-    await save(
-      "strip_web",
-      0,
-      "strip_web.jpg",
-      await encode(sheet, single, sheet.height, 0, single),
-    );
-    const t = fit(single, sheet.height, THUMB_LONG_SIDE);
-    await save(
-      "thumb_strip",
-      0,
-      "thumb_strip.jpg",
-      await encode(sheet, t.width, t.height, 0, single),
-    );
+    await save("strip_web", 0, "strip_web.jpg", await encode(piece, piece.width, piece.height));
+    const t = fit(piece.width, piece.height, THUMB_LONG_SIDE);
+    await save("thumb_strip", 0, "thumb_strip.jpg", await encode(piece, t.width, t.height));
   } finally {
-    sheet.close();
+    piece.close();
   }
 
   const frames: ImageData[] = [];

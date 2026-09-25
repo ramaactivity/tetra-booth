@@ -1,4 +1,4 @@
-import { newSessionId } from "@tetra/shared";
+import { newSessionId, printPaper } from "@tetra/shared";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { composeStrip } from "./compose";
 import { copy } from "./copy";
@@ -204,7 +204,7 @@ export function SessionRunner({
       printCount: s.strip ? s.prints : 0,
     };
     const t0 = performance.now();
-    (s.strip ? buildOutputs(p.storage, id, ev, photos, s.strip) : Promise.resolve([]))
+    (s.strip ? buildOutputs(p.storage, id, photos, s.strip) : Promise.resolve([]))
       .then((assets) => p.db.sessionCompleted({ ...done, assets }).then(() => assets.length))
       .then((n) =>
         console.info(
@@ -212,7 +212,7 @@ export function SessionRunner({
         ),
       )
       .catch((e: unknown) => console.error(`[session] gagal menyelesaikan ${id}: ${errText(e)}`));
-  }, [p, s.phase, s.sessionId, s.photos, s.retakesUsed, s.strip, s.prints, ev]);
+  }, [p, s.phase, s.sessionId, s.photos, s.retakesUsed, s.strip, s.prints]);
 
   // Compose strip.
   useEffect(() => {
@@ -247,7 +247,7 @@ export function SessionRunner({
         jobId: s.sessionId,
         path: s.strip.path,
         copies: s.prints,
-        paper: ev.layout.paper,
+        paper: printPaper(ev.layout.paper),
       })
       .then(
         () => dispatch({ type: "PRINT_DONE", ok: true }),

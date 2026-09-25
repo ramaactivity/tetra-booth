@@ -66,7 +66,7 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
     await page.getByRole("button", { name: "+ Buat Template" }).click();
     await page.getByPlaceholder(/Nama template/).fill(tplName);
     await page.getByRole("combobox", { name: "Mulai dari" }).click();
-    await page.getByRole("option", { name: /4R Grid/ }).click();
+    await page.getByRole("option", { name: /4R Grid.*4x6/ }).click();
     await page.getByRole("button", { name: "Buat", exact: true }).click();
     await expect(page.getByLabel("Nama template")).toHaveValue(tplName);
 
@@ -208,6 +208,42 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
       .from("devices")
       .delete()
       .eq("id", dev?.id ?? "");
+    await u.cleanup();
+  }
+});
+
+test("format polaroid landscape: kanvas, label, dan tata letak cepat sesuai format (#78)", async ({
+  page,
+}) => {
+  const u = await makeUser("owner");
+  const tplName = `e2e polaroid ${Date.now()}`;
+  try {
+    await login(page, u);
+    await page.goto("/admin/templates");
+    await page.getByRole("button", { name: "+ Buat Template" }).click();
+    await page.getByPlaceholder(/Nama template/).fill(tplName);
+    await page.getByRole("combobox", { name: "Mulai dari" }).click();
+    await page.getByRole("option", { name: /Polaroid Duo.*4x3/ }).click();
+    await page.getByRole("button", { name: "Buat", exact: true }).click();
+    await expect(page.getByText(/Polaroid 4x3 landscape · 1200×900 px/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Foto 2", exact: true })).toBeVisible();
+    // Tata letak cepat hanya polaroid landscape.
+    await expect(page.getByRole("button", { name: /Polaroid.*4x3 · 1 foto/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /4R Grid/ })).toHaveCount(0);
+    await page.getByRole("button", { name: /Polaroid.*4x3 · 1 foto/ }).click();
+    await expect(page.getByRole("button", { name: "Foto 2", exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Simpan" }).click();
+    await expect(page.getByRole("status")).toContainText("Tersimpan · versi 2");
+    await page.goto("/admin/templates");
+    await expect(page.getByRole("link", { name: new RegExp(tplName) })).toContainText(
+      "Polaroid 4x3 landscape",
+    );
+  } finally {
+    const { data: l } = await db.from("layouts").select("id").eq("name", tplName).maybeSingle();
+    if (l) {
+      await db.from("layout_versions").delete().eq("layout_id", l.id);
+      await db.from("layouts").delete().eq("id", l.id);
+    }
     await u.cleanup();
   }
 });

@@ -38,7 +38,10 @@ describe("sessionReducer", () => {
     const qr = run(
       [
         { type: "CONTINUE" },
-        { type: "COMPOSED", strip: { path: "/s/strip.jpg", url: "blob:s" } },
+        {
+          type: "COMPOSED",
+          strip: { path: "/s/strip.jpg", piecePath: "/s/strip.jpg", url: "blob:s" },
+        },
         { type: "PRINTS_SELECTED", count: 2 },
         { type: "PRINT_DONE", ok: true },
       ],
@@ -56,7 +59,10 @@ describe("sessionReducer", () => {
       start,
       ...shootAll,
       { type: "CONTINUE" },
-      { type: "COMPOSED", strip: { path: "/s/strip.jpg", url: "blob:s" } },
+      {
+        type: "COMPOSED",
+        strip: { path: "/s/strip.jpg", piecePath: "/s/strip.jpg", url: "blob:s" },
+      },
       { type: "PRINTS_SELECTED", count: 1 },
     ]);
     expect(
@@ -143,7 +149,7 @@ describe("sessionReducer", () => {
     const review = run([start, ...shootAll]);
     expect(sessionReducer(review, { type: "PRINTS_SELECTED", count: 1 })).toBe(review);
     const printSelect = run(
-      [{ type: "CONTINUE" }, { type: "COMPOSED", strip: { path: "p", url: "u" } }],
+      [{ type: "CONTINUE" }, { type: "COMPOSED", strip: { path: "p", piecePath: "p", url: "u" } }],
       review,
     );
     expect(sessionReducer(printSelect, { type: "PRINTS_SELECTED", count: 0 })).toBe(printSelect);
@@ -181,7 +187,7 @@ describe("sessionReducer", () => {
           pbStart,
           ...shootAll,
           { type: "CONTINUE" },
-          { type: "COMPOSED", strip: { path: "s", url: "u" } },
+          { type: "COMPOSED", strip: { path: "s", piecePath: "s", url: "u" } },
         ],
         paid,
       );
@@ -212,7 +218,7 @@ describe("sessionReducer", () => {
           pbStart,
           ...shootAll,
           { type: "CONTINUE" },
-          { type: "COMPOSED", strip: { path: "s", url: "u" } },
+          { type: "COMPOSED", strip: { path: "s", piecePath: "s", url: "u" } },
         ],
         paid,
       );
@@ -226,7 +232,7 @@ describe("sessionReducer", () => {
         start,
         ...shootAll,
         { type: "CONTINUE" },
-        { type: "COMPOSED", strip: { path: "s", url: "u" } },
+        { type: "COMPOSED", strip: { path: "s", piecePath: "s", url: "u" } },
       ]);
       expect(run([{ type: "PRINTS_SELECTED", count: 2 }], select)).toMatchObject({
         phase: "printing",

@@ -1,6 +1,6 @@
 "use client";
 import type { LayoutSpec } from "@tetra/shared";
-import { browserContext, type ImageLike, render } from "@tetra/template-engine";
+import { browserContext, type ImageLike, renderPiece } from "@tetra/template-engine";
 import { useEffect, useRef, useState } from "react";
 import {
   type Guides,
@@ -133,7 +133,7 @@ export function Stage({
   const [angle, setAngle] = useState<number | null>(null);
   const [hover, setHover] = useState<Key | null>(null);
 
-  // Preview = engine yang sama dengan booth (2x6: hanya strip kiri dari lembar ganda).
+  // Preview = engine yang sama dengan booth (satu potong desain, bukan lembar cetak).
   // biome-ignore lint/correctness/useExhaustiveDependencies: fontsVersion memicu render ulang saat font selesai dimuat
   useEffect(() => {
     const el = canvas.current;
@@ -142,7 +142,7 @@ export function Stage({
     const raf = requestAnimationFrame(() => {
       try {
         const ctx = { ...browserContext(GEIST), fontFamily };
-        const out = render(
+        const out = renderPiece(
           layout,
           {
             photos: layout.slots.map((s, i) =>

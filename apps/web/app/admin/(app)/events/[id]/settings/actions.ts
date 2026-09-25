@@ -1,5 +1,5 @@
 "use server";
-import { LAYOUT_PRESETS, type PresetId, StoredBundle } from "@tetra/shared";
+import { EVENT_PRESETS, LAYOUT_PRESETS, type PresetId, StoredBundle } from "@tetra/shared";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { buildBundle, type EventTemplate, storeOverlay } from "@/lib/event-bundle";
@@ -21,10 +21,7 @@ const Form = z.object({
   tagline: z.string().trim().max(40),
   client_name: z.string().trim().max(120),
   /** Preset, atau `tpl:<layoutId>` = template editor (versi terbaru dikunci saat simpan). */
-  preset: z.union([
-    z.enum(Object.keys(LAYOUT_PRESETS) as [keyof typeof LAYOUT_PRESETS]),
-    z.string().regex(/^tpl:[0-9a-f-]{36}$/),
-  ]),
+  preset: z.union([z.enum(EVENT_PRESETS), z.string().regex(/^tpl:[0-9a-f-]{36}$/)]),
   background: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   countdownSec: int(1, 10),
   retakeMax: int(0, 5),
@@ -75,10 +72,10 @@ export async function saveEvent(
   } else if (form.get("remove_overlay") === "on") overlay = null;
 
   // Photobox (E3, DECISIONS #70): tiap preset yang dicentang dijual dengan harganya sendiri.
-  const presets = Object.keys(LAYOUT_PRESETS) as PresetId[];
-  const layouts = presets
-    .filter((id) => form.get(`pb_${id}`) === "on")
-    .map((id) => ({ preset: id, price: Number(form.get(`price_${id}`)) }));
+  const layouts = EVENT_PRESETS.filter((id) => form.get(`pb_${id}`) === "on").map((id) => ({
+    preset: id,
+    price: Number(form.get(`price_${id}`)),
+  }));
   if (
     layouts.some((l) => !Number.isInteger(l.price) || l.price < MIN_PRICE || l.price > 10_000_000)
   )

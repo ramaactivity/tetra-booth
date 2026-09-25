@@ -251,7 +251,10 @@ export function Panels({
   const [dragKey, setDragKey] = useState<Key | null>(null);
   const presets = (
     Object.entries(LAYOUT_PRESETS) as [PresetId, (typeof LAYOUT_PRESETS)[PresetId]][]
-  ).filter(([, p]) => p.layout.paper === ed.layout.paper);
+  ).filter(
+    ([, p]) =>
+      p.layout.paper === ed.layout.paper && p.layout.canvas.width === ed.layout.canvas.width,
+  );
   const stack = layerStack(ed.layout);
   const labelOf = (k: Key) => {
     if (k.startsWith("s:"))

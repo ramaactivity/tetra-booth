@@ -1,5 +1,11 @@
 "use client";
-import { LAYOUT_PRESETS, type LayoutSlot, type LayoutSpec, type LayoutText } from "@tetra/shared";
+import {
+  LAYOUT_PRESETS,
+  type LayoutSlot,
+  type LayoutSpec,
+  type LayoutText,
+  paperLabel,
+} from "@tetra/shared";
 import type { ImageLike } from "@tetra/template-engine";
 import { ChevronLeft, Eye, EyeOff, Minus, Plus, Redo2, Undo2 } from "lucide-react";
 import Link from "next/link";
@@ -686,7 +692,7 @@ export function Editor({
           </div>
           <footer className="flex h-11 flex-none items-center justify-between gap-3 border-t-[1.5px] border-ink bg-white px-4 text-xs">
             <span className="text-text-2">
-              {ed.layout.paper === "4R" ? "4x6" : "2x6 strip"} · {ed.W}×{ed.H} px · 300 dpi ·
+              {paperLabel(ed.layout.paper, ed.layout.canvas)} · {ed.W}×{ed.H} px · 300 dpi ·
               Alt/Option saat menggeser = tanpa snap
             </span>
             <div className="flex items-center gap-2">

@@ -91,21 +91,38 @@ const renderLayout = (spec: LayoutSpec, inputs: RenderInputs, ctx: RenderContext
   return canvas;
 };
 
-/**
- * Render strip siap cetak (selalu 1200×1800 @300dpi).
- * `2x6x2`: satu strip 600×1800 dirender lalu digambar dua kali berdampingan. TSD §6.
- */
-export const render = (spec: LayoutSpec, inputs: RenderInputs, ctx: RenderContext): CanvasLike => {
-  const valid = LayoutSpecSchema.parse(spec);
-  const layout = renderLayout(valid, inputs, ctx);
-  if (valid.paper === "4R") return layout;
+/** Render satu potong desain (ukuran `spec.canvas`, orientasi asli): untuk layar, web, dan editor. */
+export const renderPiece = (spec: LayoutSpec, inputs: RenderInputs, ctx: RenderContext) =>
+  renderLayout(LayoutSpecSchema.parse(spec), inputs, ctx);
 
+/**
+ * Lembar cetak 1200×1800 dari satu potong (DECISIONS #78). 4R = potong itu sendiri; 2R & polaroid =
+ * dua potong (portrait berdampingan, landscape bertumpuk). Lembar yang melebar diputar 90° searah
+ * jarum jam, jadi garis potong 2R tetap di tengah dan printer selalu menerima 1200×1800. TSD §6.
+ */
+export const toSheet = (spec: LayoutSpec, piece: CanvasLike, ctx: RenderContext): CanvasLike => {
+  const { width: w, height: h } = piece;
+  const two = spec.paper !== "4R";
+  const side = w < h; // dua potong portrait berdampingan
+  const sw = two && side ? w * 2 : w;
+  const sh = two && !side ? h * 2 : h;
+  if (!two && sw === PRINT_CANVAS.width) return piece;
   const out = ctx.createCanvas(PRINT_CANVAS.width, PRINT_CANVAS.height);
   const c = get2d(out);
-  c.drawImage(layout, 0, 0, layout.width, layout.height);
-  c.drawImage(layout, layout.width, 0, layout.width, layout.height);
+  c.save();
+  if (sw > sh) {
+    c.translate(PRINT_CANVAS.width, 0);
+    c.rotate(Math.PI / 2);
+  }
+  c.drawImage(piece, 0, 0, w, h);
+  if (two) c.drawImage(piece, side ? w : 0, side ? 0 : h, w, h);
+  c.restore();
   return out;
 };
+
+/** Render lembar siap cetak (selalu 1200×1800 @300dpi). */
+export const render = (spec: LayoutSpec, inputs: RenderInputs, ctx: RenderContext): CanvasLike =>
+  toSheet(spec, renderPiece(spec, inputs, ctx), ctx);
 
 /** SHA-256 dari piksel RGBA kanvas, untuk membandingkan hasil render antar platform. */
 export const pixelHash = async (canvas: CanvasLike): Promise<string> => {

@@ -1,3 +1,4 @@
+import { paperLabel } from "@tetra/shared";
 import Link from "next/link";
 import { StoredLayout } from "@/lib/layouts";
 import { requireMember } from "@/lib/supabase/server";
@@ -5,7 +6,6 @@ import { NewTemplateForm } from "./NewTemplateForm";
 
 export const dynamic = "force-dynamic";
 
-const PAPER: Record<string, string> = { "4R": "4x6", "2x6x2": "2x6 strip" };
 const when = (ts: string) =>
   new Intl.DateTimeFormat("id-ID", {
     day: "numeric",
@@ -29,7 +29,20 @@ export default async function TemplatesPage() {
   const rows = (data ?? []).map((l) => {
     const v = l.layout_versions[0];
     const spec = StoredLayout.safeParse(v?.spec);
-    return { ...l, v, slots: spec.success ? spec.data.layout.slots.length : 0 };
+    const layout = spec.success ? spec.data.layout : null;
+    return {
+      ...l,
+      v,
+      slots: layout?.slots.length ?? 0,
+      format: layout ? paperLabel(layout.paper, layout.canvas) : l.paper,
+      // Ikon format: sisi panjang 32 px, rasio kanvas.
+      icon: layout
+        ? {
+            w: (32 * layout.canvas.width) / Math.max(layout.canvas.width, layout.canvas.height),
+            h: (32 * layout.canvas.height) / Math.max(layout.canvas.width, layout.canvas.height),
+          }
+        : { w: 22, h: 32 },
+    };
   });
 
   return (
@@ -53,12 +66,15 @@ export default async function TemplatesPage() {
             className="grid h-[62px] grid-cols-[2.4fr_1fr_.8fr_.8fr_1.2fr] items-center border-b-[1.5px] border-dashed border-line-soft px-5 text-sm no-underline last:border-b-0 hover:bg-paper"
           >
             <span className="flex items-center gap-2.5 font-bold">
-              <span
-                className={`flex-none rounded-[6px] border-[1.5px] border-dashed border-ink bg-sky ${l.paper === "4R" ? "h-8 w-[22px]" : "h-8 w-[12px]"}`}
-              />
+              <span className="flex size-8 flex-none items-center justify-center">
+                <span
+                  className="rounded-[6px] border-[1.5px] border-dashed border-ink bg-sky"
+                  style={{ width: l.icon.w, height: l.icon.h }}
+                />
+              </span>
               {l.name}
             </span>
-            <span className="text-text-3">{PAPER[l.paper] ?? l.paper}</span>
+            <span className="text-text-3">{l.format}</span>
             <span className="font-mono text-[13px]">{l.slots}</span>
             <span className="font-mono text-[13px]">v{l.v?.version ?? 1}</span>
             <span className="text-[13px] text-text-2">{l.v ? when(l.v.created_at) : "—"}</span>

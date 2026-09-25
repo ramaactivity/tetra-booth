@@ -1,4 +1,4 @@
-import { newSessionId } from "@tetra/shared";
+import { newSessionId, printPaper } from "@tetra/shared";
 import { cpuCanvas } from "@tetra/template-engine";
 import { renderEvent } from "../compose";
 import type { BoothEvent } from "../event";
@@ -19,12 +19,12 @@ export async function testPrint(p: BoothPlatform, event: BoothEvent): Promise<st
     }
     return c;
   });
-  const out = await renderEvent(event, photos);
-  const blob = await out.convertToBlob({ type: "image/jpeg", quality: 0.92 });
+  const { sheet } = await renderEvent(event, photos);
+  const blob = await sheet.convertToBlob({ type: "image/jpeg", quality: 0.92 });
   const id = newSessionId();
   const path = `${await p.storage.sessionDir(id)}/out/test.jpg`;
   await p.storage.writeFile(path, new Uint8Array(await blob.arrayBuffer()));
   const jobId = `test-${id}`;
-  await p.printer.submit({ jobId, path, copies: 1, paper: event.layout.paper });
+  await p.printer.submit({ jobId, path, copies: 1, paper: printPaper(event.layout.paper) });
   return jobId;
 }

@@ -1,7 +1,8 @@
 import { createCanvas } from "@napi-rs/canvas";
+import { LAYOUT_PRESETS } from "@tetra/shared";
 import { describe, expect, it } from "vitest";
 import type { RenderContext } from "../src";
-import { FIXTURES, makeFixtureInputs, pixelHash, render } from "../src";
+import { FIXTURES, makeFixtureInputs, pixelHash, render, renderPiece } from "../src";
 
 const ctx: RenderContext = {
   createCanvas: (w, h) => createCanvas(w, h),
@@ -24,6 +25,27 @@ describe("template engine", () => {
     const right = Buffer.from(g?.getImageData(600, 0, 600, 1800).data ?? []);
     expect(left.equals(right)).toBe(true);
     expect(await pixelHash(out)).toMatchSnapshot();
+  });
+
+  it("semua preset (portrait & landscape) jadi lembar 1200x1800; landscape diputar searah jarum jam", () => {
+    for (const [id, p] of Object.entries(LAYOUT_PRESETS)) {
+      const spec = { id, version: 1, ...p.layout, background: { color: "#ffffff" } };
+      const inputs = makeFixtureInputs(ctx, spec);
+      const sheet = render(spec, inputs, ctx);
+      expect([id, sheet.width, sheet.height]).toEqual([id, 1200, 1800]);
+      const g = sheet.getContext("2d");
+      const px = (x: number, y: number) => [...(g?.getImageData(x, y, 1, 1).data ?? [])].join();
+      const piece = renderPiece(spec, inputs, ctx).getContext("2d");
+      const s0 = spec.slots[0];
+      if (!s0 || !piece) throw new Error("preset tanpa slot");
+      // Titik di dalam slot pertama potongan pertama, lalu posisinya di lembar.
+      const [x, y] = [s0.x + 5, s0.y + 5];
+      const want = [...piece.getImageData(x, y, 1, 1).data].join();
+      const { width: w, height: h } = spec.canvas;
+      // Lembar melebar sebelum diputar: 4R & 2R landscape, polaroid portrait (dua berdampingan).
+      const rotated = spec.paper === "3x4x2" ? w < h : w > h;
+      expect([id, rotated ? px(1199 - y, x) : px(x, y)]).toEqual([id, want]);
+    }
   });
 
   it("teks placeholder diganti dan tergambar", () => {

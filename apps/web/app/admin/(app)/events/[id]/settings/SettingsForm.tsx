@@ -1,5 +1,11 @@
 "use client";
-import { LAYOUT_PRESETS, type PresetId } from "@tetra/shared";
+import {
+  EVENT_PRESETS,
+  LAYOUT_PRESETS,
+  type LayoutPaper,
+  type PresetId,
+  paperLabel,
+} from "@tetra/shared";
 import Link from "next/link";
 import { type ReactNode, startTransition, useActionState, useState } from "react";
 import { ColorPicker } from "@/components/ColorPicker";
@@ -150,9 +156,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
         <Section title="Template">
           <fieldset className="col-span-full grid grid-cols-2 gap-3 lg:grid-cols-4">
             <legend className="mb-1.5 text-xs font-bold">Layout</legend>
-            {(
-              Object.entries(LAYOUT_PRESETS) as [PresetId, (typeof LAYOUT_PRESETS)[PresetId]][]
-            ).map(([id, p]) => (
+            {EVENT_PRESETS.map((id) => [id, LAYOUT_PRESETS[id]] as const).map(([id, p]) => (
               <label
                 key={id}
                 className="flex cursor-pointer flex-col gap-0.5 rounded-[14px] border-[1.5px] border-dashed border-ink bg-white p-3.5 has-checked:border-solid has-checked:bg-sky"
@@ -185,7 +189,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
                   />
                   <span className="text-sm font-bold">{t.name}</span>
                   <span className="font-mono text-xs text-text-2">
-                    {t.paper === "4R" ? "4x6" : "2x6"} · template v{t.version}
+                    {paperLabel(t.paper as LayoutPaper)} · template v{t.version}
                   </span>
                   {pinned !== null && pinned < t.version && (
                     <span className="text-[11px] font-semibold text-text-2">
@@ -223,9 +227,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
             <legend className="mb-1.5 text-xs font-bold">
               Layout yang dijual · harga termasuk 1 lembar cetak
             </legend>
-            {(
-              Object.entries(LAYOUT_PRESETS) as [PresetId, (typeof LAYOUT_PRESETS)[PresetId]][]
-            ).map(([id, p]) => (
+            {EVENT_PRESETS.map((id) => [id, LAYOUT_PRESETS[id]] as const).map(([id, p]) => (
               <div
                 key={id}
                 className="flex items-center gap-3 rounded-[11px] border-[1.5px] border-ink px-3 py-2"

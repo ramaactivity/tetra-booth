@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PAPER_CANVAS, PaperSchema } from "./paper";
+import { canvasFits, LayoutPaperSchema } from "./paper";
 
 const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, "warna harus #RRGGBB");
 
@@ -37,7 +37,7 @@ export const LayoutSpecSchema = z
   .object({
     id: z.string().min(1),
     version: z.number().int().positive(),
-    paper: PaperSchema,
+    paper: LayoutPaperSchema,
     canvas: z.object({
       width: z.number().int().positive(),
       height: z.number().int().positive(),
@@ -50,12 +50,10 @@ export const LayoutSpecSchema = z
     overlay: z.object({ assetId: z.string().min(1) }).optional(),
     texts: z.array(TextSchema),
   })
-  .refine(
-    (s) =>
-      s.canvas.width === PAPER_CANVAS[s.paper].width &&
-      s.canvas.height === PAPER_CANVAS[s.paper].height,
-    { message: "ukuran canvas tidak sesuai preset kertas", path: ["canvas"] },
-  );
+  .refine((s) => canvasFits(s.paper, s.canvas), {
+    message: "ukuran canvas tidak sesuai preset kertas",
+    path: ["canvas"],
+  });
 
 export type LayoutSpec = z.infer<typeof LayoutSpecSchema>;
 export type LayoutSlot = z.infer<typeof SlotSchema>;

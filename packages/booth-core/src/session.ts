@@ -10,7 +10,8 @@ export { DEFAULT_SETTINGS, type EventSettings } from "@tetra/shared";
 export const MAX_CAPTURE_ATTEMPTS = 2;
 
 export type Photo = { path: string; url: string; width: number; height: number };
-export type Strip = { path: string; url: string };
+/** `path` = lembar cetak 1200×1800, `piecePath`/`url` = satu potong desain (DECISIONS #78). */
+export type Strip = { path: string; piecePath: string; url: string };
 
 export type Phase =
   | "attract"

@@ -4,6 +4,14 @@ import { useActionState, useState } from "react";
 import { Select } from "@/components/Select";
 import { createTemplate } from "./actions";
 
+const GROUPS = [
+  "4R portrait",
+  "4R landscape",
+  "2R portrait",
+  "2R landscape",
+  "Polaroid portrait",
+  "Polaroid landscape",
+];
 const input = "h-11 rounded-xl border-[1.5px] border-ink bg-white px-3.5 text-sm";
 const primary =
   "pressable layered h-11 rounded-xl border-[1.5px] border-ink bg-butter px-[18px] text-sm font-extrabold [--lb:1.5px] [--lx:4px]";
@@ -30,11 +38,10 @@ export function NewTemplateForm() {
         label="Mulai dari"
         value="4r-grid"
         className="h-11 w-56 rounded-xl"
-        options={Object.entries(LAYOUT_PRESETS).map(([id, p]) => ({
-          value: id,
-          label: p.name,
-          hint: p.info,
-        }))}
+        menuWidth={300}
+        options={Object.entries(LAYOUT_PRESETS)
+          .sort(([, a], [, b]) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group))
+          .map(([id, p]) => ({ value: id, label: p.name, hint: p.info, group: p.group }))}
       />
       <button type="submit" disabled={pending} className={primary}>
         Buat
