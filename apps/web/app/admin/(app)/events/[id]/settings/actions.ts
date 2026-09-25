@@ -2,7 +2,8 @@
 import { LAYOUT_PRESETS, type PresetId, StoredBundle } from "@tetra/shared";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { buildBundle, storeOverlay } from "@/lib/event-bundle";
+import { buildBundle, type EventTemplate, storeOverlay } from "@/lib/event-bundle";
+import { StoredLayout } from "@/lib/layouts";
 import { consentVersion, LEAD_FIELDS } from "@/lib/leads";
 import type { PhotoboxSettings } from "@/lib/payments";
 import { requireMember } from "@/lib/supabase/server";
@@ -19,7 +20,11 @@ const Form = z.object({
   location: z.string().trim().max(120),
   tagline: z.string().trim().max(40),
   client_name: z.string().trim().max(120),
-  preset: z.enum(Object.keys(LAYOUT_PRESETS) as [keyof typeof LAYOUT_PRESETS]),
+  /** Preset, atau `tpl:<layoutId>` = template editor (versi terbaru dikunci saat simpan). */
+  preset: z.union([
+    z.enum(Object.keys(LAYOUT_PRESETS) as [keyof typeof LAYOUT_PRESETS]),
+    z.string().regex(/^tpl:[0-9a-f-]{36}$/),
+  ]),
   background: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   countdownSec: int(1, 10),
   retakeMax: int(0, 5),
@@ -106,7 +111,27 @@ export async function saveEvent(
     reviewTimeoutSec: f.reviewTimeoutSec,
     qrScreenSec: f.qrScreenSec,
   };
-  const template = { preset: f.preset, background: f.background };
+  let custom: StoredLayout | null = null;
+  let template: EventTemplate = {
+    preset: f.preset in LAYOUT_PRESETS ? (f.preset as PresetId) : "strip-3",
+    background: f.background,
+  };
+  if (f.preset.startsWith("tpl:")) {
+    const layoutId = f.preset.slice(4);
+    const { data: lv } = await db
+      .from("layout_versions")
+      .select("version, spec, layouts!inner(archived_at)")
+      .eq("layout_id", layoutId)
+      .eq("organization_id", orgId)
+      .is("layouts.archived_at", null)
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const parsed = StoredLayout.safeParse(lv?.spec);
+    if (!lv || !parsed.success) return { ok: false, message: "Template tidak ditemukan" };
+    custom = parsed.data;
+    template = { ...template, layoutId, layoutVersion: lv.version };
+  }
   const branding = {
     ...(f.tagline ? { tagline: f.tagline } : {}),
     ...(f.client_name ? { clientName: f.client_name } : {}),
@@ -123,6 +148,7 @@ export async function saveEvent(
       overlay,
       mode: f.mode,
       photobox,
+      custom,
     });
   } catch {
     return { ok: false, message: "Template tidak valid" };

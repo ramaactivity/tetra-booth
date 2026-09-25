@@ -9,6 +9,7 @@ import {
   type StoredBundle,
 } from "@tetra/shared";
 import { longDate } from "@/lib/guest";
+import type { StoredLayout } from "@/lib/layouts";
 import type { PhotoboxSettings } from "@/lib/payments";
 import { putObject } from "@/lib/r2";
 
@@ -16,7 +17,13 @@ import { putObject } from "@/lib/r2";
  * Pengaturan event di admin (E3) → bundle booth (format EventBundleSchema, DECISIONS #57/#66).
  * `events.settings` = EventSettings + pilihan template; `events.branding` = tagline, klien, warna latar.
  */
-export type EventTemplate = { preset: PresetId; background: string };
+/** `layoutId`/`layoutVersion` = template editor (E4) yang dikunci saat pengaturan disimpan; kosong = preset. */
+export type EventTemplate = {
+  preset: PresetId;
+  background: string;
+  layoutId?: string;
+  layoutVersion?: number;
+};
 export type EventBranding = { tagline?: string; clientName?: string };
 
 export const DEFAULT_TEMPLATE: EventTemplate = { preset: "strip-3", background: "#ffffff" };
@@ -40,6 +47,8 @@ export function buildBundle(e: {
   overlay: StoredBundle["files"][number] | null;
   mode?: "event" | "photobox";
   photobox?: PhotoboxSettings | null;
+  /** Versi template editor; menggantikan preset + overlay event untuk layout utama. */
+  custom?: StoredLayout | null;
 }): Json {
   // Overlay dibuat untuk kanvas preset template, jadi hanya dipasang di layout dengan preset itu.
   const layoutOf = (id: PresetId) => ({
@@ -47,7 +56,7 @@ export function buildBundle(e: {
     version: 1,
     ...LAYOUT_PRESETS[id].layout,
     background: { color: e.template.background },
-    ...(e.overlay && id === e.template.preset ? { overlay: { assetId: "ov" } } : {}),
+    ...(e.overlay && !e.custom && id === e.template.preset ? { overlay: { assetId: "ov" } } : {}),
   });
   const photobox =
     e.mode === "photobox" && e.photobox?.layouts.length
@@ -67,12 +76,19 @@ export function buildBundle(e: {
     name: e.name,
     ...(e.branding.tagline ? { tagline: e.branding.tagline } : {}),
     date: longDate(e.eventDate),
-    layout: layoutOf(e.template.preset),
+    layout: e.custom
+      ? { ...e.custom.layout, id: `${e.custom.layout.id.slice(0, 8)}-v${e.custom.layout.version}` }
+      : layoutOf(e.template.preset),
     ...(photobox ? { mode: "photobox", photobox } : {}),
     settings: EventSettingsSchema.parse(e.settings ?? {}),
-    assets: e.overlay ? { ov: e.overlay.file } : {},
+    assets: e.custom
+      ? Object.fromEntries(Object.entries(e.custom.files).map(([k, f]) => [k, f.file]))
+      : e.overlay
+        ? { ov: e.overlay.file }
+        : {},
   });
   const { id: _id, ...rest } = config;
-  const stored: StoredBundle = { config: rest, files: e.overlay ? [e.overlay] : [] };
+  const files = e.custom ? Object.values(e.custom.files) : e.overlay ? [e.overlay] : [];
+  const stored: StoredBundle = { config: rest, files };
   return stored as unknown as Json;
 }

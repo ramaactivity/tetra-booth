@@ -1,5 +1,6 @@
 "use client";
 import { LAYOUT_PRESETS, type PresetId } from "@tetra/shared";
+import Link from "next/link";
 import { type ReactNode, startTransition, useActionState } from "react";
 import { type SaveResult, saveEvent } from "./actions";
 
@@ -9,7 +10,10 @@ export type SettingsValues = {
   location: string;
   tagline: string;
   client_name: string;
-  preset: PresetId;
+  /** Preset id, atau `tpl:<layoutId>` untuk template editor. */
+  preset: string;
+  pinnedVersion: number | null;
+  templates: { id: string; name: string; paper: string; version: number }[];
   background: string;
   hasOverlay: boolean;
   countdownSec: number;
@@ -162,8 +166,38 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
                 <span className="font-mono text-xs text-text-2">{p.info}</span>
               </label>
             ))}
+            {v.templates.map((t) => {
+              const value = `tpl:${t.id}`;
+              const pinned = v.preset === value ? v.pinnedVersion : null;
+              return (
+                <label
+                  key={t.id}
+                  className="flex cursor-pointer flex-col gap-0.5 rounded-[14px] border-[1.5px] border-dashed border-ink bg-white p-3.5 has-checked:border-solid has-checked:bg-sky"
+                >
+                  <input
+                    type="radio"
+                    name="preset"
+                    value={value}
+                    defaultChecked={v.preset === value}
+                    className="sr-only"
+                  />
+                  <span className="text-sm font-bold">{t.name}</span>
+                  <span className="font-mono text-xs text-text-2">
+                    {t.paper === "4R" ? "4x6" : "2x6"} · template v{t.version}
+                  </span>
+                  {pinned !== null && pinned < t.version && (
+                    <span className="text-[11px] font-semibold text-text-2">
+                      Event memakai v{pinned}. Simpan untuk memakai v{t.version}.
+                    </span>
+                  )}
+                </label>
+              );
+            })}
+            <Link href="/admin/templates" className="self-center text-xs font-bold underline">
+              + Buat / edit template
+            </Link>
           </fieldset>
-          <Field label="Overlay (PNG transparan, ukuran kanvas layout)">
+          <Field label="Overlay (PNG transparan, ukuran kanvas layout; hanya untuk layout preset)">
             <input name="overlay" type="file" accept="image/png" className="text-sm" />
           </Field>
           <Field label="Warna latar">

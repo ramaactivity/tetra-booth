@@ -62,7 +62,7 @@ Prinsip:
 ## Fase 3 — Admin + klien + live
 - [x] Auth & role (owner/admin/crew). _(A1, 2026-09-25: login email+sandi, guard anggota, RLS lewat klien user; undangan tim E7 + lupa kata sandi, DECISIONS #69)_
 - [x] Daftar event, pengaturan event lengkap, penugasan device. _(A3, 2026-09-25)_
-- [ ] Editor template (overlay + slot + teks + font) dengan versi. _(A4 sementara: preset + overlay + warna latar, DECISIONS #66)_
+- [x] Editor template (overlay + slot + teks + font) dengan versi. _(A4 2026-09-25: menu Template, versi per simpan, event mengunci versi, DECISIONS #74)_
 - [x] Halaman device. _(A2, 2026-09-25)_
 - [x] Dashboard event: statistik, share analytics, status booth, grid + aksi massal. _(A5, 2026-09-25)_
 - [x] Moderasi: sembunyikan/hapus + audit log. _(A5, 2026-09-25)_

@@ -1,4 +1,4 @@
-import { EventSettingsSchema, LAYOUT_PRESETS, type PresetId, StoredBundle } from "@tetra/shared";
+import { EventSettingsSchema, LAYOUT_PRESETS, StoredBundle } from "@tetra/shared";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -29,6 +29,14 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
     .eq("organization_id", orgId)
     .is("revoked_at", null)
     .order("short_code");
+  const { data: layouts } = await db
+    .from("layouts")
+    .select("id, name, paper, layout_versions(version)")
+    .eq("organization_id", orgId)
+    .is("archived_at", null)
+    .order("created_at", { ascending: false })
+    .order("version", { referencedTable: "layout_versions", ascending: false })
+    .limit(1, { referencedTable: "layout_versions" });
 
   const raw = (ev.settings ?? {}) as Record<string, unknown> & {
     template?: EventTemplate;
@@ -64,7 +72,14 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           location: ev.location ?? "",
           tagline: branding.tagline ?? "",
           client_name: branding.clientName ?? "",
-          preset: tpl.preset as PresetId,
+          preset: tpl.layoutId ? `tpl:${tpl.layoutId}` : tpl.preset,
+          pinnedVersion: tpl.layoutVersion ?? null,
+          templates: (layouts ?? []).map((l) => ({
+            id: l.id,
+            name: l.name,
+            paper: l.paper,
+            version: l.layout_versions[0]?.version ?? 1,
+          })),
           background: tpl.background,
           hasOverlay: bundle.success && bundle.data.files.some((f) => f.file === "overlay.png"),
           countdownSec: s.countdownSec,

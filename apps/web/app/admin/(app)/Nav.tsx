@@ -11,6 +11,13 @@ const items = [
     match: (p: string) => p === "/admin" || p.startsWith("/admin/events"),
   },
   {
+    href: "/admin/templates",
+    t: copy.admin.nav.templates,
+    i: "▦",
+    match: (p: string) => p.startsWith("/admin/templates"),
+    roles: ["owner", "admin"],
+  },
+  {
     href: "/admin/devices",
     t: copy.admin.nav.devices,
     i: "▭",
