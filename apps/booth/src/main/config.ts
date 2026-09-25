@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import type { BoothConfig } from "@tetra/platform-electron";
-import { DIGICAM_TRIGGER } from "./digicam";
+import { z } from "zod";
+import { DIGICAM_TRIGGER, isDigiCamTrigger } from "./digicam";
 
 /** Flag yang butuh nilai. Diterima `--nama=nilai` maupun `--nama nilai` (M-008). */
 export const VALUE_FLAGS = [
@@ -57,29 +59,67 @@ export const splitArgs = (text: string) =>
     .filter((l) => !l.trim().startsWith("#"))
     .flatMap((l) => [...l.matchAll(/"([^"]*)"|(\S+)/g)].map((m) => m[1] ?? m[2] ?? ""));
 
-/**
- * Flag tetap per laptop (DECISIONS #83): shortcut installer tidak membawa argumen, jadi kamera/printer
- * dibaca dari `%APPDATA%\Tetra Booth\booth-flags.txt`. Argumen baris perintah menang (dibaca belakangan).
- */
-export const flagsFile = process.env.APPDATA
-  ? join(process.env.APPDATA, "Tetra Booth", "booth-flags.txt")
-  : undefined;
-const fileArgs = (() => {
+/** Folder data booth: `--data`, atau %APPDATA%/TetraBooth (TSD §3; index.ts memakai folder yang sama). */
+const argvFlags = parseFlags(process.argv);
+export const dataDir = argvFlags.value("data");
+const appData =
+  process.env.APPDATA ??
+  (process.platform === "darwin"
+    ? join(homedir(), "Library", "Application Support")
+    : join(homedir(), ".config"));
+export const userDir = dataDir ?? join(appData, "TetraBooth");
+
+/** Pengaturan perangkat dari mode crew (DECISIONS #85), satu file per laptop. */
+export const DeviceSettings = z.object({
+  camera: z.enum(["webcam", "simulated", "hotfolder"]).optional(),
+  webcamId: z.string().max(512).optional(),
+  hotFolder: z.string().min(1).max(260).optional(),
+  hotFolderTrigger: z.url().max(512).optional(),
+  printer: z.string().min(1).max(256).optional(),
+});
+export type DeviceSettings = z.infer<typeof DeviceSettings>;
+export const deviceFile = join(userDir, "device.json");
+const readText = (f: string) => {
   try {
-    return flagsFile ? splitArgs(readFileSync(flagsFile, "utf8")) : [];
+    return readFileSync(f, "utf8");
   } catch {
-    return [];
+    return null;
   }
+};
+export const device: DeviceSettings = (() => {
+  const r = DeviceSettings.safeParse(JSON.parse(readText(deviceFile) ?? "{}"));
+  return r.success ? r.data : {};
 })();
+const deviceArgs = Object.entries({
+  camera: device.camera,
+  "hot-folder": device.hotFolder,
+  "hot-folder-trigger": device.hotFolderTrigger,
+  printer: device.printer,
+}).flatMap(([k, v]) => (v ? [`--${k}`, v] : []));
+
+/**
+ * Flag tetap per laptop (DECISIONS #83): shortcut installer tidak membawa argumen, jadi flag bisa ditulis di
+ * `<folder data>/booth-flags.txt` (juga dibaca dari `%APPDATA%/Tetra Booth/` lama).
+ * Prioritas: file flag < pengaturan mode crew (device.json) < argumen baris perintah.
+ */
+const flagsFile = [
+  join(userDir, "booth-flags.txt"),
+  ...(dataDir ? [] : [join(appData, "Tetra Booth", "booth-flags.txt")]),
+].find((f) => readText(f) !== null);
+const fileArgs = flagsFile ? splitArgs(readText(flagsFile) ?? "") : [];
+
+/** Flag yang dipaksa baris perintah: tidak bisa diubah dari mode crew. */
+export const lockedByArgv = (name: string) => argvFlags.has(name);
 
 /**
  * Flag baris perintah (uji & dev). Contoh:
  *   electron apps/booth --camera=simulated --demo --size 1080x1920 --printer "Microsoft Print to PDF" --data C:/tmp/data
  */
-const flags = parseFlags([...fileArgs, ...process.argv]);
+const flags = parseFlags([...fileArgs, ...deviceArgs, ...process.argv]);
 /** Dicatat di index setelah log file aktif. */
 export const flagWarnings = [
   ...(fileArgs.length ? [`[config] flag dari ${flagsFile}: ${fileArgs.join(" ")}`] : []),
+  ...(deviceArgs.length ? [`[config] mode crew (${deviceFile}): ${deviceArgs.join(" ")}`] : []),
   ...flags.missing.map((m) => `[config] --${m} butuh nilai, diabaikan`),
 ];
 
@@ -90,9 +130,14 @@ export const kioskFlag = (isPackaged: boolean) =>
 /**
  * `--digicam`: kamera DSLR lewat digiCamControl (lihat digicam.ts). Menyiratkan `--camera=hotfolder`,
  * pemicu shutter ke web server digiCamControl, buka aplikasinya otomatis, dan live view.
- * `--digicam-exe` untuk lokasi CameraControl.exe yang tidak standar.
+ * `--digicam-exe` untuk lokasi CameraControl.exe yang tidak standar. Mode crew "DSLR (digiCamControl)" (hot folder
+ * + pemicu ke port 5513) mendapat perilaku yang sama.
  */
-export const digicam = flags.has("digicam") ? { exe: flags.value("digicam-exe") } : undefined;
+export const digicam =
+  flags.has("digicam") ||
+  (flags.value("camera") === "hotfolder" && isDigiCamTrigger(flags.value("hot-folder-trigger")))
+    ? { exe: flags.value("digicam-exe") }
+    : undefined;
 
 export const config: BoothConfig = {
   camera: digicam
@@ -102,6 +147,7 @@ export const config: BoothConfig = {
   demo: flags.has("demo"),
   fast: flags.has("fast"),
   guestUrl: process.env.TETRA_GUEST_URL ?? "https://booth.tetraphoto.com",
+  ...(device.webcamId ? { webcamId: device.webcamId } : {}),
 };
 
 const size = /^(\d+)x(\d+)$/.exec(flags.value("size") ?? "");
@@ -111,9 +157,6 @@ export const windowSize = size
 
 /** Folder screenshot per fase (uji jarak jauh tanpa melihat layar). */
 export const shotsDir = flags.value("shots");
-
-/** Folder data lokal pengganti %APPDATA%/TetraBooth (mis. laptop pinjaman: semua di folder kerja). */
-export const dataDir = flags.value("data");
 
 /**
  * Camera Service: `--no-spawn` = sambung ke service yang dijalankan manual (port 8765, token dev).
@@ -146,6 +189,17 @@ export const cameraServiceFlags = {
 
 /** Antrean printer utama (`--printer`), untuk membuka dialog Printing Preferences dari menu crew. */
 export const printerName = flags.value("printer");
+
+/** Nilai yang sedang dipakai (untuk sheet Kamera & Printer di mode crew). */
+export const deviceNow: DeviceSettings = {
+  camera: config.camera,
+  ...(device.webcamId ? { webcamId: device.webcamId } : {}),
+  ...(flags.value("hot-folder") ? { hotFolder: flags.value("hot-folder") } : {}),
+  ...(flags.value("hot-folder-trigger") || digicam
+    ? { hotFolderTrigger: flags.value("hot-folder-trigger") ?? DIGICAM_TRIGGER }
+    : {}),
+  ...(printerName ? { printer: printerName } : {}),
+};
 
 /** Interval log metrik (detik), default 60. Stress test memakai nilai kecil. */
 export const metricsEverySec = Math.max(2, Number(flags.value("metrics-every") ?? 60) || 60);

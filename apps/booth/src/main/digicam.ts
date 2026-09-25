@@ -28,9 +28,14 @@ const EXE_CANDIDATES = [
  * kali, yang ditolak fetch (UND_ERR_RES_CONTENT_LENGTH_MISMATCH) maupun node:http (juga dengan insecureHTTPParser:
  * HPE_UNEXPECTED_CONTENT_LENGTH). Body = Content-Length pertama; koneksi keep-alive diputus setelah body lengkap.
  */
-const get = (path: string, timeoutMs: number) =>
+export const rawGet = (url: string, timeoutMs: number) =>
   new Promise<Buffer>((resolve, reject) => {
-    const sock = connect(DIGICAM_PORT, "127.0.0.1");
+    const u = new URL(url);
+    // localhost bisa jadi ::1 dulu, padahal digiCamControl hanya mendengar IPv4.
+    const host = u.hostname === "localhost" ? "127.0.0.1" : u.hostname;
+    const port = Number(u.port || 80);
+    const path = u.pathname + u.search;
+    const sock = connect(port, host);
     let buf = Buffer.alloc(0);
     const fail = (e: Error) => {
       sock.destroy();
@@ -39,9 +44,7 @@ const get = (path: string, timeoutMs: number) =>
     sock.setTimeout(timeoutMs, () => fail(new Error(`digiCamControl ${path}: timeout`)));
     sock.on("error", fail);
     sock.on("connect", () =>
-      sock.write(
-        `GET ${path} HTTP/1.1\r\nHost: 127.0.0.1:${DIGICAM_PORT}\r\nConnection: close\r\n\r\n`,
-      ),
+      sock.write(`GET ${path} HTTP/1.1\r\nHost: ${host}:${port}\r\nConnection: close\r\n\r\n`),
     );
     const done = () => {
       const end = buf.indexOf("\r\n\r\n");
@@ -64,6 +67,18 @@ const get = (path: string, timeoutMs: number) =>
       if (!done()) fail(new Error(`digiCamControl ${path}: respons terpotong`));
     });
   });
+
+const get = (path: string, timeoutMs: number) =>
+  rawGet(`http://127.0.0.1:${DIGICAM_PORT}${path}`, timeoutMs);
+
+/** Pemicu ke web server digiCamControl (port 5513): mode crew "DSLR (digiCamControl)" atau `--digicam`. */
+export const isDigiCamTrigger = (url: string | undefined) => {
+  try {
+    return !!url && new URL(url).port === String(DIGICAM_PORT);
+  } catch {
+    return false;
+  }
+};
 
 const alive = () =>
   get("/?slc=get&param1=camera", 2000).then(

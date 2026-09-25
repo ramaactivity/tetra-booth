@@ -15,7 +15,7 @@ declare class ImageCapture {
  * `takePhoto` hanya meng-encode frame stream ke PNG (1,3–3,1 s), sedangkan frame video → JPEG 0,1–0,2 s.
  * Jadi foto = frame video; `takePhoto` hanya kalau webcam punya mode still lebih besar dari stream.
  */
-export function createWebcamCamera(storage: BoothStorage): BoothCamera {
+export function createWebcamCamera(storage: BoothStorage, deviceId?: string): BoothCamera {
   let stream: MediaStream | null = null;
   let video: HTMLVideoElement | null = null;
   let stillIsLarger = false;
@@ -24,7 +24,13 @@ export function createWebcamCamera(storage: BoothStorage): BoothCamera {
   const open = async () => {
     stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
-      video: { width: { ideal: 2560 }, height: { ideal: 1920 }, frameRate: { ideal: 30 } },
+      video: {
+        width: { ideal: 2560 },
+        height: { ideal: 1920 },
+        frameRate: { ideal: 30 },
+        // Webcam pilihan crew; kalau sudah dicabut, getUserMedia memakai webcam lain.
+        ...(deviceId ? { deviceId: { ideal: deviceId } } : {}),
+      },
     });
     const v = document.createElement("video");
     v.muted = true;

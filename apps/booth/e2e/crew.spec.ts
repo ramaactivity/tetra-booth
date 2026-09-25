@@ -78,6 +78,15 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await w.getByRole("button", { name: /simpan/i }).click();
   await expect(w.getByText(/Kertas 25 \/ 25 lembar/)).toBeVisible();
   await w.screenshot({ path: "test-results/crew-menu.png" });
+
+  // Kamera & Printer (DECISIONS #85): kamera dipaksa baris perintah → terkunci; pengingat 2inch cut tampil.
+  await w.getByRole("button", { name: "Kamera & Printer" }).click();
+  await expect(w.getByText(/Kamera · diatur lewat baris perintah/)).toBeVisible();
+  await expect(w.getByRole("button", { name: "Simulasi" })).toBeDisabled();
+  await expect(w.getByText(/2inch cut harus (Enable|Disable)/)).toBeVisible();
+  await expect(w.getByRole("button", { name: "Simpan & Mulai Ulang" })).toBeDisabled();
+  await w.screenshot({ path: "test-results/crew-device.png" });
+  await w.getByRole("button", { name: "Batal" }).click();
   await w.getByRole("button", { name: /keluar ke mode tamu/i }).click();
 
   await expect(w.getByRole("heading", { name: "Andi & Sari" })).toBeVisible();

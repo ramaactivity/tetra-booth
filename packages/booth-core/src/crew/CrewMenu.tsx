@@ -1,4 +1,4 @@
-import type { EventBundle } from "@tetra/shared";
+import { type EventBundle, printPaper } from "@tetra/shared";
 import { Button } from "@tetra/ui";
 import {
   ArrowRight,
@@ -16,6 +16,8 @@ import type { BoothEvent } from "../event";
 import { usePlatform } from "../PlatformContext";
 import type { CrewStatus, FailedPrint, UpdateCheck } from "../platform";
 import { Logo } from "../ui";
+import { DeviceSheet } from "./DeviceSheet";
+import { Sheet } from "./Sheet";
 import { testPrint } from "./testPrint";
 
 const PAPER_LOW = 30;
@@ -93,28 +95,6 @@ const sub = "mt-3 text-[22px] font-semibold text-text-2";
 const link = "pressable flex min-h-12 items-center gap-2 font-bold";
 
 /** Lembar pilihan di atas dashboard (ganti event, isi roll, konfirmasi tutup). */
-function Sheet({
-  title,
-  children,
-  onClose,
-}: {
-  title: string;
-  children: ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-10 flex items-center justify-center bg-ink/30">
-      <div className="layered flex max-h-[90%] w-[760px] flex-col gap-6 rounded-[28px] border-[2.5px] border-ink bg-white p-10 [--lx:10px]">
-        <h2 className="text-[40px] font-extrabold tracking-[-0.02em]">{title}</h2>
-        {children}
-        <Button variant="plain" className="h-[92px] rounded-[20px] text-2xl" onClick={onClose}>
-          {copy.crew.cancel}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export function CrewMenu({
   event,
   bundles,
@@ -140,7 +120,7 @@ export function CrewMenu({
   const [status, setStatus] = useState<CrewStatus>();
   const [failed, setFailed] = useState<FailedPrint[]>([]);
   const [roll, setRoll] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<"events" | "roll" | "exit" | "update" | null>(null);
+  const [sheet, setSheet] = useState<"events" | "roll" | "exit" | "update" | "device" | null>(null);
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [note, setNote] = useState<string>();
   /** Job test print / cetak ulang terakhir: hasil akhirnya menggantikan catatan "dikirim" (W-018). */
@@ -389,12 +369,8 @@ export function CrewMenu({
           >
             {copy.crew.newRoll}
           </Button>
-          <Button
-            variant="plain"
-            className={action}
-            onClick={act(() => p.crew.printerSettings(), copy.crew.printerSettingsDone)}
-          >
-            {copy.crew.printerSettings}
+          <Button variant="plain" className={action} onClick={() => setSheet("device")}>
+            {copy.crew.device}
           </Button>
           <Button variant="plain" className={action} onClick={onChangePin}>
             {copy.crew.changePin}
@@ -498,6 +474,14 @@ export function CrewMenu({
           </Button>
         </Sheet>
       )}
+      {sheet === "device" && (
+        <DeviceSheet
+          paper={printPaper(event.layout.paper)}
+          onNote={setNote}
+          onClose={() => setSheet(null)}
+        />
+      )}
+
       {sheet === "update" && (
         <Sheet title={copy.crew.update} onClose={() => setSheet(null)}>
           <p className="text-2xl font-medium text-text-2">
