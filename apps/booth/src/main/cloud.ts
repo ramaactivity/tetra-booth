@@ -4,6 +4,9 @@ import {
   BundleManifest,
   type HeartbeatRequest,
   PairResponse,
+  type PaymentCreateRequest,
+  PaymentCreateResponse,
+  PaymentStatusResponse,
 } from "@tetra/shared";
 import { app, safeStorage, screen } from "electron";
 import type { Alerts } from "./alerts";
@@ -162,6 +165,15 @@ export function createCloud(
       return uploader.drain();
     },
     token,
+    /** Tagihan QRIS photobox (TSD §8). Gagal apa pun (offline, belum dipasangkan, server) = Error. */
+    async createPayment(req: PaymentCreateRequest) {
+      return PaymentCreateResponse.parse(await api("/api/booth/payments", req));
+    },
+    async paymentStatus(id: string) {
+      const t = token();
+      if (!t) throw new Error("booth belum dipasangkan");
+      return PaymentStatusResponse.parse(await get(`/api/booth/payments/${id}`, t)).status;
+    },
     async pair(code: string): Promise<CloudDevice> {
       // Booth hanya Windows (DPAPI) & macOS dev (Keychain); Linux = CI tanpa keyring.
       if (process.platform === "linux" && !safeStorage.isEncryptionAvailable())

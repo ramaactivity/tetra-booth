@@ -1,4 +1,12 @@
-import type { AssetKindName, CommandResult, EventBundle, Paper } from "@tetra/shared";
+import type {
+  AssetKindName,
+  CommandResult,
+  EventBundle,
+  Paper,
+  PaymentCreateRequest,
+  PaymentCreateResponse,
+  PaymentStatus,
+} from "@tetra/shared";
 
 /**
  * Satu-satunya pintu booth-core ke perangkat. TSD §0.
@@ -37,6 +45,8 @@ export interface BoothDb {
     eventId: string;
     layoutVersionId: string;
     startedAt: string;
+    /** Photobox: pembayaran paket yang lunas. */
+    paymentId?: string;
   }): Promise<void>;
   /** Sesi + aset + antrean upload dalam satu transaksi (TSD §4.2). */
   sessionCompleted(s: {
@@ -104,6 +114,12 @@ export interface BoothEvents {
   asset(eventId: string, assetId: string): Promise<Uint8Array<ArrayBuffer>>;
 }
 
+/** QRIS photobox lewat cloud (TSD §8). Satu-satunya langkah yang butuh internet; gagal = reject. */
+export interface BoothPayments {
+  create(req: PaymentCreateRequest): Promise<PaymentCreateResponse>;
+  status(paymentId: string): Promise<PaymentStatus>;
+}
+
 export interface BoothPlatform {
   camera: BoothCamera;
   /** Gagal = reject. Sesi tetap selesai walau print gagal (FSD §1.10). */
@@ -112,6 +128,7 @@ export interface BoothPlatform {
   db: BoothDb;
   crew: BoothCrew;
   events: BoothEvents;
+  payments: BoothPayments;
   // ponytail: sync (Fase 2), keepAwake/kiosk (M5) ditambah saat ada pemakainya.
   /** Cek Camera Service hidup. */
   health(): Promise<CommandResult<"system.health">>;

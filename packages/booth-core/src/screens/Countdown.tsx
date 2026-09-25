@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import type { Photo } from "../session";
 import { Done, Steps } from "../ui";
@@ -68,14 +68,17 @@ export function Countdown({
   onDone: () => void;
 }) {
   const [left, setLeft] = useState(seconds);
+  // Ref: induk bisa render ulang tiap detik (timer photobox); callback baru tidak boleh me-reset hitungan.
+  const done = useRef(onDone);
+  done.current = onDone;
   useEffect(() => {
     if (left <= 0) {
-      onDone();
+      done.current();
       return;
     }
     const t = setTimeout(() => setLeft((n) => n - 1), 1000);
     return () => clearTimeout(t);
-  }, [left, onDone]);
+  }, [left]);
 
   return (
     <div className="absolute inset-0">

@@ -149,4 +149,89 @@ describe("sessionReducer", () => {
     expect(sessionReducer(printSelect, { type: "PRINTS_SELECTED", count: 0 })).toBe(printSelect);
     expect(run([start, start]).sessionId).toBe("abc");
   });
+
+  describe("photobox (DECISIONS #70)", () => {
+    const paid = run([
+      { type: "PHOTOBOX_START", draftId: "pbx" },
+      { type: "LAYOUT_CHOSEN", layoutId: "4r-grid" },
+      { type: "PAID", paymentId: "pay-1" },
+    ]);
+    const pbStart: SessionEvent = { ...start, sessionId: "pbx", deadline: 1000 };
+
+    it("layout → bayar paket → lunas → sesi dengan timer, pembayaran tercatat", () => {
+      expect(paid).toMatchObject({ phase: "paid", layoutId: "4r-grid", paymentId: "pay-1" });
+      const s = run([pbStart], paid);
+      expect(s).toMatchObject({ phase: "countdown", sessionId: "pbx", deadline: 1000 });
+      expect(s.paymentId).toBe("pay-1");
+    });
+
+    it("batal paket → pilih layout lagi; kembali → attract", () => {
+      const cancel = run([
+        { type: "PHOTOBOX_START", draftId: "pbx" },
+        { type: "LAYOUT_CHOSEN", layoutId: "x" },
+        { type: "PAYMENT_CANCEL" },
+      ]);
+      expect(cancel).toMatchObject({ phase: "layout_select", layoutId: null });
+      expect(run([{ type: "BACK" }], cancel).phase).toBe("attract");
+    });
+
+    it("cetak 1 langsung; lebih dari 1 → bayar tambahan → cetak total; batal tambahan → 1 lembar", () => {
+      const select = run(
+        [
+          pbStart,
+          ...shootAll,
+          { type: "CONTINUE" },
+          { type: "COMPOSED", strip: { path: "s", url: "u" } },
+        ],
+        paid,
+      );
+      expect(run([{ type: "PRINTS_SELECTED", count: 1 }], select)).toMatchObject({
+        phase: "printing",
+        prints: 1,
+      });
+      const pay = run([{ type: "PRINTS_SELECTED", count: 3 }], select);
+      expect(pay).toMatchObject({ phase: "payment", paying: { for: "extra", extraPrints: 2 } });
+      expect(run([{ type: "PAID", paymentId: "pay-2" }], pay)).toMatchObject({
+        phase: "printing",
+        prints: 3,
+        paymentId: "pay-1",
+      });
+      expect(run([{ type: "PAYMENT_CANCEL" }], pay)).toMatchObject({
+        phase: "printing",
+        prints: 1,
+      });
+    });
+
+    it("waktu habis: slot kosong diisi foto terakhir → compose; di pilih cetak → 1 lembar; saat bayar tidak dipotong", () => {
+      const one = run([pbStart, ...shoot(1)], paid);
+      const up = run([{ type: "TIME_UP" }], one);
+      expect(up.phase).toBe("compose");
+      expect(up.photos.map((p) => p?.path)).toEqual(["/s/1.jpg", "/s/1.jpg", "/s/1.jpg"]);
+      const select = run(
+        [
+          pbStart,
+          ...shootAll,
+          { type: "CONTINUE" },
+          { type: "COMPOSED", strip: { path: "s", url: "u" } },
+        ],
+        paid,
+      );
+      expect(run([{ type: "TIME_UP" }], select)).toMatchObject({ phase: "printing", prints: 1 });
+      const paying = run([{ type: "PRINTS_SELECTED", count: 2 }], select);
+      expect(run([{ type: "TIME_UP" }], paying).phase).toBe("payment");
+    });
+
+    it("mode event tidak pernah minta bayar", () => {
+      const select = run([
+        start,
+        ...shootAll,
+        { type: "CONTINUE" },
+        { type: "COMPOSED", strip: { path: "s", url: "u" } },
+      ]);
+      expect(run([{ type: "PRINTS_SELECTED", count: 2 }], select)).toMatchObject({
+        phase: "printing",
+        prints: 2,
+      });
+    });
+  });
 });

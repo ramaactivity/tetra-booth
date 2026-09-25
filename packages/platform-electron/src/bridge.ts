@@ -1,4 +1,4 @@
-import type { BoothCrew, BoothDb, BoothEvents } from "@tetra/booth-core";
+import type { BoothCrew, BoothDb, BoothEvents, BoothPayments } from "@tetra/booth-core";
 import type { CommandResult, Paper } from "@tetra/shared";
 
 export type BoothConfig = {
@@ -52,6 +52,8 @@ export type TetraBridge = {
   eventsActive: BoothEvents["active"];
   eventsSetActive: BoothEvents["setActive"];
   eventAsset: BoothEvents["asset"];
+  paymentCreate: BoothPayments["create"];
+  paymentStatus: BoothPayments["status"];
 };
 
 declare global {

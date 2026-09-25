@@ -1,6 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
-import { AssetKindSchema, PairRequest, PaperSchema, SESSION_ID_PATTERN } from "@tetra/shared";
+import {
+  AssetKindSchema,
+  PairRequest,
+  PaperSchema,
+  PaymentCreateRequest,
+  SESSION_ID_PATTERN,
+} from "@tetra/shared";
 import { app, ipcMain, net } from "electron";
 import { z } from "zod";
 import type { Alerts } from "./alerts";
@@ -40,6 +46,7 @@ const SessionStarted = z.object({
   eventId: z.string().min(1).max(64),
   layoutVersionId: z.string().min(1).max(128),
   startedAt: Iso,
+  paymentId: z.uuid().optional(),
 });
 const SessionCompleted = z.object({
   id: z.string().regex(SESSION_ID_PATTERN),
@@ -265,6 +272,12 @@ export function registerIpc(
     });
     cloud.kickUpload();
   });
+
+  // Photobox (Fase 4): nominal tidak pernah dikirim booth; server menghitung dari pengaturan event.
+  ipcMain.handle("paymentCreate", (_e, x: unknown) =>
+    cloud.createPayment(PaymentCreateRequest.parse(x)),
+  );
+  ipcMain.handle("paymentStatus", (_e, id: unknown) => cloud.paymentStatus(z.uuid().parse(id)));
 
   ipcMain.on("phaseChanged", (e, phase: unknown) => {
     const p = z.string().max(32).safeParse(phase);

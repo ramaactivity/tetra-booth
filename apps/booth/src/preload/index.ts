@@ -43,6 +43,8 @@ const bridge: TetraBridge = {
   eventsActive: () => ipcRenderer.invoke("eventsActive"),
   eventsSetActive: (id) => ipcRenderer.invoke("eventsSetActive", id),
   eventAsset: (e, a) => ipcRenderer.invoke("eventAsset", e, a),
+  paymentCreate: (req) => ipcRenderer.invoke("paymentCreate", req),
+  paymentStatus: (id) => ipcRenderer.invoke("paymentStatus", id),
 };
 
 contextBridge.exposeInMainWorld("tetra", bridge);

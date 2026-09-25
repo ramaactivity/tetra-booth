@@ -73,6 +73,8 @@ export type SessionStart = {
   eventId: string;
   layoutVersionId: string;
   startedAt: string;
+  /** Photobox: pembayaran paket yang lunas (DECISIONS #70). */
+  paymentId?: string | undefined;
 };
 export type SessionDone = {
   id: string;
@@ -127,8 +129,8 @@ export function openDb(file: string) {
   };
 
   const insertStart = db.prepare(
-    `insert into sessions (id, event_id, layout_version_id, status, started_at, photo_count, retake_count, print_count)
-     values (?, ?, ?, 'in_progress', ?, 0, 0, 0)
+    `insert into sessions (id, event_id, layout_version_id, payment_id, status, started_at, photo_count, retake_count, print_count)
+     values (?, ?, ?, ?, 'in_progress', ?, 0, 0, 0)
      on conflict (id) do nothing`,
   );
   const complete = db.prepare(
@@ -182,7 +184,7 @@ export function openDb(file: string) {
     abandoned: Number(abandoned),
 
     sessionStarted(s: SessionStart) {
-      insertStart.run(s.id, s.eventId, s.layoutVersionId, s.startedAt);
+      insertStart.run(s.id, s.eventId, s.layoutVersionId, s.paymentId ?? null, s.startedAt);
     },
 
     /** Sesi + aset + antrean upload dalam satu transaksi (TSD §4.2 langkah 1). Idempotent per aset (id = sesi:kind:idx). */
@@ -322,14 +324,16 @@ export function openDb(file: string) {
     },
     /** Metadata sesi untuk upsert cloud (POST /api/booth/sessions). */
     sessionMeta(id: string) {
-      return db
+      const { paymentId, ...m } = db
         .prepare(
           `select id, event_id eventId, started_at startedAt, completed_at completedAt,
              photo_count photoCount, retake_count retakeCount, print_count printCount,
-             (select count(*) from assets where session_id = sessions.id) assetCount
+             (select count(*) from assets where session_id = sessions.id) assetCount,
+             payment_id paymentId
            from sessions where id = ?`,
         )
-        .get(id) as SessionMeta;
+        .get(id) as SessionMeta & { paymentId: string | null };
+      return paymentId ? { ...m, paymentId } : m;
     },
     sessionMetaSynced(id: string) {
       db.prepare("update sessions set synced_meta = 1 where id = ?").run(id);

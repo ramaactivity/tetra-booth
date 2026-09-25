@@ -1,5 +1,6 @@
 /**
- * State machine sesi booth mode event. FSD §1.4, §1.7–1.11.
+ * State machine sesi booth: mode event (FSD §1.4, §1.7–1.11) dan photobox (§1.5, §1.12, DECISIONS #70:
+ * pilih layout → bayar paket → foto dengan timer → tambahan cetak dibayar setelah foto).
  * Reducer murni: semua timer & efek samping ada di SessionRunner, bukan di sini.
  */
 
@@ -13,6 +14,9 @@ export type Strip = { path: string; url: string };
 
 export type Phase =
   | "attract"
+  | "layout_select"
+  | "payment"
+  | "paid"
   | "countdown"
   | "capture"
   | "preview"
@@ -40,10 +44,26 @@ export type SessionState = {
   /** Hasil cetak sesi ini: submit ditolak atau event `print.failed` → "failed" (layar A11). */
   print: "pending" | "done" | "failed";
   strip: Strip | null;
+  /** Photobox: alur bayar aktif untuk sesi ini. */
+  photobox: boolean;
+  /** Photobox: ID sesi sudah dibuat saat memilih layout (dipakai tagihan), jadi `sessionId` setelah lunas. */
+  draftId: string | null;
+  layoutId: string | null;
+  /** Tagihan yang sedang ditampilkan: paket, atau tambahan cetak sejumlah `extraPrints`. */
+  paying: { for: "package" } | { for: "extra"; extraPrints: number } | null;
+  paymentId: string | null;
+  /** Photobox: batas waktu sesi (epoch ms) sejak paket lunas; null = tanpa timer. */
+  deadline: number | null;
 };
 
 export type SessionEvent =
-  | { type: "START"; sessionId: string; slots: number; retakeMax: number }
+  | { type: "START"; sessionId: string; slots: number; retakeMax: number; deadline?: number }
+  | { type: "PHOTOBOX_START"; draftId: string }
+  | { type: "LAYOUT_CHOSEN"; layoutId: string }
+  | { type: "BACK" }
+  | { type: "PAID"; paymentId: string }
+  | { type: "PAYMENT_CANCEL" }
+  | { type: "TIME_UP" }
   | { type: "COUNTDOWN_DONE" }
   | { type: "CAPTURED"; photo: Photo }
   | { type: "CAPTURE_FAILED" }
@@ -71,6 +91,18 @@ export const initialSession: SessionState = {
   prints: 0,
   print: "pending",
   strip: null,
+  photobox: false,
+  draftId: null,
+  layoutId: null,
+  paying: null,
+  paymentId: null,
+  deadline: null,
+};
+
+/** Waktu habis: slot kosong diisi foto terakhir yang ada (FSD §1.5). */
+const fillPhotos = (photos: (Photo | null)[]) => {
+  const last = photos.findLast((p) => p !== null) ?? null;
+  return last ? photos.map((p) => p ?? last) : photos;
 };
 
 export const canRetake = (s: SessionState, index: number): boolean =>
@@ -79,16 +111,53 @@ export const canRetake = (s: SessionState, index: number): boolean =>
 export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
   switch (e.type) {
     case "START":
-      if (s.phase !== "attract" || e.slots < 1) return s;
+      // Mode event dari attract; photobox setelah paket lunas (layar "paid").
+      if ((s.phase !== "attract" && s.phase !== "paid") || e.slots < 1) return s;
       return {
-        ...initialSession,
+        ...(s.phase === "paid" ? s : initialSession),
         phase: "countdown",
         sessionId: e.sessionId,
         slots: e.slots,
         retakeMax: e.retakeMax,
         photos: Array(e.slots).fill(null),
         retakesUsed: Array(e.slots).fill(0),
+        deadline: e.deadline ?? null,
       };
+    case "PHOTOBOX_START":
+      return s.phase === "attract"
+        ? { ...initialSession, phase: "layout_select", photobox: true, draftId: e.draftId }
+        : s;
+    case "LAYOUT_CHOSEN":
+      return s.phase === "layout_select"
+        ? { ...s, phase: "payment", layoutId: e.layoutId, paying: { for: "package" } }
+        : s;
+    case "BACK":
+      return s.phase === "layout_select" ? initialSession : s;
+    case "PAID":
+      if (s.phase !== "payment" || !s.paying) return s;
+      return s.paying.for === "package"
+        ? { ...s, phase: "paid", paymentId: e.paymentId, paying: null }
+        : { ...s, phase: "printing", prints: 1 + s.paying.extraPrints, paying: null };
+    case "PAYMENT_CANCEL":
+      if (s.phase !== "payment" || !s.paying) return s;
+      // Batal paket → pilih layout lagi; batal tambahan → cetak 1 lembar yang sudah termasuk paket.
+      return s.paying.for === "package"
+        ? { ...s, phase: "layout_select", layoutId: null, paying: null }
+        : { ...s, phase: "printing", prints: 1, paying: null };
+    case "TIME_UP":
+      switch (s.phase) {
+        case "countdown":
+        case "capture":
+        case "preview":
+        case "camera_error":
+        case "review":
+          return { ...s, phase: "compose", photos: fillPhotos(s.photos), retaking: false };
+        case "print_select":
+          return { ...s, phase: "printing", prints: 1 };
+        default:
+          // Pembayaran tambahan yang sedang berjalan tidak dipotong timer.
+          return s;
+      }
     case "COUNTDOWN_DONE":
       return s.phase === "countdown" ? { ...s, phase: "capture", attempt: 1 } : s;
     case "CAPTURED": {
@@ -134,9 +203,11 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
       // Booth tidak boleh macet: tanpa strip, lewati cetak dan tetap tampilkan QR.
       return s.phase === "compose" ? { ...s, phase: "qr" } : s;
     case "PRINTS_SELECTED":
-      return s.phase === "print_select" && e.count >= 1
-        ? { ...s, phase: "printing", prints: e.count }
-        : s;
+      if (s.phase !== "print_select" || e.count < 1) return s;
+      // Photobox: lembar ke-2 dst. dibayar dulu (A7b "Bayar & Cetak").
+      return s.photobox && e.count > 1
+        ? { ...s, phase: "payment", paying: { for: "extra", extraPrints: e.count - 1 } }
+        : { ...s, phase: "printing", prints: e.count };
     case "PRINT_DONE":
       return s.phase === "printing" ? { ...s, phase: "qr", print: e.ok ? s.print : "failed" } : s;
     case "PRINT_RESULT":

@@ -75,10 +75,10 @@ Prinsip:
 **Selesai jika:** satu event disiapkan 100% dari admin tanpa menyentuh file lokal, dan klien sungguhan menerima & memakai galerinya.
 
 ## Fase 4 — Mode photobox
-- [ ] Layout ganda per event + harga + harga lembar tambahan.
-- [ ] Flow pilih layout → pilih jumlah → QRIS → sesi dengan timer.
-- [ ] Xendit: buat QRIS, webhook, cek status cadangan, adapter `PaymentProvider`.
-- [ ] Halaman transaksi & laporan omzet + export CSV.
+- [x] Layout ganda per event + harga + harga lembar tambahan. _(2026-09-25: admin E3 mode + layout dijual + harga, DECISIONS #70)_
+- [x] Flow pilih layout → pilih jumlah → QRIS → sesi dengan timer. _(2026-09-25: ikut desain v2 — paket dulu, tambahan cetak dibayar setelah foto, DECISIONS #70; e2e booth photobox)_
+- [x] Xendit: buat QRIS, webhook, cek status cadangan, adapter `PaymentProvider`. _(2026-09-25: Payment Requests API; teruji dengan provider palsu, belum dengan kunci Xendit asli)_
+- [x] Halaman transaksi & laporan omzet + export CSV. _(2026-09-25: E6)_
 - [ ] Uji di lokasi dengan modem 4G.
 
 **Selesai jika:** 100 transaksi nyata dengan ≥ 98% sukses tanpa bantuan crew dan rekonsiliasi cocok dengan dashboard Xendit.
