@@ -1,5 +1,5 @@
-// Build dev untuk laptop Windows uji: Electron (win-x64) + Camera Service (self-contained win-x64)
-// -> satu zip -> upload ke R2 `dev-builds/`. Ikut di-upload: update.cmd & setup-windows-dev.ps1.
+// Build Windows: Electron (win-x64) + Camera Service (self-contained win-x64)
+// -> installer NSIS `Tetra-Booth-Setup.exe` + zip untuk update.cmd -> upload ke R2 `dev-builds/`. Ikut di-upload: update.cmd & setup-windows-dev.ps1.
 // Jalankan: pnpm dist:dev            (build + upload semua)
 //           pnpm dist:dev --tools    (hanya upload script Windows, tanpa build)
 // Butuh R2_* dan NEXT_PUBLIC_MEDIA_URL di apps/web/.env.local.
@@ -39,26 +39,30 @@ const tool = (f) =>
   crlf(readFileSync(`tools/windows/${f}`, "utf8").replaceAll("__MEDIA_URL__", media));
 
 if (!process.argv.includes("--tools")) {
-  const version = `${execSync("git rev-parse --short HEAD").toString().trim()} ${new Date().toISOString().slice(0, 16)}`;
+  const pkg = JSON.parse(readFileSync("apps/booth/package.json", "utf8"));
+  const version = `${pkg.version} (${execSync("git rev-parse --short HEAD").toString().trim()} ${new Date().toISOString().slice(0, 16)})`;
+  const setup = `Tetra-Booth-Setup-${pkg.version}.exe`;
   rmSync("dist", { recursive: true, force: true });
   mkdirSync("dist/app", { recursive: true });
 
-  console.log("\n[1/4] Electron win-x64");
-  sh("pnpm --filter booth build");
-  sh("pnpm exec electron-builder --win --x64 --dir --publish never", "apps/booth");
-  cpSync("apps/booth/release/win-unpacked", "dist/app/booth", { recursive: true });
-
-  console.log("\n[2/4] Camera Service win-x64 self-contained");
+  // Camera Service duluan: installer membawanya sebagai resources/camera (package.json build.extraResources).
+  console.log("\n[1/4] Camera Service win-x64 self-contained");
   sh(
-    "dotnet publish services/camera/TetraCamera.Host -c Release -r win-x64 --self-contained -o dist/app/camera",
+    "dotnet publish services/camera/TetraCamera.Host -c Release -r win-x64 --self-contained -o dist/camera",
   );
 
-  console.log("\n[3/4] Zip");
+  console.log("\n[2/4] Electron win-x64 + installer NSIS");
+  sh("pnpm --filter booth build");
+  sh("pnpm exec electron-builder --win --x64 --publish never", "apps/booth");
+  cpSync("apps/booth/release/win-unpacked", "dist/app/booth", { recursive: true });
+
+  console.log("\n[3/4] Zip (update.cmd)");
   writeFileSync("dist/app/run.cmd", tool("run.cmd"));
   writeFileSync("dist/app/VERSION.txt", `${version}\n`);
   sh("zip -qr ../tetra-booth-dev.zip .", "dist/app");
+  const mb = (f) => `${(statSync(f).size / 1e6).toFixed(0)} MB`;
   console.log(
-    `  ${(statSync("dist/tetra-booth-dev.zip").size / 1e6).toFixed(0)} MB, build ${version}`,
+    `  zip ${mb("dist/tetra-booth-dev.zip")}, installer ${mb(`apps/booth/release/${setup}`)}, build ${version}`,
   );
 
   console.log("\n[4/4] Upload ke R2");
@@ -67,7 +71,16 @@ if (!process.argv.includes("--tools")) {
     readFileSync("dist/tetra-booth-dev.zip"),
     "application/zip",
   );
+  // Nama tetap (link untuk crew) + nama berversi (arsip).
+  const exe = readFileSync(`apps/booth/release/${setup}`);
+  await put(
+    "dev-builds/Tetra-Booth-Setup.exe",
+    exe,
+    "application/vnd.microsoft.portable-executable",
+  );
+  await put(`dev-builds/${setup}`, exe, "application/vnd.microsoft.portable-executable");
   console.log(`  OK: ${media}/dev-builds/tetra-booth-dev.zip`);
+  console.log(`  Installer: ${media}/dev-builds/Tetra-Booth-Setup.exe`);
 }
 
 await put("dev-builds/update.cmd", tool("update.cmd"), "text/plain");

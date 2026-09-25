@@ -1,6 +1,6 @@
 {
   "name": "booth",
-  "version": "0.0.1",
+  "version": "0.5.0",
   "private": true,
   "main": "./out/main/index.js",
   "scripts": {
@@ -49,7 +49,7 @@
     "win": {
       "target": [
         {
-          "target": "zip",
+          "target": "nsis",
           "arch": [
             "x64"
           ]
@@ -61,6 +61,20 @@
     "electronLanguages": [
       "id",
       "en-US"
-    ]
+    ],
+    "extraResources": [
+      {
+        "from": "../../dist/camera",
+        "to": "camera"
+      }
+    ],
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Tetra Booth",
+      "artifactName": "Tetra-Booth-Setup-${version}.${ext}"
+    }
   }
 }
