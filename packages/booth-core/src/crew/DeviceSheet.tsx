@@ -19,6 +19,12 @@ const input =
   "h-14 w-full rounded-[14px] border-[2.5px] border-ink bg-white px-4 font-mono text-lg disabled:opacity-40";
 const label = "text-lg font-bold text-text-2";
 
+/** Chip nilai aktif di tengah baris geser (tanpa scrollIntoView yang ikut menggeser Stage). */
+const centerInRow = (el: HTMLButtonElement | null) => {
+  const row = el?.parentElement;
+  if (el && row) row.scrollLeft = el.offsetLeft - (row.clientWidth - el.clientWidth) / 2;
+};
+
 /**
  * Kamera & printer dari mode crew (DECISIONS #85): sumber kamera, webcam, hot folder + pemicu digiCamControl,
  * setelan eksposur DSLR (langsung berlaku), printer + pengingat 2inch cut. Simpan = booth dibuka ulang.
@@ -126,6 +132,7 @@ export function DeviceSheet({
                   className={input}
                   disabled={locked("hot-folder")}
                   value={draft.hotFolder ?? ""}
+                  placeholder={copy.crew.hotFolderFromDcc}
                   onChange={(e) => set({ hotFolder: e.target.value })}
                 />
               </label>
@@ -147,12 +154,13 @@ export function DeviceSheet({
                       <span className={label}>
                         {x.label} · <span className="font-mono">{x.value || "—"}</span>
                       </span>
-                      <div className="flex gap-2 overflow-x-auto pb-1">
+                      <div className="relative flex gap-2 overflow-x-auto pb-1">
                         {x.options.map((o) => (
                           <button
                             key={o}
                             type="button"
                             className={chip(o === x.value)}
+                            ref={o === x.value ? centerInRow : undefined}
                             onClick={() => void setProp(x.name, o)}
                           >
                             {o}

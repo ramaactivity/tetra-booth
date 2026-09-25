@@ -119,3 +119,10 @@ Syarat sebelum masuk Fase 6:
 - [ ] White-label halaman tamu & galeri (domain & branding vendor).
 - [ ] Integrasi Tetra Ops via API (booking → event otomatis).
 - [ ] Hardening RLS + audit keamanan multi-tenant.
+
+## Catatan ide (belum dijadwalkan, dari Rama 25 Sep 2026)
+Gambaran kasar, disempurnakan saat fase photobox dibuka lagi (setelah Xendit):
+- **Alur buka booth:** loading → pilih mode (Event / Photobox) → **login sesuai mode** → layar mode itu. Mode Event: yang masuk selalu crew Tetra (PIN/akun crew). Mode Photobox: bisa **partner** (mis. pemilik coffee shop tempat photobox ditaruh). Sekarang: pilih mode → event, tanpa login (DECISIONS #86).
+- **Dashboard photobox per lokasi/partner:** tiap photobox (per lokasi kerja sama) punya halaman sendiri: jumlah sesi, uang masuk (QRIS), per hari/bulan, layout terlaris, lembar tambahan, dan bagi hasil dengan partner. Partner hanya melihat lokasinya (role baru `partner` + RLS per lokasi). Dasar data sudah ada: tabel pembayaran + halaman Transaksi E6 (DECISIONS #70).
+- Yang perlu diputuskan nanti: skema bagi hasil, apakah partner bisa mengubah harga/desain, login partner di booth (PIN lokasi atau akun), laporan periodik (email/WA).
+

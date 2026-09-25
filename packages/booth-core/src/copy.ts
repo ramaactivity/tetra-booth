@@ -174,6 +174,7 @@ export const copy = {
     noWebcam: "Tidak ada webcam terdeteksi.",
     noPrinter: "Tidak ada printer terdeteksi. Pasang driver printer di Windows dulu.",
     hotFolder: "Folder hot folder",
+    hotFolderFromDcc: "Mengikuti folder sesi digiCamControl",
     hotFolderTrigger: "Alamat pemicu shutter",
     noExposure:
       "Setelan ISO/shutter muncul kalau digiCamControl menyala dan kamera terhubung. Bisa juga diatur langsung di kamera.",
