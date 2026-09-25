@@ -50,7 +50,17 @@ const serviceCamera = (bridge: TetraBridge, liveView: boolean): BoothCamera => {
       clearTimeout(hide);
       hide = setTimeout(() => void bridge.liveViewStop().catch(() => {}), LIVE_VIEW_IDLE_MS);
     },
-    capture: (req) => bridge.cameraCapture(req),
+    // Live view dimatikan dulu: di 700D, jepret saat live view terus dibaca kadang membuat file tidak terkirim
+    // ("EOS capture end" tanpa file) lalu kamera macet (W-031, 2026-09-25). Countdown berikutnya menyalakannya lagi.
+    capture: async (req) => {
+      if (liveView) {
+        run++;
+        clearTimeout(hide);
+        await bridge.liveViewStop().catch(() => {});
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      return bridge.cameraCapture(req);
+    },
     reconnect: async () => {
       const s = await bridge.cameraStatus();
       if (!s.connected) throw new Error("kamera Camera Service belum terhubung");

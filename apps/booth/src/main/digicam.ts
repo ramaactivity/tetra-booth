@@ -152,6 +152,10 @@ export async function ensureDigiCam(
  */
 export const liveViewStart = async () => {
   await get("/?CMD=LiveViewWnd_Show", 5000);
+  // Jendela live view digiCamControl muncul di depan booth; diperkecil (live view tetap jalan), sama seperti
+  // endpoint /liveviewwebcam.jpg bawaan digiCamControl.
+  await new Promise((r) => setTimeout(r, 500));
+  await get("/?CMD=All_Minimize", 5000);
   await get("/?CMD=LiveView_NoProcess", 5000);
 };
 export const liveViewStop = () => get("/?CMD=LiveViewWnd_Hide", 5000).then(() => undefined);
