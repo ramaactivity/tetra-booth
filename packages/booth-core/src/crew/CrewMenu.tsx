@@ -4,6 +4,7 @@ import {
   ArrowRight,
   ArrowUpDown,
   Camera,
+  Focus,
   Heart,
   type LucideIcon,
   Printer,
@@ -15,6 +16,7 @@ import { crewText, errText } from "../errors";
 import type { BoothEvent } from "../event";
 import { usePlatform } from "../PlatformContext";
 import type { CrewStatus, FailedPrint, UpdateCheck } from "../platform";
+import { sharpNotes } from "../sharpness";
 import { Logo } from "../ui";
 import { DeviceSheet } from "./DeviceSheet";
 import { Sheet } from "./Sheet";
@@ -117,6 +119,7 @@ export function CrewMenu({
   const [roll, setRoll] = useState<string | null>(null);
   const [sheet, setSheet] = useState<"roll" | "exit" | "update" | "device" | null>(null);
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
+  const [blurWarn, setBlurWarn] = useState(() => sharpNotes.crewWarning());
   const [note, setNote] = useState<string>();
   /** Job test print / cetak ulang terakhir: hasil akhirnya menggantikan catatan "dikirim" (W-018). */
   const [, setWatching] = useState<string | null>(null);
@@ -198,6 +201,32 @@ export function CrewMenu({
           </div>
         </div>
       </header>
+      {blurWarn && (
+        <div
+          role="alert"
+          className="flex items-center gap-6 rounded-[22px] border-[2.5px] border-ink bg-peach px-7 py-5"
+        >
+          <Focus size={30} strokeWidth={2.5} className="shrink-0" />
+          <p className="flex-1 text-xl font-semibold">{copy.crew.blurWarn}</p>
+          <Button
+            variant="secondary"
+            className="h-16 shrink-0 rounded-2xl px-5 text-xl"
+            onClick={() => setSheet("device")}
+          >
+            {copy.crew.blurFix}
+          </Button>
+          <button
+            type="button"
+            className="shrink-0 text-xl font-bold underline"
+            onClick={() => {
+              sharpNotes.dismissWarning();
+              setBlurWarn(false);
+            }}
+          >
+            {copy.crew.blurDismiss}
+          </button>
+        </div>
+      )}
 
       <div className="grid flex-1 grid-cols-3 grid-rows-2 gap-8 portrait:grid-cols-1 portrait:grid-rows-none">
         <StatCard

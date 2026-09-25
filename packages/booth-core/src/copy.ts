@@ -15,6 +15,7 @@ export const copy = {
   review: {
     title: "Cek fotonya dulu",
     retake: "Ulangi",
+    blurry: "Sepertinya kurang tajam",
     next: "Pakai Semua Foto",
     rule: (n: number) => `Tiap foto bisa diulang ${n} kali`,
     retaken: (used: number, max: number) => `Sudah diulang (${used}/${max})`,
@@ -181,6 +182,11 @@ export const copy = {
     cutOn: "Layout event ini strip 2R: 2inch cut harus Enable.",
     cutOff: "Layout event ini 4R/polaroid: 2inch cut harus Disable.",
     deviceSave: "Simpan & Mulai Ulang",
+    sharpBase: (n: number) => `patokan ketajaman ${n}`,
+    blurWarn:
+      "Foto di 2 dari 3 sesi terakhir sepertinya kurang tajam. Cek fokus kamera, lalu Tes Jepret untuk patokan baru.",
+    blurFix: "Kamera & Printer",
+    blurDismiss: "Tutup",
     deviceRestarting: "Menyimpan… booth ditutup lalu terbuka lagi",
     printerSettingsDone:
       "Dialog printer ditutup. 2inch cut: Enable untuk strip 2R, Disable untuk 4R & polaroid.",

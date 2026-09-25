@@ -3,6 +3,7 @@ import { cpuCanvas } from "@tetra/template-engine";
 import { applyPalette, GIFEncoder, quantize } from "gifenc";
 import type { AssetKind, BoothStorage, SessionAsset } from "./platform";
 import type { Photo, Strip } from "./session";
+import { sharpness } from "./sharpness";
 
 export const ORIGINAL_LONG_SIDE = 2400;
 export const THUMB_LONG_SIDE = 480;
@@ -36,7 +37,7 @@ const encode = async (src: ImageBitmap, w: number, h: number, quality = THUMB_QU
   );
 };
 
-/** Object URL JPEG kecil untuk ditampilkan; raw tetap dipakai compose & output. Rasio dijaga browser (aman untuk EXIF). */
+/** Object URL JPEG kecil untuk ditampilkan + skor ketajaman (#88); raw tetap dipakai compose & output. Rasio dijaga browser (aman untuk EXIF). */
 export async function previewUrl(bytes: Uint8Array<ArrayBuffer>, w: number, h: number) {
   const bmp = await createImageBitmap(
     new Blob([bytes]),
@@ -45,8 +46,9 @@ export async function previewUrl(bytes: Uint8Array<ArrayBuffer>, w: number, h: n
       : { resizeHeight: Math.min(h, PREVIEW_LONG_SIDE), resizeQuality: "high" },
   );
   try {
+    const sharp = sharpness(bmp);
     const jpeg = await encode(bmp, bmp.width, bmp.height);
-    return URL.createObjectURL(new Blob([jpeg], { type: "image/jpeg" }));
+    return { url: URL.createObjectURL(new Blob([jpeg], { type: "image/jpeg" })), sharp };
   } finally {
     bmp.close();
   }

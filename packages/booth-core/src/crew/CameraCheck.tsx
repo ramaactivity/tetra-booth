@@ -5,9 +5,10 @@ import { copy } from "../copy";
 import { errText } from "../errors";
 import { usePlatform } from "../PlatformContext";
 import { LiveView } from "../screens/LiveView";
+import { sharpNotes, sharpness } from "../sharpness";
 
 /** Cek kamera: live view + test shot (FSD §1.3). */
-export function CameraCheck({ onBack }: { onBack: () => void }) {
+export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () => void }) {
   const p = usePlatform();
   const [shot, setShot] = useState<string>();
   const [info, setInfo] = useState<string>();
@@ -18,7 +19,15 @@ export function CameraCheck({ onBack }: { onBack: () => void }) {
       const bytes = await p.storage.readFile(r.path);
       if (shot) URL.revokeObjectURL(shot);
       setShot(URL.createObjectURL(new Blob([bytes], { type: "image/jpeg" })));
-      setInfo(`${r.width}×${r.height} · ${Math.round(performance.now() - t0)} ms`);
+      // Tes Jepret setelah fokus benar = patokan ketajaman event ini (#88).
+      const bmp = await createImageBitmap(new Blob([bytes]));
+      const score = Math.round(sharpness(bmp));
+      bmp.close();
+      sharpNotes.setBaseline(eventId, score);
+      sharpNotes.dismissWarning();
+      setInfo(
+        `${r.width}×${r.height} · ${Math.round(performance.now() - t0)} ms · ${copy.crew.sharpBase(score)}`,
+      );
     } catch (e) {
       setInfo(errText(e));
     }

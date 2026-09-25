@@ -28,6 +28,8 @@ test("hot folder: 3 JPEG yang masuk folder jadi 3 foto sesi", async () => {
   const w = await app.firstWindow();
   const start = w.getByRole("button", { name: /sentuh untuk mulai/i });
   await expect(start).toBeVisible();
+  // Patokan ketajaman event default (#88): foto uji warna polos pasti di bawahnya → lencana "kurang tajam".
+  await w.evaluate(() => localStorage.setItem("tb.sharp.base.local", "100"));
   await w.waitForTimeout(1000); // tombol mulai aktif setelah START_GUARD_MS
   await start.click();
 
@@ -58,6 +60,9 @@ test("hot folder: 3 JPEG yang masuk folder jadi 3 foto sesi", async () => {
     timeout: 15_000,
   });
   await w.screenshot({ path: "test-results/hotfolder-review.png" });
+  // Hanya pengingat: lencana muncul, tamu tetap bisa lanjut.
+  await expect(w.getByTestId("blurry-badge")).toHaveCount(3);
+  await expect(w.getByRole("button", { name: /Pakai Semua Foto/ })).toBeEnabled();
 
   const sessions = readdirSync(join(data, "sessions"));
   expect(sessions).toHaveLength(1);

@@ -56,7 +56,7 @@ export function CrewMode({
     case "pair":
       return <PairPad onDone={() => setView("menu")} onCancel={() => setView("menu")} />;
     case "camera":
-      return <CameraCheck onBack={() => setView("menu")} />;
+      return <CameraCheck eventId={event.id} onBack={() => setView("menu")} />;
     case "start":
       return (
         <StartScreen

@@ -9,7 +9,8 @@ export { DEFAULT_SETTINGS, type EventSettings } from "@tetra/shared";
 /** Capture gagal berturut-turut sebanyak ini → layar "kamera disiapkan". FSD §1.7: retry otomatis 1x. */
 export const MAX_CAPTURE_ATTEMPTS = 2;
 
-export type Photo = { path: string; url: string; width: number; height: number };
+/** `sharp` = skor ketajaman preview (DECISIONS #88), hanya untuk pengingat foto buram. */
+export type Photo = { path: string; url: string; width: number; height: number; sharp?: number };
 /** `path` = lembar cetak 1200×1800, `piecePath`/`url` = satu potong desain (DECISIONS #78). */
 export type Strip = { path: string; piecePath: string; url: string };
 

@@ -19,6 +19,7 @@ import { PrintSelect } from "./screens/PrintSelect";
 import { Qr } from "./screens/Qr";
 import { Review } from "./screens/Review";
 import { initialSession, type Photo, type SessionEvent, sessionReducer } from "./session";
+import { isBlurry, sharpNotes } from "./sharpness";
 
 const RECONNECT_EVERY_MS = 2000;
 /** Layar "Pembayaran berhasil" sebelum sesi foto mulai (A4a). */
@@ -142,9 +143,13 @@ export function SessionRunner({
     p.camera
       .capture({ sessionId: s.sessionId, index: s.index })
       .then(async (r) => {
-        const url = await previewUrl(await p.storage.readFile(r.path), r.width, r.height);
+        const { url, sharp } = await previewUrl(
+          await p.storage.readFile(r.path),
+          r.width,
+          r.height,
+        );
         urls.current.push(url);
-        if (live) dispatch({ type: "CAPTURED", photo: { ...r, url } });
+        if (live) dispatch({ type: "CAPTURED", photo: { ...r, url, sharp } });
       })
       .catch((e: unknown) => {
         console.warn(`[session] capture gagal: ${errText(e)}`);
@@ -203,6 +208,12 @@ export function SessionRunner({
       retakeCount: s.retakesUsed.reduce((a, b) => a + b, 0),
       printCount: s.strip ? s.prints : 0,
     };
+    // Pengingat foto buram (#88): catat skor & apakah sesi ini punya foto yang mungkin buram.
+    const ref = sharpNotes.reference(ev.id);
+    sharpNotes.recordSession(
+      photos.flatMap((x) => (x.sharp === undefined ? [] : [x.sharp])),
+      photos.some((x) => isBlurry(x.sharp, ref)),
+    );
     const t0 = performance.now();
     (s.strip ? buildOutputs(p.storage, id, photos, s.strip) : Promise.resolve([]))
       .then((assets) => p.db.sessionCompleted({ ...done, assets }).then(() => assets.length))
@@ -212,7 +223,7 @@ export function SessionRunner({
         ),
       )
       .catch((e: unknown) => console.error(`[session] gagal menyelesaikan ${id}: ${errText(e)}`));
-  }, [p, s.phase, s.sessionId, s.photos, s.retakesUsed, s.strip, s.prints]);
+  }, [p, s.phase, s.sessionId, s.photos, s.retakesUsed, s.strip, s.prints, ev.id]);
 
   // Compose strip.
   useEffect(() => {
@@ -374,6 +385,7 @@ export function SessionRunner({
         return (
           <Review
             photos={s.photos}
+            blurry={s.photos.map((x) => isBlurry(x?.sharp, sharpNotes.reference(ev.id)))}
             retakesUsed={s.retakesUsed}
             retakeMax={s.retakeMax}
             onRetake={(index) => dispatch({ type: "RETAKE", index })}

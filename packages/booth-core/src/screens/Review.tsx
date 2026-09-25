@@ -1,5 +1,5 @@
 import { Button } from "@tetra/ui";
-import { ArrowRight, RotateCcw } from "lucide-react";
+import { ArrowRight, Focus, RotateCcw } from "lucide-react";
 import type { CSSProperties } from "react";
 import { copy } from "../copy";
 import type { Photo } from "../session";
@@ -7,12 +7,15 @@ import { Logo } from "../ui";
 
 export function Review({
   photos,
+  blurry = [],
   retakesUsed,
   retakeMax,
   onRetake,
   onNext,
 }: {
   photos: (Photo | null)[];
+  /** Foto yang mungkin buram (#88): lencana + tombol Ulangi disorot, tidak pernah mengunci. */
+  blurry?: boolean[];
   retakesUsed: number[];
   retakeMax: number;
   onRetake: (index: number) => void;
@@ -49,11 +52,20 @@ export function Review({
                   <span className="absolute top-3.5 left-3.5 flex size-[46px] items-center justify-center rounded-full border-2 border-ink bg-white text-xl font-extrabold">
                     {i + 1}
                   </span>
+                  {blurry[i] && (
+                    <span
+                      data-testid="blurry-badge"
+                      className="absolute top-3.5 right-3.5 flex items-center gap-2 rounded-full border-2 border-ink bg-peach px-4 py-1.5 text-xl font-bold"
+                    >
+                      <Focus size={20} strokeWidth={2.5} />
+                      {copy.review.blurry}
+                    </span>
+                  )}
                 </div>
                 {used < retakeMax ? (
                   <Button
-                    variant="plain"
-                    className="h-[92px] rounded-[22px] bg-white! text-[26px]"
+                    variant={blurry[i] ? "primary" : "plain"}
+                    className={`h-[92px] rounded-[22px] text-[26px] ${blurry[i] ? "" : "bg-white!"}`}
                     onClick={() => onRetake(i)}
                   >
                     <RotateCcw size={24} strokeWidth={2.5} />
