@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { rupiah } from "../format";
 
-/** Tamu pergi tanpa memilih (M-019): tanpa sentuhan selama ini → cetak jumlah yang sedang dipilih. */
+/** Tamu pergi tanpa memilih (M-019): tanpa sentuhan selama ini → lanjut ke QR tanpa cetak (masukan Rama). */
 export const PRINT_SELECT_IDLE_MS = 30_000;
 
 export function PrintSelect({
@@ -23,11 +23,12 @@ export function PrintSelect({
   const photobox = extraPrice !== undefined;
   const select = useRef(onSelect);
   select.current = onSelect;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: n sengaja, supaya timer mulai ulang saat tamu memilih
   useEffect(() => {
-    // Photobox: tamu pergi → cetak lembar yang sudah dibayar saja, jangan membuat tagihan.
-    const t = setTimeout(() => select.current(photobox ? 1 : n), PRINT_SELECT_IDLE_MS);
+    // Hitung ulang tiap kali tamu mengubah jumlah; waktu habis = tidak cetak (tidak pernah cetak otomatis).
+    const t = setTimeout(() => select.current(0), PRINT_SELECT_IDLE_MS);
     return () => clearTimeout(t);
-  }, [n, photobox]);
+  }, [n]);
   const step =
     "flex size-[150px] items-center justify-center border-dashed border-ink disabled:text-muted";
   return (
@@ -118,9 +119,21 @@ export function PrintSelect({
               </span>
               {copy.print.free(max)}
             </p>
-            <Button className="h-[116px] rounded-[26px] text-[34px]" onClick={() => onSelect(n)}>
-              {copy.print.print}
-            </Button>
+            <div className="flex gap-6">
+              <Button
+                variant="secondary"
+                className="h-[116px] flex-1 rounded-[26px] text-[32px]"
+                onClick={() => onSelect(0)}
+              >
+                {copy.print.skip}
+              </Button>
+              <Button
+                className="h-[116px] flex-[1.6] rounded-[26px] text-[34px]"
+                onClick={() => onSelect(n)}
+              >
+                {copy.print.print}
+              </Button>
+            </div>
           </>
         )}
       </section>

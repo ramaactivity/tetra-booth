@@ -154,7 +154,8 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
         case "review":
           return { ...s, phase: "compose", photos: fillPhotos(s.photos), retaking: false };
         case "print_select":
-          return { ...s, phase: "printing", prints: 1 };
+          // Tamu pergi tanpa memilih: jangan cetak otomatis (masukan Rama), langsung QR.
+          return { ...s, phase: "qr", prints: 0 };
         default:
           // Pembayaran tambahan yang sedang berjalan tidak dipotong timer.
           return s;
@@ -204,7 +205,9 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
       // Booth tidak boleh macet: tanpa strip, lewati cetak dan tetap tampilkan QR.
       return s.phase === "compose" ? { ...s, phase: "qr" } : s;
     case "PRINTS_SELECTED":
-      if (s.phase !== "print_select" || e.count < 1) return s;
+      if (s.phase !== "print_select" || e.count < 0) return s;
+      // 0 = "Tidak Cetak": lewati cetak, langsung QR.
+      if (e.count === 0) return { ...s, phase: "qr", prints: 0 };
       // Photobox: lembar ke-2 dst. dibayar dulu (A7b "Bayar & Cetak").
       return s.photobox && e.count > 1
         ? { ...s, phase: "payment", paying: { for: "extra", extraPrints: e.count - 1 } }

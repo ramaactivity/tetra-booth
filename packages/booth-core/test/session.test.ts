@@ -152,7 +152,11 @@ describe("sessionReducer", () => {
       [{ type: "CONTINUE" }, { type: "COMPOSED", strip: { path: "p", piecePath: "p", url: "u" } }],
       review,
     );
-    expect(sessionReducer(printSelect, { type: "PRINTS_SELECTED", count: 0 })).toBe(printSelect);
+    expect(sessionReducer(printSelect, { type: "PRINTS_SELECTED", count: -1 })).toBe(printSelect);
+    expect(run([{ type: "PRINTS_SELECTED", count: 0 }], printSelect)).toMatchObject({
+      phase: "qr",
+      prints: 0,
+    });
     expect(run([start, start]).sessionId).toBe("abc");
   });
 
@@ -208,7 +212,7 @@ describe("sessionReducer", () => {
       });
     });
 
-    it("waktu habis: slot kosong diisi foto terakhir → compose; di pilih cetak → 1 lembar; saat bayar tidak dipotong", () => {
+    it("waktu habis: slot kosong diisi foto terakhir → compose; di pilih cetak → tanpa cetak; saat bayar tidak dipotong", () => {
       const one = run([pbStart, ...shoot(1)], paid);
       const up = run([{ type: "TIME_UP" }], one);
       expect(up.phase).toBe("compose");
@@ -222,7 +226,7 @@ describe("sessionReducer", () => {
         ],
         paid,
       );
-      expect(run([{ type: "TIME_UP" }], select)).toMatchObject({ phase: "printing", prints: 1 });
+      expect(run([{ type: "TIME_UP" }], select)).toMatchObject({ phase: "qr", prints: 0 });
       const paying = run([{ type: "PRINTS_SELECTED", count: 2 }], select);
       expect(run([{ type: "TIME_UP" }], paying).phase).toBe("payment");
     });
