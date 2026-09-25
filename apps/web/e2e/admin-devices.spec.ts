@@ -6,7 +6,7 @@ test.skip(!hasDb, "butuh Supabase dev (apps/web/.env.local)");
 
 test("daftarkan device, pairing, status online, nonaktifkan", async ({ page, request }) => {
   const u = await makeUser("owner");
-  const name = `e2e booth ${Date.now()}`;
+  const name = `e2e booth ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   try {
     await login(page, u);
     await page.getByRole("link", { name: "Device" }).click();

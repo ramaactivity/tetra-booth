@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { loadGallery } from "@/lib/gallery";
+import { shortDate } from "@/lib/guest";
+import { GallerySettings } from "./GallerySettings";
 import { GalleryView } from "./GalleryView";
 
 export const metadata: Metadata = {
@@ -96,6 +98,11 @@ export default async function GalleryPage({ params }: { params: Promise<{ token:
           </div>
         </div>
       )}
+      <GallerySettings
+        token={token}
+        enabled={g.publicGallery}
+        deleteOn={g.expiresAt ? shortDate(g.expiresAt) : null}
+      />
       <GalleryView token={token} photos={g.photos} />
     </main>
   );

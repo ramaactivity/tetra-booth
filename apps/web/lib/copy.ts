@@ -18,6 +18,13 @@ export const copy = {
     invalid: "Periksa lagi isian dan centang persetujuan",
     failed: "Gagal mengirim, coba lagi",
   },
+  publicGallery: {
+    link: "Lihat galeri acara",
+    title: "Galeri acara",
+    back: "‹ Foto kamu",
+    gone: "Galeri acara tidak tersedia",
+    goneBody: "Penyelenggara belum membuka galeri ini, atau masa simpannya sudah berakhir.",
+  },
   guest: {
     strip: "Strip",
     original: "Original",

@@ -22,7 +22,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     .from("devices")
     .insert({
       organization_id: u.org,
-      name: `e2e booth ${Date.now()}`,
+      name: `e2e booth ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       short_code: `E${Date.now() % 1e6}`,
       token_hash: sha(Buffer.from(token)),
     })

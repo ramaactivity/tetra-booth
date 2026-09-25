@@ -85,9 +85,9 @@ Prinsip:
 
 ## Fase 5 — Ekspansi
 - [ ] Sony a7III via Camera Remote SDK.
-- [ ] Animasi (GIF/boomerang) di booth, halaman tamu, galeri. _(GIF foto sesi di booth + halaman tamu sudah dimajukan 2026-09-25, DECISIONS #62; sisa: boomerang/video live view, galeri)_
+- [ ] Animasi (GIF/boomerang) di booth, halaman tamu, galeri. _(GIF foto sesi di booth + halaman tamu sudah dimajukan 2026-09-25, DECISIONS #62; galeri L3 2026-09-25, DECISIONS #72; sisa: boomerang/video live view, butuh kamera asli)_
 - [x] Lead capture (gate/optional + consent) + export CSV dari admin. _(L1, 2026-09-25, DECISIONS #71)_
-- [ ] Galeri event publik untuk tamu.
+- [x] Galeri event publik untuk tamu. _(L2, 2026-09-25: `/s/{id}/galeri`, DECISIONS #72; QR di live slideshow menyusul)_
 - [ ] Temukan Foto Saya (embedding di booth, pgvector, consent).
 
 ## 🚦 Gerbang Windows Matang

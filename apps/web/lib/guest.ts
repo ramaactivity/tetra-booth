@@ -27,6 +27,8 @@ export type GuestState =
       assets: GuestAsset[];
       expiresAt: string | null;
       lead: GuestLead | null;
+      /** Klien mengaktifkan galeri publik → link "Lihat galeri acara". */
+      publicGallery: boolean;
     };
 
 export async function loadGuest(sessionId: string, now = new Date()): Promise<GuestState> {
@@ -35,7 +37,7 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
   const { data: s } = await db
     .from("sessions")
     .select(
-      "id, organization_id, started_at, upload_status, asset_count, hidden_at, deleted_at, events!inner(name, event_date, guest_expires_at, client_expires_at, purged_at, lead_capture)",
+      "id, organization_id, started_at, upload_status, asset_count, hidden_at, deleted_at, events!inner(name, event_date, guest_expires_at, client_expires_at, purged_at, lead_capture, public_gallery)",
     )
     .eq("id", sessionId)
     .maybeSingle();
@@ -84,7 +86,7 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
       total: s.asset_count ?? 0,
       lead,
     };
-  return { state: "ready", event, assets, expiresAt, lead };
+  return { state: "ready", event, assets, expiresAt, lead, publicGallery: e.public_gallery };
 }
 
 const tz = { timeZone: "Asia/Jakarta" } as const;

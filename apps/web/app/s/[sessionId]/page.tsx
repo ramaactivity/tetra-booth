@@ -100,6 +100,17 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
           assets={g.assets}
           expiresAt={g.expiresAt ? shortDate(g.expiresAt) : null}
         />
+        {g.publicGallery && (
+          <a
+            href={`/s/${sessionId}/galeri`}
+            className="pressable layered mx-5 mb-7 flex h-12 items-center justify-between rounded-xl border-[1.5px] border-ink bg-white pr-2 pl-4 text-sm font-bold no-underline [--lb:1.5px] [--lx:4px] [--under:var(--lavender)]"
+          >
+            {copy.publicGallery.link}
+            <span className="flex size-8 items-center justify-center rounded-full border-[1.5px] border-ink bg-lavender">
+              →
+            </span>
+          </a>
+        )}
         {g.lead && <LeadSheet sessionId={sessionId} lead={g.lead} />}
       </Shell>
     );

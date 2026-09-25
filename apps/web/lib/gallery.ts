@@ -1,11 +1,15 @@
 import "server-only";
+import { SESSION_ID_PATTERN } from "@tetra/shared";
 import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
-/** Galeri klien `/g/{token}` (FSD §3): data event + foto yang tidak disembunyikan/dihapus. */
+/**
+ * Galeri klien `/g/{token}` dan galeri publik tamu `/s/{id}/galeri` (FSD §3, DECISIONS #72): data event + foto yang
+ * tidak disembunyikan/dihapus, termasuk GIF animasi sesi.
+ */
 export type GalleryPhoto = {
   id: string;
-  kind: "strip" | "original";
+  kind: "strip" | "original" | "animation";
   sessionId: string;
   hour: number;
   thumb: string;
@@ -23,6 +27,7 @@ export type Gallery =
       location: string | null;
       expiresAt: string | null;
       daysTotal: number | null;
+      publicGallery: boolean;
       photos: GalleryPhoto[];
     };
 
@@ -42,7 +47,7 @@ export async function eventByClientToken(token: string) {
   const { data } = await createServiceClient()
     .from("events")
     .select(
-      "id, organization_id, name, event_date, location, branding, client_expires_at, purged_at",
+      "id, organization_id, name, event_date, location, branding, client_expires_at, purged_at, public_gallery",
     )
     .eq("client_token", token)
     .maybeSingle();
@@ -55,9 +60,32 @@ export async function eventByClientToken(token: string) {
   return data;
 }
 
+type GalleryEvent = NonNullable<Awaited<ReturnType<typeof eventByClientToken>>>;
+
 export async function loadGallery(token: string): Promise<Gallery> {
   const ev = await eventByClientToken(token);
-  if (!ev) return { state: "gone" };
+  return ev ? galleryOf(ev, true) : { state: "gone" };
+}
+
+/** Galeri publik dari halaman tamu: hanya kalau klien mengaktifkannya dan halaman tamu masih berlaku. */
+export async function loadPublicGallery(sessionId: string): Promise<Gallery> {
+  if (!SESSION_ID_PATTERN.test(sessionId)) return { state: "gone" };
+  const { data: s } = await createServiceClient()
+    .from("sessions")
+    .select(
+      "hidden_at, deleted_at, events!inner(id, organization_id, name, event_date, location, branding, client_expires_at, guest_expires_at, purged_at, public_gallery)",
+    )
+    .eq("id", sessionId)
+    .maybeSingle();
+  const ev = s?.events;
+  const until = ev?.guest_expires_at ?? ev?.client_expires_at;
+  if (!s || !ev?.public_gallery || ev.purged_at || s.hidden_at || s.deleted_at)
+    return { state: "gone" };
+  if (until && new Date(until) <= new Date()) return { state: "gone" };
+  return galleryOf(ev, false);
+}
+
+async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gallery> {
   const db = createServiceClient();
   const { data: sessions } = await db
     .from("sessions")
@@ -78,23 +106,24 @@ export async function loadGallery(token: string): Promise<Gallery> {
       .select("id, session_id, kind, idx, r2_key")
       .eq("organization_id", ev.organization_id)
       .in("session_id", ids.slice(i, i + 200))
-      .in("kind", ["strip_web", "thumb_strip", "original", "thumb_original"]);
+      .in("kind", ["strip_web", "thumb_strip", "original", "thumb_original", "animation"]);
     assets.push(...(data ?? []));
   }
-  const { data: favs } = await db.from("favorites").select("asset_id").eq("event_id", ev.id);
+  const { data: favs } = withFavorites
+    ? await db.from("favorites").select("asset_id").eq("event_id", ev.id)
+    : { data: [] };
   const fav = new Set((favs ?? []).map((f) => f.asset_id));
   const byKey = new Map(assets.map((a) => [`${a.session_id}:${a.kind}:${a.idx}`, a]));
+  const KIND = { strip_web: "strip", original: "original", animation: "animation" } as const;
+  const THUMB: Record<string, string> = { strip_web: "thumb_strip", original: "thumb_original" };
   const photos = await Promise.all(
     assets
-      .filter((a) => a.kind === "strip_web" || a.kind === "original")
+      .filter((a): a is typeof a & { kind: keyof typeof KIND } => a.kind in KIND)
       .map(async (a): Promise<GalleryPhoto> => {
-        const thumb =
-          byKey.get(
-            `${a.session_id}:${a.kind === "strip_web" ? "thumb_strip" : "thumb_original"}:${a.idx}`,
-          ) ?? a;
+        const thumb = byKey.get(`${a.session_id}:${THUMB[a.kind]}:${a.idx}`) ?? a;
         return {
           id: a.id,
-          kind: a.kind === "strip_web" ? "strip" : "original",
+          kind: KIND[a.kind],
           sessionId: a.session_id,
           hour: hourWib(started.get(a.session_id) ?? ev.event_date),
           thumb: await presignGet(key(thumb.r2_key), 6 * 3600),
@@ -121,6 +150,7 @@ export async function loadGallery(token: string): Promise<Gallery> {
     daysTotal: ev.client_expires_at
       ? Math.round((new Date(ev.client_expires_at).getTime() - start) / 86_400_000)
       : null,
+    publicGallery: ev.public_gallery,
     photos,
   };
 }

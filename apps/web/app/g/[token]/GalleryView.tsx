@@ -2,19 +2,21 @@
 import { useEffect, useMemo, useState } from "react";
 import type { GalleryPhoto } from "@/lib/gallery";
 
-type Filter = "strip" | "original" | "favorit";
+type Filter = "strip" | "original" | "animation" | "favorit";
 const CHIPS: [Filter, string][] = [
   ["strip", "Strip"],
   ["original", "Original"],
+  ["animation", "Animasi"],
   ["favorit", "♥ Favorit"],
 ];
+const ext = (p: GalleryPhoto) => (p.kind === "animation" ? "gif" : "jpg");
 
 async function download(p: GalleryPhoto) {
   try {
     const blob = await (await fetch(p.full)).blob();
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `tetra-${p.sessionId}-${p.kind}.jpg`;
+    a.download = `tetra-${p.sessionId}-${p.kind}.${ext(p)}`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   } catch {
@@ -22,8 +24,19 @@ async function download(p: GalleryPhoto) {
   }
 }
 
-/** Isi galeri (C1–C2): filter, bagian per jam, masonry, lightbox dengan favorit/download/bagikan. */
-export function GalleryView({ token, photos: initial }: { token: string; photos: GalleryPhoto[] }) {
+/**
+ * Isi galeri (C1–C2): filter, bagian per jam, masonry, lightbox dengan favorit/download/bagikan.
+ * `readOnly` = galeri publik tamu: tanpa favorit & ZIP (FSD §3).
+ */
+export function GalleryView({
+  token,
+  photos: initial,
+  readOnly = false,
+}: {
+  token: string;
+  photos: GalleryPhoto[];
+  readOnly?: boolean;
+}) {
   const [photos, setPhotos] = useState(initial);
   const [filter, setFilter] = useState<Filter>("strip");
   const [open, setOpen] = useState<number | null>(null);
@@ -38,6 +51,10 @@ export function GalleryView({ token, photos: initial }: { token: string; photos:
     return [...m.entries()];
   }, [shown]);
   const favCount = photos.filter((p) => p.favorite).length;
+  const chips = CHIPS.filter(
+    ([k]) =>
+      (k !== "favorit" || !readOnly) && (k !== "animation" || photos.some((p) => p.kind === k)),
+  );
   // Slideshow (C1 "Putar Slideshow"): lightbox maju sendiri tiap 4 dtk, berulang.
   useEffect(() => {
     if (!playing || open === null) return;
@@ -59,7 +76,9 @@ export function GalleryView({ token, photos: initial }: { token: string; photos:
   const share = async (p: GalleryPhoto) => {
     try {
       const blob = await (await fetch(p.full)).blob();
-      const file = new File([blob], `tetra-${p.sessionId}.jpg`, { type: "image/jpeg" });
+      const file = new File([blob], `tetra-${p.sessionId}.${ext(p)}`, {
+        type: p.kind === "animation" ? "image/gif" : "image/jpeg",
+      });
       if (navigator.canShare?.({ files: [file] }))
         return void (await navigator.share({ files: [file] }));
     } catch {}
@@ -69,7 +88,7 @@ export function GalleryView({ token, photos: initial }: { token: string; photos:
   return (
     <>
       <div className="flex flex-wrap items-center gap-1.5">
-        {CHIPS.map(([k, t]) => (
+        {chips.map(([k, t]) => (
           <button
             key={k}
             type="button"
@@ -91,7 +110,7 @@ export function GalleryView({ token, photos: initial }: { token: string; photos:
             ▶ Putar Slideshow
           </button>
         )}
-        {filter !== "favorit" && shown.length > 0 && (
+        {!readOnly && (filter === "strip" || filter === "original") && shown.length > 0 && (
           <a
             href={`/api/g/${token}/zip?kind=${filter}`}
             className="flex h-9 items-center rounded-[10px] border-[1.5px] border-ink bg-sky px-3.5 text-[13px] font-bold no-underline"
@@ -188,18 +207,16 @@ export function GalleryView({ token, photos: initial }: { token: string; photos:
             )}
           </div>
           <div className="mx-4 my-4 flex overflow-hidden rounded-[14px] border-[1.5px] border-ink bg-white text-sm font-bold md:mx-auto md:w-[420px]">
-            <button
-              type="button"
-              onClick={() => toggleFav(cur)}
-              className={`h-12 flex-1 ${cur.favorite ? "bg-coral" : ""}`}
-            >
-              {cur.favorite ? "♥ Favorit" : "♡ Favorit"}
-            </button>
-            <button
-              type="button"
-              onClick={() => download(cur)}
-              className="h-12 flex-1 border-l-[1.5px] border-ink"
-            >
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => toggleFav(cur)}
+                className={`h-12 flex-1 border-r-[1.5px] border-ink ${cur.favorite ? "bg-coral" : ""}`}
+              >
+                {cur.favorite ? "♥ Favorit" : "♡ Favorit"}
+              </button>
+            )}
+            <button type="button" onClick={() => download(cur)} className="h-12 flex-1">
               ↓ Download
             </button>
             <button
