@@ -79,6 +79,7 @@ export function CrewMode({
           }}
           onCrew={() => setView("menu")}
           onAdmin={() => void crew.openAdmin().catch(() => {})}
+          onEditEvent={(id) => void crew.openAdmin(`/admin/events/${id}/settings`).catch(() => {})}
           crewLabel={copy.start.backToCrew}
         />
       );

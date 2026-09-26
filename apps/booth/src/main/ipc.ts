@@ -399,10 +399,16 @@ export function registerIpc(
     }
   });
   // Dashboard admin di browser bawaan. Kiosk dilepas & jendela diperkecil; kembali kiosk saat booth dibuka lagi.
-  ipcMain.handle("crewOpenAdmin", async (e) => {
+  ipcMain.handle("crewOpenAdmin", async (e, path: unknown) => {
     crewOnly();
+    // Hanya halaman di bawah /admin (mis. /admin/events/<id>/settings dari tombol Edit event).
+    const p = z
+      .string()
+      .regex(/^\/admin(\/[\w-]+)*$/)
+      .optional()
+      .parse(path ?? undefined);
     const win = BrowserWindow.fromWebContents(e.sender);
-    await shell.openExternal(`${config.guestUrl}/admin`);
+    await shell.openExternal(`${config.guestUrl}${p ?? "/admin"}`);
     if (win?.isKiosk()) {
       win.setKiosk(false);
       win.once("focus", () => {
