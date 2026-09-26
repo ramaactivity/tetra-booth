@@ -39,7 +39,21 @@ export function BoothApp({
   // Kursor di mode tamu: diatur crew (CrewMenu), dibaca ulang tiap mode crew ditutup.
   const [showCursor, setShowCursor] = useState(guestCursor.shown);
   // Notifikasi hasil update (berhasil / gagal dipasang) sekali setelah booth terbuka lagi (masukan Rama).
-  const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
+  const [toast, setToast] = useState<{ ok: boolean; text: string; ms?: number } | null>(null);
+  // Ctrl+Shift+K di layar tamu: tampil/sembunyikan kursor tanpa masuk mode crew (masukan Rama).
+  useEffect(() => {
+    if (crewOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "k")) return;
+      e.preventDefault();
+      const on = !guestCursor.shown();
+      guestCursor.set(on);
+      setShowCursor(on);
+      setToast({ ok: true, text: on ? copy.crew.cursorShown : copy.crew.cursorHidden, ms: 2500 });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [crewOpen]);
   useEffect(() => {
     p.crew.updateResult().then(
       (r) =>
@@ -53,7 +67,7 @@ export function BoothApp({
   }, [p]);
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), toast.ok ? 10_000 : 30_000);
+    const t = setTimeout(() => setToast(null), toast.ms ?? (toast.ok ? 10_000 : 30_000));
     return () => clearTimeout(t);
   }, [toast]);
   const notice = toast && (
