@@ -259,7 +259,8 @@ export function registerIpc(
       if (listener && !listener.isDestroyed()) listener.send("updateProgress", p);
     })
       .then((f) => {
-        ready = version;
+        // Versi yang benar-benar terunduh (bisa beda dari yang diminta kalau unduhan lama masih jalan).
+        ready = /Setup-(.+)\.exe$/.exec(f)?.[1] ?? version;
         return f;
       })
       .finally(() => {
@@ -295,12 +296,14 @@ export function registerIpc(
     const { r, available } = await release();
     if (!r || !available) throw new Error("Sudah versi terbaru");
     listener = e.sender;
-    console.info(
-      ready === r.version
-        ? `[update] memakai ${r.version} yang sudah diunduh`
-        : `[update] mengunduh ${r.version} (${Math.round(r.size / 1e6)} MB)`,
-    );
-    const file = await getInstaller(r.version).catch((err: unknown) => {
+    // Log "memakai … yang sudah diunduh" / "mengunduh …" ditulis downloadInstaller (tahu isi folder temp).
+    console.info(`[update] menyiapkan ${r.version}`);
+    // Unduhan latar belakang versi lama masih jalan → tunggu selesai, lalu unduh versi yang diminta.
+    const get = async () => {
+      const f = await getInstaller(r.version).catch(() => null);
+      return f?.endsWith(`-${r.version}.exe`) ? f : getInstaller(r.version);
+    };
+    const file = await get().catch((err: unknown) => {
       console.warn(`[update] unduh gagal: ${err instanceof Error ? err.message : String(err)}`);
       throw new Error(
         "Gagal mengunduh update. Cek internet lalu tekan Pasang Sekarang lagi (unduhan dilanjutkan)",

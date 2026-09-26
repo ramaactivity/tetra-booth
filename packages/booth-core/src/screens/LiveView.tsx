@@ -5,14 +5,38 @@ import { usePlatform } from "../PlatformContext";
 import type { LiveFrame } from "../platform";
 
 /**
+ * Panduan bingkai (DECISIONS #107): area frame kamera yang masuk ke slot (template engine: cover, potong tengah),
+ * dalam koordinat layar. Kamera `camW×camH` digambar cover ke layar `cw×ch`; `aspect` = lebar/tinggi slot.
+ */
+export function guideRect(camW: number, camH: number, cw: number, ch: number, aspect: number) {
+  const [w, h] = aspect > camW / camH ? [camW, camW / aspect] : [camH * aspect, camH];
+  const scale = Math.max(cw / camW, ch / camH);
+  return {
+    x: (cw - camW * scale) / 2 + ((camW - w) / 2) * scale,
+    y: (ch - camH * scale) / 2 + ((camH - h) / 2) * scale,
+    w: w * scale,
+    h: h * scale,
+  };
+}
+
+/**
  * Live view full-bleed, di-mirror seperti cermin (FSD §1.7) kecuali crew mematikannya. Hasil foto tidak di-mirror
  * kecuali opsi crew "Cermin hasil foto" (camera/mirror.ts).
  */
-export function LiveView({ onFrame }: { onFrame?: (frame: LiveFrame) => void } = {}) {
+export function LiveView({
+  onFrame,
+  guide,
+}: {
+  onFrame?: (frame: LiveFrame) => void;
+  /** Rasio lebar/tinggi slot foto ini: area di luar potongan digelapkan (#107). */
+  guide?: number | undefined;
+} = {}) {
   const { camera, mirrorLiveView = true } = usePlatform();
   // Callback terbaru tanpa memulai ulang live view (frame DSLR ditutup tepat setelah callback).
   const frameCb = useRef(onFrame);
   frameCb.current = onFrame;
+  const guideRef = useRef(guide);
+  guideRef.current = guide;
   const ref = useRef<HTMLCanvasElement>(null);
   const [hasFrame, setHasFrame] = useState(false);
 
@@ -38,6 +62,21 @@ export function LiveView({ onFrame }: { onFrame?: (frame: LiveFrame) => void } =
         if (mirrorLiveView) g.setTransform(-1, 0, 0, 1, cw, 0);
         else g.setTransform(1, 0, 0, 1, 0, 0);
         g.drawImage(source, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+        const aspect = guideRef.current;
+        if (aspect) {
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          const r = guideRect(width, height, cw, ch, aspect);
+          g.fillStyle = "rgba(29, 29, 27, 0.55)";
+          g.fillRect(0, 0, cw, r.y);
+          g.fillRect(0, r.y + r.h, cw, ch - r.y - r.h);
+          g.fillRect(0, r.y, r.x, r.h);
+          g.fillRect(r.x + r.w, r.y, cw - r.x - r.w, r.h);
+          g.strokeStyle = "#ffffff";
+          g.lineWidth = 4 * dpr;
+          g.setLineDash([18 * dpr, 12 * dpr]);
+          g.strokeRect(r.x, r.y, r.w, r.h);
+          g.setLineDash([]);
+        }
       })
       .catch((e: unknown) => console.warn(`[liveview] gagal mulai: ${errText(e)}`));
     return () => {
