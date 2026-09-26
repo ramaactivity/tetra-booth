@@ -183,7 +183,8 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 - [ ] **M-022 Temuan W-022 lanjutan: pengingat mode potong per event + kalibrasi.** (1) Menu crew: tampilkan pengingat sesuai layout event aktif (strip → "pastikan 2inch cut Enable", 4R → "Disable") karena driver tidak bisa diatur dari aplikasi. (2) --print-offset (M-021, di `win@adec4a4`) masuk config device; nilai DNP laptop booth `7.335,6.70`. (3) Opsional: tanya DNP soal SDK/perintah pemotong (language monitor `CSJCYLM.DLL` / `MonitorIoControl`) untuk potong otomatis per job. Detail: laporan dnp-rx1hs, WINDOWS.md §4b.
 
 ## Posisi terakhir (Mac, 2026-09-26 malam)
-- Booth terbaru **0.5.17** (uji Windows berjalan: bumper, suara, layar awal, override pengaturan event). **0.5.18** menunggu hasil itu: berisi unduh update paralel + perbaikan versi tercampur (#106, `f48a998` + `b6b073f`).
+- Booth terbaru **0.5.20** (27 Sep dini hari WIB). Unduh update paralel (#106) terbukti di laptop booth: 0.5.18 → 0.5.19 dalam 19,6 s (4 bagian, 0× lambat); dulu 16–40 menit. Code review hari ini → #109; review memakai rasio slot → #110.
+- Menunggu Rama (butuh admin): uji suara di event cloud (dengar urutan & volume), photobox + template editor (#108) dengan "Simulasikan bayar".
 - Repo **public** sejak 26 Sep (GitHub Actions gratis). Riwayat git dipindai: tidak ada rahasia. CI: lewati commit dokumen, batalkan run lama, job Camera Service Windows hanya saat `services/camera/**` berubah.
 - Midtrans sandbox LULUS end-to-end di booth (W-033). Menunggu akun production (lalu `MIDTRANS_IS_PRODUCTION=true`, #95).
 - Fitur baru hari ini: multi desain mode event (#99), branding halaman tamu (#98), layar awal per event (#102), kalimat & suara di sela foto (#103), suara per event nyala/mati/ganti (#104), bumper + transisi (#105), cermin per booth (#101), override pengaturan event di booth (#100), kontrol fokus DSLR (Windows).
