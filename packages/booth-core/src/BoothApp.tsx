@@ -56,7 +56,7 @@ export function BoothApp({
   const notice = toast && (
     <button
       type="button"
-      role="status"
+      aria-live="polite"
       onClick={() => setToast(null)}
       className={`absolute top-6 left-1/2 z-50 max-w-[1400px] -translate-x-1/2 rounded-2xl border-[2.5px] border-ink px-7 py-4 text-2xl font-bold ${toast.ok ? "bg-mint" : "bg-coral-strong text-white"}`}
     >

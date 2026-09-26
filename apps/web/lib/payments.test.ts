@@ -25,7 +25,7 @@ describe("Midtrans QRIS (DECISIONS #93)", () => {
     expect(r).toEqual({ ref: "11111111-2222-3333-4444-555555555555", qrString: "00020101QRIS" });
     const [url, init] = f.mock.calls[0] ?? [];
     expect(url).toBe("https://api.sandbox.midtrans.com/v2/charge");
-    expect((init?.headers as Record<string, string>).Authorization).toBe(
+    expect((init?.headers as Record<string, string> | undefined)?.Authorization).toBe(
       `Basic ${Buffer.from(`${KEY}:`).toString("base64")}`,
     );
     const body = JSON.parse(String(init?.body));
