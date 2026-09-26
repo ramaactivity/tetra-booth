@@ -3,9 +3,10 @@ import { Button } from "@tetra/ui";
 import { useState } from "react";
 import { copy } from "../copy";
 import { errText } from "../errors";
+import { previewUrl } from "../finalize";
 import { usePlatform } from "../PlatformContext";
 import { LiveView } from "../screens/LiveView";
-import { sharpNotes, sharpness } from "../sharpness";
+import { sharpNotes } from "../sharpness";
 
 /** Cek kamera: live view + test shot (FSD §1.3). */
 export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () => void }) {
@@ -17,12 +18,12 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
       const t0 = performance.now();
       const r = await p.camera.capture({ sessionId: newSessionId(), index: 0 });
       const bytes = await p.storage.readFile(r.path);
+      // Tes Jepret setelah fokus benar = patokan ketajaman event ini (#88). Lewat preview 1600 px yang sama
+      // dengan foto tamu: skor dari raw penuh ±25% lebih rendah (60D/700D, W-031), patokan jadi terlalu longgar.
+      const { url, sharp } = await previewUrl(bytes, r.width, r.height);
       if (shot) URL.revokeObjectURL(shot);
-      setShot(URL.createObjectURL(new Blob([bytes], { type: "image/jpeg" })));
-      // Tes Jepret setelah fokus benar = patokan ketajaman event ini (#88).
-      const bmp = await createImageBitmap(new Blob([bytes]));
-      const score = Math.round(sharpness(bmp));
-      bmp.close();
+      setShot(url);
+      const score = Math.round(sharp);
       sharpNotes.setBaseline(eventId, score);
       sharpNotes.dismissWarning();
       setInfo(
