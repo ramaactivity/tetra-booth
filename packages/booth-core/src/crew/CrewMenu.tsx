@@ -14,12 +14,13 @@ import { type CSSProperties, type ReactNode, useCallback, useEffect, useState } 
 import { copy } from "../copy";
 import { guestCursor } from "../cursorPref";
 import { crewText, errText } from "../errors";
-import type { BoothEvent } from "../event";
+import { type BoothEvent, DEFAULT_EVENT } from "../event";
 import { usePlatform } from "../PlatformContext";
 import type { CrewStatus, FailedPrint, UpdateCheck } from "../platform";
 import { sharpNotes } from "../sharpness";
 import { Logo } from "../ui";
 import { DeviceSheet } from "./DeviceSheet";
+import { EventSettingsSheet } from "./EventSettingsSheet";
 import { Sheet } from "./Sheet";
 import { testPrint } from "./testPrint";
 
@@ -101,6 +102,7 @@ const link = "pressable flex min-h-12 items-center gap-2 font-bold";
 export function CrewMenu({
   event,
   onChangeEvent,
+  onReloadEvents,
   onCameraCheck,
   onChangePin,
   onPair,
@@ -109,6 +111,8 @@ export function CrewMenu({
   event: BoothEvent;
   /** Ganti event lewat layar pilih mode (DECISIONS #86). */
   onChangeEvent: () => void;
+  /** Muat ulang event aktif (setelah pengaturan event diubah di booth, #100). */
+  onReloadEvents: () => Promise<void>;
   onCameraCheck: () => void;
   onChangePin: () => void;
   onPair: () => void;
@@ -118,7 +122,18 @@ export function CrewMenu({
   const [status, setStatus] = useState<CrewStatus>();
   const [failed, setFailed] = useState<FailedPrint[]>([]);
   const [roll, setRoll] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<"roll" | "exit" | "update" | "device" | null>(null);
+  const [sheet, setSheet] = useState<"roll" | "exit" | "update" | "device" | "settings" | null>(
+    null,
+  );
+  const [localSettings, setLocalSettings] = useState(false);
+  const hasEvent = event.id !== DEFAULT_EVENT.id;
+  useEffect(() => {
+    if (!hasEvent) return;
+    p.crew.eventSettings(event.id).then(
+      (i) => setLocalSettings(Object.keys(i.override).length > 0),
+      () => {},
+    );
+  }, [p, event, hasEvent]);
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [blurWarn, setBlurWarn] = useState(() => sharpNotes.crewWarning());
   const [cursorOn, setCursorOn] = useState(guestCursor.shown);
@@ -241,6 +256,14 @@ export function CrewMenu({
             <div className="text-[22px] font-extrabold">
               {event.name} — {copy.print.mode}
             </div>
+            {localSettings && (
+              <div
+                data-testid="settings-local"
+                className="mt-1 w-fit rounded-full border-2 border-ink bg-butter px-3 text-[15px] font-bold"
+              >
+                {copy.crew.changedHereBadge}
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -439,6 +462,14 @@ export function CrewMenu({
           <Button variant="plain" className={action} onClick={() => setSheet("device")}>
             {copy.crew.device}
           </Button>
+          <Button
+            variant="plain"
+            className={action}
+            disabled={!hasEvent}
+            onClick={() => setSheet("settings")}
+          >
+            {copy.crew.eventSettings}
+          </Button>
           <Button variant="plain" className={action} onClick={onChangePin}>
             {copy.crew.changePin}
           </Button>
@@ -520,6 +551,15 @@ export function CrewMenu({
         <DeviceSheet
           paper={printPaper(event.layout.paper)}
           onNote={setNote}
+          onClose={() => setSheet(null)}
+        />
+      )}
+
+      {sheet === "settings" && (
+        <EventSettingsSheet
+          event={event}
+          onNote={setNote}
+          onSaved={onReloadEvents}
           onClose={() => setSheet(null)}
         />
       )}

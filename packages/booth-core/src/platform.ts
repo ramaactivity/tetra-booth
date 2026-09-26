@@ -2,6 +2,7 @@ import type {
   AssetKindName,
   CommandResult,
   EventBundle,
+  EventSettings,
   Paper,
   PaymentCreateRequest,
   PaymentCreateResponse,
@@ -89,6 +90,11 @@ export type DeviceSettings = {
 };
 /** `locked` = flag yang dipaksa baris perintah (tidak bisa diubah dari mode crew). */
 export type DeviceInfo = { now: DeviceSettings; locked: string[]; printers: string[] };
+/** Field pengaturan event yang boleh diubah crew di booth (DECISIONS #100). */
+export type EventOverride = Partial<
+  Pick<EventSettings, "countdownSec" | "retakeMax" | "maxPrints" | "qrScreenSec" | "sessionSec">
+>;
+export type EventSettingsInfo = { cloud: EventSettings; override: EventOverride };
 /** AF, atau geser fokus manual kecil/sedang/besar ke dekat / jauh. */
 export type FocusStep = "af" | "near3" | "near2" | "near1" | "far1" | "far2" | "far3";
 /** Setelan eksposur kamera DSLR (sementara lewat digiCamControl). */
@@ -137,6 +143,10 @@ export interface BoothCrew {
   /** Setelan eksposur DSLR yang tersedia (kosong = bukan DSLR / digiCamControl tidak menjawab). */
   cameraProps(): Promise<CameraProp[]>;
   setCameraProp(name: string, value: string): Promise<void>;
+  /** Pengaturan event: nilai cloud + override lokal booth (DECISIONS #100). */
+  eventSettings(eventId: string): Promise<EventSettingsInfo>;
+  /** Simpan override (hanya field yang beda dari cloud disimpan); null = kembalikan ke cloud. */
+  setEventSettings(eventId: string, override: EventOverride | null): Promise<EventSettingsInfo>;
   /** Fokus DSLR lewat live view (#88); tidak ada = kamera tanpa live view (webcam, hot folder biasa). */
   focus?(step: FocusStep): Promise<void>;
   /** Bandingkan versi terpasang dengan rilis terbaru di cloud (DECISIONS #80). */

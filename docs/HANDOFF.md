@@ -199,6 +199,7 @@ Selesai: kata sandi admin, CORS R2, `CRON_SECRET` (cron menolak tanpa secret: 40
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-26 | Windows | #100 override pengaturan event di booth: sheet crew "Pengaturan Event" (hitung mundur, foto ulang, maks. cetak, layar QR, timer photobox), badge "diubah di booth", Kembalikan ke cloud; disimpan di kv SQLite, tidak ditimpa sync. Laporan: `docs/reports/windows/2026-09-26-event-override.md`. |
 | 2026-09-26 | Windows | Webcam bawaan: foto hitam W-033 = penutup kamera, kode OK (3 sesi demo normal). Opsi crew **Cermin** (live view ON/OFF, hasil foto ON/OFF; bawaan sesuai #35) di Kamera & Printer. Update 0.5.10 → 0.5.11 lulus. Kontrol fokus DSLR di Tes Jepret (AF, ◀◀◀…▶▶▶, meter ketajaman) + "AF sebelum tiap jepret"; efek optik belum diuji (60D dicabut). Laporan: `docs/reports/windows/2026-09-26-webcam-mirror.md`. |
 | 2026-09-26 | Mac | Update 0.5.6 → 0.5.8 LULUS tapi lambat (19 min, W-032). Booth **0.5.9**: unduh latar belakang saat senggang + putus-sambung koneksi < 500 KB/s (DECISIONS #94), tes unit server lambat. Midtrans: akun perorangan terdaftar (review 2–3 hari), adapter siap (#93). |
 | 2026-09-26 | Mac | Adapter Midtrans QRIS + webhook `/api/webhooks/midtrans` (DECISIONS #93), unit 3 + e2e webhook. Menunggu akun Midtrans Rama: env `MIDTRANS_SERVER_KEY` di Vercel + Notification URL. Website: /syarat-ketentuan, /kebijakan-refund, /privasi tayang (sesi website). |
