@@ -13,6 +13,8 @@ export type BoothEvent = {
   settings: EventSettings;
   /** Photobox (Fase 4): layout dijual + harga; tanpa ini = mode event. */
   photobox?: Photobox | undefined;
+  /** Layar awal per event (#102); `imageUrl` = object URL gambar latar. */
+  attract?: { background?: string; cta?: string; samples: boolean; imageUrl?: string } | undefined;
   /** Mode event: 2–5 desain pilihan tamu (DECISIONS #99); tanpa ini = satu desain `layout`. */
   designs?: EventDesign[] | undefined;
   /** Aset bundle yang sudah dimuat (overlay/background) + nama font terdaftar per assetId. */
@@ -25,10 +27,13 @@ const FONT_FILE = /\.(ttf|otf|woff2)$/i;
 export async function loadEvent(bundle: EventBundle, events: BoothEvents): Promise<BoothEvent> {
   const images: Record<string, ImageBitmap> = {};
   const fonts: Record<string, string> = {};
+  let imageUrl: string | undefined;
   await Promise.all(
     Object.entries(bundle.assets).map(async ([assetId, file]) => {
       const bytes = await events.asset(bundle.id, assetId);
-      if (FONT_FILE.test(file)) {
+      if (assetId === bundle.attract?.imageAssetId) {
+        imageUrl = URL.createObjectURL(new Blob([bytes]));
+      } else if (FONT_FILE.test(file)) {
         const family = `tb-${bundle.id}-${assetId}`;
         document.fonts.add(await new FontFace(family, bytes).load());
         fonts[assetId] = family;
@@ -47,6 +52,14 @@ export async function loadEvent(bundle: EventBundle, events: BoothEvents): Promi
     ...(bundle.mode === "photobox"
       ? { photobox: bundle.photobox }
       : bundle.designs && { designs: bundle.designs }),
+    ...(bundle.attract && {
+      attract: {
+        ...(bundle.attract.background && { background: bundle.attract.background }),
+        ...(bundle.attract.cta && { cta: bundle.attract.cta }),
+        samples: bundle.attract.samples,
+        ...(imageUrl && { imageUrl }),
+      },
+    }),
     render: { images, fonts },
   };
 }

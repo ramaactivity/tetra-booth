@@ -25,6 +25,9 @@ export type SettingsValues = {
   templates: { id: string; name: string; paper: string; version: number }[];
   background: string;
   hasOverlay: boolean;
+  /** Layar awal booth (#102). */
+  attract: { background: string; cta: string; samples: boolean; hasImage: boolean };
+  countdownSound: boolean;
   /** Header halaman tamu. */
   guestColor: string;
   hasLogo: boolean;
@@ -85,6 +88,7 @@ function Field({ label, unit, children }: { label: string; unit?: string; childr
 export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValues }) {
   const [background, setBackground] = useState(v.background);
   const [guestColor, setGuestColor] = useState(v.guestColor);
+  const [attractBg, setAttractBg] = useState(v.attract.background);
   const [r, action, pending] = useActionState<SaveResult, FormData>(
     saveEvent.bind(null, eventId),
     null,
@@ -256,6 +260,44 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           )}
         </Section>
 
+        <Section title="Layar awal booth">
+          <Field label="Gambar latar (JPG/PNG, 1920×1080; maks. 4 MB)">
+            <input
+              name="attract_image"
+              type="file"
+              accept="image/png,image/jpeg"
+              className="text-sm"
+            />
+          </Field>
+          <Field label="Warna latar">
+            <ColorPicker
+              name="attract_bg"
+              label="Warna latar layar awal"
+              value={attractBg}
+              onChange={setAttractBg}
+              showHex
+            />
+          </Field>
+          <Field label="Teks tombol mulai">
+            <input
+              name="attract_cta"
+              maxLength={30}
+              placeholder="Sentuh untuk Mulai"
+              defaultValue={v.attract.cta}
+              className={input}
+            />
+          </Field>
+          <label className="flex items-center gap-2 self-end text-xs font-bold">
+            <input type="checkbox" name="attract_samples" defaultChecked={v.attract.samples} />{" "}
+            Tampilkan strip contoh bergerak
+          </label>
+          {v.attract.hasImage && (
+            <label className="flex items-center gap-2 text-xs font-bold">
+              <input type="checkbox" name="remove_attract_image" /> Hapus gambar latar sekarang
+            </label>
+          )}
+        </Section>
+
         <Section title="Photobox (berlaku di Mode Photobox)">
           <fieldset className="col-span-full grid grid-cols-1 gap-2.5 lg:grid-cols-2">
             <legend className="mb-1.5 text-xs font-bold">
@@ -295,6 +337,10 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           <Field label="Hitung mundur" unit="detik">
             {num("countdownSec", 1, 10)}
           </Field>
+          <label className="flex items-center gap-2 self-end text-xs font-bold">
+            <input type="checkbox" name="countdownSound" defaultChecked={v.countdownSound} /> Suara
+            hitung mundur & jepret
+          </label>
           <Field label="Retake per foto" unit="kali">
             {num("retakeMax", 0, 5)}
           </Field>

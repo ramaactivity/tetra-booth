@@ -314,6 +314,7 @@ export function SessionRunner({
             eventName={event.name}
             tagline={event.tagline}
             date={event.date}
+            theme={event.attract}
             onStart={() =>
               dispatch(
                 event.photobox
@@ -391,6 +392,7 @@ export function SessionRunner({
             index={s.index}
             photos={s.photos}
             onDone={send({ type: "COUNTDOWN_DONE" })}
+            sound={cfg.countdownSound}
           />
         );
       case "capture":

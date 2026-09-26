@@ -40,13 +40,24 @@ export type EventBranding = {
 
 export const DEFAULT_TEMPLATE: EventTemplate = { preset: "strip-3", background: "#ffffff" };
 
-/** Overlay PNG ke R2 (berbasis hash, immutable). */
-export async function storeOverlay(orgId: string, eventId: string, bytes: Uint8Array) {
+/** File bundle ke R2 (berbasis hash, immutable): overlay PNG, gambar latar layar awal (#102). */
+export async function storeBundleFile(
+  orgId: string,
+  eventId: string,
+  bytes: Uint8Array,
+  file: string,
+  contentType: string,
+) {
   const sha256 = createHash("sha256").update(bytes).digest("hex");
-  const key = `${orgId}/${eventId}/bundle/${sha256}.png`;
-  await putObject(key, bytes, "image/png");
-  return { file: "overlay.png", sha256, key };
+  const key = `${orgId}/${eventId}/bundle/${sha256}.${file.split(".").pop()}`;
+  await putObject(key, bytes, contentType);
+  return { file, sha256, key };
 }
+export const storeOverlay = (orgId: string, eventId: string, bytes: Uint8Array) =>
+  storeBundleFile(orgId, eventId, bytes, "overlay.png", "image/png");
+
+/** Pengaturan layar awal di `events.settings.attract` (tanpa gambar; gambarnya file bundle `attract.*`). */
+export type AttractSettings = { background?: string; cta?: string; samples: boolean };
 
 /** Bundle lengkap siap disimpan di events.bundle (jsonb); gagal validasi → Error (tidak pernah menyimpan bundle rusak). */
 export function buildBundle(e: {
@@ -64,6 +75,9 @@ export function buildBundle(e: {
   /** Nama template editor utama (kartu pilih desain di booth). */
   customName?: string;
   extras?: ExtraDesign[];
+  attract?: AttractSettings;
+  /** Gambar latar layar awal (file bundle `attract.jpg`/`attract.png`). */
+  attractImage?: StoredBundle["files"][number] | null;
 }): Json {
   // Overlay dibuat untuk kanvas preset template, jadi hanya dipasang di layout dengan preset itu.
   const layoutOf = (id: PresetId) => ({
@@ -127,7 +141,8 @@ export function buildBundle(e: {
     : e.overlay
       ? [{ id: "ov", ...e.overlay }]
       : [];
-  const all = [...main, ...extras.flatMap((x) => x.files)];
+  const bg = e.attractImage ? [{ id: "attract", ...e.attractImage }] : [];
+  const all = [...main, ...extras.flatMap((x) => x.files), ...bg];
   const config = EventBundleSchema.parse({
     id: e.id,
     name: e.name,
@@ -143,6 +158,9 @@ export function buildBundle(e: {
         ),
         ...extras.map((x) => x.design),
       ],
+    }),
+    ...((e.attract || bg.length) && {
+      attract: { ...e.attract, ...(bg.length && { imageAssetId: "attract" }) },
     }),
     settings: EventSettingsSchema.parse(e.settings ?? {}),
     assets: Object.fromEntries(all.map((f) => [f.id, f.file])),

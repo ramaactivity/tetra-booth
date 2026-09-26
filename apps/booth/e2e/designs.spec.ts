@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdtempSync } from "node:fs";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
@@ -9,6 +9,7 @@ import { _electron as electron, expect, type Page, test } from "@playwright/test
 /**
  * Mode event multi desain (DECISIONS #99) terhadap cloud palsu: tamu memilih desain (pratinjau asli dari template
  * engine) → langsung foto tanpa bayar → jumlah foto & cetakan mengikuti desain yang dipilih.
+ * Juga layar awal per event (#102): gambar latar, teks tombol sendiri, tanpa strip contoh.
  */
 
 const appDir = join(__dirname, "..");
@@ -36,6 +37,11 @@ const grid = layout("4r-grid-e2e", "4R", 1200, [
   slot("a", 40, 40, 540, 720),
   slot("b", 620, 40, 540, 720),
 ]);
+// PNG 1×1 biru: gambar latar layar awal uji.
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "base64",
+);
 const CONFIG = {
   id: EVENT,
   name: "Rina & Dimas",
@@ -45,8 +51,9 @@ const CONFIG = {
     { id: strip.id, name: "Strip Klasik", info: "2x6", layout: strip },
     { id: grid.id, name: "Bingkai Emas", info: "4R", layout: grid },
   ],
-  settings: { countdownSec: 1, shotDelaySec: 0.2, maxPrints: 3 },
-  assets: {},
+  attract: { cta: "Ayo Foto!", samples: false, imageAssetId: "attract" },
+  settings: { countdownSec: 1, shotDelaySec: 0.2, maxPrints: 3, countdownSound: true },
+  assets: { attract: "attract.png" },
 };
 
 const typePin = async (w: Page, pin: string) => {
@@ -78,7 +85,23 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
           JSON.stringify({ events: [{ id: EVENT, name: "Rina & Dimas", bundleVersion: 1 }] }),
         );
       if (url === `/api/booth/events/${EVENT}/bundle`)
-        return res.end(JSON.stringify({ bundleVersion: 1, config: CONFIG, files: [] }));
+        return res.end(
+          JSON.stringify({
+            bundleVersion: 1,
+            config: CONFIG,
+            files: [
+              {
+                file: "attract.png",
+                sha256: createHash("sha256").update(PNG).digest("hex"),
+                url: `http://127.0.0.1:${port}/m/attract`,
+              },
+            ],
+          }),
+        );
+      if (url === "/m/attract") {
+        res.setHeader("content-type", "image/png");
+        return res.end(PNG);
+      }
       if (url === "/api/booth/sessions") sessions.push(JSON.parse(body));
       if (url === "/api/booth/uploads/sign") return res.end(JSON.stringify({ uploads: [] }));
       res.end(JSON.stringify({ ok: true, uploadStatus: "partial" }));
@@ -114,7 +137,13 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     await w.getByRole("button", { name: /Rina & Dimas/ }).click();
     await w.waitForTimeout(1000);
 
-    await w.getByRole("button", { name: /sentuh untuk mulai/i }).click();
+    // Layar awal per event: gambar latar, teks tombol sendiri, strip contoh disembunyikan.
+    const start = w.getByRole("button", { name: /Ayo Foto!/ });
+    await expect(start).toBeVisible();
+    await expect(w.locator("main > img").first()).toHaveAttribute("src", /^blob:/);
+    await expect(w.getByText("Rina & Dimas", { exact: true }).nth(1)).toBeHidden();
+    await w.screenshot({ path: "test-results/designs-attract.png" });
+    await start.click();
     await expect(w.getByRole("heading", { name: "Pilih desain" })).toBeVisible();
     const cards = w.getByTestId("layout-card");
     await expect(cards).toHaveCount(2);

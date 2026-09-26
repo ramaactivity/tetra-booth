@@ -11,6 +11,8 @@ export const EventSettingsSchema = z.object({
   qrScreenSec: z.number().int().min(10).max(300).default(45),
   /** Photobox: timer sesi mulai setelah bayar (FSD §1.5). */
   sessionSec: z.number().int().min(60).max(900).default(180),
+  /** Bunyi "tik" tiap detik hitung mundur + bunyi jepret (DECISIONS #102). */
+  countdownSound: z.boolean().default(false),
 });
 export type EventSettings = z.infer<typeof EventSettingsSchema>;
 export const DEFAULT_SETTINGS: EventSettings = EventSettingsSchema.parse({});
@@ -19,6 +21,19 @@ export const DEFAULT_SETTINGS: EventSettings = EventSettingsSchema.parse({});
 const AssetFile = z
   .string()
   .regex(/^[\w][\w.-]*\.(png|jpg|jpeg|ttf|otf|woff2)$/i, "nama file aset tidak valid");
+
+/** Layar awal booth per event (DECISIONS #102): warna/gambar latar, teks tombol, strip contoh. */
+export const AttractSchema = z.object({
+  background: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
+  /** assetId gambar latar (PNG/JPG, ditarik penuh ke layar). */
+  imageAssetId: z.string().min(1).max(64).optional(),
+  cta: z.string().min(1).max(30).optional(),
+  samples: z.boolean().default(true),
+});
+export type Attract = z.infer<typeof AttractSchema>;
 
 /** Satu desain yang bisa dipilih tamu di mode event (DECISIONS #99). `id` = id layout-nya. */
 export const EventDesignSchema = z.object({
@@ -59,6 +74,7 @@ export const EventBundleSchema = z
     photobox: PhotoboxSchema.optional(),
     /** Mode event: 2–5 desain dipilih tamu sebelum foto; yang pertama = `layout`. Tanpa ini = satu desain. */
     designs: z.array(EventDesignSchema).min(2).max(5).optional(),
+    attract: AttractSchema.optional(),
     settings: EventSettingsSchema.default(DEFAULT_SETTINGS),
     assets: z.record(z.string().min(1).max(64), AssetFile).default({}),
   })
@@ -67,11 +83,14 @@ export const EventBundleSchema = z
       b.layout,
       ...[...(b.photobox?.layouts ?? []), ...(b.designs ?? [])].map((l) => l.layout),
     ];
-    const refs = layouts.flatMap((l) => [
-      l.overlay?.assetId,
-      l.background?.assetId,
-      ...l.texts.map((t) => t.fontAssetId),
-    ]);
+    const refs = [
+      b.attract?.imageAssetId,
+      ...layouts.flatMap((l) => [
+        l.overlay?.assetId,
+        l.background?.assetId,
+        ...l.texts.map((t) => t.fontAssetId),
+      ]),
+    ];
     if (b.mode === "photobox" && !b.photobox)
       ctx.addIssue({ code: "custom", path: ["photobox"], message: "mode photobox tanpa layout" });
     for (const id of refs) {

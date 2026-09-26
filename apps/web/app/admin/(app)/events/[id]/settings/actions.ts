@@ -4,10 +4,12 @@ import { EVENT_PRESETS, LAYOUT_PRESETS, type PresetId, StoredBundle } from "@tet
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
+  type AttractSettings,
   buildBundle,
   type EventBranding,
   type EventTemplate,
   type ExtraDesign,
+  storeBundleFile,
   storeOverlay,
 } from "@/lib/event-bundle";
 import { StoredLayout } from "@/lib/layouts";
@@ -45,6 +47,8 @@ const Form = z.object({
   preset: Design,
   background: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   guest_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  attract_bg: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  attract_cta: z.string().trim().max(30),
   countdownSec: int(1, 10),
   retakeMax: int(0, 5),
   maxPrints: int(1, 10),
@@ -92,6 +96,24 @@ export async function saveEvent(
     if (file.size > MAX_OVERLAY) return { ok: false, message: "Overlay maksimal 4 MB" };
     overlay = await storeOverlay(orgId, eventId, new Uint8Array(await file.arrayBuffer()));
   } else if (form.get("remove_overlay") === "on") overlay = null;
+
+  // Gambar latar layar awal (#102): JPG/PNG ≤ 4 MB, file bundle attract.<ext>.
+  let attractImage = prev.success
+    ? (prev.data.files.find((x) => x.file.startsWith("attract.")) ?? null)
+    : null;
+  const bgFile = form.get("attract_image");
+  if (bgFile instanceof File && bgFile.size > 0) {
+    const ext = bgFile.type === "image/png" ? "png" : bgFile.type === "image/jpeg" ? "jpg" : null;
+    if (!ext) return { ok: false, message: "Gambar layar awal harus JPG atau PNG" };
+    if (bgFile.size > MAX_OVERLAY) return { ok: false, message: "Gambar layar awal maksimal 4 MB" };
+    const bytes = new Uint8Array(await bgFile.arrayBuffer());
+    attractImage = await storeBundleFile(orgId, eventId, bytes, `attract.${ext}`, bgFile.type);
+  } else if (form.get("remove_attract_image") === "on") attractImage = null;
+  const attract: AttractSettings = {
+    ...(f.attract_bg.toLowerCase() !== PAPER ? { background: f.attract_bg } : {}),
+    ...(f.attract_cta ? { cta: f.attract_cta } : {}),
+    samples: form.get("attract_samples") === "on",
+  };
 
   // Logo halaman tamu: kunci berbasis hash di folder event (ikut terhapus saat retensi).
   let logoKey = (ev.branding as EventBranding | null)?.logoKey;
@@ -141,6 +163,7 @@ export async function saveEvent(
     maxPrints: f.maxPrints,
     reviewTimeoutSec: f.reviewTimeoutSec,
     qrScreenSec: f.qrScreenSec,
+    countdownSound: form.get("countdownSound") === "on",
   };
   /** Versi terbaru template editor (dikunci ke event saat simpan). */
   const latest = async (layoutId: string) => {
@@ -207,6 +230,8 @@ export async function saveEvent(
       custom,
       ...(customName && { customName }),
       extras,
+      attract,
+      attractImage,
     });
   } catch {
     return { ok: false, message: "Template tidak valid" };
@@ -226,6 +251,7 @@ export async function saveEvent(
         ...settings,
         template,
         photobox,
+        attract,
         guestDays: f.guest_days,
         clientDays: f.client_days,
       },

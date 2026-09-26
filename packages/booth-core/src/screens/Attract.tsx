@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { createTapDetector } from "../crew/taps";
+import type { BoothEvent } from "../event";
 import { usePlatform } from "../PlatformContext";
 import { Logo } from "../ui";
 
@@ -41,12 +42,15 @@ export function Attract({
   eventName,
   tagline,
   date,
+  theme,
   onStart,
   onCrew,
 }: {
   eventName: string;
   tagline?: string | undefined;
   date: string;
+  /** Layar awal per event (#102): warna/gambar latar, teks tombol, strip contoh. */
+  theme?: BoothEvent["attract"];
   onStart: () => void;
   onCrew?: (() => void) | undefined;
 }) {
@@ -99,14 +103,26 @@ export function Attract({
   }, [crew]);
 
   return (
-    <main className="relative h-full w-full overflow-hidden bg-paper">
-      <div className="absolute -bottom-[260px] -left-[220px] size-[760px] rounded-full bg-mint-soft" />
-      <div className="absolute -bottom-[160px] -left-[120px] size-[560px] rounded-full border-2 border-white" />
-      <div className="absolute -bottom-[60px] -left-5 size-[360px] rounded-full border-2 border-white" />
-      <div className="absolute -top-[120px] right-[560px] size-[280px] rounded-full bg-peach portrait:hidden" />
+    <main
+      className="relative h-full w-full overflow-hidden bg-paper"
+      style={theme?.background ? { background: theme.background } : undefined}
+    >
+      {theme?.imageUrl ? (
+        <img src={theme.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      ) : (
+        <>
+          <div className="absolute -bottom-[260px] -left-[220px] size-[760px] rounded-full bg-mint-soft" />
+          <div className="absolute -bottom-[160px] -left-[120px] size-[560px] rounded-full border-2 border-white" />
+          <div className="absolute -bottom-[60px] -left-5 size-[360px] rounded-full border-2 border-white" />
+          <div className="absolute -top-[120px] right-[560px] size-[280px] rounded-full bg-peach portrait:hidden" />
+        </>
+      )}
 
       {/* Kolom strip contoh, bergerak lambat (loop vertikal). */}
-      <div className="absolute -top-[60px] -bottom-[60px] right-[110px] flex gap-11 portrait:hidden">
+      <div
+        hidden={theme?.samples === false}
+        className="absolute -top-[60px] -bottom-[60px] right-[110px] flex gap-11 portrait:hidden"
+      >
         {COLUMNS.map((offset, c) => (
           <div key={offset} style={{ marginTop: offset }} className="overflow-visible">
             <div
@@ -149,7 +165,10 @@ export function Attract({
       />
 
       {/* Kolom judul mulai di bawah logo (top 168 px) supaya tagline/judul panjang tidak menimpa logo. */}
-      <div className="absolute top-[168px] bottom-16 left-24 flex w-[860px] flex-col justify-center gap-8 portrait:right-24 portrait:w-auto">
+      {/* Di atas gambar latar: kolom judul di kartu putih supaya tetap terbaca. */}
+      <div
+        className={`absolute top-[168px] bottom-16 left-24 flex w-[860px] flex-col justify-center gap-8 portrait:right-24 portrait:w-auto ${theme?.imageUrl ? "my-auto h-fit rounded-[40px] border-[3px] border-ink bg-white/92 p-14" : ""}`}
+      >
         {tagline && (
           <span className="flex items-center gap-3.5 self-start rounded-full border-[2.5px] border-ink bg-white py-3 pr-[26px] pl-3.5 text-[26px] font-bold whitespace-nowrap">
             <span className="size-9 rounded-full border-2 border-ink bg-lavender" />
@@ -166,7 +185,7 @@ export function Attract({
           className="mt-7 h-[136px] w-[680px] justify-between! rounded-[28px] border-[3px]! pr-5 pl-[52px] text-[44px] tracking-[-0.02em] [--lb:3px] [--lx:10px]"
           onClick={() => ready && onStart()}
         >
-          {copy.attract.cta}
+          {theme?.cta ?? copy.attract.cta}
           <span className="flex size-24 items-center justify-center rounded-full border-[3px] border-ink bg-mint">
             <ArrowRight size={44} strokeWidth={2.5} />
           </span>

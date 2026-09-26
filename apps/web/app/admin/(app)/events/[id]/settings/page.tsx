@@ -2,7 +2,12 @@ import { EventSettingsSchema, LAYOUT_PRESETS, StoredBundle } from "@tetra/shared
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DEFAULT_TEMPLATE, type EventBranding, type EventTemplate } from "@/lib/event-bundle";
+import {
+  type AttractSettings,
+  DEFAULT_TEMPLATE,
+  type EventBranding,
+  type EventTemplate,
+} from "@/lib/event-bundle";
 import type { PhotoboxSettings } from "@/lib/payments";
 import { requireMember } from "@/lib/supabase/server";
 import { LinksPanel } from "./LinksPanel";
@@ -43,6 +48,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
     guestDays?: number;
     clientDays?: number;
     photobox?: PhotoboxSettings;
+    attract?: AttractSettings;
   };
   const s = EventSettingsSchema.parse(raw);
   const tpl =
@@ -77,6 +83,14 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           preset: tpl.layoutId ? `tpl:${tpl.layoutId}` : tpl.preset,
           pinnedVersion: tpl.layoutVersion ?? null,
           extras: tpl.extras ?? [],
+          attract: {
+            background: raw.attract?.background ?? "#f8f7f4",
+            cta: raw.attract?.cta ?? "",
+            samples: raw.attract?.samples ?? true,
+            hasImage:
+              bundle.success && bundle.data.files.some((f) => f.file.startsWith("attract.")),
+          },
+          countdownSound: s.countdownSound,
           templates: (layouts ?? []).map((l) => ({
             id: l.id,
             name: l.name,

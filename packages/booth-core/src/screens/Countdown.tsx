@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import type { Photo } from "../session";
+import { beep } from "../sound";
 import { Done, Steps } from "../ui";
 
 /** Pill progres "Foto n dari N" + stepper, dipakai di countdown dan preview. */
@@ -61,24 +62,28 @@ export function Countdown({
   index,
   photos,
   onDone,
+  sound = false,
 }: {
   seconds: number;
   index: number;
   photos: (Photo | null)[];
   onDone: () => void;
+  /** Bunyi tik tiap detik + jepret di akhir (#102). */
+  sound?: boolean;
 }) {
   const [left, setLeft] = useState(seconds);
   // Ref: induk bisa render ulang tiap detik (timer photobox); callback baru tidak boleh me-reset hitungan.
   const done = useRef(onDone);
   done.current = onDone;
   useEffect(() => {
+    if (sound) beep(left > 0 ? "tick" : "shutter");
     if (left <= 0) {
       done.current();
       return;
     }
     const t = setTimeout(() => setLeft((n) => n - 1), 1000);
     return () => clearTimeout(t);
-  }, [left]);
+  }, [left, sound]);
 
   return (
     <div className="absolute inset-0">
