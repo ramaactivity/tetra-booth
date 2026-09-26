@@ -1,4 +1,4 @@
-import type { EventBundle, EventDesign, LayoutSpec, Photobox } from "@tetra/shared";
+import type { EventBundle, EventDesign, LayoutSpec, Photobox, SoundCue } from "@tetra/shared";
 import type { BoothEvents } from "./platform";
 import { DEFAULT_SETTINGS, type EventSettings } from "./session";
 
@@ -15,6 +15,8 @@ export type BoothEvent = {
   photobox?: Photobox | undefined;
   /** Layar awal per event (#102); `imageUrl` = object URL gambar latar. */
   attract?: { background?: string; cta?: string; samples: boolean; imageUrl?: string } | undefined;
+  /** Suara per event (#104): "off" atau object URL file pengganti. */
+  sounds?: Partial<Record<SoundCue, string>> | undefined;
   /** Mode event: 2–5 desain pilihan tamu (DECISIONS #99); tanpa ini = satu desain `layout`. */
   designs?: EventDesign[] | undefined;
   /** Aset bundle yang sudah dimuat (overlay/background) + nama font terdaftar per assetId. */
@@ -28,11 +30,15 @@ export async function loadEvent(bundle: EventBundle, events: BoothEvents): Promi
   const images: Record<string, ImageBitmap> = {};
   const fonts: Record<string, string> = {};
   let imageUrl: string | undefined;
+  const soundIds = new Set(Object.values(bundle.sounds ?? {}));
+  const soundUrls: Record<string, string> = {};
   await Promise.all(
     Object.entries(bundle.assets).map(async ([assetId, file]) => {
       const bytes = await events.asset(bundle.id, assetId);
       if (assetId === bundle.attract?.imageAssetId) {
         imageUrl = URL.createObjectURL(new Blob([bytes]));
+      } else if (soundIds.has(assetId)) {
+        soundUrls[assetId] = URL.createObjectURL(new Blob([bytes]));
       } else if (FONT_FILE.test(file)) {
         const family = `tb-${bundle.id}-${assetId}`;
         document.fonts.add(await new FontFace(family, bytes).load());
@@ -59,6 +65,11 @@ export async function loadEvent(bundle: EventBundle, events: BoothEvents): Promi
         samples: bundle.attract.samples,
         ...(imageUrl && { imageUrl }),
       },
+    }),
+    ...(bundle.sounds && {
+      sounds: Object.fromEntries(
+        Object.entries(bundle.sounds).map(([cue, v]) => [cue, v === "off" ? v : soundUrls[v]]),
+      ),
     }),
     render: { images, fonts },
   };

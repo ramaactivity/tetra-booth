@@ -23,7 +23,29 @@ export const DEFAULT_SETTINGS: EventSettings = EventSettingsSchema.parse({});
 /** Nama file aset di folder bundle: tanpa path, tanpa `..`. */
 const AssetFile = z
   .string()
-  .regex(/^[\w][\w.-]*\.(png|jpg|jpeg|ttf|otf|woff2)$/i, "nama file aset tidak valid");
+  .regex(/^[\w][\w.-]*\.(png|jpg|jpeg|ttf|otf|woff2|wav|mp3)$/i, "nama file aset tidak valid");
+
+/** Momen suara booth (#103/#104). Nama = file bawaan `sounds/<cue>.wav` di booth dan web admin. */
+export const SOUND_CUES = [
+  "mulai",
+  "foto-1",
+  "foto-2",
+  "foto-3",
+  "foto-terakhir",
+  "3",
+  "2",
+  "1",
+  "jepret",
+  "keren-1",
+  "keren-2",
+  "keren-3",
+  "keren-4",
+  "review",
+  "cetak",
+  "selesai",
+  "bayar",
+] as const;
+export type SoundCue = (typeof SOUND_CUES)[number];
 
 /** Layar awal booth per event (DECISIONS #102): warna/gambar latar, teks tombol, strip contoh. */
 export const AttractSchema = z.object({
@@ -78,6 +100,8 @@ export const EventBundleSchema = z
     /** Mode event: 2–5 desain dipilih tamu sebelum foto; yang pertama = `layout`. Tanpa ini = satu desain. */
     designs: z.array(EventDesignSchema).min(2).max(5).optional(),
     attract: AttractSchema.optional(),
+    /** Per suara (#104): "off" = dimatikan, selain itu assetId file pengganti; tidak ada = suara bawaan booth. */
+    sounds: z.partialRecord(z.enum(SOUND_CUES), z.string().min(1).max(64)).optional(),
     settings: EventSettingsSchema.default(DEFAULT_SETTINGS),
     assets: z.record(z.string().min(1).max(64), AssetFile).default({}),
   })
@@ -88,6 +112,7 @@ export const EventBundleSchema = z
     ];
     const refs = [
       b.attract?.imageAssetId,
+      ...Object.values(b.sounds ?? {}).filter((v) => v !== "off"),
       ...layouts.flatMap((l) => [
         l.overlay?.assetId,
         l.background?.assetId,

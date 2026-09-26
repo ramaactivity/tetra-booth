@@ -63,6 +63,18 @@ describe("buildBundle designs (DECISIONS #99)", () => {
       ["d1-f1.ttf", "k/f1.ttf"],
     ]);
   });
+  it("suara per cue (#104): mati = off, pengganti = file snd-<cue>, bawaan = tidak ada", () => {
+    const b = buildBundle({ ...base, sounds: { "3": "off", jepret: f("snd-jepret.wav") } }) as {
+      config: { sounds: Record<string, string>; assets: Record<string, string> };
+      files: { file: string }[];
+    };
+    expect(b.config.sounds).toEqual({ "3": "off", jepret: "snd-jepret" });
+    expect(b.config.assets).toEqual({ "snd-jepret": "snd-jepret.wav" });
+    expect(b.files.map((x) => x.file)).toEqual(["snd-jepret.wav"]);
+    expect((buildBundle({ ...base, sounds: {} }) as { config: object }).config).not.toHaveProperty(
+      "sounds",
+    );
+  });
   it("tanpa desain tambahan / mode photobox → tanpa designs", () => {
     expect((buildBundle(base) as { config: object }).config).not.toHaveProperty("designs");
     const pb = buildBundle({

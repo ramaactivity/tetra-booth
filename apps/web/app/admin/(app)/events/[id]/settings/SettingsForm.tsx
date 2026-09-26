@@ -30,6 +30,8 @@ export type SettingsValues = {
   countdownSound: boolean;
   promptsBefore: string[];
   promptsAfter: string[];
+  /** Suara per cue (#104): nyala/mati + URL file pengganti (presigned) kalau ada. */
+  sounds: { cue: string; on: boolean; custom: string | null }[];
   /** Header halaman tamu. */
   guestColor: string;
   hasLogo: boolean;
@@ -53,6 +55,85 @@ export type SettingsValues = {
   client_days: number;
   devices: { id: string; name: string; assigned: boolean }[];
 };
+
+/** Label momen suara (#104). */
+const SOUND_LABELS: Record<string, string> = {
+  mulai: "Sapaan mulai",
+  "foto-1": "Sebelum foto 1",
+  "foto-2": "Sebelum foto 2",
+  "foto-3": "Sebelum foto 3+",
+  "foto-terakhir": "Foto terakhir",
+  "3": "Angka 3",
+  "2": "Angka 2",
+  "1": "Angka 1",
+  jepret: "Jepret",
+  "keren-1": "Sorakan: Mantap!",
+  "keren-2": "Sorakan: Keren banget!",
+  "keren-3": "Sorakan: Cakep!",
+  "keren-4": "Sorakan: Kalcer abis!",
+  review: "Cek foto",
+  cetak: "Pilih cetak",
+  selesai: "Selesai (QR)",
+  bayar: "Bayar QRIS",
+};
+
+/** Satu baris suara (#104): pill Nyala/Mati, dengar, status, Ganti (upload), kembalikan ke bawaan. */
+function SoundRow({ cue, on, custom }: { cue: string; on: boolean; custom: string | null }) {
+  const [file, setFile] = useState<string | null>(null);
+  const [reset, setReset] = useState(false);
+  const pill = "cursor-pointer rounded-full border-[1.5px] border-ink px-3 py-1 text-xs font-bold";
+  return (
+    <div className="grid grid-cols-[180px_auto_auto_1fr] items-center gap-3 py-2 text-sm">
+      <span className="font-bold">{SOUND_LABELS[cue] ?? cue}</span>
+      <label
+        className={`${pill} border-dashed bg-white has-checked:border-solid has-checked:bg-mint-soft`}
+      >
+        <input
+          type="checkbox"
+          name={`snd_on_${cue}`}
+          defaultChecked={on}
+          className="peer sr-only"
+        />
+        <span className="hidden peer-checked:inline">Nyala</span>
+        <span className="peer-checked:hidden">Mati</span>
+      </label>
+      <button
+        type="button"
+        aria-label={`Dengar ${SOUND_LABELS[cue] ?? cue}`}
+        onClick={() => void new Audio(custom && !reset ? custom : `/sounds/${cue}.wav`).play()}
+        className="pressable flex size-8 items-center justify-center rounded-full border-[1.5px] border-ink bg-mint text-xs font-bold"
+      >
+        ▶
+      </button>
+      <span className="flex items-center justify-end gap-2 text-xs">
+        <span className="truncate text-text-2">
+          {file ?? (custom && !reset ? "suara pengganti" : "suara bawaan")}
+        </span>
+        <label className={`${pill} bg-white`}>
+          Ganti
+          <input
+            name={`snd_file_${cue}`}
+            type="file"
+            accept="audio/wav,audio/x-wav,audio/mpeg"
+            className="sr-only"
+            onChange={(e) => setFile(e.target.files?.[0]?.name ?? null)}
+          />
+        </label>
+        {custom && (
+          <label className={`${pill} bg-white has-checked:bg-peach`}>
+            <input
+              type="checkbox"
+              name={`snd_reset_${cue}`}
+              className="sr-only"
+              onChange={(e) => setReset(e.target.checked)}
+            />
+            Pakai bawaan
+          </label>
+        )}
+      </span>
+    </div>
+  );
+}
 
 const MODES = [
   { v: "event", i: "♥", t: "Mode Event", d: "Klien bayar paket, 1 layout, cetak gratis" },
@@ -300,6 +381,14 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           )}
         </Section>
 
+        <Section title="Suara (berlaku kalau Suara di bagian Sesi dinyalakan)">
+          <div className="col-span-full flex flex-col divide-y-[1.5px] divide-dashed divide-line-soft">
+            {v.sounds.map((snd) => (
+              <SoundRow key={snd.cue} {...snd} />
+            ))}
+          </div>
+        </Section>
+
         <Section title="Photobox (berlaku di Mode Photobox)">
           <fieldset className="col-span-full grid grid-cols-1 gap-2.5 lg:grid-cols-2">
             <legend className="mb-1.5 text-xs font-bold">
@@ -348,7 +437,9 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
               name="prompts_before"
               rows={4}
               defaultValue={v.promptsBefore.join("\n")}
-              placeholder={"Siap-siap, gaya pertama!\nGaya kedua, lebih seru!\nOke gaya terakhir, cheers!"}
+              placeholder={
+                "Siap-siap, gaya pertama!\nGaya kedua, lebih seru!\nOke gaya terakhir, cheers!"
+              }
               className="w-full rounded-[11px] border-[1.5px] border-ink bg-white px-3 py-2 text-sm"
             />
           </Field>

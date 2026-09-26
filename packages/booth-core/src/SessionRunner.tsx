@@ -7,7 +7,7 @@ import type { BoothEvent } from "./event";
 import { buildOutputs, previewUrl } from "./finalize";
 import { mmss, rupiah } from "./format";
 import { usePlatform } from "./PlatformContext";
-import { after, beforeCue, beforeText, type Cue, play } from "./prompts";
+import { after, beforeCue, beforeText, type Cue, play, setSoundOverrides } from "./prompts";
 import { Attract } from "./screens/Attract";
 import { Capturing } from "./screens/Capturing";
 import { Countdown } from "./screens/Countdown";
@@ -80,6 +80,7 @@ export function SessionRunner({
   /** Percobaan sambung ulang kamera yang gagal, untuk layar A10. */
   const [reconnects, setReconnects] = useState(0);
   const send = (e: SessionEvent) => () => dispatch(e);
+  useEffect(() => setSoundOverrides(event.sounds), [event.sounds]);
   // Kalimat & suara di sela foto (#103): daftar event, atau bawaan booth.
   const before = cfg.promptsBefore.length ? cfg.promptsBefore : copy.prompts.before;
   // biome-ignore lint/correctness/useExhaustiveDependencies: sorakan baru tiap foto/percobaan
