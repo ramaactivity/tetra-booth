@@ -177,6 +177,27 @@ export function DeviceSheet({
         </section>
 
         <section className="flex flex-col gap-3">
+          <p className={label}>{copy.crew.mirror}</p>
+          <div className="grid grid-cols-2 gap-3">
+            {(["mirrorLiveView", "mirrorPhoto"] as const).map((k) => {
+              const on = draft[k] ?? k === "mirrorLiveView";
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={on}
+                  className={choice(on)}
+                  onClick={() => set({ [k]: !on })}
+                >
+                  {copy.crew[k]} · {on ? "ON" : "OFF"}
+                </button>
+              );
+            })}
+          </div>
+          {draft.mirrorPhoto && <p className="text-lg text-text-2">{copy.crew.mirrorNote}</p>}
+        </section>
+
+        <section className="flex flex-col gap-3">
           <p className={label}>
             {copy.crew.devicePrinter}
             {locked("printer") && ` · ${copy.crew.deviceLocked}`}

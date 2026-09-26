@@ -73,6 +73,8 @@ export const userDir = dataDir ?? join(appData, "TetraBooth");
 export const DeviceSettings = z.object({
   camera: z.enum(["webcam", "simulated", "hotfolder"]).optional(),
   webcamId: z.string().max(512).optional(),
+  mirrorLiveView: z.boolean().optional(),
+  mirrorPhoto: z.boolean().optional(),
   hotFolder: z.string().min(1).max(260).optional(),
   hotFolderTrigger: z.url().max(512).optional(),
   printer: z.string().min(1).max(256).optional(),
@@ -160,6 +162,8 @@ export const config: BoothConfig = {
   fast: flags.has("fast"),
   guestUrl: process.env.TETRA_GUEST_URL ?? "https://booth.tetraphoto.com",
   ...(device.webcamId ? { webcamId: device.webcamId } : {}),
+  mirrorLiveView: device.mirrorLiveView ?? true,
+  mirrorPhoto: device.mirrorPhoto ?? false,
 };
 
 const size = /^(\d+)x(\d+)$/.exec(flags.value("size") ?? "");
@@ -206,6 +210,8 @@ export const printerName = flags.value("printer");
 export const deviceNow: DeviceSettings = {
   camera: config.camera,
   ...(device.webcamId ? { webcamId: device.webcamId } : {}),
+  mirrorLiveView: config.mirrorLiveView ?? true,
+  mirrorPhoto: config.mirrorPhoto ?? false,
   ...(flags.value("hot-folder") ? { hotFolder: flags.value("hot-folder") } : {}),
   ...(flags.value("hot-folder-trigger") || digicam
     ? { hotFolderTrigger: flags.value("hot-folder-trigger") ?? DIGICAM_TRIGGER }

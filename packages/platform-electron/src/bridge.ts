@@ -18,6 +18,10 @@ export type BoothConfig = {
   startScreen?: boolean;
   /** Webcam pilihan crew (`MediaDeviceInfo.deviceId`); kosong = bawaan. */
   webcamId?: string;
+  /** Opsi crew: live view seperti cermin (bawaan nyala). */
+  mirrorLiveView?: boolean;
+  /** Opsi crew: hasil foto ikut dibalik (bawaan mati). */
+  mirrorPhoto?: boolean;
 };
 
 /**

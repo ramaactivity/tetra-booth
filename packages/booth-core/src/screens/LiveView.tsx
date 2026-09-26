@@ -3,9 +3,12 @@ import { copy } from "../copy";
 import { errText } from "../errors";
 import { usePlatform } from "../PlatformContext";
 
-/** Live view full-bleed, di-mirror seperti cermin (FSD §1.7). Hasil foto tidak di-mirror. */
+/**
+ * Live view full-bleed, di-mirror seperti cermin (FSD §1.7) kecuali crew mematikannya. Hasil foto tidak di-mirror
+ * kecuali opsi crew "Cermin hasil foto" (camera/mirror.ts).
+ */
 export function LiveView() {
-  const { camera } = usePlatform();
+  const { camera, mirrorLiveView = true } = usePlatform();
   const ref = useRef<HTMLCanvasElement>(null);
   const [hasFrame, setHasFrame] = useState(false);
 
@@ -26,14 +29,15 @@ export function LiveView() {
         const scale = Math.max(cw / width, ch / height);
         const dw = width * scale;
         const dh = height * scale;
-        g.setTransform(-1, 0, 0, 1, cw, 0);
+        if (mirrorLiveView) g.setTransform(-1, 0, 0, 1, cw, 0);
+        else g.setTransform(1, 0, 0, 1, 0, 0);
         g.drawImage(source, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
       })
       .catch((e: unknown) => console.warn(`[liveview] gagal mulai: ${errText(e)}`));
     return () => {
       void camera.stopLiveView();
     };
-  }, [camera]);
+  }, [camera, mirrorLiveView]);
 
   return (
     <>

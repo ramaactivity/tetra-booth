@@ -4,6 +4,7 @@ import {
   type BoothStorage,
   createSimulatedCamera,
   createWebcamCamera,
+  withMirroredPhotos,
 } from "@tetra/booth-core";
 import type { BoothConfig, TetraBridge } from "./bridge";
 
@@ -75,13 +76,15 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
     writeFile: (path, bytes) => bridge.writeFile(path, bytes),
     readFile: (path) => bridge.readFile(path),
   };
+  const camera =
+    cfg.camera === "simulated"
+      ? createSimulatedCamera(storage)
+      : cfg.camera === "hotfolder"
+        ? serviceCamera(bridge, !!cfg.liveView)
+        : createWebcamCamera(storage, cfg.webcamId);
   return {
-    camera:
-      cfg.camera === "simulated"
-        ? createSimulatedCamera(storage)
-        : cfg.camera === "hotfolder"
-          ? serviceCamera(bridge, !!cfg.liveView)
-          : createWebcamCamera(storage, cfg.webcamId),
+    camera: cfg.mirrorPhoto ? withMirroredPhotos(camera, storage) : camera,
+    mirrorLiveView: cfg.mirrorLiveView ?? true,
     printer: { submit: (job) => bridge.printSubmit(job) },
     storage,
     db: {

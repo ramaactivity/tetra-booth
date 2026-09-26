@@ -1,4 +1,5 @@
 export { BoothApp } from "./BoothApp";
+export { withMirroredPhotos } from "./camera/mirror";
 export { createSimulatedCamera } from "./camera/simulated";
 export { createWebcamCamera } from "./camera/webcam";
 export { copy } from "./copy";

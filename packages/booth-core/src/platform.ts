@@ -77,6 +77,10 @@ export type CloudDevice = { name: string; shortCode: string };
 export type DeviceSettings = {
   camera?: "webcam" | "simulated" | "hotfolder";
   webcamId?: string;
+  /** Live view seperti cermin (bawaan nyala, FSD §1.7). */
+  mirrorLiveView?: boolean;
+  /** Hasil foto ikut dibalik seperti cermin (bawaan mati, DECISIONS #35). */
+  mirrorPhoto?: boolean;
   hotFolder?: string;
   hotFolderTrigger?: string;
   printer?: string;
@@ -173,4 +177,6 @@ export interface BoothPlatform {
   health(): Promise<CommandResult<"system.health">>;
   /** Kabari shell tiap pergantian fase (log, screenshot uji). */
   phaseChanged(phase: string): void;
+  /** Live view di-mirror (bawaan true); false = seperti yang dilihat kamera. */
+  mirrorLiveView?: boolean;
 }
