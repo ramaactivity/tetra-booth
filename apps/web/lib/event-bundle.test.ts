@@ -75,6 +75,38 @@ describe("buildBundle designs (DECISIONS #99)", () => {
       "sounds",
     );
   });
+  it("photobox menjual template editor (#108): id tpl-<layoutId>, aset berawalan p<n>-, harga dari pengaturan", () => {
+    const tpl = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+    const b = buildBundle({
+      ...base,
+      mode: "photobox",
+      photobox: {
+        layouts: [
+          { preset: "strip-3", price: 25000 },
+          { template: tpl, price: 40000 },
+        ],
+        extraPrintPrice: 10000,
+      },
+      pbTemplates: { [tpl]: { name: "Bingkai Emas", custom } },
+    }) as {
+      config: {
+        photobox: {
+          layouts: {
+            id: string;
+            name: string;
+            price: number;
+            layout: { overlay?: { assetId: string } };
+          }[];
+        };
+        assets: Record<string, string>;
+      };
+    };
+    const [a, t] = b.config.photobox.layouts;
+    expect(a?.id).toBe("strip-3");
+    expect(t).toMatchObject({ id: `tpl-${tpl}`, name: "Bingkai Emas", price: 40000 });
+    expect(t?.layout.overlay?.assetId).toBe("p2-ov");
+    expect(b.config.assets).toMatchObject({ "p2-ov": "p2-ov.png", "p2-f1": "p2-f1.ttf" });
+  });
   it("tanpa desain tambahan / mode photobox → tanpa designs", () => {
     expect((buildBundle(base) as { config: object }).config).not.toHaveProperty("designs");
     const pb = buildBundle({

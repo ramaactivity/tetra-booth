@@ -45,7 +45,8 @@ export type SettingsValues = {
   sessionSec: number;
   extraPrintPrice: number;
   /** Harga per preset yang dijual di photobox (tidak ada = tidak dijual). */
-  prices: Partial<Record<PresetId, number>>;
+  /** Kunci: id preset atau `tpl-<layoutId>` (#108). */
+  prices: Record<string, number>;
   lead: {
     enabled?: boolean;
     mode?: "gate" | "optional";
@@ -400,23 +401,34 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
             <legend className="mb-1.5 text-xs font-bold">
               Layout yang dijual · harga termasuk 1 lembar cetak
             </legend>
-            {EVENT_PRESETS.map((id) => [id, LAYOUT_PRESETS[id]] as const).map(([id, p]) => (
+            {[
+              ...EVENT_PRESETS.map((id) => ({
+                id: id as string,
+                name: LAYOUT_PRESETS[id].name,
+                info: LAYOUT_PRESETS[id].info,
+              })),
+              ...v.templates.map((t) => ({
+                id: `tpl-${t.id}`,
+                name: t.name,
+                info: `${paperLabel(t.paper as LayoutPaper)} · template`,
+              })),
+            ].map((p) => (
               <div
-                key={id}
+                key={p.id}
                 className="flex items-center gap-3 rounded-[11px] border-[1.5px] border-ink px-3 py-2"
               >
                 <label className="flex flex-1 items-center gap-2.5 text-sm font-semibold">
-                  <input type="checkbox" name={`pb_${id}`} defaultChecked={id in v.prices} />
+                  <input type="checkbox" name={`pb_${p.id}`} defaultChecked={p.id in v.prices} />
                   {p.name} <span className="font-mono text-xs text-text-2">{p.info}</span>
                 </label>
                 <span className="text-xs font-semibold text-text-2">Rp</span>
                 <input
-                  name={`price_${id}`}
+                  name={`price_${p.id}`}
                   type="number"
                   min={1500}
                   step={500}
                   aria-label={`Harga ${p.name}`}
-                  defaultValue={v.prices[id] ?? 25000}
+                  defaultValue={v.prices[p.id] ?? 25000}
                   className={`${input} w-28`}
                 />
               </div>

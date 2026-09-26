@@ -21,7 +21,7 @@ import {
 } from "@/lib/event-bundle";
 import { StoredLayout } from "@/lib/layouts";
 import { consentVersion, LEAD_FIELDS } from "@/lib/leads";
-import type { PhotoboxSettings } from "@/lib/payments";
+import type { PhotoboxLayoutSetting, PhotoboxSettings } from "@/lib/payments";
 import { putObject } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 
@@ -160,11 +160,17 @@ export async function saveEvent(
     await putObject(logoKey, bytes, logo.type);
   } else if (form.get("remove_logo") === "on") logoKey = undefined;
 
-  // Photobox (E3, DECISIONS #70): tiap preset yang dicentang dijual dengan harganya sendiri.
-  const layouts = EVENT_PRESETS.filter((id) => form.get(`pb_${id}`) === "on").map((id) => ({
-    preset: id,
-    price: Number(form.get(`price_${id}`)),
-  }));
+  // Photobox (E3, DECISIONS #70/#108): tiap preset / template editor yang dicentang dijual dengan harganya sendiri.
+  const layouts: PhotoboxLayoutSetting[] = [...form.keys()]
+    .filter((k) => k.startsWith("pb_") && form.get(k) === "on")
+    .map((k) => k.slice(3))
+    .flatMap((key): PhotoboxLayoutSetting[] => {
+      const price = Number(form.get(`price_${key}`));
+      if ((EVENT_PRESETS as readonly string[]).includes(key))
+        return [{ preset: key as PresetId, price }];
+      const t = /^tpl-([0-9a-f-]{36})$/.exec(key)?.[1];
+      return t ? [{ template: t, price }] : [];
+    });
   if (
     layouts.some((l) => !Number.isInteger(l.price) || l.price < MIN_PRICE || l.price > 10_000_000)
   )
@@ -236,6 +242,14 @@ export async function saveEvent(
     customName = lv.name;
     template = { ...template, layoutId, layoutVersion: lv.version };
   }
+  // Template editor yang dijual photobox: versi terbaru dikunci saat simpan (#108).
+  const pbTemplates: Record<string, { name: string; custom: StoredLayout }> = {};
+  for (const l of layouts) {
+    if (!("template" in l)) continue;
+    const lv = await latest(l.template);
+    if (!lv) return { ok: false, message: "Template photobox tidak ditemukan" };
+    pbTemplates[l.template] = { name: lv.name, custom: lv.custom };
+  }
   const extras: ExtraDesign[] = [];
   for (const x of extrasParsed.data) {
     if (!x.startsWith("tpl:")) extras.push({ preset: x as PresetId });
@@ -266,6 +280,7 @@ export async function saveEvent(
       custom,
       ...(customName && { customName }),
       extras,
+      pbTemplates,
       attract,
       attractImage,
       sounds,

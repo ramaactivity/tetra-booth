@@ -90,7 +90,7 @@ export function SessionRunner({
   const [s, dispatch] = useReducer(sessionReducer, initialSession);
   // Photobox / desain pilihan tamu (#99) menggantikan layout event untuk compose, cetak, dan output.
   const chosen = (event.photobox?.layouts ?? event.designs)?.find((l) => l.id === s.layoutId);
-  const previews = useDesignPreviews(event, s.phase === "layout_select" && !s.photobox);
+  const previews = useDesignPreviews(event, s.phase === "layout_select");
   const ev = useMemo(() => (chosen ? { ...event, layout: chosen.layout } : event), [event, chosen]);
   const cfg = ev.settings;
   const [paidAmount, setPaidAmount] = useState(0);
@@ -388,6 +388,7 @@ export function SessionRunner({
         return event.photobox ? (
           <LayoutSelect
             layouts={event.photobox.layouts}
+            preview={previews}
             onChoose={(layoutId) => dispatch({ type: "LAYOUT_CHOSEN", layoutId })}
             onBack={send({ type: "BACK" })}
           />
@@ -395,6 +396,7 @@ export function SessionRunner({
           <LayoutSelect
             layouts={event.designs}
             preview={previews}
+            design
             onChoose={(id) => {
               const d = event.designs?.find((x) => x.id === id);
               if (d) dispatch(startEvent(event, d));
@@ -505,16 +507,17 @@ export function SessionRunner({
   }
 }
 
-/** Pratinjau desain (#99): dirender sekali per event saat layar pilih desain pertama dibuka; URL dilepas saat ganti event. */
+/** Pratinjau desain/layout photobox (#99/#108): dirender sekali per event saat layar pilih pertama dibuka; URL dilepas saat ganti event. */
 function useDesignPreviews(event: BoothEvent, active: boolean) {
   const [urls, setUrls] = useState<Record<string, string>>({});
   const made = useRef<string[] | null>(null);
   useEffect(() => {
-    if (!active || made.current || !event.designs) return;
+    const layouts = event.photobox?.layouts ?? event.designs;
+    if (!active || made.current || !layouts) return;
     const list: string[] = [];
     made.current = list;
     void (async () => {
-      for (const d of event.designs ?? []) {
+      for (const d of layouts) {
         const url = await designPreview(event, d.layout).catch(() => null);
         if (!url) continue;
         list.push(url);

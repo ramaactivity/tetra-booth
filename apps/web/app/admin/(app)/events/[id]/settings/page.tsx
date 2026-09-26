@@ -9,6 +9,7 @@ import {
   type EventTemplate,
 } from "@/lib/event-bundle";
 import type { PhotoboxSettings } from "@/lib/payments";
+import { photoboxKey } from "@/lib/payments";
 import { presignGet } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 import { LinksPanel } from "./LinksPanel";
@@ -127,7 +128,9 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           sessionSec: s.sessionSec,
           extraPrintPrice: raw.photobox?.extraPrintPrice ?? 10000,
           lead: ev.lead_capture as SettingsValues["lead"],
-          prices: Object.fromEntries((raw.photobox?.layouts ?? []).map((l) => [l.preset, l.price])),
+          prices: Object.fromEntries(
+            (raw.photobox?.layouts ?? []).map((l) => [photoboxKey(l), l.price]),
+          ),
           guest_days: raw.guestDays ?? 30,
           client_days: raw.clientDays ?? 90,
           devices: (devices ?? []).map((d) => ({ ...d, assigned: assigned.has(d.id) })),

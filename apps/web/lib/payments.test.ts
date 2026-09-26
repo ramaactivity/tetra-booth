@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: () => ({}) }));
-const { midtrans, midtransSignatureOk } = await import("./payments");
+const { midtrans, midtransSignatureOk, priceFor } = await import("./payments");
 
 const KEY = "Mid-server-test"; // key sandbox akun baru: tanpa awalan "SB-" (#95)
 const reply = (body: unknown, status = 200) =>
@@ -66,5 +66,26 @@ describe("Midtrans QRIS (DECISIONS #93)", () => {
       false,
     );
     expect(midtransSignatureOk({ ...n, signature_key: "x" }, KEY)).toBe(false);
+  });
+});
+
+describe("priceFor (#108)", () => {
+  it("harga preset & template editor dari pengaturan; kunci tak dikenal = null", () => {
+    const tpl = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+    const settings = {
+      maxPrints: 3,
+      photobox: {
+        layouts: [
+          { preset: "strip-3" as const, price: 25000 },
+          { template: tpl, price: 40000 },
+        ],
+        extraPrintPrice: 10000,
+      },
+    };
+    expect(priceFor(settings, "strip-3")).toBe(25000);
+    expect(priceFor(settings, `tpl-${tpl}`)).toBe(40000);
+    expect(priceFor(settings, `tpl-${tpl}`, 2)).toBe(20000);
+    expect(priceFor(settings, "4r-grid")).toBeNull();
+    expect(priceFor(settings, "tpl-lain")).toBeNull();
   });
 });
