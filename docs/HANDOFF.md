@@ -199,6 +199,7 @@ Selesai: kata sandi admin, CORS R2, `CRON_SECRET` (cron menolak tanpa secret: 40
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-26 | Mac | Merge `win@ee2dbaf` (tombol Dashboard Admin dengan PIN, sheet Update dengan progress bar + Coba Lagi, toast hasil update, PIN via keyboard; DECISIONS #92). e2e booth 7/7. Booth **0.5.8** dirilis: uji 0.5.7 → 0.5.8 (progress + uninstaller baru + toast). |
 | 2026-09-26 | Mac | Update Aplikasi LULUS (Windows): 0.5.3 build Mac → 0.5.6 build Windows, unduh 2 menit, pasang + buka ulang 27 s, tanpa dialog uninstall, langsung ke event terakhir, data utuh (#90/#91). Booth **0.5.7** dirilis untuk uji progress/lanjut-unduh (#89) + uninstaller `customRemoveFiles`. |
 | 2026-09-26 | Mac | Akar masalah update (temuan Windows): uninstaller dari installer build Mac rusak. Installer sekarang di-build di GitHub Actions `windows-latest` (`booth-installer.yml`), dipicu `pnpm dist:dev` (DECISIONS #91). Merge `win@05374fa` (patokan Tes Jepret lewat preview). Booth **0.5.6** = installer build Windows pertama. |
 | 2026-09-26 | Mac | Booth **0.5.5**: installer mengabaikan uninstaller lama yang gagal + uninstaller baru `RMDir /r` (DECISIONS #90, `apps/booth/build/installer.nsh`), plus pengingat buram (#88) dan progress/lanjut-unduh update (#89). Windows: uji Update Aplikasi 0.5.3 → 0.5.5; setelah lulus Mac merilis 0.5.6 untuk uji progress + uninstaller baru. |
