@@ -147,9 +147,11 @@ export function registerIpc(
   });
   ipcMain.handle("cameraStatus", () => request({ id: crypto.randomUUID(), type: "camera.status" }));
   // Live view DSLR lewat digiCamControl (--digicam). Diambil di main supaya CSP renderer tetap 'self'.
-  ipcMain.handle("liveViewStart", () =>
-    config.liveView ? liveViewStart(!!deviceNow.afBeforeCapture) : undefined,
-  );
+  ipcMain.handle("liveViewStart", async () => {
+    if (!config.liveView) return;
+    await liveViewStart(!!deviceNow.afBeforeCapture);
+    if (deviceNow.afBeforeCapture) console.info("[camera] AF sebelum jepret");
+  });
   ipcMain.handle("liveViewFrame", () => {
     if (!config.liveView) throw new Error("live view tidak aktif");
     return liveViewFrame();
