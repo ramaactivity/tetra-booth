@@ -44,7 +44,10 @@ export function Payment({
   const create = useCallback(() => {
     setSt({ s: "creating" });
     p.payments.create(req.current).then(
-      (bill) => setSt({ s: "waiting", bill }),
+      (bill) => {
+        console.info(`[payment] ${bill.paymentId} dibuat Rp${bill.amount}`);
+        setSt({ s: "waiting", bill });
+      },
       (e: unknown) => {
         console.warn(`[payment] gagal membuat QRIS: ${errText(e)}`);
         setSt({ s: "error" });
@@ -62,6 +65,8 @@ export function Payment({
       p.payments.status(bill.paymentId).then(
         (status) => {
           if (!live) return;
+          // Hanya status akhir yang dicatat (polling tiap beberapa detik, log tidak banjir).
+          if (status !== "pending") console.info(`[payment] ${bill.paymentId} ${status}`);
           if (status === "paid") paid.current(bill.paymentId, bill.amount);
           else if (status !== "pending") setSt({ s: "expired" });
         },
