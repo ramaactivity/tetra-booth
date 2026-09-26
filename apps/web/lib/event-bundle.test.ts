@@ -74,6 +74,16 @@ describe("buildBundle designs (DECISIONS #99)", () => {
     expect((buildBundle({ ...base, sounds: {} }) as { config: object }).config).not.toHaveProperty(
       "sounds",
     );
+    // Mati dengan file pengganti tersimpan: bundle "off", file tetap ada (menyalakan lagi tanpa upload ulang).
+    const off = buildBundle({
+      ...base,
+      sounds: { jepret: { off: true, file: f("snd-jepret.wav") } },
+    }) as {
+      config: { sounds: Record<string, string> };
+      files: { file: string }[];
+    };
+    expect(off.config.sounds).toEqual({ jepret: "off" });
+    expect(off.files.map((x) => x.file)).toEqual(["snd-jepret.wav"]);
   });
   it("photobox menjual template editor (#108): id tpl-<layoutId>, aset berawalan p<n>-, harga dari pengaturan", () => {
     const tpl = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";

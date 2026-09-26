@@ -17,6 +17,12 @@ describe("override pengaturan event di booth (#100)", () => {
     expect(applyOverride(bundle, { countdownSec: 7 }).settings.countdownSec).toBe(7);
     expect(applyOverride(bundle, {})).toBe(bundle);
   });
+  it("photobox: maxPrints tidak di-override (batas lembar tambahan dari cloud, #100)", () => {
+    const pb = { ...bundle, mode: "photobox" } as EventBundle;
+    const r = applyOverride(pb, { maxPrints: 5, countdownSec: 4 });
+    expect(r.settings.maxPrints).toBe(DEFAULT_SETTINGS.maxPrints);
+    expect(r.settings.countdownSec).toBe(4);
+  });
   it("isi kv rusak, di luar batas, atau field terlarang diabaikan", () => {
     expect(parseOverride(null)).toEqual({});
     expect(parseOverride("{bukan json")).toEqual({});

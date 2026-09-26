@@ -44,5 +44,12 @@ export const diffOverride = (cloud: EventBundle["settings"], next: EventOverride
     ),
   );
 
-export const applyOverride = <B extends EventBundle>(b: B, o: EventOverride): B =>
-  Object.keys(o).length ? { ...b, settings: { ...b.settings, ...o } } : b;
+/**
+ * Photobox: `maxPrints` tidak di-override — server membatasi lembar tambahan dari nilai cloud (priceFor), jadi
+ * batas lokal lebih besar membuat tagihan tambahan ditolak.
+ */
+export const applyOverride = <B extends EventBundle>(b: B, o: EventOverride): B => {
+  const { maxPrints, ...rest } = o;
+  const eff = b.mode === "photobox" ? rest : o;
+  return Object.keys(eff).length ? { ...b, settings: { ...b.settings, ...eff } } : b;
+};

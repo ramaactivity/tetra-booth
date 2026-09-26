@@ -228,6 +228,8 @@ export const copy = {
     deviceLocked: "diatur lewat baris perintah",
     cameraKind: { webcam: "Webcam", hotfolder: "DSLR (digiCamControl)", simulated: "Simulasi" },
     noWebcam: "Tidak ada webcam terdeteksi.",
+    on: "Nyala",
+    off: "Mati",
     mirror: "Cermin (balik kiri-kanan)",
     mirrorLiveView: "Live view",
     mirrorPhoto: "Hasil foto",

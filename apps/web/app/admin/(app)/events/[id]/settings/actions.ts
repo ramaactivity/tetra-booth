@@ -16,6 +16,7 @@ import {
   type EventBranding,
   type EventTemplate,
   type ExtraDesign,
+  type SoundSetting,
   storeBundleFile,
   storeOverlay,
 } from "@/lib/event-bundle";
@@ -125,7 +126,7 @@ export async function saveEvent(
     attractImage = await storeBundleFile(orgId, eventId, bytes, `attract.${ext}`, bgFile.type);
   } else if (form.get("remove_attract_image") === "on") attractImage = null;
   // Suara per event (#104): mati, atau file pengganti WAV/MP3 ≤ 1 MB (file bundle snd-<cue>.<ext>).
-  const sounds: Partial<Record<SoundCue, "off" | StoredBundle["files"][number]>> = {};
+  const sounds: Partial<Record<SoundCue, SoundSetting>> = {};
   for (const cue of SOUND_CUES) {
     const old = prev.success
       ? prev.data.files.find((x) => x.file.startsWith(`snd-${cue}.`))
@@ -139,7 +140,8 @@ export async function saveEvent(
       const bytes = new Uint8Array(await up.arrayBuffer());
       file = await storeBundleFile(orgId, eventId, bytes, `snd-${cue}.${ext}`, up.type);
     }
-    if (form.get(`snd_on_${cue}`) !== "on") sounds[cue] = "off";
+    // Mati tetap menyimpan file pengganti, supaya menyalakan lagi tidak perlu upload ulang.
+    if (form.get(`snd_on_${cue}`) !== "on") sounds[cue] = file ? { off: true, file } : "off";
     else if (file) sounds[cue] = file;
   }
   const attract: AttractSettings = {

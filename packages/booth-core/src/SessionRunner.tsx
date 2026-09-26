@@ -511,6 +511,16 @@ export function SessionRunner({
 function useDesignPreviews(event: BoothEvent, active: boolean) {
   const [urls, setUrls] = useState<Record<string, string>>({});
   const made = useRef<string[] | null>(null);
+  // Event yang sama dimuat ulang (Sync / override): pratinjau lama dibuang, dibuat ulang saat layar pilih dibuka.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: dibuang tiap objek event berganti
+  useEffect(
+    () => () => {
+      for (const u of made.current ?? []) URL.revokeObjectURL(u);
+      made.current = null;
+      setUrls({});
+    },
+    [event],
+  );
   useEffect(() => {
     const layouts = event.photobox?.layouts ?? event.designs;
     if (!active || made.current || !layouts) return;
@@ -525,11 +535,5 @@ function useDesignPreviews(event: BoothEvent, active: boolean) {
       }
     })();
   }, [active, event]);
-  useEffect(
-    () => () => {
-      for (const u of made.current ?? []) URL.revokeObjectURL(u);
-    },
-    [],
-  );
   return urls;
 }

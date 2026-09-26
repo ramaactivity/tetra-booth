@@ -173,7 +173,13 @@ export const liveViewStart = async (autofocus = false) => {
   await get("/?CMD=All_Minimize", 5000);
   await get("/?CMD=LiveView_NoProcess", 5000);
   // "AF sebelum jepret": live view mulai di awal tiap countdown, jadi AF selesai (60D ±1–2 s) sebelum shutter.
-  if (autofocus) await focus("af");
+  // Tidak ditunggu: AF lambat/gagal (lensa MF, digiCamControl sibuk) tidak boleh menahan live view.
+  if (autofocus)
+    void focus("af").catch((e: unknown) =>
+      console.warn(
+        `[camera] AF sebelum jepret gagal: ${e instanceof Error ? e.message : String(e)}`,
+      ),
+    );
 };
 
 /**
