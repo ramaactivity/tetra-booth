@@ -21,6 +21,7 @@ export function App({ cfg }: { cfg: BoothConfig }) {
         fast={cfg.fast ?? false}
         kiosk={cfg.kiosk ?? false}
         startScreen={cfg.startScreen ?? false}
+        bumper={cfg.bumper ?? false}
       />
     </PlatformProvider>
   );

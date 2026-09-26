@@ -197,6 +197,7 @@ export async function saveEvent(
     reviewTimeoutSec: f.reviewTimeoutSec,
     qrScreenSec: f.qrScreenSec,
     countdownSound: form.get("countdownSound") === "on",
+    bumper: form.get("bumper") === "on",
     promptsBefore: lines(form.get("prompts_before")),
     promptsAfter: lines(form.get("prompts_after")),
   };

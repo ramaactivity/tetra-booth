@@ -22,6 +22,14 @@ function titleSize(name: string) {
 const UNDER = ["var(--peach)", "var(--sky)", "var(--lavender)", "var(--mint-soft)"];
 const COLUMNS = [0, -180, -60];
 
+/** Layar awal dibangun bertahap (#105), kurva sama dengan bumper: masuk cepat, sedikit overshoot. */
+const rise = (ms: number) =>
+  ({
+    animation: `rise 560ms cubic-bezier(.34,1.56,.64,1) ${ms}ms both`,
+  }) as const;
+const pop = (ms: number) =>
+  ({ animation: `pop 700ms cubic-bezier(.34,1.56,.64,1) ${ms}ms both` }) as const;
+
 function SampleStrip({ name, under }: { name: string; under: string }) {
   return (
     <div
@@ -111,10 +119,22 @@ export function Attract({
         <img src={theme.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <>
-          <div className="absolute -bottom-[260px] -left-[220px] size-[760px] rounded-full bg-mint-soft" />
-          <div className="absolute -bottom-[160px] -left-[120px] size-[560px] rounded-full border-2 border-white" />
-          <div className="absolute -bottom-[60px] -left-5 size-[360px] rounded-full border-2 border-white" />
-          <div className="absolute -top-[120px] right-[560px] size-[280px] rounded-full bg-peach portrait:hidden" />
+          <div
+            style={pop(0)}
+            className="absolute -bottom-[260px] -left-[220px] size-[760px] rounded-full bg-mint-soft"
+          />
+          <div
+            style={pop(90)}
+            className="absolute -bottom-[160px] -left-[120px] size-[560px] rounded-full border-2 border-white"
+          />
+          <div
+            style={pop(180)}
+            className="absolute -bottom-[60px] -left-5 size-[360px] rounded-full border-2 border-white"
+          />
+          <div
+            style={pop(120)}
+            className="absolute -top-[120px] right-[560px] size-[280px] rounded-full bg-peach portrait:hidden"
+          />
         </>
       )}
 
@@ -124,7 +144,11 @@ export function Attract({
         className="absolute -top-[60px] -bottom-[60px] right-[110px] flex gap-11 portrait:hidden"
       >
         {COLUMNS.map((offset, c) => (
-          <div key={offset} style={{ marginTop: offset }} className="overflow-visible">
+          <div
+            key={offset}
+            style={{ marginTop: offset, ...rise(260 + c * 90) }}
+            className="overflow-visible"
+          >
             <div
               style={{ animationDuration: `${90 + c * 20}s` }}
               className="flex animate-[drift_linear_infinite] flex-col gap-12 pb-12 motion-reduce:animate-none"
@@ -141,6 +165,7 @@ export function Attract({
         type="button"
         aria-label="logo (tahan untuk mode crew)"
         data-testid="crew-logo"
+        style={rise(0)}
         className="absolute top-20 left-24 select-none"
         onPointerDown={holdStart}
         onPointerUp={holdEnd}
@@ -170,18 +195,25 @@ export function Attract({
         className={`absolute top-[168px] bottom-16 left-24 flex w-[860px] flex-col justify-center gap-8 portrait:right-24 portrait:w-auto ${theme?.imageUrl ? "my-auto h-fit rounded-[40px] border-[3px] border-ink bg-white/92 p-14" : ""}`}
       >
         {tagline && (
-          <span className="flex items-center gap-3.5 self-start rounded-full border-[2.5px] border-ink bg-white py-3 pr-[26px] pl-3.5 text-[26px] font-bold whitespace-nowrap">
+          <span
+            style={rise(80)}
+            className="flex items-center gap-3.5 self-start rounded-full border-[2.5px] border-ink bg-white py-3 pr-[26px] pl-3.5 text-[26px] font-bold whitespace-nowrap"
+          >
             <span className="size-9 rounded-full border-2 border-ink bg-lavender" />
             {tagline}
           </span>
         )}
         <h1
+          style={rise(150)}
           className={`${size} max-w-[680px] leading-[0.92] font-extrabold tracking-[-0.05em] break-words`}
         >
           {eventName}
         </h1>
-        <p className="font-mono text-[40px] text-text-3">{date}</p>
+        <p style={rise(220)} className="font-mono text-[40px] text-text-3">
+          {date}
+        </p>
         <Button
+          style={rise(300)}
           className="mt-7 h-[136px] w-[680px] justify-between! rounded-[28px] border-[3px]! pr-5 pl-[52px] text-[44px] tracking-[-0.02em] [--lb:3px] [--lx:10px]"
           onClick={() => ready && onStart()}
         >

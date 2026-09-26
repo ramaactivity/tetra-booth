@@ -92,6 +92,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
               bundle.success && bundle.data.files.some((f) => f.file.startsWith("attract.")),
           },
           countdownSound: s.countdownSound,
+          bumper: s.bumper,
           promptsBefore: s.promptsBefore,
           promptsAfter: s.promptsAfter,
           sounds: await Promise.all(

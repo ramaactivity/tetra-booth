@@ -9,6 +9,7 @@ import { mmss, rupiah } from "./format";
 import { usePlatform } from "./PlatformContext";
 import { after, beforeCue, beforeText, type Cue, play, setSoundOverrides } from "./prompts";
 import { Attract } from "./screens/Attract";
+import { Bumper } from "./screens/Bumper";
 import { Capturing } from "./screens/Capturing";
 import { Countdown } from "./screens/Countdown";
 import { LayoutSelect } from "./screens/LayoutSelect";
@@ -58,6 +59,7 @@ export function SessionRunner({
   guestBaseUrl,
   demo = false,
   fast = false,
+  bumper = false,
   onCrew,
 }: {
   event: BoothEvent;
@@ -65,6 +67,8 @@ export function SessionRunner({
   demo?: boolean;
   /** Demo dipercepat (M8). */
   fast?: boolean;
+  /** Booth terpasang: putar bumper saat event ini dibuka (#105). */
+  bumper?: boolean;
   onCrew?: () => void;
 }) {
   const p = usePlatform();
@@ -81,6 +85,10 @@ export function SessionRunner({
   const [reconnects, setReconnects] = useState(0);
   const send = (e: SessionEvent) => () => dispatch(e);
   useEffect(() => setSoundOverrides(event.sounds), [event.sounds]);
+  // Bumper (#105): play → leave (memudar, layar awal mulai dibangun di bawahnya) → done.
+  const [bumperState, setBumperState] = useState<"play" | "leave" | "done">(
+    bumper && event.settings.bumper && !demo ? "play" : "done",
+  );
   // Kalimat & suara di sela foto (#103): daftar event, atau bawaan booth.
   const before = cfg.promptsBefore.length ? cfg.promptsBefore : copy.prompts.before;
   // biome-ignore lint/correctness/useExhaustiveDependencies: sorakan baru tiap foto/percobaan
@@ -323,6 +331,14 @@ export function SessionRunner({
           {copy.photobox.timeLeft} {mmss(s.deadline - now)}
         </span>
       )}
+      {bumperState !== "done" && s.phase === "attract" && (
+        <Bumper
+          sound={cfg.countdownSound}
+          leaving={bumperState === "leave"}
+          onEnd={() => setBumperState((b) => (b === "play" ? "leave" : b))}
+          onDone={() => setBumperState("done")}
+        />
+      )}
     </div>
   );
 
@@ -330,6 +346,8 @@ export function SessionRunner({
     const photo = s.photos[s.index];
     switch (s.phase) {
       case "attract":
+        // Selama bumper: kertas polos; layar awal baru dibangun (animasi masuk) saat bumper selesai.
+        if (bumperState === "play") return null;
         return (
           <Attract
             eventName={event.name}

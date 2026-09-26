@@ -5,6 +5,7 @@ import { createAlerts } from "./alerts";
 import { startCameraService, watchPrintEvents } from "./camera-service";
 import { createCloud } from "./cloud";
 import {
+  bumperFlag,
   cameraServiceFlags,
   config,
   digicam,
@@ -46,6 +47,8 @@ if (process.platform === "win32") app.setAppUserModelId(APP_ID);
 
 // Data lokal di %APPDATA%/TetraBooth (TSD §3), bukan nama produk dengan spasi.
 app.setPath("userData", userDir);
+// Bumper (#105) diputar dengan suaranya saat booth dibuka, sebelum ada sentuhan tamu.
+app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 
 const logToFile = setupLogging(join(app.getPath("userData"), "logs"));
 for (const w of flagWarnings) console.warn(w);
@@ -58,6 +61,7 @@ console.info(
 const resumed = db.kv.get(RESUME_KEY) === "1";
 db.kv.set(RESUME_KEY, "0");
 config.startScreen = startScreenFlag(app.isPackaged, resumed);
+config.bumper = bumperFlag(app.isPackaged);
 
 const alerts = createAlerts(db);
 // Boot ulang booth: lewat before-quit (print ditunggu), juga di kiosk. Kalau quit tersangkut (jendela beku), paksa.
