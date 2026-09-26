@@ -41,6 +41,7 @@ describe("Midtrans QRIS (DECISIONS #93)", () => {
 
   it("status: settlement = paid, expire = expired, deny = failed; status_code 404 dalam HTTP 200 = error", async () => {
     const mt = midtrans("Mid-server-prod", true);
+    expect(mt.simulate).toBeUndefined(); // simulator hanya sandbox
     for (const [s, want] of [
       ["settlement", "paid"],
       ["pending", "pending"],

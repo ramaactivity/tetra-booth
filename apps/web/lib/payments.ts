@@ -14,7 +14,7 @@ export interface PaymentProvider {
     qrString: string;
   }>;
   status(ref: string): Promise<PaymentStatus>;
-  /** Uji: bayar tagihan tanpa dompet digital (hanya mode test Xendit / provider palsu). */
+  /** Uji: bayar tagihan tanpa dompet digital (mode test Xendit, sandbox Midtrans, provider palsu). */
   simulate?(ref: string, amount: number): Promise<void>;
 }
 
@@ -141,6 +141,35 @@ export function midtrans(
       const r = await call(`/v2/${encodeURIComponent(ref)}/status`);
       return MAP[String(r.transaction_status)] ?? "pending";
     },
+    // Sandbox: isi form QRIS Simulator Midtrans (URL gambar QR → konfirmasi → Pay); webhook menyusul dari Midtrans.
+    ...(!production && {
+      async simulate(ref: string) {
+        const r = await call(`/v2/${encodeURIComponent(ref)}/status`);
+        const qrCodeUrl = `${base}/v2/qris/${String(r.transaction_id)}/qr-code`;
+        const post = async (path: string, form: Record<string, string>) => {
+          const res = await fetch(`https://simulator.sandbox.midtrans.com/v2/qris/${path}`, {
+            method: "POST",
+            body: new URLSearchParams(form),
+          });
+          return res.text();
+        };
+        const page = await post("payment", { qrCodeUrl });
+        const form = page.slice(page.indexOf('action="payment/gopay"'));
+        const fields = Object.fromEntries(
+          [...form.matchAll(/<input\s+name="([^"]+)"[^>]*?value="([^"]*)"/g)].map((m) => [
+            m[1],
+            String(m[2])
+              .replace(/&quot;/g, '"')
+              .replace(/&amp;/g, "&"),
+          ]),
+        );
+        if (
+          !fields.referenceId ||
+          !/Status\s*(<[^>]*>\s*)*PAID/.test(await post("payment/gopay", fields))
+        )
+          throw new Error(`midtrans simulator gagal untuk ${ref}`);
+      },
+    }),
   };
 }
 

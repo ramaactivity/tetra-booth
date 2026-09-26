@@ -2,7 +2,7 @@ import { apiError, authDevice } from "@/lib/booth";
 import { paymentProvider, refreshPayment } from "@/lib/payments";
 import { createServiceClient } from "@/lib/supabase/service";
 
-/** Uji tanpa dompet digital: bayar tagihan lewat simulasi provider (Xendit mode test / provider palsu saja). */
+/** Uji tanpa dompet digital: bayar tagihan lewat simulasi provider (Xendit mode test / Midtrans sandbox / provider palsu). */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const device = await authDevice(req);
   if (!device) return apiError("unauthorized", 401);
