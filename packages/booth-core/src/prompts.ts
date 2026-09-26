@@ -51,6 +51,25 @@ export function fadeOutSound(ms = 400) {
 }
 
 /**
+ * Seperti `play`, tapi menunggu suara yang sedang diputar selesai dulu (maks. `waitMs`), supaya sorakan tidak
+ * memotong bunyi jepret (webcam: preview muncul ±0,3 dtk setelah jepret). Kalau sementara itu suara lain sudah
+ * mulai (fase berganti), cue ini dilewati.
+ */
+export function playAfter(cue: Cue, waitMs = 600): Promise<boolean> {
+  const a = current;
+  if (!a || a.paused || a.ended) return play(cue);
+  return new Promise((resolve) => {
+    const go = () => {
+      clearTimeout(t);
+      a.removeEventListener("ended", go);
+      resolve(current === a ? play(cue) : true);
+    };
+    const t = setTimeout(go, waitMs);
+    a.addEventListener("ended", go, { once: true });
+  });
+}
+
+/**
  * Putar satu cue; selesai saat audio habis (maks. `maxMs`). false = file tidak ada / audio gagal
  * (pemanggil boleh memakai bunyi tik). Cue yang dimatikan event = true tanpa bunyi.
  */

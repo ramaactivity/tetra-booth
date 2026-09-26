@@ -7,7 +7,15 @@ import type { BoothEvent } from "./event";
 import { buildOutputs, previewUrl } from "./finalize";
 import { mmss, rupiah } from "./format";
 import { usePlatform } from "./PlatformContext";
-import { after, beforeCue, beforeText, type Cue, play, setSoundOverrides } from "./prompts";
+import {
+  after,
+  beforeCue,
+  beforeText,
+  type Cue,
+  play,
+  playAfter,
+  setSoundOverrides,
+} from "./prompts";
 import { Attract } from "./screens/Attract";
 import { Bumper } from "./screens/Bumper";
 import { Capturing } from "./screens/Capturing";
@@ -113,7 +121,8 @@ export function SessionRunner({
       payment: "bayar",
     };
     const c = cue[s.phase];
-    if (c) void play(c);
+    // Sorakan menunggu bunyi jepret selesai; cue fase lain memotong suara sebelumnya.
+    if (c) void (s.phase === "preview" ? playAfter(c) : play(c));
   }, [s.phase, cfg.countdownSound, cheer.cue]);
 
   // Log setiap transisi (TSD §1) + kabari shell.
