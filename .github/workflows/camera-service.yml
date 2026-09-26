@@ -3,7 +3,7 @@ name: Camera Service
 # Runner Windows dihitung 2× menit: hanya saat kode Camera Service berubah.
 on:
   push:
-    branches: [main]
+    branches: [main, win]
     paths: ["services/camera/**"]
   pull_request:
     paths: ["services/camera/**"]

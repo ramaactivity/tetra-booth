@@ -1,9 +1,9 @@
 name: CI
 
-# Hemat menit Actions (repo private, kuota bulanan): hanya main, lewati commit dokumen, batalkan run lama.
+# Repo public (Actions gratis sejak 26 Sep 2026): lewati commit dokumen, batalkan run lama.
 on:
   push:
-    branches: [main]
+    branches: [main, win]
     paths-ignore: ["docs/**", "**/*.md"]
   pull_request:
     paths-ignore: ["docs/**", "**/*.md"]
