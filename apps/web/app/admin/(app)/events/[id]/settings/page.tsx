@@ -72,6 +72,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           location: ev.location ?? "",
           tagline: branding.tagline ?? "",
           client_name: branding.clientName ?? "",
+          guestColor: branding.color ?? "#f8f7f4",
+          hasLogo: !!branding.logoKey,
           preset: tpl.layoutId ? `tpl:${tpl.layoutId}` : tpl.preset,
           pinnedVersion: tpl.layoutVersion ?? null,
           templates: (layouts ?? []).map((l) => ({

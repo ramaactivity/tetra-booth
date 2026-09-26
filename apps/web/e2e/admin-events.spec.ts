@@ -41,6 +41,9 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page
       .locator('input[name="overlay"]')
       .setInputFiles({ name: "ov.png", mimeType: "image/png", buffer: PNG });
+    await page
+      .locator('input[name="logo"]')
+      .setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: PNG });
     await page.getByLabel("Maks. cetak per sesi").fill("3");
     await page.getByLabel(dev?.name ?? "").check();
     await page.getByRole("button", { name: "Simpan" }).click();
@@ -51,6 +54,11 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     const { events } = await (await request.get("/api/booth/events", { headers: auth })).json();
     const ev = events.find((e: { name: string }) => e.name === name);
     expect(ev?.bundleVersion).toBe(2);
+    // Logo halaman tamu tersimpan di branding (R2, folder event), tidak ikut bundle booth.
+    const { data: row } = await db.from("events").select("branding").eq("id", ev.id).single();
+    expect((row?.branding as { logoKey?: string }).logoKey).toMatch(
+      new RegExp(`/${ev.id}/branding/[0-9a-f]{64}\\.png$`),
+    );
     const m = await (
       await request.get(`/api/booth/events/${ev.id}/bundle`, { headers: auth })
     ).json();

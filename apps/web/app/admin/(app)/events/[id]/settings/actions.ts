@@ -1,15 +1,31 @@
 "use server";
+import { createHash } from "node:crypto";
 import { EVENT_PRESETS, LAYOUT_PRESETS, type PresetId, StoredBundle } from "@tetra/shared";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { buildBundle, type EventTemplate, storeOverlay } from "@/lib/event-bundle";
+import {
+  buildBundle,
+  type EventBranding,
+  type EventTemplate,
+  storeOverlay,
+} from "@/lib/event-bundle";
 import { StoredLayout } from "@/lib/layouts";
 import { consentVersion, LEAD_FIELDS } from "@/lib/leads";
 import type { PhotoboxSettings } from "@/lib/payments";
+import { putObject } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 
 const DAY = 86_400_000;
 const MAX_OVERLAY = 4 * 1024 * 1024;
+const MAX_LOGO = 1024 * 1024;
+/** Tanpa SVG: logo ditampilkan di halaman publik. */
+const LOGO_EXT: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+};
+/** Warna header bawaan (--paper) = tanpa warna khusus. */
+const PAPER = "#f8f7f4";
 const int = (min: number, max: number) => z.coerce.number().int().min(min).max(max);
 /** Minimal nominal QRIS Xendit. */
 const MIN_PRICE = 1500;
@@ -23,6 +39,7 @@ const Form = z.object({
   /** Preset, atau `tpl:<layoutId>` = template editor (versi terbaru dikunci saat simpan). */
   preset: z.union([z.enum(EVENT_PRESETS), z.string().regex(/^tpl:[0-9a-f-]{36}$/)]),
   background: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  guest_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   countdownSec: int(1, 10),
   retakeMax: int(0, 5),
   maxPrints: int(1, 10),
@@ -54,7 +71,7 @@ export async function saveEvent(
   const f = p.data;
   const { data: ev } = await db
     .from("events")
-    .select("id, bundle, bundle_version")
+    .select("id, bundle, bundle_version, branding")
     .eq("id", eventId)
     .eq("organization_id", orgId)
     .single();
@@ -70,6 +87,18 @@ export async function saveEvent(
     if (file.size > MAX_OVERLAY) return { ok: false, message: "Overlay maksimal 4 MB" };
     overlay = await storeOverlay(orgId, eventId, new Uint8Array(await file.arrayBuffer()));
   } else if (form.get("remove_overlay") === "on") overlay = null;
+
+  // Logo halaman tamu: kunci berbasis hash di folder event (ikut terhapus saat retensi).
+  let logoKey = (ev.branding as EventBranding | null)?.logoKey;
+  const logo = form.get("logo");
+  if (logo instanceof File && logo.size > 0) {
+    const ext = LOGO_EXT[logo.type];
+    if (!ext) return { ok: false, message: "Logo harus PNG, JPG, atau WebP" };
+    if (logo.size > MAX_LOGO) return { ok: false, message: "Logo maksimal 1 MB" };
+    const bytes = new Uint8Array(await logo.arrayBuffer());
+    logoKey = `${orgId}/${eventId}/branding/${createHash("sha256").update(bytes).digest("hex")}.${ext}`;
+    await putObject(logoKey, bytes, logo.type);
+  } else if (form.get("remove_logo") === "on") logoKey = undefined;
 
   // Photobox (E3, DECISIONS #70): tiap preset yang dicentang dijual dengan harganya sendiri.
   const layouts = EVENT_PRESETS.filter((id) => form.get(`pb_${id}`) === "on").map((id) => ({
@@ -132,6 +161,8 @@ export async function saveEvent(
   const branding = {
     ...(f.tagline ? { tagline: f.tagline } : {}),
     ...(f.client_name ? { clientName: f.client_name } : {}),
+    ...(f.guest_color.toLowerCase() !== PAPER ? { color: f.guest_color } : {}),
+    ...(logoKey ? { logoKey } : {}),
   };
   let bundle: ReturnType<typeof buildBundle>;
   try {

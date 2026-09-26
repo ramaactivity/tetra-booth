@@ -23,6 +23,9 @@ export type SettingsValues = {
   templates: { id: string; name: string; paper: string; version: number }[];
   background: string;
   hasOverlay: boolean;
+  /** Header halaman tamu. */
+  guestColor: string;
+  hasLogo: boolean;
   countdownSec: number;
   retakeMax: number;
   maxPrints: number;
@@ -79,6 +82,7 @@ function Field({ label, unit, children }: { label: string; unit?: string; childr
 
 export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValues }) {
   const [background, setBackground] = useState(v.background);
+  const [guestColor, setGuestColor] = useState(v.guestColor);
   const [r, action, pending] = useActionState<SaveResult, FormData>(
     saveEvent.bind(null, eventId),
     null,
@@ -273,6 +277,31 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           <Field label="Layar QR tampil" unit="detik">
             {num("qrScreenSec", 10, 300)}
           </Field>
+        </Section>
+
+        <Section title="Halaman tamu">
+          <Field label="Logo / monogram (PNG, JPG, WebP; maks. 1 MB)">
+            <input
+              name="logo"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="text-sm"
+            />
+          </Field>
+          <Field label="Warna header">
+            <ColorPicker
+              name="guest_color"
+              label="Warna header"
+              value={guestColor}
+              onChange={setGuestColor}
+              showHex
+            />
+          </Field>
+          {v.hasLogo && (
+            <label className="flex items-center gap-2 text-xs font-bold">
+              <input type="checkbox" name="remove_logo" /> Hapus logo sekarang
+            </label>
+          )}
         </Section>
 
         <Section title="Lead capture (halaman tamu)">

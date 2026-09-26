@@ -16,20 +16,38 @@ export const metadata: Metadata = {
 const t = copy.guest;
 const CONTACT_URL = "https://tetraphoto.com";
 
+/** Teks ink di atas warna terang, putih di atas warna gelap. */
+const onColor = (hex: string) => {
+  const n = Number.parseInt(hex.slice(1), 16);
+  return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) > 150
+    ? "#1d1d1b"
+    : "#ffffff";
+};
+
 function Header({ event }: { event?: GuestEvent | undefined }) {
+  const bg = event?.color;
   return (
-    <header className="flex items-center justify-between px-5 pt-8 pb-4">
+    <header
+      className={`flex items-center justify-between gap-3 px-5 pt-8 pb-4 ${bg ? "mb-4 border-b-[1.5px] border-ink" : ""}`}
+      style={bg ? { background: bg, color: onColor(bg) } : undefined}
+    >
       <div>
         <h1 className="text-[15px] font-extrabold tracking-[-0.01em]">
           {event?.name ?? "Tetra Photobooth"}
         </h1>
         {event && (
-          <p className="mt-0.5 font-mono text-[11px] text-text-2">{longDate(event.date)}</p>
+          <p className={`mt-0.5 font-mono text-[11px] ${bg ? "opacity-75" : "text-text-2"}`}>
+            {longDate(event.date)}
+          </p>
         )}
       </div>
-      <span className="flex size-8 items-center justify-center rounded-[9px] border-[1.5px] border-ink bg-mint text-sm font-extrabold">
-        T
-      </span>
+      {event?.logoUrl ? (
+        <img src={event.logoUrl} alt="" className="h-10 max-w-[120px] object-contain" />
+      ) : (
+        <span className="flex size-8 items-center justify-center rounded-[9px] border-[1.5px] border-ink bg-mint text-sm font-extrabold text-ink">
+          T
+        </span>
+      )}
     </header>
   );
 }

@@ -49,7 +49,8 @@ test.beforeAll(async () => {
     events.push(data?.id ?? "");
     return data?.id ?? "";
   };
-  const live = await mkEvent();
+  // Branding header (admin → Halaman tamu): warna gelap → teks putih, logo menggantikan tanda "T".
+  const live = await mkEvent({ branding: { color: "#1d3557", logoKey: `${R2}/strip_web_0.jpg` } });
   const gone = await mkEvent({ guest_expires_at: "2026-09-01T10:00:00Z" });
   const session = (id: string, event: string, extra = {}) =>
     db.from("sessions").insert({
@@ -97,6 +98,11 @@ test("pending: header event, langkah pengiriman", async ({ page }) => {
   await page.goto(`/s/${ids.pending}`);
   await expect(page.getByRole("heading", { name: "Andi & Sari" })).toBeVisible();
   await expect(page.getByText("12 Oktober 2026")).toBeVisible();
+  const header = page.locator("header");
+  await expect(header).toHaveCSS("background-color", "rgb(29, 53, 87)");
+  await expect(header).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(header.locator("img")).toHaveAttribute("src", /strip_web_0\.jpg/);
+  await page.screenshot({ path: "test-results/guest-branding.png" });
   await expect(page.getByText("Menunggu koneksi booth")).toBeVisible();
   await expect(page.getByText("21.42 · di booth")).toBeVisible();
   await page.screenshot({ path: "test-results/guest-pending.png" });

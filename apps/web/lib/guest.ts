@@ -1,11 +1,13 @@
 import "server-only";
 import { SESSION_ID_PATTERN } from "@tetra/shared";
+import type { EventBranding } from "@/lib/event-bundle";
 import { type LeadField, leadCapture } from "@/lib/leads";
 import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /** Data halaman tamu `/s/{id}` (FSD §2). Dibaca di server; service role tidak pernah ke browser. */
-export type GuestEvent = { name: string; date: string };
+/** `color`/`logoUrl` = branding header (admin → Halaman tamu). */
+export type GuestEvent = { name: string; date: string; color?: string; logoUrl?: string };
 export type GuestAsset = { kind: string; idx: number; url: string };
 /** Form lead yang harus/boleh diisi tamu ini (belum pernah mengisi untuk sesi ini). */
 export type GuestLead = { mode: "gate" | "optional"; fields: LeadField[]; consentText: string };
@@ -37,13 +39,20 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
   const { data: s } = await db
     .from("sessions")
     .select(
-      "id, organization_id, started_at, upload_status, asset_count, hidden_at, deleted_at, events!inner(name, event_date, guest_expires_at, client_expires_at, purged_at, lead_capture, public_gallery)",
+      "id, organization_id, started_at, upload_status, asset_count, hidden_at, deleted_at, events!inner(name, event_date, guest_expires_at, client_expires_at, purged_at, lead_capture, public_gallery, branding)",
     )
     .eq("id", sessionId)
     .maybeSingle();
   if (!s) return { state: "unknown" };
   const e = s.events;
-  const event = { name: e.name, date: e.event_date };
+  const b = (e.branding ?? {}) as EventBranding;
+  const event: GuestEvent = {
+    name: e.name,
+    date: e.event_date,
+    ...(b.color && { color: b.color }),
+    // Setelah purge objeknya sudah tidak ada.
+    ...(b.logoKey && !e.purged_at && { logoUrl: await presignGet(b.logoKey) }),
+  };
   if (s.hidden_at || s.deleted_at) return { state: "removed", event };
   const expiresAt = e.guest_expires_at ?? e.client_expires_at;
   if (e.purged_at || (expiresAt && new Date(expiresAt) <= now))

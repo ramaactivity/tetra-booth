@@ -24,7 +24,13 @@ export type EventTemplate = {
   layoutId?: string;
   layoutVersion?: number;
 };
-export type EventBranding = { tagline?: string; clientName?: string };
+/** `color` + `logoKey` (R2) hanya untuk header halaman tamu, tidak masuk bundle booth. */
+export type EventBranding = {
+  tagline?: string;
+  clientName?: string;
+  color?: string;
+  logoKey?: string;
+};
 
 export const DEFAULT_TEMPLATE: EventTemplate = { preset: "strip-3", background: "#ffffff" };
 
