@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useState } from "react";
 import { copy } from "../copy";
+import { guestCursor } from "../cursorPref";
 import { crewText, errText } from "../errors";
 import type { BoothEvent } from "../event";
 import { usePlatform } from "../PlatformContext";
@@ -120,6 +121,7 @@ export function CrewMenu({
   const [sheet, setSheet] = useState<"roll" | "exit" | "update" | "device" | null>(null);
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [blurWarn, setBlurWarn] = useState(() => sharpNotes.crewWarning());
+  const [cursorOn, setCursorOn] = useState(guestCursor.shown);
   const [note, setNote] = useState<string>();
   /** Job test print / cetak ulang terakhir: hasil akhirnya menggantikan catatan "dikirim" (W-018). */
   const [, setWatching] = useState<string | null>(null);
@@ -475,6 +477,17 @@ export function CrewMenu({
             onClick={onClose}
           >
             {copy.crew.toGuest} <ArrowRight size={26} strokeWidth={2.5} />
+          </Button>
+          <Button
+            variant="plain"
+            className={action}
+            data-testid="guest-cursor"
+            onClick={() => {
+              guestCursor.set(!cursorOn);
+              setCursorOn(!cursorOn);
+            }}
+          >
+            {cursorOn ? copy.crew.cursorShown : copy.crew.cursorHidden}
           </Button>
         </section>
       </div>

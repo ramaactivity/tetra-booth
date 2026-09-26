@@ -2,6 +2,7 @@ import type { EventBundle } from "@tetra/shared";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { copy } from "./copy";
 import { CrewMode } from "./crew/CrewMode";
+import { guestCursor } from "./cursorPref";
 import { errText } from "./errors";
 import { type BoothEvent, DEFAULT_EVENT, loadEvent } from "./event";
 import { usePlatform } from "./PlatformContext";
@@ -35,6 +36,8 @@ export function BoothApp({
   const [alert, setAlert] = useState<PrinterAlert>(null);
   // Tombol Dashboard Admin di layar awal: PIN crew dulu, lalu browser terbuka.
   const [adminIntent, setAdminIntent] = useState(false);
+  // Kursor di mode tamu: diatur crew (CrewMenu), dibaca ulang tiap mode crew ditutup.
+  const [showCursor, setShowCursor] = useState(guestCursor.shown);
   // Notifikasi hasil update (berhasil / gagal dipasang) sekali setelah booth terbuka lagi (masukan Rama).
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => {
@@ -139,6 +142,7 @@ export function BoothApp({
           openAdmin={adminIntent}
           onClose={() => {
             setAdminIntent(false);
+            setShowCursor(guestCursor.shown());
             setCrewOpen(false);
           }}
         />
@@ -147,7 +151,7 @@ export function BoothApp({
     );
   }
   return (
-    <div className={kiosk ? "cursor-none [&_*]:cursor-none" : undefined}>
+    <div className={kiosk && !showCursor ? "cursor-none [&_*]:cursor-none" : undefined}>
       <Stage>
         <SessionRunner
           key={event.id}
