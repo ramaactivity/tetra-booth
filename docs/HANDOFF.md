@@ -189,6 +189,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 - Fitur baru hari ini: multi desain mode event (#99), branding halaman tamu (#98), layar awal per event (#102), kalimat & suara di sela foto (#103), suara per event nyala/mati/ganti (#104), bumper + transisi (#105), cermin per booth (#101), override pengaturan event di booth (#100), kontrol fokus DSLR (Windows).
 - Keputusan bisnis (sementara): bagi hasil partner #96, satu aplikasi untuk dua mode #97. Prompt riset & proposal kemitraan untuk Claude web sudah diberikan ke Rama (belum dijalankan).
 - Antrean Mac berikutnya: panduan bingkai di live view (mode event), photobox menjual template editor + pratinjau asli, tabel lokasi/cabang (#96 Tahap 1, setelah Midtrans production), update diferensial.
+- Gotcha: setelah merge `origin/win`, JANGAN `git pull --rebase` biasa sebelum push (merge dilinearkan jadi commit baru ber-hash lain; isi aman tapi hash `win` terlihat "belum di main"). Push merge dulu, atau `git pull --rebase=merges`.
 - Gotcha sesi ini: e2e booth jalankan `--workers=1` (paralel berebut Camera Service); `DOTNET_ROOT` wajib; skrip antrean rilis jangan `pgrep -f dist-dev.mjs` dari shell yang perintahnya memuat teks itu (mencocokkan diri sendiri) — tunggu PID.
 
 ## Untuk Rama (diperbarui 2026-09-25 pagi)

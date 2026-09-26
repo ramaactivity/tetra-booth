@@ -159,7 +159,12 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     await w.screenshot({ path: "test-results/designs-guide.png" });
     await expect(w.getByText("Oke gaya terakhir, cheers!")).toBeVisible({ timeout: 20_000 });
 
-    await w.getByRole("button", { name: /pakai semua foto/i }).click({ timeout: 30_000 });
+    await expect(w.getByRole("button", { name: /pakai semua foto/i })).toBeVisible({
+      timeout: 30_000,
+    });
+    await w.waitForTimeout(400);
+    await w.screenshot({ path: "test-results/designs-review.png" });
+    await w.getByRole("button", { name: /pakai semua foto/i }).click();
     await expect(w.getByRole("heading", { name: "Mau cetak berapa?" })).toBeVisible({
       timeout: 15_000,
     });

@@ -8,6 +8,7 @@ import { Logo } from "../ui";
 export function Review({
   photos,
   blurry = [],
+  aspects = [],
   retakesUsed,
   retakeMax,
   onRetake,
@@ -16,6 +17,8 @@ export function Review({
   photos: (Photo | null)[];
   /** Foto yang mungkin buram (#88): lencana + tombol Ulangi disorot, tidak pernah mengunci. */
   blurry?: boolean[];
+  /** Rasio lebar/tinggi slot tiap foto: kartu menampilkan potongan yang sama dengan cetakan (#110). */
+  aspects?: (number | undefined)[];
   retakesUsed: number[];
   retakeMax: number;
   onRetake: (index: number) => void;
@@ -43,11 +46,18 @@ export function Review({
       >
         {photos.map((p, i) => {
           const used = retakesUsed[i] ?? 0;
+          const a = aspects[i] ?? 1.5;
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: urutan slot tetap
             <div key={i} className="flex min-h-0 items-center justify-center [container-type:size]">
-              <div className="flex w-[min(100cqw,calc((100cqh-118px)*1.5))] flex-col gap-[26px]">
-                <div className="layered relative aspect-[3/2] overflow-hidden rounded-[20px] border-[2.5px] border-ink bg-neutral [--under:#fff]">
+              <div
+                style={{ width: `min(100cqw, calc((100cqh - 118px) * ${a}))` }}
+                className="flex flex-col gap-[26px]"
+              >
+                <div
+                  style={{ aspectRatio: a }}
+                  className="layered relative overflow-hidden rounded-[20px] border-[2.5px] border-ink bg-neutral [--under:#fff]"
+                >
                   {p && <img src={p.url} alt="" className="h-full w-full object-cover" />}
                   <span className="absolute top-3.5 left-3.5 flex size-[46px] items-center justify-center rounded-full border-2 border-ink bg-white text-xl font-extrabold">
                     {i + 1}

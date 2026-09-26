@@ -469,6 +469,7 @@ export function SessionRunner({
           <Review
             photos={s.photos}
             blurry={s.photos.map((x) => isBlurry(x?.sharp, sharpNotes.reference(ev.id)))}
+            aspects={ev.layout.slots.map(slotAspect)}
             retakesUsed={s.retakesUsed}
             retakeMax={s.retakeMax}
             onRetake={(index) => dispatch({ type: "RETAKE", index })}

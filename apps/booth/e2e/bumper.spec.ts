@@ -32,7 +32,10 @@ test("bumper: video H.264 diputar di atas layar awal, lalu hilang; sentuh = lewa
     await expect(bumper).toBeVisible();
     // Codec benar-benar bisa diputar Electron (bukan langsung onError).
     await expect
-      .poll(() => w.evaluate(() => document.querySelector("video")?.currentTime ?? 0))
+      // Runner Linux (xvfb) mendekode lebih lambat: beri waktu lebih.
+      .poll(() => w.evaluate(() => document.querySelector("video")?.currentTime ?? 0), {
+        timeout: 15_000,
+      })
       .toBeGreaterThan(0.5);
     expect(await w.evaluate(() => document.querySelector("video")?.duration)).toBeCloseTo(6.5, 0);
     await w.screenshot({ path: "test-results/bumper-mid.png" });
