@@ -121,8 +121,8 @@ export function SessionRunner({
       payment: "bayar",
     };
     const c = cue[s.phase];
-    // Sorakan menunggu bunyi jepret selesai; cue fase lain memotong suara sebelumnya.
-    if (c) void (s.phase === "preview" ? playAfter(c) : play(c));
+    // Sorakan menunggu bunyi jepret selesai, suara review menunggu ekor sorakan (maks. 600 ms); fase lain memotong.
+    if (c) void (s.phase === "preview" || s.phase === "review" ? playAfter(c) : play(c));
   }, [s.phase, cfg.countdownSound, cheer.cue]);
 
   // Log setiap transisi (TSD §1) + kabari shell.
