@@ -64,14 +64,16 @@ export function LayoutSelect({
   onChoose,
   onBack,
   preview,
+  design = false,
 }: {
   layouts: (EventDesign & { price?: number })[];
   onChoose: (id: string) => void;
   onBack: () => void;
-  /** Mode event: object URL pratinjau per id desain. */
+  /** Object URL pratinjau asli per id layout/desain (#99/#108); belum ada = miniatur slot. */
   preview?: Record<string, string>;
+  /** Mode event: judul "Pilih desain", tanpa stepper & harga, tombol "Mulai Foto". */
+  design?: boolean;
 }) {
-  const design = !!preview;
   const [picked, setPicked] = useState(layouts.length === 1 ? (layouts[0]?.id ?? null) : null);
   const back = useRef(onBack);
   back.current = onBack;

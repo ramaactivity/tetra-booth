@@ -210,11 +210,16 @@ export function paymentProvider(): PaymentProvider | null {
   return key ? xendit(key) : null;
 }
 
-/** Pengaturan photobox di events.settings (admin E3): layout = preset + harga. */
-export type PhotoboxSettings = {
-  layouts: { preset: PresetId; price: number }[];
-  extraPrintPrice: number;
+/**
+ * Pengaturan photobox di events.settings (admin E3): layout = preset atau template editor (#108) + harga.
+ * Kunci yang dikirim booth: id preset, atau `tpl-<layoutId>` untuk template editor.
+ */
+export type PhotoboxLayoutSetting = ({ preset: PresetId } | { template: string }) & {
+  price: number;
 };
+export type PhotoboxSettings = { layouts: PhotoboxLayoutSetting[]; extraPrintPrice: number };
+export const photoboxKey = (l: PhotoboxLayoutSetting) =>
+  "preset" in l ? l.preset : `tpl-${l.template}`;
 
 /** Harga dari DB (aturan 4): paket layout, atau lembar tambahan × harga. null = tidak dijual / di luar batas. */
 export function priceFor(
@@ -223,7 +228,9 @@ export function priceFor(
   extraPrints?: number,
 ): number | null {
   const pb = settings?.photobox;
-  const layout = pb?.layouts.find((l) => l.preset === layoutId && l.preset in LAYOUT_PRESETS);
+  const layout = pb?.layouts.find(
+    (l) => photoboxKey(l) === layoutId && (!("preset" in l) || l.preset in LAYOUT_PRESETS),
+  );
   if (!pb || !layout) return null;
   if (!extraPrints) return layout.price;
   const max = settings?.maxPrints ?? 2;

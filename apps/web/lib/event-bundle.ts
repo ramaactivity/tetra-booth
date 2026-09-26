@@ -29,6 +29,11 @@ export type EventTemplate = {
   /** Mode event (DECISIONS #99): desain tambahan pilihan tamu, `<preset>` atau `tpl:<layoutId>`; maks. 4. */
   extras?: string[];
 };
+/** Satu layout photobox di bundle + file asetnya (divalidasi EventBundleSchema). */
+type PbItem = {
+  entry: Record<string, unknown>;
+  files: ({ id: string } & StoredBundle["files"][number])[];
+};
 /** Desain tambahan yang sudah di-resolve: preset, atau versi template editor (terkunci saat simpan). */
 export type ExtraDesign = { preset: PresetId } | { name: string; custom: StoredLayout };
 /** `color` + `logoKey` (R2) hanya untuk header halaman tamu, tidak masuk bundle booth. */
@@ -76,6 +81,8 @@ export function buildBundle(e: {
   /** Nama template editor utama (kartu pilih desain di booth). */
   customName?: string;
   extras?: ExtraDesign[];
+  /** Photobox: versi template editor yang dijual, per layoutId (#108). */
+  pbTemplates?: Record<string, { name: string; custom: StoredLayout }>;
   attract?: AttractSettings;
   /** Gambar latar layar awal (file bundle `attract.jpg`/`attract.png`). */
   attractImage?: StoredBundle["files"][number] | null;
@@ -90,23 +97,64 @@ export function buildBundle(e: {
     background: { color: e.template.background },
     ...(e.overlay && !e.custom && id === e.template.preset ? { overlay: { assetId: "ov" } } : {}),
   });
-  const photobox =
-    e.mode === "photobox" && e.photobox?.layouts.length
-      ? {
-          layouts: e.photobox.layouts.map((l) => ({
-            id: l.preset,
-            name: LAYOUT_PRESETS[l.preset].name,
-            info: LAYOUT_PRESETS[l.preset].info,
-            price: l.price,
-            layout: layoutOf(l.preset),
-          })),
-          extraPrintPrice: e.photobox.extraPrintPrice,
-        }
-      : undefined;
   const customLayout = (c: StoredLayout) => ({
     ...c.layout,
     id: `${c.layout.id.slice(0, 8)}-v${c.layout.version}`,
   });
+  /** Template editor tambahan di bundle: asset id, nama file, dan rujukan layout diberi awalan `pre`. */
+  const prefixed = (c: StoredLayout, pre: string) => {
+    const re = (id: string | undefined) => (id && id in c.files ? pre + id : id);
+    const l = customLayout(c);
+    return {
+      layout: {
+        ...l,
+        ...(l.overlay && { overlay: { ...l.overlay, assetId: re(l.overlay.assetId) ?? "" } }),
+        ...(l.background && { background: { ...l.background, assetId: re(l.background.assetId) } }),
+        texts: l.texts.map((t) => ({ ...t, fontAssetId: re(t.fontAssetId) ?? t.fontAssetId })),
+      },
+      files: Object.entries(c.files).map(([k, f]) => ({ id: pre + k, ...f, file: pre + f.file })),
+    };
+  };
+  // Photobox (#70/#108): preset, atau template editor (aset berawalan p1-, p2-, …).
+  const pbItems =
+    e.mode === "photobox" && e.photobox?.layouts.length
+      ? e.photobox.layouts.flatMap((l, i): PbItem[] => {
+          if ("preset" in l)
+            return [
+              {
+                entry: {
+                  id: l.preset,
+                  name: LAYOUT_PRESETS[l.preset].name,
+                  info: LAYOUT_PRESETS[l.preset].info,
+                  price: l.price,
+                  layout: layoutOf(l.preset),
+                },
+                files: [],
+              },
+            ];
+          const t = e.pbTemplates?.[l.template];
+          if (!t) return [];
+          const p = prefixed(t.custom, `p${i + 1}-`);
+          return [
+            {
+              entry: {
+                id: `tpl-${l.template}`,
+                name: t.name.slice(0, 40),
+                info: paperLabel(p.layout.paper as LayoutPaper).slice(0, 40),
+                price: l.price,
+                layout: p.layout,
+              },
+              files: p.files,
+            },
+          ];
+        })
+      : [];
+  const photobox = pbItems.length
+    ? {
+        layouts: pbItems.map((x) => x.entry),
+        extraPrintPrice: e.photobox?.extraPrintPrice ?? 0,
+      }
+    : undefined;
   const layout = e.custom ? customLayout(e.custom) : layoutOf(e.template.preset);
   const design = (name: string, l: typeof layout) => ({
     id: l.id,
@@ -120,24 +168,8 @@ export function buildBundle(e: {
     : (e.extras ?? []).map((x, i) => {
         if ("preset" in x)
           return { design: design(LAYOUT_PRESETS[x.preset].name, layoutOf(x.preset)), files: [] };
-        const pre = `d${i + 1}-`;
-        const re = (id: string | undefined) => (id && id in x.custom.files ? pre + id : id);
-        const l = customLayout(x.custom);
-        return {
-          design: design(x.name, {
-            ...l,
-            ...(l.overlay && { overlay: { ...l.overlay, assetId: re(l.overlay.assetId) ?? "" } }),
-            ...(l.background && {
-              background: { ...l.background, assetId: re(l.background.assetId) },
-            }),
-            texts: l.texts.map((t) => ({ ...t, fontAssetId: re(t.fontAssetId) ?? t.fontAssetId })),
-          }),
-          files: Object.entries(x.custom.files).map(([k, f]) => ({
-            id: pre + k,
-            ...f,
-            file: pre + f.file,
-          })),
-        };
+        const p = prefixed(x.custom, `d${i + 1}-`);
+        return { design: design(x.name, p.layout), files: p.files };
       });
   const main = e.custom
     ? Object.entries(e.custom.files).map(([id, f]) => ({ id, ...f }))
@@ -148,7 +180,13 @@ export function buildBundle(e: {
   const snd = Object.entries(e.sounds ?? {}).flatMap(([cue, v]) =>
     v === "off" ? [] : [{ id: `snd-${cue}`, ...v }],
   );
-  const all = [...main, ...extras.flatMap((x) => x.files), ...bg, ...snd];
+  const all = [
+    ...main,
+    ...extras.flatMap((x) => x.files),
+    ...pbItems.flatMap((x) => x.files),
+    ...bg,
+    ...snd,
+  ];
   const sounds = Object.fromEntries(
     Object.entries(e.sounds ?? {}).map(([cue, v]) => [cue, v === "off" ? v : `snd-${cue}`]),
   );
