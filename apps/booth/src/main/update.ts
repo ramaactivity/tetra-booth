@@ -49,6 +49,8 @@ export async function downloadInstaller(
   if (done === r.size && (await sha256File(file)) === r.sha256) return file;
   let lastError: unknown;
   let slowRestarts = 0;
+  /** Versi baru terbit di tengah unduhan: `.part` versi lama tidak boleh disambung dengan file lain. */
+  let changed: string | null = null;
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     const have = await stat(part).then(
       (s) => s.size,
@@ -59,7 +61,14 @@ export async function downloadInstaller(
       const abort = new AbortController();
       let stall = setTimeout(() => abort.abort(), STALL_MS);
       try {
-        if (attempt > 1) r = await release();
+        if (attempt > 1) {
+          const x = await release();
+          if (x.version !== r.version) {
+            changed = x.version;
+            break;
+          }
+          r = x;
+        }
         const res = await fetch(r.url, {
           headers: have ? { range: `bytes=${have}-` } : {},
           signal: abort.signal,
@@ -117,6 +126,10 @@ export async function downloadInstaller(
     // Rusak: buang dan ulang dari awal.
     await rm(part, { force: true });
     lastError = new Error("checksum tidak cocok");
+  }
+  if (changed) {
+    await rm(part, { force: true });
+    throw new Error(`versi ${changed} terbit saat mengunduh ${r.version}, unduhan diulang`);
   }
   throw new Error(
     `installer gagal diunduh: ${lastError instanceof Error ? lastError.message : String(lastError)}`,

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -77,5 +77,28 @@ describe("downloadInstaller koneksi lambat (W-032)", () => {
     expect(readFileSync(file).equals(data)).toBe(true);
     expect(seen[0]).toBeUndefined();
     expect(seen[1]).toMatch(/^bytes=[1-9]\d*-$/);
+  });
+});
+
+describe("downloadInstaller versi baru terbit di tengah unduhan", () => {
+  it("tidak menyambung .part versi lama dengan file lain: berhenti & buang .part", async () => {
+    const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/setup.exe`;
+    ranges.length = 0; // permintaan pertama diputus lagi di tengah
+    const dir = mkdtempSync(join(tmpdir(), "tb-upd-"));
+    let calls = 0;
+    await expect(
+      downloadInstaller(
+        async () => ({
+          version: ++calls === 1 ? "9.9.9" : "9.9.10",
+          key: "k",
+          sha256: sha,
+          size: body.length,
+          url,
+        }),
+        dir,
+        () => {},
+      ),
+    ).rejects.toThrow(/versi 9\.9\.10 terbit/);
+    expect(existsSync(join(dir, "Tetra-Booth-Setup-9.9.9.exe.part"))).toBe(false);
   });
 });
