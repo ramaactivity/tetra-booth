@@ -1,6 +1,6 @@
 import type { EventBundle } from "@tetra/shared";
 import { Button } from "@tetra/ui";
-import { ArrowLeft, ArrowRight, Heart, QrCode, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, Heart, QrCode, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { copy } from "../copy";
 import { errText } from "../errors";
@@ -19,6 +19,7 @@ export function StartScreen({
   onPick,
   onSync,
   onCrew,
+  onAdmin,
   crewLabel = t.crew,
 }: {
   bundles: EventBundle[];
@@ -28,6 +29,8 @@ export function StartScreen({
   onSync?: () => Promise<number>;
   /** Buka mode crew (PIN) dari layar awal. */
   onCrew: () => void;
+  /** Buka dashboard admin di browser (di luar mode crew: minta PIN dulu). */
+  onAdmin?: () => void;
   /** Label tautan ke mode crew (dari mode crew: "Kembali ke Mode Crew"). */
   crewLabel?: string;
 }) {
@@ -54,9 +57,21 @@ export function StartScreen({
     <main className="flex h-full w-full flex-col gap-10 bg-paper px-[72px] py-14 portrait:px-8">
       <header className="flex items-center justify-between gap-6">
         <Logo />
-        <button type="button" className="text-xl font-bold underline" onClick={onCrew}>
-          {crewLabel}
-        </button>
+        <div className="flex items-center gap-8">
+          {onAdmin && (
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-2xl border-[2.5px] border-ink bg-white px-5 py-2.5 text-xl font-bold"
+              onClick={onAdmin}
+            >
+              <ExternalLink size={20} strokeWidth={2.5} />
+              {t.admin}
+            </button>
+          )}
+          <button type="button" className="text-xl font-bold underline" onClick={onCrew}>
+            {crewLabel}
+          </button>
+        </div>
       </header>
 
       {!mode ? (

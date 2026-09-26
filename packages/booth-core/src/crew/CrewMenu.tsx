@@ -154,6 +154,8 @@ export function CrewMenu({
     };
   }, [p, refresh]);
 
+  const [dl, setDl] = useState<{ received: number; total: number; eta: string } | null>(null);
+  const [updErr, setUpdErr] = useState<string | null>(null);
   // Kemajuan unduhan update (#89): MB, persen, perkiraan sisa waktu dari kecepatan rata-rata.
   useEffect(() => {
     let t0 = 0;
@@ -177,8 +179,21 @@ export function CrewMenu({
           eta,
         ),
       );
+      setDl({ received, total, eta });
     });
   }, [p]);
+
+  // Unduh + pasang dari sheet update: sheet tetap terbuka dengan progress bar; gagal = kotak merah + Coba Lagi.
+  const installUpdate = () => {
+    setUpdErr(null);
+    setDl({ received: 0, total: 0, eta: "" });
+    setNote(copy.crew.updating);
+    p.crew.installUpdate().catch((e: unknown) => {
+      setDl(null);
+      setUpdErr(crewText(e));
+      setNote(crewText(e));
+    });
+  };
 
   const act = (fn: () => Promise<unknown>, done?: string) => () =>
     fn()
@@ -507,15 +522,34 @@ export function CrewMenu({
                   ? copy.crew.updateLatest(update.current)
                   : copy.crew.updateNone}
           </p>
-          {update?.available && (
-            <Button
-              className="h-[92px] rounded-[20px] text-[26px]"
-              onClick={() => {
-                setNote(copy.crew.updating);
-                act1(() => p.crew.installUpdate());
-              }}
+          {dl && (
+            <div className="flex flex-col gap-3" data-testid="update-progress">
+              <div className="h-8 overflow-hidden rounded-full border-[2.5px] border-ink bg-paper">
+                <div
+                  className="h-full bg-mint transition-[width] duration-500"
+                  style={{ width: `${dl.total ? Math.floor((dl.received / dl.total) * 100) : 0}%` }}
+                />
+              </div>
+              <p className="text-xl font-semibold" role="status">
+                {dl.total && dl.received >= dl.total
+                  ? copy.crew.updateInstalling
+                  : dl.total
+                    ? `${Math.floor((dl.received / dl.total) * 100)}% · ${Math.round(dl.received / 1e6)} / ${Math.round(dl.total / 1e6)} MB${dl.eta}`
+                    : copy.crew.updating}
+              </p>
+            </div>
+          )}
+          {updErr && (
+            <div
+              className="rounded-[20px] border-[2.5px] border-ink bg-coral-strong px-6 py-4 text-xl font-semibold text-white"
+              role="alert"
             >
-              {copy.crew.updateNow}
+              <b>{copy.crew.updateFailed}:</b> {updErr}
+            </div>
+          )}
+          {update?.available && !dl && (
+            <Button className="h-[92px] rounded-[20px] text-[26px]" onClick={installUpdate}>
+              {updErr ? copy.crew.updateRetry : copy.crew.updateNow}
             </Button>
           )}
         </Sheet>

@@ -98,6 +98,7 @@ export const copy = {
   },
   start: {
     title: "Pilih mode booth",
+    admin: "Dashboard Admin",
     sub: "Tentukan mode dulu, lalu pilih event.",
     mode: { event: "Mode Event", photobox: "Mode Photobox" },
     modeSub: {
@@ -126,6 +127,13 @@ export const copy = {
     updateAvailable: (latest: string, current: string) =>
       `Versi ${latest} tersedia (terpasang ${current}). Booth mengunduh ±150 MB, lalu tertutup dan terbuka lagi sendiri dalam ±1 menit. Jangan matikan laptop.`,
     updateNow: "Pasang Sekarang",
+    updateInstalling: "Unduhan selesai. Memasang… booth tertutup lalu terbuka lagi sendiri.",
+    updateFailed: "Update gagal",
+    updateRetry: "Coba Lagi",
+    updateDone: (v: string) => `Update berhasil: Tetra Booth ${v}`,
+    updateNotInstalled: (to: string, now: string) =>
+      `Update ke ${to} gagal dipasang, booth masih versi ${now}. Coba lagi dari Mode Crew → Update Aplikasi.`,
+    adminOpened: "Dashboard admin dibuka di browser. Klik Tetra Booth di taskbar untuk kembali.",
     updating: "Mengunduh update… booth akan tertutup lalu terbuka lagi",
     updateProgress: (mb: number, total: number, pct: number, eta: string) =>
       `Mengunduh update ${mb} / ${total} MB (${pct}%)${eta} · booth tertutup lalu terbuka lagi setelah selesai`,

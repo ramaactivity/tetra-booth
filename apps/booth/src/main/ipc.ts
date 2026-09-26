@@ -9,7 +9,7 @@ import {
   PaymentCreateRequest,
   SESSION_ID_PATTERN,
 } from "@tetra/shared";
-import { app, BrowserWindow, ipcMain, net } from "electron";
+import { app, BrowserWindow, ipcMain, net, shell } from "electron";
 import { z } from "zod";
 import type { Alerts } from "./alerts";
 import { cameraHealth, request, ServiceUnavailable } from "./camera-client";
@@ -22,6 +22,7 @@ import {
   lockedByArgv,
   printerName,
   RESUME_KEY,
+  UPDATE_PENDING_KEY,
 } from "./config";
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
 import type { BoothDb } from "./db";
@@ -266,6 +267,8 @@ export function registerIpc(
         updating = false;
       });
     console.info(`[update] memasang ${r.version}, aplikasi ditutup`);
+    // Dicek saat booth terbuka lagi: versi = to → "berhasil", selain itu "gagal dipasang" (masukan Rama).
+    db.kv.set(UPDATE_PENDING_KEY, JSON.stringify({ from: app.getVersion(), to: r.version }));
     db.kv.set(RESUME_KEY, "1");
     runInstaller(file);
     allowQuit();
@@ -354,6 +357,36 @@ export function registerIpc(
     console.info(`[camera] ${n} = ${v}`);
   });
 
+  // Hasil update terakhir, sekali per catatan (boot pertama setelah update); tanpa crew karena tampil di layar awal.
+  ipcMain.handle("updateResult", () => {
+    const raw = db.kv.get(UPDATE_PENDING_KEY);
+    if (!raw) return null;
+    db.kv.set(UPDATE_PENDING_KEY, "");
+    try {
+      const { from, to } = z.object({ from: z.string(), to: z.string() }).parse(JSON.parse(raw));
+      const now = app.getVersion();
+      console.info(
+        `[update] ${now === to ? "berhasil" : "gagal dipasang"}: ${from} → ${to} (terpasang ${now})`,
+      );
+      return { ok: now === to, from, to, now };
+    } catch {
+      return null;
+    }
+  });
+  // Dashboard admin di browser bawaan. Kiosk dilepas & jendela diperkecil; kembali kiosk saat booth dibuka lagi.
+  ipcMain.handle("crewOpenAdmin", async (e) => {
+    crewOnly();
+    const win = BrowserWindow.fromWebContents(e.sender);
+    await shell.openExternal(`${config.guestUrl}/admin`);
+    if (win?.isKiosk()) {
+      win.setKiosk(false);
+      win.once("focus", () => {
+        if (!win.isDestroyed()) win.setKiosk(true);
+      });
+    }
+    win?.minimize();
+    console.info("[crew] dashboard admin dibuka di browser");
+  });
   ipcMain.handle("crewPrinterSettings", async (e) => {
     crewOnly();
     if (process.platform !== "win32") throw new Error("Pengaturan printer hanya di Windows");

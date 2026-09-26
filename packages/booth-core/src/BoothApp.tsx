@@ -1,5 +1,6 @@
 import type { EventBundle } from "@tetra/shared";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { copy } from "./copy";
 import { CrewMode } from "./crew/CrewMode";
 import { errText } from "./errors";
 import { type BoothEvent, DEFAULT_EVENT, loadEvent } from "./event";
@@ -32,6 +33,36 @@ export function BoothApp({
   const [crewOpen, setCrewOpen] = useState(false);
   const [start, setStart] = useState(startScreen);
   const [alert, setAlert] = useState<PrinterAlert>(null);
+  // Tombol Dashboard Admin di layar awal: PIN crew dulu, lalu browser terbuka.
+  const [adminIntent, setAdminIntent] = useState(false);
+  // Notifikasi hasil update (berhasil / gagal dipasang) sekali setelah booth terbuka lagi (masukan Rama).
+  const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => {
+    p.crew.updateResult().then(
+      (r) =>
+        r &&
+        setToast({
+          ok: r.ok,
+          text: r.ok ? copy.crew.updateDone(r.to) : copy.crew.updateNotInstalled(r.to, r.now),
+        }),
+      () => {},
+    );
+  }, [p]);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), toast.ok ? 10_000 : 30_000);
+    return () => clearTimeout(t);
+  }, [toast]);
+  const notice = toast && (
+    <button
+      type="button"
+      role="status"
+      onClick={() => setToast(null)}
+      className={`absolute top-6 left-1/2 z-50 max-w-[1400px] -translate-x-1/2 rounded-2xl border-[2.5px] border-ink px-7 py-4 text-2xl font-bold ${toast.ok ? "bg-mint" : "bg-coral-strong text-white"}`}
+    >
+      {toast.text}
+    </button>
+  );
 
   const activate = useCallback(
     async (id: string | null, list: EventBundle[]) => {
@@ -84,7 +115,12 @@ export function BoothApp({
             void select(id);
           }}
           onCrew={() => setCrewOpen(true)}
+          onAdmin={() => {
+            setAdminIntent(true);
+            setCrewOpen(true);
+          }}
         />
+        {notice}
       </Stage>
     );
   }
@@ -100,8 +136,13 @@ export function BoothApp({
             void select(id);
           }}
           onReloadEvents={reload}
-          onClose={() => setCrewOpen(false)}
+          openAdmin={adminIntent}
+          onClose={() => {
+            setAdminIntent(false);
+            setCrewOpen(false);
+          }}
         />
+        {notice}
       </Stage>
     );
   }
@@ -126,6 +167,7 @@ export function BoothApp({
             {alert.message}
           </p>
         )}
+        {notice}
       </Stage>
     </div>
   );

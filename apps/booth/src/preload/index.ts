@@ -38,6 +38,8 @@ const bridge: TetraBridge = {
   crewCameraProps: () => ipcRenderer.invoke("crewCameraProps"),
   crewSetCameraProp: (n, v) => ipcRenderer.invoke("crewSetCameraProp", n, v),
   crewInstallUpdate: () => ipcRenderer.invoke("crewInstallUpdate"),
+  updateResult: () => ipcRenderer.invoke("updateResult"),
+  crewOpenAdmin: () => ipcRenderer.invoke("crewOpenAdmin"),
   printerAlert: () => ipcRenderer.invoke("printerAlert"),
   onPrinterAlert: (cb) => {
     const h = (_e: IpcRendererEvent, a: Parameters<typeof cb>[0]) => cb(a);
