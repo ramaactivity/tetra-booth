@@ -168,7 +168,7 @@ export function StartScreen({
                 {onEditEvent && b.id !== "local" && (
                   <button
                     type="button"
-                    aria-label={`${t.edit} ${b.name}`}
+                    data-testid={`edit-${b.id}`}
                     onClick={() => onEditEvent(b.id)}
                     className="pressable flex w-[150px] items-center justify-center gap-2 rounded-[24px] border-[2.5px] border-ink bg-white text-2xl font-bold"
                   >
