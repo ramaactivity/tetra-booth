@@ -27,11 +27,15 @@ const sha256File = async (file: string) => {
   return h.digest("hex");
 };
 
+/** Installer besar diunduh dalam beberapa bagian sekaligus (Range): data W-032 4 koneksi 8,4 MB/s vs 1 koneksi 3,9. */
+export const PARALLEL = { parts: 4, minSize: 16_000_000 };
+
 /**
- * Update aplikasi dari mode crew (aturan 7, DECISIONS #80/#89): unduh installer NSIS ke folder temp, lanjut dari
- * byte terakhir kalau putus (HTTP Range, file `.part`), tanpa batas waktu total, hanya batas macet 60 detik.
- * `release()` dipanggil tiap percobaan supaya URL bertanda tangan selalu segar. Ukuran + sha256 dicocokkan.
- * Pemanggil menutup aplikasi setelah `runInstaller` supaya installer bisa mengganti file.
+ * Update aplikasi dari mode crew (aturan 7, DECISIONS #80/#89/#106): unduh installer NSIS ke folder temp. Installer
+ * ≥ `PARALLEL.minSize` dipecah jadi `PARALLEL.parts` bagian yang diunduh bersamaan; tiap bagian lanjut dari byte
+ * terakhir kalau putus (HTTP Range, file `.part<i>`), batas macet 60 detik, koneksi lambat disambung ulang.
+ * `release()` dipanggil tiap percobaan supaya URL bertanda tangan selalu segar; versi berganti = berhenti.
+ * Ukuran + sha256 dicocokkan. Pemanggil menutup aplikasi setelah `runInstaller` supaya installer bisa mengganti file.
  */
 export async function downloadInstaller(
   release: () => Promise<BoothUpdateResponse>,
@@ -39,7 +43,8 @@ export async function downloadInstaller(
   onProgress: (p: UpdateProgress) => void,
 ) {
   let r = await release();
-  const file = join(tempDir, `Tetra-Booth-Setup-${r.version}.exe`);
+  const version = r.version;
+  const file = join(tempDir, `Tetra-Booth-Setup-${version}.exe`);
   const part = `${file}.part`;
   // Sudah terunduh lengkap sebelumnya (unduhan latar belakang): langsung pakai kalau utuh.
   const done = await stat(file).then(
@@ -47,35 +52,56 @@ export async function downloadInstaller(
     () => 0,
   );
   if (done === r.size && (await sha256File(file)) === r.sha256) return file;
-  let lastError: unknown;
-  let slowRestarts = 0;
+
+  const n = r.size >= PARALLEL.minSize ? PARALLEL.parts : 1;
+  const bounds = Array.from({ length: n }, (_, i) => [
+    Math.floor((i * r.size) / n),
+    Math.floor(((i + 1) * r.size) / n),
+  ]) as [number, number][];
+  const files = bounds.map((_, i) => (n === 1 ? part : `${part}${i}`));
+  const got = bounds.map(() => 0);
+  const report = () => onProgress({ received: got.reduce((a, b) => a + b, 0), total: r.size });
   /** Versi baru terbit di tengah unduhan: `.part` versi lama tidak boleh disambung dengan file lain. */
   let changed: string | null = null;
-  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
-    const have = await stat(part).then(
-      (s) => s.size,
-      () => 0,
-    );
-    if (have > r.size) await rm(part, { force: true });
-    else if (have < r.size) {
+  let slowRestarts = 0;
+
+  /** Unduh satu bagian [from, to) ke `dest`; true = lengkap. */
+  const fetchPart = async (i: number): Promise<void> => {
+    const [from, to] = bounds[i] as [number, number];
+    const dest = files[i] as string;
+    const len = to - from;
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+      if (changed) return;
+      let have = await stat(dest).then(
+        (s) => s.size,
+        () => 0,
+      );
+      if (have > len) {
+        await rm(dest, { force: true });
+        have = 0;
+      }
+      got[i] = have;
+      if (have === len) return;
       const abort = new AbortController();
       let stall = setTimeout(() => abort.abort(), STALL_MS);
       try {
-        if (attempt > 1) {
+        if (attempt > 1 || i > 0) {
           const x = await release();
-          if (x.version !== r.version) {
+          if (x.version !== version) {
             changed = x.version;
-            break;
+            return;
           }
           r = x;
         }
-        const res = await fetch(r.url, {
-          headers: have ? { range: `bytes=${have}-` } : {},
-          signal: abort.signal,
-        });
-        // 206 = lanjut dari `have`; 200 = server mengirim ulang dari awal.
+        // Satu bagian: Range terbuka seperti dulu (tanpa header di awal). Beberapa bagian: rentang tertutup.
+        const range =
+          n === 1 ? (have ? `bytes=${have}-` : undefined) : `bytes=${from + have}-${to - 1}`;
+        const res = await fetch(r.url, { headers: range ? { range } : {}, signal: abort.signal });
+        // 206 = lanjut dari `have`; 200 = server mengirim ulang dari awal (hanya boleh kalau satu bagian).
         const resume = res.status === 206;
         if (!res.ok || !res.body) throw new Error(`server ${res.status}`);
+        if (n > 1 && !resume) throw new Error("server tidak mendukung Range");
         let received = resume ? have : 0;
         const start = received;
         const t0 = Date.now();
@@ -83,24 +109,25 @@ export async function downloadInstaller(
         await pipeline(
           Readable.fromWeb(res.body as WebStream<Uint8Array>),
           new Transform({
-            transform(chunk: Buffer, _enc, done) {
+            transform(chunk: Buffer, _enc, next) {
               clearTimeout(stall);
               stall = setTimeout(() => abort.abort(), STALL_MS);
               received += chunk.byteLength;
-              onProgress({ received, total: r.size });
+              got[i] = received;
+              report();
               const dt = Date.now() - t0;
               if (!slowChecked && dt >= SLOW.ms && slowRestarts < SLOW_RESTARTS) {
                 slowChecked = true;
-                if (((received - start) * 1000) / dt < SLOW.bps) {
-                  done(null, chunk);
+                if (((received - start) * 1000) / dt < SLOW.bps / n) {
+                  next(null, chunk);
                   abort.abort(new Error("slow"));
                   return;
                 }
               }
-              done(null, chunk);
+              next(null, chunk);
             },
           }),
-          createWriteStream(part, { flags: resume ? "a" : "w" }),
+          createWriteStream(dest, { flags: resume ? "a" : "w" }),
         );
       } catch (e) {
         if (abort.signal.reason instanceof Error && abort.signal.reason.message === "slow") {
@@ -111,29 +138,42 @@ export async function downloadInstaller(
         }
         lastError = e;
         console.warn(
-          `[update] unduhan terputus (percobaan ${attempt}/${ATTEMPTS}): ${e instanceof Error ? e.message : String(e)}`,
+          `[update] unduhan terputus (bagian ${i + 1}/${n}, percobaan ${attempt}/${ATTEMPTS}): ${e instanceof Error ? e.message : String(e)}`,
         );
-        continue;
       } finally {
         clearTimeout(stall);
       }
     }
-    const size = await stat(part).then((s) => s.size);
-    if (size === r.size && (await sha256File(part)) === r.sha256) {
-      await rename(part, file);
-      return file;
-    }
-    // Rusak: buang dan ulang dari awal.
-    await rm(part, { force: true });
-    lastError = new Error("checksum tidak cocok");
-  }
+    const have = await stat(dest).then(
+      (s) => s.size,
+      () => 0,
+    );
+    if (have !== len && !changed)
+      throw new Error(
+        `installer gagal diunduh: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+      );
+  };
+
+  await Promise.all(bounds.map((_, i) => fetchPart(i)));
   if (changed) {
-    await rm(part, { force: true });
-    throw new Error(`versi ${changed} terbit saat mengunduh ${r.version}, unduhan diulang`);
+    await Promise.all(files.map((f) => rm(f, { force: true })));
+    throw new Error(`versi ${changed} terbit saat mengunduh ${version}, unduhan diulang`);
   }
-  throw new Error(
-    `installer gagal diunduh: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
-  );
+  // Gabungkan bagian → satu file, lalu cek ukuran + sha256.
+  if (n > 1) {
+    const out = createWriteStream(part);
+    for (const f of files) await pipeline(createReadStream(f), out, { end: false });
+    await new Promise<void>((ok, fail) => out.end((e?: Error | null) => (e ? fail(e) : ok())));
+  }
+  const size = await stat(part).then((s) => s.size);
+  if (size === r.size && (await sha256File(part)) === r.sha256) {
+    await rename(part, file);
+    if (n > 1) await Promise.all(files.map((f) => rm(f, { force: true })));
+    return file;
+  }
+  // Rusak: buang semua bagian, unduhan berikutnya mulai dari awal.
+  await Promise.all([part, ...files].map((f) => rm(f, { force: true })));
+  throw new Error("installer gagal diunduh: checksum tidak cocok");
 }
 
 export function runInstaller(file: string) {
