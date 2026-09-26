@@ -5,7 +5,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/service", () => ({ createServiceClient: () => ({}) }));
 const { midtrans, midtransSignatureOk } = await import("./payments");
 
-const KEY = "SB-Mid-server-test";
+const KEY = "Mid-server-test"; // key sandbox akun baru: tanpa awalan "SB-" (#95)
 const reply = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
@@ -40,7 +40,7 @@ describe("Midtrans QRIS (DECISIONS #93)", () => {
   });
 
   it("status: settlement = paid, expire = expired, deny = failed; status_code 404 dalam HTTP 200 = error", async () => {
-    const mt = midtrans("Mid-server-prod");
+    const mt = midtrans("Mid-server-prod", true);
     for (const [s, want] of [
       ["settlement", "paid"],
       ["pending", "pending"],

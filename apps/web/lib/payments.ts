@@ -87,12 +87,14 @@ function xendit(key: string): PaymentProvider {
 
 /**
  * Midtrans Core API QRIS (DECISIONS #93): merchant perorangan cukup KTP + NPWP (Xendit butuh badan usaha).
- * `order_id` = id pembayaran kita, jadi status dicek dengan id itu. Sandbox/production dari awalan server key.
+ * `order_id` = id pembayaran kita, jadi status dicek dengan id itu. Sandbox kecuali
+ * MIDTRANS_IS_PRODUCTION=true — key sandbox akun baru tidak lagi berawalan "SB-" (DECISIONS #95).
  */
-export function midtrans(serverKey: string): PaymentProvider {
-  const base = serverKey.startsWith("SB-")
-    ? "https://api.sandbox.midtrans.com"
-    : "https://api.midtrans.com";
+export function midtrans(
+  serverKey: string,
+  production = process.env.MIDTRANS_IS_PRODUCTION === "true",
+): PaymentProvider {
+  const base = production ? "https://api.midtrans.com" : "https://api.sandbox.midtrans.com";
   const call = async (path: string, init?: RequestInit) => {
     const res = await fetch(`${base}${path}`, {
       ...init,
