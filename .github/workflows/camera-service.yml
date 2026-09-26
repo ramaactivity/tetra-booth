@@ -1,0 +1,24 @@
+name: Camera Service
+
+# Runner Windows dihitung 2× menit: hanya saat kode Camera Service berubah.
+on:
+  push:
+    branches: [main]
+    paths: ["services/camera/**"]
+  pull_request:
+    paths: ["services/camera/**"]
+  workflow_dispatch:
+
+jobs:
+  camera-service:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: services/camera
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet build --configuration Release
+      - run: dotnet test --configuration Release --no-build

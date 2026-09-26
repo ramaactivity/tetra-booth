@@ -1,9 +1,16 @@
 name: CI
 
+# Hemat menit Actions (repo private, kuota bulanan): hanya main, lewati commit dokumen, batalkan run lama.
 on:
   push:
-    branches: [main, win]
+    branches: [main]
+    paths-ignore: ["docs/**", "**/*.md"]
   pull_request:
+    paths-ignore: ["docs/**", "**/*.md"]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ts:
@@ -24,16 +31,3 @@ jobs:
       - run: pnpm --filter web e2e
       - run: pnpm --filter booth build
       - run: xvfb-run -a pnpm --filter booth e2e
-
-  camera-service:
-    runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: services/camera
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: 10.0.x
-      - run: dotnet build --configuration Release
-      - run: dotnet test --configuration Release --no-build
