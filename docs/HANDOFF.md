@@ -199,6 +199,7 @@ Selesai: kata sandi admin, CORS R2, `CRON_SECRET` (cron menolak tanpa secret: 40
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-26 | Mac | Booth **0.5.5**: installer mengabaikan uninstaller lama yang gagal + uninstaller baru `RMDir /r` (DECISIONS #90, `apps/booth/build/installer.nsh`), plus pengingat buram (#88) dan progress/lanjut-unduh update (#89). Windows: uji Update Aplikasi 0.5.3 → 0.5.5; setelah lulus Mac merilis 0.5.6 untuk uji progress + uninstaller baru. |
 | 2026-09-26 | Mac | Update aplikasi: progress MB/%/sisa waktu di menu crew + unduhan lanjut dari byte terakhir (Range, `.part`, 8× coba, macet 60 dtk) (DECISIONS #89), tes unit server putus di tengah. Berlaku untuk update DARI versi berikutnya (0.5.5 ke atas). |
 | 2026-09-26 | Mac | Pengingat foto buram (DECISIONS #88): skor ketajaman di preview, patokan dari Tes Jepret crew per event, lencana + Ulangi disorot di review, banner crew ≥ 2/3 sesi. e2e booth 7/7 (hot folder: lencana muncul, tamu tetap bisa lanjut). Rilis 0.5.5 menunggu uji update 0.5.3 → 0.5.4 dan kontrol fokus dari Windows. |
 | 2026-09-25 | Mac | Merge `win` (b3f8d14: `--digicam`, live view digiCamControl, `rawGet` untuk API slc, JPEG 0,92/0,95) + engine smoothing "high" (DECISIONS #87) + chip nilai kamera aktif digulir ke tengah. Booth **0.5.4** dirilis. Ide Rama (login per mode, dashboard partner photobox) dicatat di roadmap "Catatan ide". |
