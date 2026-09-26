@@ -51,9 +51,13 @@ export async function downloadInstaller(
     (s) => s.size,
     () => 0,
   );
-  if (done === r.size && (await sha256File(file)) === r.sha256) return file;
+  if (done === r.size && (await sha256File(file)) === r.sha256) {
+    console.info(`[update] memakai ${version} yang sudah diunduh`);
+    return file;
+  }
 
   const n = r.size >= PARALLEL.minSize ? PARALLEL.parts : 1;
+  console.info(`[update] mengunduh ${version} (${Math.round(r.size / 1e6)} MB, ${n} bagian)`);
   const bounds = Array.from({ length: n }, (_, i) => [
     Math.floor((i * r.size) / n),
     Math.floor(((i + 1) * r.size) / n),
