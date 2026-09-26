@@ -63,6 +63,14 @@ const Form = z.object({
   client_days: int(1, 365),
 });
 
+/** Textarea kalimat (#103): satu per baris, maks. 10 baris × 40 karakter. */
+const lines = (v: FormDataEntryValue | null) =>
+  String(v ?? "")
+    .split("\n")
+    .map((l) => l.trim().slice(0, 40))
+    .filter(Boolean)
+    .slice(0, 10);
+
 export type SaveResult = { ok: boolean; message: string } | null;
 
 /**
@@ -164,6 +172,8 @@ export async function saveEvent(
     reviewTimeoutSec: f.reviewTimeoutSec,
     qrScreenSec: f.qrScreenSec,
     countdownSound: form.get("countdownSound") === "on",
+    promptsBefore: lines(form.get("prompts_before")),
+    promptsAfter: lines(form.get("prompts_after")),
   };
   /** Versi terbaru template editor (dikunci ke event saat simpan). */
   const latest = async (layoutId: string) => {

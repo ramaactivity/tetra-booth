@@ -28,6 +28,8 @@ export type SettingsValues = {
   /** Layar awal booth (#102). */
   attract: { background: string; cta: string; samples: boolean; hasImage: boolean };
   countdownSound: boolean;
+  promptsBefore: string[];
+  promptsAfter: string[];
   /** Header halaman tamu. */
   guestColor: string;
   hasLogo: boolean;
@@ -339,8 +341,26 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           </Field>
           <label className="flex items-center gap-2 self-end text-xs font-bold">
             <input type="checkbox" name="countdownSound" defaultChecked={v.countdownSound} /> Suara
-            hitung mundur & jepret
+            (kalimat, hitung mundur & jepret)
           </label>
+          <Field label="Kalimat sebelum foto (satu per baris; baris terakhir = foto terakhir; kosong = bawaan)">
+            <textarea
+              name="prompts_before"
+              rows={4}
+              defaultValue={v.promptsBefore.join("\n")}
+              placeholder={"Siap-siap, gaya pertama!\nGaya kedua, lebih seru!\nTerakhir, all out!"}
+              className="w-full rounded-[11px] border-[1.5px] border-ink bg-white px-3 py-2 text-sm"
+            />
+          </Field>
+          <Field label="Kalimat setelah foto (dipilih acak; kosong = bawaan)">
+            <textarea
+              name="prompts_after"
+              rows={4}
+              defaultValue={v.promptsAfter.join("\n")}
+              placeholder={"Mantap!\nKeren banget!\nCakep!"}
+              className="w-full rounded-[11px] border-[1.5px] border-ink bg-white px-3 py-2 text-sm"
+            />
+          </Field>
           <Field label="Retake per foto" unit="kali">
             {num("retakeMax", 0, 5)}
           </Field>

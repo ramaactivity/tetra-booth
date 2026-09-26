@@ -13,6 +13,9 @@ export const EventSettingsSchema = z.object({
   sessionSec: z.number().int().min(60).max(900).default(180),
   /** Bunyi "tik" tiap detik hitung mundur + bunyi jepret (DECISIONS #102). */
   countdownSound: z.boolean().default(false),
+  /** Kalimat sebelum / setelah foto (#103); kosong = kalimat bawaan booth. */
+  promptsBefore: z.array(z.string().min(1).max(40)).max(10).default([]),
+  promptsAfter: z.array(z.string().min(1).max(40)).max(10).default([]),
 });
 export type EventSettings = z.infer<typeof EventSettingsSchema>;
 export const DEFAULT_SETTINGS: EventSettings = EventSettingsSchema.parse({});

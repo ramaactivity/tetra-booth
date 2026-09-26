@@ -91,6 +91,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
               bundle.success && bundle.data.files.some((f) => f.file.startsWith("attract.")),
           },
           countdownSound: s.countdownSound,
+          promptsBefore: s.promptsBefore,
+          promptsAfter: s.promptsAfter,
           templates: (layouts ?? []).map((l) => ({
             id: l.id,
             name: l.name,

@@ -5,6 +5,16 @@ export const copy = {
     // Hanya tampil sebelum PIN crew dibuat (setup pertama), supaya tamu tidak melihatnya saat event.
     crewHint: "Pengaturan crew: tahan logo 2 detik, ketuk pojok kanan atas 5×, atau Ctrl+Shift+M",
   },
+  /** Kalimat bawaan di sela foto (#103); yang terakhir = foto terakhir. Bisa diganti per event di admin. */
+  prompts: {
+    before: [
+      "Siap-siap, gaya pertama!",
+      "Gaya kedua, lebih seru!",
+      "Sekarang paling heboh!",
+      "Terakhir, all out!",
+    ],
+    after: ["Mantap!", "Keren banget!", "Cakep!", "Mantul!", "Gemes!"],
+  },
   countdown: {
     ready: "Siap? Senyum!",
     lookAtCamera: "Lihat ke kamera",
