@@ -127,6 +127,8 @@ export const copy = {
     updateAvailable: (latest: string, current: string) =>
       `Versi ${latest} tersedia (terpasang ${current}). Booth mengunduh ±150 MB, lalu tertutup dan terbuka lagi sendiri dalam ±1 menit. Jangan matikan laptop.`,
     updateNow: "Pasang Sekarang",
+    cursorShown: "Kursor: tampil",
+    cursorHidden: "Kursor: sembunyi",
     updateInstalling: "Unduhan selesai. Memasang… booth tertutup lalu terbuka lagi sendiri.",
     updateFailed: "Update gagal",
     updateRetry: "Coba Lagi",
