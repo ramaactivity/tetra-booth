@@ -1,10 +1,11 @@
 import "server-only";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { LAYOUT_PRESETS, type PaymentStatus, type PresetId } from "@tetra/shared";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /**
  * Pembayaran QRIS photobox (TSD §8, DECISIONS #70). `PaymentProvider` supaya provider lain / voucher bisa ditambah.
- * Xendit Payment Requests API (QR_CODE / QRIS). Harga selalu dari pengaturan event di DB, tidak pernah dari booth.
+ * Midtrans Core API QRIS (#93) atau Xendit Payment Requests API (QR_CODE / QRIS). Harga selalu dari pengaturan event di DB, tidak pernah dari booth.
  */
 export interface PaymentProvider {
   name: string;
@@ -84,6 +85,75 @@ function xendit(key: string): PaymentProvider {
   };
 }
 
+/**
+ * Midtrans Core API QRIS (DECISIONS #93): merchant perorangan cukup KTP + NPWP (Xendit butuh badan usaha).
+ * `order_id` = id pembayaran kita, jadi status dicek dengan id itu. Sandbox/production dari awalan server key.
+ */
+export function midtrans(serverKey: string): PaymentProvider {
+  const base = serverKey.startsWith("SB-")
+    ? "https://api.sandbox.midtrans.com"
+    : "https://api.midtrans.com";
+  const call = async (path: string, init?: RequestInit) => {
+    const res = await fetch(`${base}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${serverKey}:`).toString("base64")}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...init?.headers,
+      },
+    });
+    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    // Midtrans membalas HTTP 200 dengan status_code sendiri (mis. "404" untuk order tidak dikenal).
+    const code = String(body.status_code ?? res.status);
+    if (!res.ok || !/^2\d\d$/.test(code))
+      throw new Error(`midtrans ${path} ${code} ${String(body.status_message ?? "")}`);
+    return body;
+  };
+  const MAP: Record<string, PaymentStatus> = {
+    settlement: "paid",
+    capture: "paid",
+    expire: "expired",
+    deny: "failed",
+    cancel: "failed",
+    failure: "failed",
+  };
+  return {
+    name: "midtrans",
+    async create({ referenceId, amount, expiresAt }) {
+      const minutes = Math.max(1, Math.round((expiresAt.getTime() - Date.now()) / 60_000));
+      const r = await call("/v2/charge", {
+        method: "POST",
+        body: JSON.stringify({
+          payment_type: "qris",
+          transaction_details: { order_id: referenceId, gross_amount: amount },
+          qris: { acquirer: "gopay" },
+          custom_expiry: { expiry_duration: minutes, unit: "minute" },
+        }),
+      });
+      const qrString = typeof r.qr_string === "string" ? r.qr_string : "";
+      if (!qrString) throw new Error("midtrans: qr_string kosong");
+      return { ref: referenceId, qrString };
+    },
+    async status(ref) {
+      const r = await call(`/v2/${encodeURIComponent(ref)}/status`);
+      return MAP[String(r.transaction_status)] ?? "pending";
+    },
+  };
+}
+
+/** Tanda tangan notifikasi Midtrans: SHA-512(order_id + status_code + gross_amount + server key). */
+export function midtransSignatureOk(
+  n: { order_id?: unknown; status_code?: unknown; gross_amount?: unknown; signature_key?: unknown },
+  serverKey: string,
+) {
+  const want = createHash("sha512")
+    .update(`${String(n.order_id)}${String(n.status_code)}${String(n.gross_amount)}${serverKey}`)
+    .digest("hex");
+  const got = typeof n.signature_key === "string" ? n.signature_key : "";
+  return got.length === want.length && timingSafeEqual(Buffer.from(got), Buffer.from(want));
+}
+
 // ponytail: status provider palsu di memori proses; cukup untuk dev/e2e satu proses `next`.
 const fakePaid = new Set<string>();
 const fake: PaymentProvider = {
@@ -102,6 +172,9 @@ const fake: PaymentProvider = {
 export function paymentProvider(): PaymentProvider | null {
   if (process.env.PAYMENT_PROVIDER === "fake" && process.env.VERCEL_ENV !== "production")
     return fake;
+  // Midtrans dipakai kalau server key-nya diisi (DECISIONS #93); Xendit tetap bisa lewat PAYMENT_PROVIDER=xendit.
+  const mt = process.env.MIDTRANS_SERVER_KEY;
+  if (mt && process.env.PAYMENT_PROVIDER !== "xendit") return midtrans(mt);
   const key = process.env.XENDIT_SECRET_KEY;
   return key ? xendit(key) : null;
 }
