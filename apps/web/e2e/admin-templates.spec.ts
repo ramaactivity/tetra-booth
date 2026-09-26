@@ -255,9 +255,10 @@ test("format polaroid landscape: kanvas, label, dan tata letak cepat sesuai form
     await page.getByRole("button", { name: "Simpan" }).click();
     await expect(page.getByRole("status")).toContainText("Tersimpan · versi 2");
     await page.goto("/admin/templates");
-    await expect(page.getByRole("link", { name: new RegExp(tplName) })).toContainText(
-      "Polaroid 4x3 landscape",
-    );
+    // Baris template: link nama + kolom format (link "Edit …" juga ada di baris yang sama).
+    await expect(
+      page.getByRole("link", { name: tplName, exact: true }).locator(".."),
+    ).toContainText("Polaroid 4x3 landscape");
   } finally {
     const { data: l } = await db.from("layouts").select("id").eq("name", tplName).maybeSingle();
     if (l) {
