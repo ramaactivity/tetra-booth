@@ -1,5 +1,6 @@
 import { Button } from "@tetra/ui";
 import { Delete } from "lucide-react";
+import { useEffect } from "react";
 import { copy } from "../copy";
 
 /** Keypad angka layar crew (A09a): dipakai PIN crew dan kode pairing. */
@@ -29,6 +30,21 @@ export function DigitPad({
   onCancel: () => void;
 }) {
   const full = locked || value.length >= maxLength;
+  // Keyboard laptop juga bisa (masukan Rama): angka / numpad, Backspace, Enter = OK, Esc = batal.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (/^[0-9]$/.test(e.key)) {
+        if (!full) onChange(value + e.key);
+      } else if (e.key === "Backspace") onChange(value.slice(0, -1));
+      else if (e.key === "Enter") {
+        if (!locked) onSubmit();
+      } else if (e.key === "Escape") onCancel();
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [value, full, locked, onChange, onSubmit, onCancel]);
   const boxes = Math.min(maxLength, Math.max(minBoxes, value.length + 1));
   const key =
     "pressable flex h-[92px] items-center justify-center rounded-[22px] border-[2.5px] border-ink bg-white text-[40px] font-bold disabled:opacity-40";

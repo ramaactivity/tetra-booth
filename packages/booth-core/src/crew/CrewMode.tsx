@@ -17,12 +17,15 @@ export function CrewMode({
   onSelectEvent,
   onReloadEvents,
   onClose,
+  openAdmin = false,
 }: {
   event: BoothEvent;
   bundles: EventBundle[];
   onSelectEvent: (id: string) => void;
   onReloadEvents: () => Promise<void>;
   onClose: () => void;
+  /** Dibuka dari tombol Dashboard Admin di layar awal: setelah PIN benar, langsung buka browser. */
+  openAdmin?: boolean;
 }) {
   const { crew } = usePlatform();
   const [view, setView] = useState<View | null>(null);
@@ -49,7 +52,10 @@ export function CrewMode({
         <PinPad
           key={view}
           create={view !== "pin"}
-          onDone={() => setView("menu")}
+          onDone={() => {
+            if (openAdmin && view === "pin") void crew.openAdmin().catch(() => {});
+            setView("menu");
+          }}
           onCancel={view === "change" ? () => setView("menu") : close}
         />
       );
@@ -72,6 +78,7 @@ export function CrewMode({
             return n;
           }}
           onCrew={() => setView("menu")}
+          onAdmin={() => void crew.openAdmin().catch(() => {})}
           crewLabel={copy.start.backToCrew}
         />
       );

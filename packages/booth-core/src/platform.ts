@@ -86,6 +86,8 @@ export type DeviceInfo = { now: DeviceSettings; locked: string[]; printers: stri
 /** Setelan eksposur kamera DSLR (sementara lewat digiCamControl). */
 export type CameraProp = { name: string; label: string; value: string; options: string[] };
 export type UpdateCheck = { current: string; latest: string | null; available: boolean };
+/** Hasil update terakhir, dibaca sekali setelah booth terbuka lagi. */
+export type UpdateResult = { ok: boolean; from: string; to: string; now: string } | null;
 export type FailedPrint = { id: string; copies: number; error: string | null; createdAt: string };
 /** Peringatan kecil untuk crew di pojok layar (printer error, cetak gagal, kertas menipis). */
 export type PrinterAlert = { message: string } | null;
@@ -127,6 +129,10 @@ export interface BoothCrew {
   installUpdate(): Promise<void>;
   /** Kemajuan unduhan update (byte), untuk ditampilkan ke crew (#89). */
   onUpdateProgress(cb: (p: { received: number; total: number }) => void): Unsubscribe;
+  /** Update terakhir berhasil / gagal dipasang (sekali, setelah booth dibuka lagi). */
+  updateResult(): Promise<UpdateResult>;
+  /** Buka dashboard admin di browser; kiosk dilepas sementara. Hanya saat mode crew terbuka. */
+  openAdmin(): Promise<void>;
   printerAlert(): Promise<PrinterAlert>;
   onPrinterAlert(cb: (a: PrinterAlert) => void): Unsubscribe;
   /** Setiap print selesai/gagal (menyegarkan kertas & daftar gagal, dan hasil test print di menu crew). */

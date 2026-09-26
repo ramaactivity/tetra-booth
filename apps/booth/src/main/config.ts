@@ -125,6 +125,8 @@ export const flagWarnings = [
 
 /** Tanda "booth membuka ulang sendiri" di kv: layar awal dilewati sekali (DECISIONS #86). */
 export const RESUME_KEY = "resume_once";
+/** Catatan "update ke versi X" sebelum installer jalan; dibaca sekali saat booth terbuka lagi. */
+export const UPDATE_PENDING_KEY = "update_pending";
 /**
  * Layar awal pilih mode & event: app hasil build yang dibuka manual. Dilewati kalau booth membuka ulang sendiri
  * (`resume`), `--resume` (auto-start login), atau demo; `--start-screen` memaksa (uji).
