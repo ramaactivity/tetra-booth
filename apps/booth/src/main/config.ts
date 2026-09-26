@@ -139,6 +139,10 @@ export const startScreenFlag = (isPackaged: boolean, resume: boolean) =>
   (isPackaged && !resume && !flags.has("resume") && !flags.has("demo"));
 
 /** Kiosk (M5): default aktif di app hasil build; `--kiosk` / `--no-kiosk` memaksa. */
+/** Bumper video saat event dibuka (#105): booth terpasang; `--bumper` memaksa (uji), `--no-bumper` mematikan. */
+export const bumperFlag = (isPackaged: boolean) =>
+  flags.has("bumper") || (isPackaged && !flags.has("no-bumper") && !flags.has("demo"));
+
 export const kioskFlag = (isPackaged: boolean) =>
   flags.has("kiosk") || (isPackaged && !flags.has("no-kiosk"));
 

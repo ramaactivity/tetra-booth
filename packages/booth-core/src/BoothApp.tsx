@@ -18,6 +18,7 @@ export function BoothApp({
   fast = false,
   kiosk = false,
   startScreen = false,
+  bumper = false,
 }: {
   guestBaseUrl: string;
   demo?: boolean;
@@ -27,6 +28,8 @@ export function BoothApp({
   kiosk?: boolean;
   /** Layar awal pilih mode & event saat app dibuka manual (DECISIONS #86). */
   startScreen?: boolean;
+  /** Putar bumper saat event dibuka (#105). */
+  bumper?: boolean;
 }) {
   const p = usePlatform();
   const [bundles, setBundles] = useState<EventBundle[]>([]);
@@ -173,6 +176,7 @@ export function BoothApp({
           guestBaseUrl={guestBaseUrl}
           demo={demo}
           fast={fast}
+          bumper={bumper}
           onCrew={() => setCrewOpen(true)}
         />
         {alert && (

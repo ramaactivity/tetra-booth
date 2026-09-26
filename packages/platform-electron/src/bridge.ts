@@ -16,6 +16,8 @@ export type BoothConfig = {
   kiosk?: boolean;
   /** Layar awal pilih mode & event (DECISIONS #86): saat app dibuka manual, bukan saat dibuka ulang sendiri. */
   startScreen?: boolean;
+  /** Putar video bumper saat event dibuka (#105). */
+  bumper?: boolean;
   /** Webcam pilihan crew (`MediaDeviceInfo.deviceId`); kosong = bawaan. */
   webcamId?: string;
   /** Opsi crew: live view seperti cermin (bawaan nyala). */

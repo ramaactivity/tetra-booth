@@ -14,6 +14,8 @@ export const EventSettingsSchema = z.object({
   /** Bunyi "tik" tiap detik hitung mundur + bunyi jepret (DECISIONS #102). */
   countdownSound: z.boolean().default(false),
   /** Kalimat sebelum / setelah foto (#103); kosong = kalimat bawaan booth. */
+  /** Video bumper Tetra saat event dibuka di booth terpasang (#105). */
+  bumper: z.boolean().default(true),
   promptsBefore: z.array(z.string().min(1).max(40)).max(10).default([]),
   promptsAfter: z.array(z.string().min(1).max(40)).max(10).default([]),
 });
@@ -44,6 +46,7 @@ export const SOUND_CUES = [
   "cetak",
   "selesai",
   "bayar",
+  "bumper",
 ] as const;
 export type SoundCue = (typeof SOUND_CUES)[number];
 

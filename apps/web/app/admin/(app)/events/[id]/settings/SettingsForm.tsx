@@ -28,6 +28,7 @@ export type SettingsValues = {
   /** Layar awal booth (#102). */
   attract: { background: string; cta: string; samples: boolean; hasImage: boolean };
   countdownSound: boolean;
+  bumper: boolean;
   promptsBefore: string[];
   promptsAfter: string[];
   /** Suara per cue (#104): nyala/mati + URL file pengganti (presigned) kalau ada. */
@@ -75,6 +76,7 @@ const SOUND_LABELS: Record<string, string> = {
   cetak: "Pilih cetak",
   selesai: "Selesai (QR)",
   bayar: "Bayar QRIS",
+  bumper: "Audio bumper",
 };
 
 /** Satu baris suara (#104): pill Nyala/Mati, dengar, status, Ganti (upload), kembalikan ke bawaan. */
@@ -373,6 +375,10 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           <label className="flex items-center gap-2 self-end text-xs font-bold">
             <input type="checkbox" name="attract_samples" defaultChecked={v.attract.samples} />{" "}
             Tampilkan strip contoh bergerak
+          </label>
+          <label className="flex items-center gap-2 self-end text-xs font-bold">
+            <input type="checkbox" name="bumper" defaultChecked={v.bumper} /> Putar bumper Tetra
+            saat event dibuka di booth
           </label>
           {v.attract.hasImage && (
             <label className="flex items-center gap-2 text-xs font-bold">

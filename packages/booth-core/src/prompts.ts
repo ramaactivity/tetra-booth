@@ -36,6 +36,20 @@ export const setSoundOverrides = (o: Partial<Record<Cue, string>> | undefined) =
   overrides = o ?? {};
 };
 
+/** Kecilkan suara yang sedang diputar sampai diam dalam `ms`, lalu berhenti (bumper dilewati). */
+export function fadeOutSound(ms = 400) {
+  const a = current;
+  if (!a) return;
+  const step = a.volume / (ms / 30);
+  const t = setInterval(() => {
+    a.volume = Math.max(0, a.volume - step);
+    if (a.volume === 0) {
+      clearInterval(t);
+      a.pause();
+    }
+  }, 30);
+}
+
 /**
  * Putar satu cue; selesai saat audio habis (maks. `maxMs`). false = file tidak ada / audio gagal
  * (pemanggil boleh memakai bunyi tik). Cue yang dimatikan event = true tanpa bunyi.
