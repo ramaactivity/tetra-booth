@@ -5,6 +5,17 @@ export const copy = {
     // Hanya tampil sebelum PIN crew dibuat (setup pertama), supaya tamu tidak melihatnya saat event.
     crewHint: "Pengaturan crew: tahan logo 2 detik, ketuk pojok kanan atas 5×, atau Ctrl+Shift+M",
   },
+  /** Kalimat bawaan di sela foto (#103); yang terakhir = foto terakhir. Bisa diganti per event di admin. */
+  prompts: {
+    // Sama persis dengan ucapan di sounds/foto-*.wav dan keren-1..4.wav (urutan penting).
+    before: [
+      "Siap-siap, gaya pertama!",
+      "Gaya kedua, lebih seru!",
+      "Siap, lebih heboh ya!",
+      "Oke gaya terakhir, cheers!",
+    ],
+    after: ["Mantap!", "Keren banget!", "Cakep!", "Wih, kalcer abis!"],
+  },
   countdown: {
     ready: "Siap? Senyum!",
     lookAtCamera: "Lihat ke kamera",

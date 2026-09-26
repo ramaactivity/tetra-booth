@@ -1,4 +1,4 @@
-import { EventSettingsSchema, LAYOUT_PRESETS, StoredBundle } from "@tetra/shared";
+import { EventSettingsSchema, LAYOUT_PRESETS, SOUND_CUES, StoredBundle } from "@tetra/shared";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -9,6 +9,7 @@ import {
   type EventTemplate,
 } from "@/lib/event-bundle";
 import type { PhotoboxSettings } from "@/lib/payments";
+import { presignGet } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 import { LinksPanel } from "./LinksPanel";
 import { SettingsForm, type SettingsValues } from "./SettingsForm";
@@ -91,6 +92,23 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
               bundle.success && bundle.data.files.some((f) => f.file.startsWith("attract.")),
           },
           countdownSound: s.countdownSound,
+          promptsBefore: s.promptsBefore,
+          promptsAfter: s.promptsAfter,
+          sounds: await Promise.all(
+            SOUND_CUES.map(async (cue) => {
+              const f = bundle.success
+                ? bundle.data.files.find((x) => x.file.startsWith(`snd-${cue}.`))
+                : undefined;
+              const cfg = bundle.success
+                ? (bundle.data.config as { sounds?: Record<string, string> }).sounds?.[cue]
+                : undefined;
+              return {
+                cue,
+                on: cfg !== "off",
+                custom: f ? await presignGet(f.key) : null,
+              };
+            }),
+          ),
           templates: (layouts ?? []).map((l) => ({
             id: l.id,
             name: l.name,

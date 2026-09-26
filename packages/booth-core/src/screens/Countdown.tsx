@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
+import { type Cue, play } from "../prompts";
 import type { Photo } from "../session";
 import { beep } from "../sound";
 import { Done, Steps } from "../ui";
@@ -63,34 +64,66 @@ export function Countdown({
   photos,
   onDone,
   sound = false,
+  prompt = "",
+  cue = "foto-1",
 }: {
   seconds: number;
   index: number;
   photos: (Photo | null)[];
   onDone: () => void;
-  /** Bunyi tik tiap detik + jepret di akhir (#102). */
+  /** Suara: kalimat `cue` dulu (maks. 3,5 dtk), lalu angka 3-2-1 + jepret (file tidak ada = bunyi tik) (#102/#103). */
   sound?: boolean;
+  /** Kalimat besar di atas hitung mundur, mis. "Gaya kedua, lebih seru!" (#103). */
+  prompt?: string;
+  /** Suara kalimat pembuka; null = tanpa suara kalimat (kalimat buatan event). */
+  cue?: Cue | null;
 }) {
   const [left, setLeft] = useState(seconds);
+  // Dengan suara, angka baru jalan setelah kalimat pembuka selesai diucapkan (maks. 3 dtk).
+  const [go, setGo] = useState(!sound);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sekali per countdown (komponen di-key per foto)
+  useEffect(() => {
+    if (!sound) return;
+    let live = true;
+    if (!cue) {
+      setGo(true);
+      return;
+    }
+    void play(cue, 3500).then(() => live && setGo(true));
+    return () => {
+      live = false;
+    };
+  }, []);
   // Ref: induk bisa render ulang tiap detik (timer photobox); callback baru tidak boleh me-reset hitungan.
   const done = useRef(onDone);
   done.current = onDone;
   useEffect(() => {
-    if (sound) beep(left > 0 ? "tick" : "shutter");
+    if (!go) return;
+    if (sound) {
+      const kind = left > 0 ? "tick" : "shutter";
+      const voice: Cue = left > 0 && left <= 3 ? (String(left) as Cue) : "jepret";
+      if (left > 3) beep(kind);
+      else void play(voice, 1500).then((ok) => ok || beep(kind));
+    }
     if (left <= 0) {
       done.current();
       return;
     }
     const t = setTimeout(() => setLeft((n) => n - 1), 1000);
     return () => clearTimeout(t);
-  }, [left, sound]);
+  }, [left, go, sound]);
 
   return (
     <div className="absolute inset-0">
       <ShotProgress index={index} total={photos.length} />
       <Thumbs photos={photos} index={index} />
+      {prompt && (
+        <p className="absolute top-40 left-1/2 -translate-x-1/2 animate-[tick_300ms_ease-out] rounded-[28px] border-[3px] border-ink bg-butter px-12 py-5 text-[64px] leading-none font-extrabold tracking-[-0.03em] whitespace-nowrap">
+          {prompt}
+        </p>
+      )}
       <div className="absolute inset-0 flex items-center justify-center">
-        {left > 0 && (
+        {go && left > 0 && (
           <div className="layered flex size-[340px] items-center justify-center rounded-full border-4 border-ink bg-white [--lb:4px] [--lx:14px] [--under:var(--mint)]">
             <span
               key={left}

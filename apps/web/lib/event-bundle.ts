@@ -8,6 +8,7 @@ import {
   type LayoutPaper,
   type PresetId,
   paperLabel,
+  type SoundCue,
   type StoredBundle,
 } from "@tetra/shared";
 import { longDate } from "@/lib/guest";
@@ -78,6 +79,8 @@ export function buildBundle(e: {
   attract?: AttractSettings;
   /** Gambar latar layar awal (file bundle `attract.jpg`/`attract.png`). */
   attractImage?: StoredBundle["files"][number] | null;
+  /** Suara per cue (#104): "off", atau file pengganti (`snd-<cue>.<ext>`). */
+  sounds?: Partial<Record<SoundCue, "off" | StoredBundle["files"][number]>>;
 }): Json {
   // Overlay dibuat untuk kanvas preset template, jadi hanya dipasang di layout dengan preset itu.
   const layoutOf = (id: PresetId) => ({
@@ -142,7 +145,13 @@ export function buildBundle(e: {
       ? [{ id: "ov", ...e.overlay }]
       : [];
   const bg = e.attractImage ? [{ id: "attract", ...e.attractImage }] : [];
-  const all = [...main, ...extras.flatMap((x) => x.files), ...bg];
+  const snd = Object.entries(e.sounds ?? {}).flatMap(([cue, v]) =>
+    v === "off" ? [] : [{ id: `snd-${cue}`, ...v }],
+  );
+  const all = [...main, ...extras.flatMap((x) => x.files), ...bg, ...snd];
+  const sounds = Object.fromEntries(
+    Object.entries(e.sounds ?? {}).map(([cue, v]) => [cue, v === "off" ? v : `snd-${cue}`]),
+  );
   const config = EventBundleSchema.parse({
     id: e.id,
     name: e.name,
@@ -162,6 +171,7 @@ export function buildBundle(e: {
     ...((e.attract || bg.length) && {
       attract: { ...e.attract, ...(bg.length && { imageAssetId: "attract" }) },
     }),
+    ...(Object.keys(sounds).length && { sounds }),
     settings: EventSettingsSchema.parse(e.settings ?? {}),
     assets: Object.fromEntries(all.map((f) => [f.id, f.file])),
   });

@@ -1,6 +1,13 @@
 "use server";
 import { createHash } from "node:crypto";
-import { EVENT_PRESETS, LAYOUT_PRESETS, type PresetId, StoredBundle } from "@tetra/shared";
+import {
+  EVENT_PRESETS,
+  LAYOUT_PRESETS,
+  type PresetId,
+  SOUND_CUES,
+  type SoundCue,
+  StoredBundle,
+} from "@tetra/shared";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
@@ -63,6 +70,14 @@ const Form = z.object({
   client_days: int(1, 365),
 });
 
+/** Textarea kalimat (#103): satu per baris, maks. 10 baris × 40 karakter. */
+const lines = (v: FormDataEntryValue | null) =>
+  String(v ?? "")
+    .split("\n")
+    .map((l) => l.trim().slice(0, 40))
+    .filter(Boolean)
+    .slice(0, 10);
+
 export type SaveResult = { ok: boolean; message: string } | null;
 
 /**
@@ -109,6 +124,24 @@ export async function saveEvent(
     const bytes = new Uint8Array(await bgFile.arrayBuffer());
     attractImage = await storeBundleFile(orgId, eventId, bytes, `attract.${ext}`, bgFile.type);
   } else if (form.get("remove_attract_image") === "on") attractImage = null;
+  // Suara per event (#104): mati, atau file pengganti WAV/MP3 ≤ 1 MB (file bundle snd-<cue>.<ext>).
+  const sounds: Partial<Record<SoundCue, "off" | StoredBundle["files"][number]>> = {};
+  for (const cue of SOUND_CUES) {
+    const old = prev.success
+      ? prev.data.files.find((x) => x.file.startsWith(`snd-${cue}.`))
+      : undefined;
+    const up = form.get(`snd_file_${cue}`);
+    let file = form.get(`snd_reset_${cue}`) === "on" ? undefined : old;
+    if (up instanceof File && up.size > 0) {
+      const ext = /wav/.test(up.type) ? "wav" : /mpeg|mp3/.test(up.type) ? "mp3" : null;
+      if (!ext) return { ok: false, message: `Suara "${cue}" harus WAV atau MP3` };
+      if (up.size > MAX_LOGO) return { ok: false, message: `Suara "${cue}" maksimal 1 MB` };
+      const bytes = new Uint8Array(await up.arrayBuffer());
+      file = await storeBundleFile(orgId, eventId, bytes, `snd-${cue}.${ext}`, up.type);
+    }
+    if (form.get(`snd_on_${cue}`) !== "on") sounds[cue] = "off";
+    else if (file) sounds[cue] = file;
+  }
   const attract: AttractSettings = {
     ...(f.attract_bg.toLowerCase() !== PAPER ? { background: f.attract_bg } : {}),
     ...(f.attract_cta ? { cta: f.attract_cta } : {}),
@@ -164,6 +197,8 @@ export async function saveEvent(
     reviewTimeoutSec: f.reviewTimeoutSec,
     qrScreenSec: f.qrScreenSec,
     countdownSound: form.get("countdownSound") === "on",
+    promptsBefore: lines(form.get("prompts_before")),
+    promptsAfter: lines(form.get("prompts_after")),
   };
   /** Versi terbaru template editor (dikunci ke event saat simpan). */
   const latest = async (layoutId: string) => {
@@ -232,6 +267,7 @@ export async function saveEvent(
       extras,
       attract,
       attractImage,
+      sounds,
     });
   } catch {
     return { ok: false, message: "Template tidak valid" };

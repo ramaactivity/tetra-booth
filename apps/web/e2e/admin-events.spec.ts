@@ -48,6 +48,13 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
       .getByRole("group", { name: /Desain lain untuk tamu/ })
       .getByText("Strip Klasik", { exact: true })
       .click();
+    // Suara (#104): angka 3 dimatikan, jepret diganti file sendiri.
+    await page.locator('input[name="snd_on_3"]').uncheck({ force: true });
+    await page.locator('input[name="snd_file_jepret"]').setInputFiles({
+      name: "klik.wav",
+      mimeType: "audio/wav",
+      buffer: Buffer.from("RIFF0000WAVEfmt "),
+    });
     await page.getByLabel("Maks. cetak per sesi").fill("3");
     await page.getByLabel(dev?.name ?? "").check();
     await page.getByRole("button", { name: "Simpan" }).click();
@@ -75,6 +82,8 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
       assets: { ov: "overlay.png" },
     });
     expect(m.config.layout.slots).toHaveLength(4);
+    expect(m.config.sounds).toEqual({ "3": "off", jepret: "snd-jepret" });
+    expect(m.config.assets["snd-jepret"]).toBe("snd-jepret.wav");
     // Desain tambahan (#99): tamu memilih 4R Grid (utama, dengan overlay) atau Strip Klasik.
     expect(m.config.designs.map((d: { name: string }) => d.name)).toEqual([
       "4R Grid",
