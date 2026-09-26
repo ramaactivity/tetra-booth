@@ -36,3 +36,14 @@ Booth dev (`win`), digiCamControl 2.1.7, Canon 60D, dial M, lensa AF.
 - **Update booth terpasang 0.5.11 → 0.5.12:** unduhan dari server rilis hanya ±137 KB/s (10× "koneksi lambat, sambung
   ulang", ±16 menit untuk 152 MB), padahal speed test Cloudflare di laptop yang sama 9,7 MB/s. 0.5.13 belum muncul
   sebagai versi terbaru di cloud.
+
+## Uji pengingat foto buram #88 (60D)
+- Patokan: Tes Jepret dengan AF tepat, skor 133.
+- Fokus dimundurkan lewat ◀◀◀×6 (lensa AF): live view buram (meter 101 → 60), tapi **6 foto sesi tetap tajam**, 0
+  lencana. digiCamControl memotret Canon dengan `PressShutterButton(Completely)`, yang selalu AF. Tombol ◀/▶ hanya
+  mengubah live view (lihat USUL di issue #1).
+- Lensa MF, ring belum diputar: 6 foto tajam, 0 lencana (tidak ada alarm palsu).
+- Lensa MF, ring diputar sampai buram (meter live view 12): **sesi 1 dan 2 masing-masing 3/3 lencana "Sepertinya
+  kurang tajam"**, tombol Ulangi disorot, alur tetap jalan sampai QR dan kembali ke attract (tidak terkunci). Mode
+  crew menampilkan banner "Foto di 2 dari 3 sesi terakhir sepertinya kurang tajam…" dengan tombol Kamera & Printer / Tutup.
+- Bug yang ditemukan dan diperbaiki (`e3233dc`): live view DSLR di Tes Jepret membeku setelah jepret.
