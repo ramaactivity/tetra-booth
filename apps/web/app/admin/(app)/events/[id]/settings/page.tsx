@@ -76,6 +76,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           hasLogo: !!branding.logoKey,
           preset: tpl.layoutId ? `tpl:${tpl.layoutId}` : tpl.preset,
           pinnedVersion: tpl.layoutVersion ?? null,
+          extras: tpl.extras ?? [],
           templates: (layouts ?? []).map((l) => ({
             id: l.id,
             name: l.name,

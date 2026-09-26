@@ -7,6 +7,7 @@ import {
   buildBundle,
   type EventBranding,
   type EventTemplate,
+  type ExtraDesign,
   storeOverlay,
 } from "@/lib/event-bundle";
 import { StoredLayout } from "@/lib/layouts";
@@ -30,6 +31,10 @@ const int = (min: number, max: number) => z.coerce.number().int().min(min).max(m
 /** Minimal nominal QRIS Xendit. */
 const MIN_PRICE = 1500;
 
+const Design = z.union([z.enum(EVENT_PRESETS), z.string().regex(/^tpl:[0-9a-f-]{36}$/)]);
+/** Mode event: maks. 4 desain tambahan → total 5 pilihan untuk tamu (DECISIONS #99). */
+const MAX_EXTRAS = 4;
+
 const Form = z.object({
   name: z.string().trim().min(1).max(120),
   event_date: z.iso.date(),
@@ -37,7 +42,7 @@ const Form = z.object({
   tagline: z.string().trim().max(40),
   client_name: z.string().trim().max(120),
   /** Preset, atau `tpl:<layoutId>` = template editor (versi terbaru dikunci saat simpan). */
-  preset: z.union([z.enum(EVENT_PRESETS), z.string().regex(/^tpl:[0-9a-f-]{36}$/)]),
+  preset: Design,
   background: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   guest_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   countdownSec: int(1, 10),
@@ -137,16 +142,11 @@ export async function saveEvent(
     reviewTimeoutSec: f.reviewTimeoutSec,
     qrScreenSec: f.qrScreenSec,
   };
-  let custom: StoredLayout | null = null;
-  let template: EventTemplate = {
-    preset: f.preset in LAYOUT_PRESETS ? (f.preset as PresetId) : "strip-3",
-    background: f.background,
-  };
-  if (f.preset.startsWith("tpl:")) {
-    const layoutId = f.preset.slice(4);
+  /** Versi terbaru template editor (dikunci ke event saat simpan). */
+  const latest = async (layoutId: string) => {
     const { data: lv } = await db
       .from("layout_versions")
-      .select("version, spec, layouts!inner(archived_at)")
+      .select("version, spec, layouts!inner(archived_at, name)")
       .eq("layout_id", layoutId)
       .eq("organization_id", orgId)
       .is("layouts.archived_at", null)
@@ -154,9 +154,37 @@ export async function saveEvent(
       .limit(1)
       .maybeSingle();
     const parsed = StoredLayout.safeParse(lv?.spec);
-    if (!lv || !parsed.success) return { ok: false, message: "Template tidak ditemukan" };
-    custom = parsed.data;
+    return lv && parsed.success
+      ? { version: lv.version, name: lv.layouts.name, custom: parsed.data }
+      : null;
+  };
+  let custom: StoredLayout | null = null;
+  let customName: string | undefined;
+  const extraValues = [...new Set(form.getAll("extra").map(String))].filter((x) => x !== f.preset);
+  const extrasParsed = z.array(Design).max(MAX_EXTRAS).safeParse(extraValues);
+  if (!extrasParsed.success)
+    return { ok: false, message: `Desain tambahan maksimal ${MAX_EXTRAS}` };
+  let template: EventTemplate = {
+    preset: f.preset in LAYOUT_PRESETS ? (f.preset as PresetId) : "strip-3",
+    background: f.background,
+    ...(extrasParsed.data.length && { extras: extrasParsed.data }),
+  };
+  if (f.preset.startsWith("tpl:")) {
+    const layoutId = f.preset.slice(4);
+    const lv = await latest(layoutId);
+    if (!lv) return { ok: false, message: "Template tidak ditemukan" };
+    custom = lv.custom;
+    customName = lv.name;
     template = { ...template, layoutId, layoutVersion: lv.version };
+  }
+  const extras: ExtraDesign[] = [];
+  for (const x of extrasParsed.data) {
+    if (!x.startsWith("tpl:")) extras.push({ preset: x as PresetId });
+    else {
+      const lv = await latest(x.slice(4));
+      if (!lv) return { ok: false, message: "Template desain tambahan tidak ditemukan" };
+      extras.push({ name: lv.name, custom: lv.custom });
+    }
   }
   const branding = {
     ...(f.tagline ? { tagline: f.tagline } : {}),
@@ -177,6 +205,8 @@ export async function saveEvent(
       mode: f.mode,
       photobox,
       custom,
+      ...(customName && { customName }),
+      extras,
     });
   } catch {
     return { ok: false, message: "Template tidak valid" };

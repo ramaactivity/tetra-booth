@@ -1,6 +1,6 @@
 import { newSessionId, printPaper } from "@tetra/shared";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { composeStrip } from "./compose";
+import { composeStrip, designPreview } from "./compose";
 import { copy } from "./copy";
 import { errText } from "./errors";
 import type { BoothEvent } from "./event";
@@ -37,11 +37,15 @@ const TIMED = new Set([
 const DEMO_TAP_MS = 1500;
 const FAST_TAP_MS = 150;
 
-const startEvent = (event: BoothEvent): SessionEvent => ({
+const startEvent = (
+  event: BoothEvent,
+  design?: { id: string; layout: BoothEvent["layout"] },
+): SessionEvent => ({
   type: "START",
   sessionId: newSessionId(),
-  slots: event.layout.slots.length,
+  slots: (design?.layout ?? event.layout).slots.length,
   retakeMax: event.settings.retakeMax,
+  ...(design && { layoutId: design.id }),
 });
 
 /**
@@ -64,8 +68,9 @@ export function SessionRunner({
 }) {
   const p = usePlatform();
   const [s, dispatch] = useReducer(sessionReducer, initialSession);
-  // Photobox: layout pilihan tamu menggantikan layout event untuk compose, cetak, dan output.
-  const chosen = event.photobox?.layouts.find((l) => l.id === s.layoutId);
+  // Photobox / desain pilihan tamu (#99) menggantikan layout event untuk compose, cetak, dan output.
+  const chosen = (event.photobox?.layouts ?? event.designs)?.find((l) => l.id === s.layoutId);
+  const previews = useDesignPreviews(event, s.phase === "layout_select" && !s.photobox);
   const ev = useMemo(() => (chosen ? { ...event, layout: chosen.layout } : event), [event, chosen]);
   const cfg = ev.settings;
   const [paidAmount, setPaidAmount] = useState(0);
@@ -313,7 +318,9 @@ export function SessionRunner({
               dispatch(
                 event.photobox
                   ? { type: "PHOTOBOX_START", draftId: newSessionId() }
-                  : startEvent(event),
+                  : event.designs
+                    ? { type: "CHOOSE_DESIGN" }
+                    : startEvent(event),
               )
             }
             onCrew={onCrew}
@@ -326,9 +333,20 @@ export function SessionRunner({
             onChoose={(layoutId) => dispatch({ type: "LAYOUT_CHOSEN", layoutId })}
             onBack={send({ type: "BACK" })}
           />
+        ) : event.designs ? (
+          <LayoutSelect
+            layouts={event.designs}
+            preview={previews}
+            onChoose={(id) => {
+              const d = event.designs?.find((x) => x.id === id);
+              if (d) dispatch(startEvent(event, d));
+            }}
+            onBack={send({ type: "BACK" })}
+          />
         ) : null;
       case "payment": {
-        if (!s.paying || !s.draftId || !chosen || !event.photobox) return null;
+        const pkg = event.photobox?.layouts.find((l) => l.id === s.layoutId);
+        if (!s.paying || !s.draftId || !pkg || !event.photobox) return null;
         const extra = s.paying.for === "extra" ? s.paying.extraPrints : 0;
         const unit = event.photobox.extraPrintPrice;
         return (
@@ -336,7 +354,7 @@ export function SessionRunner({
             request={{
               eventId: event.id,
               sessionId: s.draftId,
-              layoutId: chosen.id,
+              layoutId: pkg.id,
               ...(extra && { extraPrints: extra }),
             }}
             lines={
@@ -349,8 +367,8 @@ export function SessionRunner({
                   ]
                 : [
                     {
-                      label: `${chosen.name} · ${copy.photobox.photos(chosen.layout.slots.length)}`,
-                      value: rupiah(chosen.price),
+                      label: `${pkg.name} · ${copy.photobox.photos(pkg.layout.slots.length)}`,
+                      value: rupiah(pkg.price),
                     },
                     { label: copy.payment.oneSheet, value: copy.payment.included },
                   ]
@@ -422,4 +440,30 @@ export function SessionRunner({
         );
     }
   }
+}
+
+/** Pratinjau desain (#99): dirender sekali per event saat layar pilih desain pertama dibuka; URL dilepas saat ganti event. */
+function useDesignPreviews(event: BoothEvent, active: boolean) {
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const made = useRef<string[] | null>(null);
+  useEffect(() => {
+    if (!active || made.current || !event.designs) return;
+    const list: string[] = [];
+    made.current = list;
+    void (async () => {
+      for (const d of event.designs ?? []) {
+        const url = await designPreview(event, d.layout).catch(() => null);
+        if (!url) continue;
+        list.push(url);
+        setUrls((u) => ({ ...u, [d.id]: url }));
+      }
+    })();
+  }, [active, event]);
+  useEffect(
+    () => () => {
+      for (const u of made.current ?? []) URL.revokeObjectURL(u);
+    },
+    [],
+  );
+  return urls;
 }

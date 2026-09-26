@@ -20,6 +20,8 @@ export type SettingsValues = {
   /** Preset id, atau `tpl:<layoutId>` untuk template editor. */
   preset: string;
   pinnedVersion: number | null;
+  /** Desain tambahan pilihan tamu (mode event, DECISIONS #99): nilai sama dengan `preset`. */
+  extras: string[];
   templates: { id: string; name: string; paper: string; version: number }[];
   background: string;
   hasOverlay: boolean;
@@ -206,6 +208,34 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
             <Link href="/admin/templates" className="self-center text-xs font-bold underline">
               + Buat / edit template
             </Link>
+          </fieldset>
+          <fieldset className="col-span-full flex flex-col gap-2">
+            <legend className="mb-1.5 text-xs font-bold">
+              Desain lain untuk tamu (Mode Event, opsional, maks. 4) · tamu memilih sebelum foto
+            </legend>
+            <div className="flex flex-wrap gap-2">
+              {[
+                ...EVENT_PRESETS.map((id) => ({ value: id, name: LAYOUT_PRESETS[id].name })),
+                ...v.templates.map((t) => ({
+                  value: `tpl:${t.id}`,
+                  name: `${t.name} · ${paperLabel(t.paper as LayoutPaper)}`,
+                })),
+              ].map((d) => (
+                <label
+                  key={d.value}
+                  className="flex cursor-pointer items-center gap-2 rounded-full border-[1.5px] border-dashed border-ink bg-white px-3 py-1.5 text-xs font-bold has-checked:border-solid has-checked:bg-lavender"
+                >
+                  <input
+                    type="checkbox"
+                    name="extra"
+                    value={d.value}
+                    defaultChecked={v.extras.includes(d.value)}
+                    className="sr-only"
+                  />
+                  {d.name}
+                </label>
+              ))}
+            </div>
           </fieldset>
           <Field label="Overlay (PNG transparan, ukuran kanvas layout; hanya untuk layout preset)">
             <input name="overlay" type="file" accept="image/png" className="text-sm" />

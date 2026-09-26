@@ -83,6 +83,10 @@ export const copy = {
     success: "Pembayaran berhasil",
     startsIn: "Sesi foto dimulai dalam",
   },
+  design: {
+    chooseTitle: "Pilih desain",
+    start: "Mulai Foto",
+  },
   photobox: {
     steps: ["Layout", "Bayar", "Foto", "Cetak"],
     chooseTitle: "Pilih layout",

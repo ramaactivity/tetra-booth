@@ -5,7 +5,9 @@ import {
   EventBundleSchema,
   EventSettingsSchema,
   LAYOUT_PRESETS,
+  type LayoutPaper,
   type PresetId,
+  paperLabel,
   type StoredBundle,
 } from "@tetra/shared";
 import { longDate } from "@/lib/guest";
@@ -23,7 +25,11 @@ export type EventTemplate = {
   background: string;
   layoutId?: string;
   layoutVersion?: number;
+  /** Mode event (DECISIONS #99): desain tambahan pilihan tamu, `<preset>` atau `tpl:<layoutId>`; maks. 4. */
+  extras?: string[];
 };
+/** Desain tambahan yang sudah di-resolve: preset, atau versi template editor (terkunci saat simpan). */
+export type ExtraDesign = { preset: PresetId } | { name: string; custom: StoredLayout };
 /** `color` + `logoKey` (R2) hanya untuk header halaman tamu, tidak masuk bundle booth. */
 export type EventBranding = {
   tagline?: string;
@@ -55,6 +61,9 @@ export function buildBundle(e: {
   photobox?: PhotoboxSettings | null;
   /** Versi template editor; menggantikan preset + overlay event untuk layout utama. */
   custom?: StoredLayout | null;
+  /** Nama template editor utama (kartu pilih desain di booth). */
+  customName?: string;
+  extras?: ExtraDesign[];
 }): Json {
   // Overlay dibuat untuk kanvas preset template, jadi hanya dipasang di layout dengan preset itu.
   const layoutOf = (id: PresetId) => ({
@@ -77,24 +86,69 @@ export function buildBundle(e: {
           extraPrintPrice: e.photobox.extraPrintPrice,
         }
       : undefined;
+  const customLayout = (c: StoredLayout) => ({
+    ...c.layout,
+    id: `${c.layout.id.slice(0, 8)}-v${c.layout.version}`,
+  });
+  const layout = e.custom ? customLayout(e.custom) : layoutOf(e.template.preset);
+  const design = (name: string, l: typeof layout) => ({
+    id: l.id,
+    name: name.slice(0, 40),
+    info: paperLabel(l.paper as LayoutPaper).slice(0, 40),
+    layout: l,
+  });
+  // Desain tambahan (#99): aset template editor diberi awalan d1-, d2-, … supaya tidak bentrok di bundle.
+  const extras = photobox
+    ? []
+    : (e.extras ?? []).map((x, i) => {
+        if ("preset" in x)
+          return { design: design(LAYOUT_PRESETS[x.preset].name, layoutOf(x.preset)), files: [] };
+        const pre = `d${i + 1}-`;
+        const re = (id: string | undefined) => (id && id in x.custom.files ? pre + id : id);
+        const l = customLayout(x.custom);
+        return {
+          design: design(x.name, {
+            ...l,
+            ...(l.overlay && { overlay: { ...l.overlay, assetId: re(l.overlay.assetId) ?? "" } }),
+            ...(l.background && {
+              background: { ...l.background, assetId: re(l.background.assetId) },
+            }),
+            texts: l.texts.map((t) => ({ ...t, fontAssetId: re(t.fontAssetId) ?? t.fontAssetId })),
+          }),
+          files: Object.entries(x.custom.files).map(([k, f]) => ({
+            id: pre + k,
+            ...f,
+            file: pre + f.file,
+          })),
+        };
+      });
+  const main = e.custom
+    ? Object.entries(e.custom.files).map(([id, f]) => ({ id, ...f }))
+    : e.overlay
+      ? [{ id: "ov", ...e.overlay }]
+      : [];
+  const all = [...main, ...extras.flatMap((x) => x.files)];
   const config = EventBundleSchema.parse({
     id: e.id,
     name: e.name,
     ...(e.branding.tagline ? { tagline: e.branding.tagline } : {}),
     date: longDate(e.eventDate),
-    layout: e.custom
-      ? { ...e.custom.layout, id: `${e.custom.layout.id.slice(0, 8)}-v${e.custom.layout.version}` }
-      : layoutOf(e.template.preset),
+    layout,
     ...(photobox ? { mode: "photobox", photobox } : {}),
+    ...(extras.length && {
+      designs: [
+        design(
+          e.custom ? (e.customName ?? "Desain utama") : LAYOUT_PRESETS[e.template.preset].name,
+          layout,
+        ),
+        ...extras.map((x) => x.design),
+      ],
+    }),
     settings: EventSettingsSchema.parse(e.settings ?? {}),
-    assets: e.custom
-      ? Object.fromEntries(Object.entries(e.custom.files).map(([k, f]) => [k, f.file]))
-      : e.overlay
-        ? { ov: e.overlay.file }
-        : {},
+    assets: Object.fromEntries(all.map((f) => [f.id, f.file])),
   });
   const { id: _id, ...rest } = config;
-  const files = e.custom ? Object.values(e.custom.files) : e.overlay ? [e.overlay] : [];
+  const files = all.map(({ id: _i, ...f }) => f);
   const stored: StoredBundle = { config: rest, files };
   return stored as unknown as Json;
 }

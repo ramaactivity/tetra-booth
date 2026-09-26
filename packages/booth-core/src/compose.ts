@@ -1,4 +1,5 @@
-import { browserContext, renderPiece, toSheet } from "@tetra/template-engine";
+import type { LayoutSpec } from "@tetra/shared";
+import { browserContext, cpuCanvas, renderPiece, toSheet } from "@tetra/template-engine";
 import type { BoothEvent } from "./event";
 import type { BoothStorage } from "./platform";
 import type { Photo, Strip } from "./session";
@@ -31,6 +32,31 @@ export async function renderEvent(
     piece: piece as unknown as OffscreenCanvas,
     sheet: sheet as unknown as OffscreenCanvas,
   };
+}
+
+/** Foto abu-abu seukuran slot (test print, pratinjau desain); `label` = teks "LABEL n" di tiap foto. */
+export function placeholderPhotos(layout: LayoutSpec, label?: string): OffscreenCanvas[] {
+  return layout.slots.map((s, i) => {
+    const c = cpuCanvas(Math.round(s.w), Math.round(s.h));
+    const g = c.getContext("2d");
+    if (g) {
+      g.fillStyle = i % 2 ? "#b8b2aa" : "#8a847d";
+      g.fillRect(0, 0, c.width, c.height);
+      if (label) {
+        g.fillStyle = "#ffffff";
+        g.font = `${Math.round(c.height / 5)}px sans-serif`;
+        g.fillText(`${label} ${i + 1}`, c.width * 0.08, c.height * 0.6);
+      }
+    }
+    return c;
+  });
+}
+
+/** Pratinjau satu desain (DECISIONS #99) lewat template engine yang sama → object URL JPEG kecil. */
+export async function designPreview(event: BoothEvent, layout: LayoutSpec): Promise<string> {
+  const { piece } = await renderEvent({ ...event, layout }, placeholderPhotos(layout));
+  const blob = await piece.convertToBlob({ type: "image/jpeg", quality: 0.8 });
+  return URL.createObjectURL(blob);
 }
 
 /** Render strip resolusi cetak dari foto sesi lewat template engine bersama (aturan 2), simpan ke out/strip.jpg. */

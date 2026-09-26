@@ -20,13 +20,18 @@ const AssetFile = z
   .string()
   .regex(/^[\w][\w.-]*\.(png|jpg|jpeg|ttf|otf|woff2)$/i, "nama file aset tidak valid");
 
-/** Satu layout yang dijual di photobox (desain A2). `id` = kunci layout (preset); harga Rupiah, 1 lembar termasuk. */
-export const PhotoboxLayoutSchema = z.object({
+/** Satu desain yang bisa dipilih tamu di mode event (DECISIONS #99). `id` = id layout-nya. */
+export const EventDesignSchema = z.object({
   id: z.string().regex(/^[\w-]{1,40}$/),
   name: z.string().min(1).max(40),
   info: z.string().max(40),
-  price: z.number().int().min(1000).max(10_000_000),
   layout: LayoutSpecSchema,
+});
+export type EventDesign = z.infer<typeof EventDesignSchema>;
+
+/** Satu layout yang dijual di photobox (desain A2). `id` = kunci layout (preset); harga Rupiah, 1 lembar termasuk. */
+export const PhotoboxLayoutSchema = EventDesignSchema.extend({
+  price: z.number().int().min(1000).max(10_000_000),
 });
 export type PhotoboxLayout = z.infer<typeof PhotoboxLayoutSchema>;
 
@@ -52,11 +57,16 @@ export const EventBundleSchema = z
     layout: LayoutSpecSchema,
     mode: z.enum(["event", "photobox"]).default("event"),
     photobox: PhotoboxSchema.optional(),
+    /** Mode event: 2–5 desain dipilih tamu sebelum foto; yang pertama = `layout`. Tanpa ini = satu desain. */
+    designs: z.array(EventDesignSchema).min(2).max(5).optional(),
     settings: EventSettingsSchema.default(DEFAULT_SETTINGS),
     assets: z.record(z.string().min(1).max(64), AssetFile).default({}),
   })
   .superRefine((b, ctx) => {
-    const layouts = [b.layout, ...(b.photobox?.layouts.map((l) => l.layout) ?? [])];
+    const layouts = [
+      b.layout,
+      ...[...(b.photobox?.layouts ?? []), ...(b.designs ?? [])].map((l) => l.layout),
+    ];
     const refs = layouts.flatMap((l) => [
       l.overlay?.assetId,
       l.background?.assetId,

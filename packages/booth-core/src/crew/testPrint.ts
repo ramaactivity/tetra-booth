@@ -1,25 +1,12 @@
 import { newSessionId, printPaper } from "@tetra/shared";
-import { cpuCanvas } from "@tetra/template-engine";
-import { renderEvent } from "../compose";
+import { placeholderPhotos, renderEvent } from "../compose";
 import type { BoothEvent } from "../event";
 import type { BoothPlatform } from "../platform";
 
 /** Test print: layout event aktif dengan foto abu-abu bertanda TEST, lewat jalur cetak yang sama dengan sesi. */
 /** Kembalikan id job, supaya menu crew bisa menampilkan hasil akhirnya. */
 export async function testPrint(p: BoothPlatform, event: BoothEvent): Promise<string> {
-  const photos = event.layout.slots.map((s, i) => {
-    const c = cpuCanvas(Math.round(s.w), Math.round(s.h));
-    const g = c.getContext("2d");
-    if (g) {
-      g.fillStyle = i % 2 ? "#b8b2aa" : "#8a847d";
-      g.fillRect(0, 0, c.width, c.height);
-      g.fillStyle = "#ffffff";
-      g.font = `${Math.round(c.height / 5)}px sans-serif`;
-      g.fillText(`TEST ${i + 1}`, c.width * 0.08, c.height * 0.6);
-    }
-    return c;
-  });
-  const { sheet } = await renderEvent(event, photos);
+  const { sheet } = await renderEvent(event, placeholderPhotos(event.layout, "TEST"));
   const blob = await sheet.convertToBlob({ type: "image/jpeg", quality: 0.92 });
   const id = newSessionId();
   const path = `${await p.storage.sessionDir(id)}/out/test.jpg`;

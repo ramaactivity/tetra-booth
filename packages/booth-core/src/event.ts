@@ -1,4 +1,4 @@
-import type { EventBundle, LayoutSpec, Photobox } from "@tetra/shared";
+import type { EventBundle, EventDesign, LayoutSpec, Photobox } from "@tetra/shared";
 import type { BoothEvents } from "./platform";
 import { DEFAULT_SETTINGS, type EventSettings } from "./session";
 
@@ -13,6 +13,8 @@ export type BoothEvent = {
   settings: EventSettings;
   /** Photobox (Fase 4): layout dijual + harga; tanpa ini = mode event. */
   photobox?: Photobox | undefined;
+  /** Mode event: 2–5 desain pilihan tamu (DECISIONS #99); tanpa ini = satu desain `layout`. */
+  designs?: EventDesign[] | undefined;
   /** Aset bundle yang sudah dimuat (overlay/background) + nama font terdaftar per assetId. */
   render?: { images: Record<string, ImageBitmap>; fonts: Record<string, string> };
 };
@@ -42,7 +44,9 @@ export async function loadEvent(bundle: EventBundle, events: BoothEvents): Promi
     date: bundle.date,
     layout: bundle.layout,
     settings: bundle.settings,
-    ...(bundle.mode === "photobox" && { photobox: bundle.photobox }),
+    ...(bundle.mode === "photobox"
+      ? { photobox: bundle.photobox }
+      : bundle.designs && { designs: bundle.designs }),
     render: { images, fonts },
   };
 }

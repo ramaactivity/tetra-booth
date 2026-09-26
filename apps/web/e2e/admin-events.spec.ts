@@ -44,6 +44,10 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page
       .locator('input[name="logo"]')
       .setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: PNG });
+    await page
+      .getByRole("group", { name: /Desain lain untuk tamu/ })
+      .getByText("Strip Klasik", { exact: true })
+      .click();
     await page.getByLabel("Maks. cetak per sesi").fill("3");
     await page.getByLabel(dev?.name ?? "").check();
     await page.getByRole("button", { name: "Simpan" }).click();
@@ -56,7 +60,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     expect(ev?.bundleVersion).toBe(2);
     // Logo halaman tamu tersimpan di branding (R2, folder event), tidak ikut bundle booth.
     const { data: row } = await db.from("events").select("branding").eq("id", ev.id).single();
-    expect((row?.branding as { logoKey?: string }).logoKey).toMatch(
+    expect((row?.branding as { logoKey?: string } | undefined)?.logoKey).toMatch(
       new RegExp(`/${ev.id}/branding/[0-9a-f]{64}\\.png$`),
     );
     const m = await (
@@ -71,6 +75,11 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
       assets: { ov: "overlay.png" },
     });
     expect(m.config.layout.slots).toHaveLength(4);
+    // Desain tambahan (#99): tamu memilih 4R Grid (utama, dengan overlay) atau Strip Klasik.
+    expect(m.config.designs.map((d: { name: string }) => d.name)).toEqual([
+      "4R Grid",
+      "Strip Klasik",
+    ]);
     const file = await fetch(m.files[0].url);
     expect(file.status).toBe(200);
     expect(sha(new Uint8Array(await file.arrayBuffer()))).toBe(m.files[0].sha256);
@@ -79,9 +88,10 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page.getByText("Mode Photobox", { exact: true }).click();
     await page.getByRole("button", { name: "Simpan" }).click();
     await expect(page.getByRole("status")).toContainText("centang minimal satu layout");
-    await page.getByRole("checkbox", { name: /4R Grid/ }).check();
+    const sold = page.getByRole("group", { name: /Layout yang dijual/ });
+    await sold.getByRole("checkbox", { name: /4R Grid/ }).check();
     await page.getByLabel("Harga 4R Grid").fill("35000");
-    await page.getByRole("checkbox", { name: /Strip Klasik/ }).check();
+    await sold.getByRole("checkbox", { name: /Strip Klasik/ }).check();
     await page.getByLabel("Harga Strip Klasik").fill("25000");
     await page.getByLabel("Harga lembar tambahan").fill("10000");
     await page.getByRole("button", { name: "Simpan" }).click();

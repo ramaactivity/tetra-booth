@@ -59,8 +59,18 @@ export type SessionState = {
 };
 
 export type SessionEvent =
-  | { type: "START"; sessionId: string; slots: number; retakeMax: number; deadline?: number }
+  | {
+      type: "START";
+      sessionId: string;
+      slots: number;
+      retakeMax: number;
+      deadline?: number;
+      /** Mode event multi desain: desain pilihan tamu. */
+      layoutId?: string;
+    }
   | { type: "PHOTOBOX_START"; draftId: string }
+  /** Mode event dengan beberapa desain (DECISIONS #99): tamu memilih desain dulu, tanpa bayar. */
+  | { type: "CHOOSE_DESIGN" }
   | { type: "LAYOUT_CHOSEN"; layoutId: string }
   | { type: "BACK" }
   | { type: "PAID"; paymentId: string }
@@ -112,11 +122,13 @@ export const canRetake = (s: SessionState, index: number): boolean =>
 
 export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
   switch (e.type) {
-    case "START":
-      // Mode event dari attract; photobox setelah paket lunas (layar "paid").
-      if ((s.phase !== "attract" && s.phase !== "paid") || e.slots < 1) return s;
+    case "START": {
+      // Mode event dari attract atau dari pilih desain; photobox setelah paket lunas (layar "paid").
+      const fromPicker = s.phase === "layout_select" && !s.photobox;
+      if ((s.phase !== "attract" && s.phase !== "paid" && !fromPicker) || e.slots < 1) return s;
       return {
         ...(s.phase === "paid" ? s : initialSession),
+        ...(e.layoutId && { layoutId: e.layoutId }),
         phase: "countdown",
         sessionId: e.sessionId,
         slots: e.slots,
@@ -125,6 +137,9 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
         retakesUsed: Array(e.slots).fill(0),
         deadline: e.deadline ?? null,
       };
+    }
+    case "CHOOSE_DESIGN":
+      return s.phase === "attract" ? { ...initialSession, phase: "layout_select" } : s;
     case "PHOTOBOX_START":
       return s.phase === "attract"
         ? { ...initialSession, phase: "layout_select", photobox: true, draftId: e.draftId }

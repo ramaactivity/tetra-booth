@@ -1,4 +1,4 @@
-import type { PhotoboxLayout } from "@tetra/shared";
+import type { EventDesign } from "@tetra/shared";
 import { Button } from "@tetra/ui";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -36,7 +36,7 @@ export function PhotoboxSteps({ current }: { current: number }) {
 }
 
 /** Miniatur layout: kertas dengan slot bergaris sesuai spesifikasi layout. */
-function Mini({ layout }: { layout: PhotoboxLayout["layout"] }) {
+function Mini({ layout }: { layout: EventDesign["layout"] }) {
   const { width, height } = layout.canvas;
   const scale = 340 / Math.max(width, height);
   return (
@@ -55,16 +55,23 @@ function Mini({ layout }: { layout: PhotoboxLayout["layout"] }) {
   );
 }
 
-/** Pilih layout photobox (desain v2 A2). */
+/**
+ * Pilih layout photobox (desain v2 A2), atau pilih desain di mode event (DECISIONS #99): tanpa harga & stepper,
+ * kartu memakai pratinjau desain asli (`preview`) bila ada.
+ */
 export function LayoutSelect({
   layouts,
   onChoose,
   onBack,
+  preview,
 }: {
-  layouts: PhotoboxLayout[];
+  layouts: (EventDesign & { price?: number })[];
   onChoose: (id: string) => void;
   onBack: () => void;
+  /** Mode event: object URL pratinjau per id desain. */
+  preview?: Record<string, string>;
 }) {
+  const design = !!preview;
   const [picked, setPicked] = useState(layouts.length === 1 ? (layouts[0]?.id ?? null) : null);
   const back = useRef(onBack);
   back.current = onBack;
@@ -77,11 +84,11 @@ export function LayoutSelect({
     <main className="flex h-full w-full flex-col gap-10 bg-paper px-[100px] py-16 portrait:px-12">
       <header className="flex items-center justify-between">
         <Logo />
-        <PhotoboxSteps current={0} />
+        {!design && <PhotoboxSteps current={0} />}
         <span className="w-[180px]" />
       </header>
       <h1 className="text-[88px] leading-none font-extrabold tracking-[-0.045em]">
-        {t.chooseTitle}
+        {design ? copy.design.chooseTitle : t.chooseTitle}
       </h1>
       <div className="grid flex-1 grid-cols-4 gap-10 portrait:grid-cols-2">
         {layouts.map((l) => {
@@ -98,7 +105,15 @@ export function LayoutSelect({
             >
               {on && <Done size={52} className="absolute top-5 right-5" />}
               <div className="flex flex-1 items-center justify-center">
-                <Mini layout={l.layout} />
+                {preview?.[l.id] ? (
+                  <img
+                    src={preview[l.id]}
+                    alt=""
+                    className="max-h-[340px] max-w-full border-2 border-ink bg-white"
+                  />
+                ) : (
+                  <Mini layout={l.layout} />
+                )}
               </div>
               <div className="mt-8 border-t-2 border-dashed border-ink pt-5">
                 <div className="text-[34px] font-extrabold tracking-[-0.03em]">{l.name}</div>
@@ -106,7 +121,9 @@ export function LayoutSelect({
                   <span className="text-[21px] text-text-2">
                     {copy.photobox.photos(l.layout.slots.length)} · {l.info.split("·")[0]?.trim()}
                   </span>
-                  <span className="text-[30px] font-extrabold">{rupiahShort(l.price)}</span>
+                  {l.price !== undefined && (
+                    <span className="text-[30px] font-extrabold">{rupiahShort(l.price)}</span>
+                  )}
                 </div>
               </div>
             </button>
@@ -126,7 +143,7 @@ export function LayoutSelect({
           disabled={!picked}
           onClick={() => picked && onChoose(picked)}
         >
-          {t.toPayment} <ArrowRight size={34} strokeWidth={2.5} />
+          {design ? copy.design.start : t.toPayment} <ArrowRight size={34} strokeWidth={2.5} />
         </Button>
       </footer>
     </main>

@@ -231,6 +231,20 @@ describe("sessionReducer", () => {
       expect(run([{ type: "TIME_UP" }], paying).phase).toBe("payment");
     });
 
+    it("mode event multi desain (#99): pilih desain → langsung foto, tanpa bayar; kembali → attract", () => {
+      const picker = run([{ type: "CHOOSE_DESIGN" }]);
+      expect(picker).toMatchObject({ phase: "layout_select", photobox: false, paying: null });
+      expect(run([{ type: "BACK" }], picker).phase).toBe("attract");
+      expect(
+        run([{ type: "START", sessionId: "s1", slots: 4, retakeMax: 1, layoutId: "d2" }], picker),
+      ).toMatchObject({ phase: "countdown", sessionId: "s1", slots: 4, layoutId: "d2" });
+      // Photobox di layar pilih layout tetap harus bayar dulu: START ditolak.
+      const pb = run([{ type: "PHOTOBOX_START", draftId: "d" }]);
+      expect(run([{ type: "START", sessionId: "s1", slots: 3, retakeMax: 1 }], pb).phase).toBe(
+        "layout_select",
+      );
+    });
+
     it("mode event tidak pernah minta bayar", () => {
       const select = run([
         start,
