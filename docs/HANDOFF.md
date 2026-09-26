@@ -199,6 +199,7 @@ Selesai: kata sandi admin, CORS R2, `CRON_SECRET` (cron menolak tanpa secret: 40
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-26 | Mac | Akar masalah update (temuan Windows): uninstaller dari installer build Mac rusak. Installer sekarang di-build di GitHub Actions `windows-latest` (`booth-installer.yml`), dipicu `pnpm dist:dev` (DECISIONS #91). Merge `win@05374fa` (patokan Tes Jepret lewat preview). Booth **0.5.6** = installer build Windows pertama. |
 | 2026-09-26 | Mac | Booth **0.5.5**: installer mengabaikan uninstaller lama yang gagal + uninstaller baru `RMDir /r` (DECISIONS #90, `apps/booth/build/installer.nsh`), plus pengingat buram (#88) dan progress/lanjut-unduh update (#89). Windows: uji Update Aplikasi 0.5.3 → 0.5.5; setelah lulus Mac merilis 0.5.6 untuk uji progress + uninstaller baru. |
 | 2026-09-26 | Mac | Update aplikasi: progress MB/%/sisa waktu di menu crew + unduhan lanjut dari byte terakhir (Range, `.part`, 8× coba, macet 60 dtk) (DECISIONS #89), tes unit server putus di tengah. Berlaku untuk update DARI versi berikutnya (0.5.5 ke atas). |
 | 2026-09-26 | Mac | Pengingat foto buram (DECISIONS #88): skor ketajaman di preview, patokan dari Tes Jepret crew per event, lencana + Ulangi disorot di review, banner crew ≥ 2/3 sesi. e2e booth 7/7 (hot folder: lencana muncul, tamu tetap bisa lanjut). Rilis 0.5.5 menunggu uji update 0.5.3 → 0.5.4 dan kontrol fokus dari Windows. |

@@ -52,10 +52,34 @@ if (!process.argv.includes("--tools")) {
     "dotnet publish services/camera/TetraCamera.Host -c Release -r win-x64 --self-contained -o dist/camera",
   );
 
-  console.log("\n[2/4] Electron win-x64 + installer NSIS");
+  // Installer NSIS di-build di Windows (GitHub Actions): uninstaller hasil build macOS rusak (DECISIONS #91).
+  // Commit harus sudah di-push supaya CI membangun kode yang sama.
+  const sha = execSync("git rev-parse HEAD").toString().trim();
+  const ref = execSync("git rev-parse --abbrev-ref HEAD").toString().trim();
+  if (execSync("git status --porcelain --untracked-files=no").toString().trim())
+    throw new Error("ada perubahan belum di-commit; commit & push dulu");
+  if (execSync(`git rev-parse origin/${ref}`).toString().trim() !== sha)
+    throw new Error(`HEAD belum di-push ke origin/${ref}`);
+  console.log(
+    `\n[2/4] Installer NSIS di GitHub Actions (windows-latest, ${ref} ${sha.slice(0, 7)})`,
+  );
+  sh(`gh workflow run booth-installer.yml --ref ${ref}`);
+  let run = "";
+  for (let i = 0; i < 30 && !run; i++) {
+    execSync("sleep 4");
+    run = execSync(
+      `gh run list --workflow booth-installer.yml --limit 5 --json databaseId,headSha -q '[.[] | select(.headSha == "${sha}")][0].databaseId // ""'`,
+    )
+      .toString()
+      .trim();
+  }
+  if (!run) throw new Error("run CI installer tidak ditemukan");
+  console.log("\n[2b/4] Electron win-x64 (zip update.cmd) di Mac, sambil menunggu CI");
   sh("pnpm --filter booth build");
-  sh("pnpm exec electron-builder --win --x64 --publish never", "apps/booth");
+  sh("pnpm exec electron-builder --win --x64 --dir --publish never", "apps/booth");
   cpSync("apps/booth/release/win-unpacked", "dist/app/booth", { recursive: true });
+  sh(`gh run watch ${run} --exit-status`);
+  sh(`gh run download ${run} -n booth-installer -D dist/installer`);
 
   console.log("\n[3/4] Zip (update.cmd)");
   writeFileSync("dist/app/run.cmd", tool("run.cmd"));
@@ -63,7 +87,7 @@ if (!process.argv.includes("--tools")) {
   sh("zip -qr ../tetra-booth-dev.zip .", "dist/app");
   const mb = (f) => `${(statSync(f).size / 1e6).toFixed(0)} MB`;
   console.log(
-    `  zip ${mb("dist/tetra-booth-dev.zip")}, installer ${mb(`apps/booth/release/${setup}`)}, build ${version}`,
+    `  zip ${mb("dist/tetra-booth-dev.zip")}, installer ${mb(`dist/installer/${setup}`)}, build ${version}`,
   );
 
   console.log("\n[4/4] Upload ke R2");
@@ -73,7 +97,7 @@ if (!process.argv.includes("--tools")) {
     "application/zip",
   );
   // Nama tetap (link untuk crew) + nama berversi (arsip).
-  const exe = readFileSync(`apps/booth/release/${setup}`);
+  const exe = readFileSync(`dist/installer/${setup}`);
   await put(
     "dev-builds/Tetra-Booth-Setup.exe",
     exe,

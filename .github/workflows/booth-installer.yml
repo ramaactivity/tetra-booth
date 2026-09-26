@@ -1,0 +1,31 @@
+name: Booth installer (Windows)
+
+# Installer NSIS dibuat di Windows: uninstaller hasil build macOS rusak (CRC), jadi update gagal
+# (DECISIONS #91). Dipicu dari Mac oleh `pnpm dist:dev`; hasilnya diunduh Mac lalu di-upload ke R2.
+on:
+  workflow_dispatch:
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - run: pnpm install --frozen-lockfile
+      - run: dotnet publish services/camera/TetraCamera.Host -c Release -r win-x64 --self-contained -o dist/camera
+      - run: pnpm --filter booth build
+      - run: pnpm exec electron-builder --win --x64 --publish never
+        working-directory: apps/booth
+      - uses: actions/upload-artifact@v4
+        with:
+          name: booth-installer
+          path: apps/booth/release/Tetra-Booth-Setup-*.exe
+          if-no-files-found: error
+          retention-days: 14
