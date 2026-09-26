@@ -23,8 +23,10 @@ describe("kalimat & suara di sela foto (#103)", () => {
     expect(beforeText(3, 4, ["Satu"])).toBe("Satu");
     expect(beforeText(0, 3, [])).toBe("");
   });
-  it("setelah foto: acak dari daftar, suara keren-1..3", () => {
-    expect(after(["A", "B"], 0)).toEqual({ text: "A", cue: "keren-1" });
-    expect(after(["A", "B"], 0.99)).toEqual({ text: "B", cue: "keren-3" });
+  it("setelah foto: acak dari daftar; suara hanya untuk daftar bawaan dan sama dengan tulisannya", () => {
+    const def = ["Mantap!", "Keren banget!", "Cakep!", "Wih, kalcer abis!"];
+    expect(after(def, 0, true)).toEqual({ text: "Mantap!", cue: "keren-1" });
+    expect(after(def, 0.99, true)).toEqual({ text: "Wih, kalcer abis!", cue: "keren-4" });
+    expect(after(["Gemes!"], 0.5, false)).toEqual({ text: "Gemes!", cue: null });
   });
 });

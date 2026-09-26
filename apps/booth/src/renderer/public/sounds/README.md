@@ -1,22 +1,28 @@
 # Paket suara bawaan booth (DECISIONS #103)
 
-Taruh file MP3 di folder ini dengan nama persis seperti di bawah. Diputar hanya kalau pengaturan event
-**Suara** menyala. File yang tidak ada = diam (angka & jepret memakai bunyi tik bawaan).
+Diputar hanya kalau pengaturan event **Suara** menyala. File yang tidak ada = diam (angka & jepret memakai
+nada Web Audio). Satu suara pada satu waktu. Suara kalimat hanya untuk kalimat bawaan (ucapan = tulisan di
+`copy.prompts`); kalimat buatan event tampil tanpa suara kalimat.
 
-Format: MP3 mono 44,1 kHz (128 kbps cukup), tanpa jeda hening di awal, volume seragam.
-Angka `3`/`2`/`1` ≤ 0,8 dtk; kalimat lain < 3 dtk (kalimat sebelum foto ditunggu maks. 3 dtk).
+Format: WAV mono 16-bit, hening di awal dipotong (±15 ms), volume disamakan (RMS ±−16 dBFS, puncak ≤ −1 dBFS).
+Sumber mentah + skrip olah: lihat log HANDOFF 26 Sep 2026.
 
-| File | Kapan | Contoh |
+| File | Kapan | Ucapan |
 |---|---|---|
-| `mulai.mp3` | tamu menyentuh layar mulai | "Halo! Yuk foto, lihat ke kamera ya!" |
-| `foto-1.mp3` | sebelum foto 1 | "Siap-siap, gaya pertama!" |
-| `foto-2.mp3` | sebelum foto 2 | "Gaya kedua, lebih seru!" |
-| `foto-3.mp3` | sebelum foto 3+ (bukan terakhir) | "Sekarang paling heboh!" |
-| `foto-terakhir.mp3` | sebelum foto terakhir | "Terakhir, all out!" |
-| `3.mp3` `2.mp3` `1.mp3` | angka hitung mundur | "Tiga" "Dua" "Satu" |
-| `jepret.mp3` | saat jepret | bunyi rana / "Cekrek!" |
-| `keren-1.mp3` … `keren-3.mp3` | setelah tiap foto (acak) | "Mantap!" "Keren banget!" "Cakep!" |
-| `review.mp3` | layar cek foto | "Cek dulu fotonya ya!" |
-| `cetak.mp3` | pilih jumlah cetak | "Mau cetak berapa lembar?" |
-| `selesai.mp3` | layar QR | "Scan QR-nya buat ambil fotonya. Makasih!" |
-| `bayar.mp3` | photobox: layar QRIS | "Scan QRIS untuk mulai sesi." |
+| `mulai.wav` | tamu menyentuh mulai, hanya kalau ada layar pilih desain/layout | "Halooo, udah siap?…" |
+| `foto-1.wav` | sebelum foto 1 | "Siap-siap, gaya pertama!" |
+| `foto-2.wav` | sebelum foto 2 | "Gaya kedua, lebih seru!" |
+| `foto-3.wav` | sebelum foto 3+ (bukan terakhir) | "Siap, lebih heboh ya!" |
+| `foto-terakhir.wav` | sebelum foto terakhir | "Oke gaya terakhir, cheers!" |
+| `3.wav` `2.wav` `1.wav` | angka hitung mundur | "Tiga" "Dua" "Satu" |
+| `jepret.wav` | saat jepret | bunyi rana |
+| `keren-1..4.wav` | setelah foto (acak, sama dengan tulisan) | "Mantap!" "Keren banget!" "Cakep!" "Wih, kalcer abis!" |
+| `review.wav` | layar cek foto | "Cek dulu fotonya…" |
+| `cetak.wav` | pilih jumlah cetak | "Mau cetak berapa lembar…" |
+| `selesai.wav` | layar QR | "Buat download softfile-nya…" |
+| `bayar.wav` | photobox: layar QRIS | "Halo, silakan scan QRIS…" |
+
+## Kredit
+- Suara kalimat: dibuat Tetra Photobooth (AI voice, Magnific).
+- `jepret.wav`: "Single camera click with flash" oleh **theplax**, https://freesound.org/s/624923/ —
+  lisensi **CC BY 4.0** (https://creativecommons.org/licenses/by/4.0/), diolah (mono, dipotong, volume).

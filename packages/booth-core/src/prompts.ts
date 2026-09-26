@@ -1,6 +1,7 @@
 /**
  * Kalimat & suara di sela foto (DECISIONS #103), supaya sesi tidak monoton "cekrek" saja.
- * Suara diputar dari `sounds/<cue>.mp3` (paket suara di renderer booth); file tidak ada = diam / bunyi tik bawaan.
+ * Suara diputar dari `sounds/<cue>.wav` (paket suara di renderer booth); file tidak ada = diam / bunyi tik bawaan.
+ * Suara kalimat hanya untuk kalimat bawaan (ucapan = tulisan); kalimat buatan event tampil tanpa suara.
  */
 export type Cue =
   | "mulai"
@@ -15,6 +16,7 @@ export type Cue =
   | "keren-1"
   | "keren-2"
   | "keren-3"
+  | "keren-4"
   | "review"
   | "cetak"
   | "selesai"
@@ -32,21 +34,27 @@ export function beforeText(i: number, total: number, list: readonly string[]): s
   return list[isLast(i, total) ? list.length - 1 : Math.min(i, list.length - 2)] ?? "";
 }
 
-/** Sorakan setelah foto: acak dari daftar (`rnd` 0..1), suaranya keren-1..3. */
-export function after(list: readonly string[], rnd: number): { text: string; cue: Cue } {
-  const n = Math.floor(rnd * 3);
-  return {
-    text: list[Math.floor(rnd * list.length)] ?? "",
-    cue: `keren-${n + 1}` as Cue,
-  };
+/** Sorakan setelah foto: acak dari daftar (`rnd` 0..1). `voiced` = daftar bawaan → suara keren-<n> sama dengan tulisannya. */
+export function after(
+  list: readonly string[],
+  rnd: number,
+  voiced: boolean,
+): { text: string; cue: Cue | null } {
+  const n = Math.floor(rnd * list.length);
+  return { text: list[n] ?? "", cue: voiced && n < 4 ? (`keren-${n + 1}` as Cue) : null };
 }
+
+let current: HTMLAudioElement | null = null;
 
 /** Putar satu cue; selesai saat audio habis (maks. `maxMs`). false = file tidak ada / audio gagal. */
 export function play(cue: Cue, maxMs = 4000): Promise<boolean> {
   return new Promise((resolve) => {
     let a: HTMLAudioElement;
     try {
-      a = new Audio(`sounds/${cue}.mp3`);
+      a = new Audio(`sounds/${cue}.wav`);
+      // Satu suara pada satu waktu: suara baru memotong yang sebelumnya.
+      current?.pause();
+      current = a;
     } catch {
       resolve(false);
       return;

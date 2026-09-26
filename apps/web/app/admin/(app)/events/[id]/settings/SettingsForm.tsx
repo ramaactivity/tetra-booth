@@ -348,7 +348,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
               name="prompts_before"
               rows={4}
               defaultValue={v.promptsBefore.join("\n")}
-              placeholder={"Siap-siap, gaya pertama!\nGaya kedua, lebih seru!\nTerakhir, all out!"}
+              placeholder={"Siap-siap, gaya pertama!\nGaya kedua, lebih seru!\nOke gaya terakhir, cheers!"}
               className="w-full rounded-[11px] border-[1.5px] border-ink bg-white px-3 py-2 text-sm"
             />
           </Field>
@@ -357,7 +357,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
               name="prompts_after"
               rows={4}
               defaultValue={v.promptsAfter.join("\n")}
-              placeholder={"Mantap!\nKeren banget!\nCakep!"}
+              placeholder={"Mantap!\nKeren banget!\nCakep!\nWih, kalcer abis!"}
               className="w-full rounded-[11px] border-[1.5px] border-ink bg-white px-3 py-2 text-sm"
             />
           </Field>

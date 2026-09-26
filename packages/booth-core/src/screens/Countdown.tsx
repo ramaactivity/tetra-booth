@@ -71,11 +71,12 @@ export function Countdown({
   index: number;
   photos: (Photo | null)[];
   onDone: () => void;
-  /** Suara: kalimat `cue` dulu, lalu angka 3-2-1 + jepret (file tidak ada = bunyi tik bawaan) (#102/#103). */
+  /** Suara: kalimat `cue` dulu (maks. 3,5 dtk), lalu angka 3-2-1 + jepret (file tidak ada = bunyi tik) (#102/#103). */
   sound?: boolean;
   /** Kalimat besar di atas hitung mundur, mis. "Gaya kedua, lebih seru!" (#103). */
   prompt?: string;
-  cue?: Cue;
+  /** Suara kalimat pembuka; null = tanpa suara kalimat (kalimat buatan event). */
+  cue?: Cue | null;
 }) {
   const [left, setLeft] = useState(seconds);
   // Dengan suara, angka baru jalan setelah kalimat pembuka selesai diucapkan (maks. 3 dtk).
@@ -84,7 +85,11 @@ export function Countdown({
   useEffect(() => {
     if (!sound) return;
     let live = true;
-    void play(cue, 3000).then(() => live && setGo(true));
+    if (!cue) {
+      setGo(true);
+      return;
+    }
+    void play(cue, 3500).then(() => live && setGo(true));
     return () => {
       live = false;
     };

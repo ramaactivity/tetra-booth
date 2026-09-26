@@ -7,13 +7,14 @@ export const copy = {
   },
   /** Kalimat bawaan di sela foto (#103); yang terakhir = foto terakhir. Bisa diganti per event di admin. */
   prompts: {
+    // Sama persis dengan ucapan di sounds/foto-*.wav dan keren-1..4.wav (urutan penting).
     before: [
       "Siap-siap, gaya pertama!",
       "Gaya kedua, lebih seru!",
-      "Sekarang paling heboh!",
-      "Terakhir, all out!",
+      "Siap, lebih heboh ya!",
+      "Oke gaya terakhir, cheers!",
     ],
-    after: ["Mantap!", "Keren banget!", "Cakep!", "Mantul!", "Gemes!"],
+    after: ["Mantap!", "Keren banget!", "Cakep!", "Wih, kalcer abis!"],
   },
   countdown: {
     ready: "Siap? Senyum!",

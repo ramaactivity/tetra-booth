@@ -83,13 +83,13 @@ export function SessionRunner({
   // Kalimat & suara di sela foto (#103): daftar event, atau bawaan booth.
   const before = cfg.promptsBefore.length ? cfg.promptsBefore : copy.prompts.before;
   // biome-ignore lint/correctness/useExhaustiveDependencies: sorakan baru tiap foto/percobaan
-  const cheer = useMemo(
-    () => after(cfg.promptsAfter.length ? cfg.promptsAfter : copy.prompts.after, Math.random()),
-    [s.index, s.attempt, cfg.promptsAfter],
-  );
+  const cheer = useMemo(() => {
+    const own = cfg.promptsAfter.length > 0;
+    return after(own ? cfg.promptsAfter : copy.prompts.after, Math.random(), !own);
+  }, [s.index, s.attempt, cfg.promptsAfter]);
   useEffect(() => {
     if (!cfg.countdownSound) return;
-    const cue: Partial<Record<typeof s.phase, Cue>> = {
+    const cue: Partial<Record<typeof s.phase, Cue | null>> = {
       preview: cheer.cue,
       review: "review",
       print_select: "cetak",
@@ -336,7 +336,8 @@ export function SessionRunner({
             date={event.date}
             theme={event.attract}
             onStart={() => {
-              if (cfg.countdownSound) void play("mulai");
+              // Sapaan hanya kalau ada layar pilih dulu; kalau langsung foto, "gaya pertama" sudah menyapa.
+              if (cfg.countdownSound && (event.photobox || event.designs)) void play("mulai");
               dispatch(
                 event.photobox
                   ? { type: "PHOTOBOX_START", draftId: newSessionId() }
@@ -415,7 +416,7 @@ export function SessionRunner({
             onDone={send({ type: "COUNTDOWN_DONE" })}
             sound={cfg.countdownSound}
             prompt={beforeText(s.index, s.slots, before)}
-            cue={beforeCue(s.index, s.slots)}
+            cue={cfg.promptsBefore.length ? null : beforeCue(s.index, s.slots)}
           />
         );
       case "capture":
