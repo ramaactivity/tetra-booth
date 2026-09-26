@@ -35,10 +35,13 @@ export function laplacianVariance(luma: ArrayLike<number>, w: number, h: number)
 }
 
 /** Skor ketajaman sebuah gambar (bitmap preview atau raw). */
-export function sharpness(img: ImageBitmap): number {
-  const k = SHARP_SIDE / Math.max(img.width, img.height);
-  const w = Math.max(1, Math.round(img.width * Math.min(1, k)));
-  const h = Math.max(1, Math.round(img.height * Math.min(1, k)));
+export const sharpness = (img: ImageBitmap) => sharpnessOf(img, img.width, img.height);
+
+/** Sama dengan `sharpness`, untuk sumber apa pun (frame live view: video webcam, bitmap DSLR). */
+export function sharpnessOf(img: CanvasImageSource, width: number, height: number): number {
+  const k = SHARP_SIDE / Math.max(width, height);
+  const w = Math.max(1, Math.round(width * Math.min(1, k)));
+  const h = Math.max(1, Math.round(height * Math.min(1, k)));
   const c = cpuCanvas(w, h);
   const g = c.getContext("2d");
   if (!g) return 0;

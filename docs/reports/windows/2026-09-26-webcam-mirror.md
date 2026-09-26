@@ -18,3 +18,20 @@ semua sumber kamera.
 - Uji: kamera simulasi + `mirrorPhoto: true` → teks "Foto 1" di `raw/1.jpg` terbalik (cermin). e2e crew memeriksa
   bawaan ON/OFF, tombol simpan aktif setelah diubah.
 - Belum diuji: waktu balik foto DSLR ukuran penuh (decode + encode JPEG di renderer), dan live view OFF dilihat langsung.
+
+## Update 0.5.10 → 0.5.11 (mode crew)
+Unduh 152 MB ±22 s, installer ±14 s, booth terbuka sendiri, log `[update] berhasil: 0.5.10 → 0.5.11`.
+
+## Kontrol fokus DSLR (#88, keputusan Mac)
+- **Tes Jepret** (live view): baris `Fokus dekat ◀◀◀ ◀◀ ◀ AF ▶ ▶▶ ▶▶▶ jauh`, hanya kalau kamera punya live view
+  (digiCamControl). Perintah `LiveView_Focus` / `LiveView_Focus_M|MM|MMM|P|PP|PPP` (dicek di source digiCamControl:
+  keduanya jalan di thread, HTTP menjawab sebelum lensa selesai bergerak). Kontrol ini ada di layar Tes Jepret,
+  bukan di sheet Kamera & Printer, karena butuh live view.
+- **Meter ketajaman live view** (semua kamera): skor yang sama dengan pengingat buram, ±3×/s, plus puncak. Puncak
+  di-reset setiap fokus digeser.
+- **AF sebelum tiap jepret** (Kamera & Printer, DSLR): AF dikirim saat live view mulai di awal tiap countdown, jadi
+  sudah selesai sebelum shutter.
+- Perbaikan kecil: tanpa kamera, digiCamControl menjawab ISO/Shutter dengan pesan exception .NET yang tampil sebagai
+  nilai; sekarang dianggap kosong. Tombol Batal di sheet tidak lagi terjepit kalau isi sheet panjang.
+- Uji: booth dev `--digicam` (digiCamControl jalan, **kamera dicabut**): tombol tampil, log `[camera] fokus af` /
+  `fokus near1`. **Efek optik di 60D belum diuji.**

@@ -65,6 +65,7 @@ export type TetraBridge = {
   crewSaveDevice: BoothCrew["saveDevice"];
   crewCameraProps: BoothCrew["cameraProps"];
   crewSetCameraProp: BoothCrew["setCameraProp"];
+  crewFocus: NonNullable<BoothCrew["focus"]>;
   crewInstallUpdate: BoothCrew["installUpdate"];
   onUpdateProgress: BoothCrew["onUpdateProgress"];
   updateResult: BoothCrew["updateResult"];

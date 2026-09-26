@@ -2,13 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { errText } from "../errors";
 import { usePlatform } from "../PlatformContext";
+import type { LiveFrame } from "../platform";
 
 /**
  * Live view full-bleed, di-mirror seperti cermin (FSD §1.7) kecuali crew mematikannya. Hasil foto tidak di-mirror
  * kecuali opsi crew "Cermin hasil foto" (camera/mirror.ts).
  */
-export function LiveView() {
+export function LiveView({ onFrame }: { onFrame?: (frame: LiveFrame) => void } = {}) {
   const { camera, mirrorLiveView = true } = usePlatform();
+  // Callback terbaru tanpa memulai ulang live view (frame DSLR ditutup tepat setelah callback).
+  const frameCb = useRef(onFrame);
+  frameCb.current = onFrame;
   const ref = useRef<HTMLCanvasElement>(null);
   const [hasFrame, setHasFrame] = useState(false);
 
@@ -17,8 +21,10 @@ export function LiveView() {
     const g = canvas?.getContext("2d");
     if (!canvas || !g) return;
     camera
-      .startLiveView(({ source, width, height }) => {
+      .startLiveView((frame) => {
+        const { source, width, height } = frame;
         setHasFrame(true);
+        frameCb.current?.(frame);
         const dpr = window.devicePixelRatio || 1;
         const cw = Math.round(canvas.clientWidth * dpr);
         const ch = Math.round(canvas.clientHeight * dpr);

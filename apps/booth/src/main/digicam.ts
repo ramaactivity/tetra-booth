@@ -165,14 +165,35 @@ export async function ensureDigiCam(
  * digiCamControl dan tanpa encode ulang: 960×640 ±270 KB, bukan ±35 KB). digiCamControl menghasilkan ±6–7 frame
  * baru/s dari 700D (batas pembacaan live view-nya, bukan booth); /liveview.jpg menjawab frame terakhir seketika.
  */
-export const liveViewStart = async () => {
+export const liveViewStart = async (autofocus = false) => {
   await get("/?CMD=LiveViewWnd_Show", 5000);
   // Jendela live view digiCamControl muncul di depan booth; diperkecil (live view tetap jalan), sama seperti
   // endpoint /liveviewwebcam.jpg bawaan digiCamControl.
   await new Promise((r) => setTimeout(r, 500));
   await get("/?CMD=All_Minimize", 5000);
   await get("/?CMD=LiveView_NoProcess", 5000);
+  // "AF sebelum jepret": live view mulai di awal tiap countdown, jadi AF selesai (60D ±1–2 s) sebelum shutter.
+  if (autofocus) await focus("af");
 };
+
+/**
+ * Fokus lewat jendela live view digiCamControl (hanya saat live view jalan): AF, atau geser fokus manual
+ * kecil/sedang/besar ke dekat (`M`) atau jauh (`P`). Lensa harus di posisi AF. Perintahnya berjalan di thread
+ * digiCamControl, jadi jawaban HTTP datang sebelum lensa selesai bergerak.
+ */
+export const FOCUS_STEPS = ["af", "near3", "near2", "near1", "far1", "far2", "far3"] as const;
+export type FocusStep = (typeof FOCUS_STEPS)[number];
+const FOCUS_CMD: Record<FocusStep, string> = {
+  af: "LiveView_Focus",
+  near3: "LiveView_Focus_MMM",
+  near2: "LiveView_Focus_MM",
+  near1: "LiveView_Focus_M",
+  far1: "LiveView_Focus_P",
+  far2: "LiveView_Focus_PP",
+  far3: "LiveView_Focus_PPP",
+};
+export const focus = (step: FocusStep) =>
+  get(`/?CMD=${FOCUS_CMD[step]}`, 5000).then(() => undefined);
 export const liveViewStop = () => get("/?CMD=LiveViewWnd_Hide", 5000).then(() => undefined);
 let lastFrame: Buffer | undefined;
 /** Frame baru, atau array kosong kalau belum ada / sama dengan sebelumnya (renderer menunggu sebentar). */
