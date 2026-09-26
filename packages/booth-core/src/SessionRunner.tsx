@@ -39,6 +39,13 @@ const TIMED = new Set([
 const DEMO_TAP_MS = 1500;
 const FAST_TAP_MS = 150;
 
+/** Rasio lebar/tinggi slot foto (rotasi ±90° = tukar sisi), untuk panduan bingkai live view (#107). */
+const slotAspect = (slot: BoothEvent["layout"]["slots"][number] | undefined) => {
+  if (!slot) return undefined;
+  const turned = Math.abs(Math.round((slot.rotation ?? 0) / 90)) % 2 === 1;
+  return turned ? slot.h / slot.w : slot.w / slot.h;
+};
+
 const startEvent = (
   event: BoothEvent,
   design?: { id: string; layout: BoothEvent["layout"] },
@@ -315,7 +322,7 @@ export function SessionRunner({
   const shooting = s.phase === "countdown" || s.phase === "capture";
   return (
     <div className="relative h-full w-full overflow-hidden bg-paper">
-      {shooting && <LiveView />}
+      {shooting && <LiveView guide={slotAspect(ev.layout.slots[s.index])} />}
       {/* printing → qr satu layar (A8): jangan animasi masuk dua kali. */}
       <div
         key={s.phase === "printing" ? "qr" : s.phase}
