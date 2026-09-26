@@ -25,6 +25,12 @@ export type BoothEvent = {
 
 const FONT_FILE = /\.(ttf|otf|woff2)$/i;
 
+/** Lepas object URL milik event (gambar latar, suara pengganti) saat event diganti / dimuat ulang. */
+export function releaseEvent(e: BoothEvent) {
+  if (e.attract?.imageUrl) URL.revokeObjectURL(e.attract.imageUrl);
+  for (const u of Object.values(e.sounds ?? {})) if (u && u !== "off") URL.revokeObjectURL(u);
+}
+
 /** Muat bundle jadi event siap render: gambar di-decode, font didaftarkan ke document.fonts. */
 export async function loadEvent(bundle: EventBundle, events: BoothEvents): Promise<BoothEvent> {
   const images: Record<string, ImageBitmap> = {};

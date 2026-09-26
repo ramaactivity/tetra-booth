@@ -4,7 +4,7 @@ import { copy } from "./copy";
 import { CrewMode } from "./crew/CrewMode";
 import { guestCursor } from "./cursorPref";
 import { errText } from "./errors";
-import { type BoothEvent, DEFAULT_EVENT, loadEvent } from "./event";
+import { type BoothEvent, DEFAULT_EVENT, loadEvent, releaseEvent } from "./event";
 import { usePlatform } from "./PlatformContext";
 import type { PrinterAlert } from "./platform";
 import { SessionRunner } from "./SessionRunner";
@@ -88,7 +88,10 @@ export function BoothApp({
     async (id: string | null, list: EventBundle[]) => {
       const b = list.find((x) => x.id === id);
       const next = b ? await loadEvent(b, p.events) : DEFAULT_EVENT;
-      setEvent(next);
+      setEvent((prev) => {
+        if (prev && prev !== next) releaseEvent(prev);
+        return next;
+      });
       console.info(`[event] aktif: ${next.id} (${next.name})`);
     },
     [p],

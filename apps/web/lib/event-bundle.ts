@@ -29,6 +29,12 @@ export type EventTemplate = {
   /** Mode event (DECISIONS #99): desain tambahan pilihan tamu, `<preset>` atau `tpl:<layoutId>`; maks. 4. */
   extras?: string[];
 };
+/** Pengaturan satu suara: mati, file pengganti, atau mati dengan file pengganti tetap disimpan (#104). */
+export type SoundSetting =
+  | "off"
+  | StoredBundle["files"][number]
+  | { off: true; file: StoredBundle["files"][number] };
+
 /** Satu layout photobox di bundle + file asetnya (divalidasi EventBundleSchema). */
 type PbItem = {
   entry: Record<string, unknown>;
@@ -86,8 +92,8 @@ export function buildBundle(e: {
   attract?: AttractSettings;
   /** Gambar latar layar awal (file bundle `attract.jpg`/`attract.png`). */
   attractImage?: StoredBundle["files"][number] | null;
-  /** Suara per cue (#104): "off", atau file pengganti (`snd-<cue>.<ext>`). */
-  sounds?: Partial<Record<SoundCue, "off" | StoredBundle["files"][number]>>;
+  /** Suara per cue (#104): "off", file pengganti (`snd-<cue>.<ext>`), atau mati tapi file penggantinya disimpan. */
+  sounds?: Partial<Record<SoundCue, SoundSetting>>;
 }): Json {
   // Overlay dibuat untuk kanvas preset template, jadi hanya dipasang di layout dengan preset itu.
   const layoutOf = (id: PresetId) => ({
@@ -177,9 +183,11 @@ export function buildBundle(e: {
       ? [{ id: "ov", ...e.overlay }]
       : [];
   const bg = e.attractImage ? [{ id: "attract", ...e.attractImage }] : [];
-  const snd = Object.entries(e.sounds ?? {}).flatMap(([cue, v]) =>
-    v === "off" ? [] : [{ id: `snd-${cue}`, ...v }],
-  );
+  const fileOf = (v: SoundSetting) => (v === "off" ? null : "off" in v ? v.file : v);
+  const snd = Object.entries(e.sounds ?? {}).flatMap(([cue, v]) => {
+    const f = fileOf(v);
+    return f ? [{ id: `snd-${cue}`, ...f }] : [];
+  });
   const all = [
     ...main,
     ...extras.flatMap((x) => x.files),
@@ -188,7 +196,10 @@ export function buildBundle(e: {
     ...snd,
   ];
   const sounds = Object.fromEntries(
-    Object.entries(e.sounds ?? {}).map(([cue, v]) => [cue, v === "off" ? v : `snd-${cue}`]),
+    Object.entries(e.sounds ?? {}).map(([cue, v]) => [
+      cue,
+      v === "off" || "off" in v ? "off" : `snd-${cue}`,
+    ]),
   );
   const config = EventBundleSchema.parse({
     id: e.id,

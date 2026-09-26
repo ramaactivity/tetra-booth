@@ -41,7 +41,9 @@ export async function downloadInstaller(
   release: () => Promise<BoothUpdateResponse>,
   tempDir: string,
   onProgress: (p: UpdateProgress) => void,
-) {
+  /** Checksum gagal → buang semua bagian dan ulang sekali lagi dalam panggilan yang sama. */
+  retryCorrupt = true,
+): Promise<string> {
   let r = await release();
   const version = r.version;
   const file = join(tempDir, `Tetra-Booth-Setup-${version}.exe`);
@@ -68,6 +70,9 @@ export async function downloadInstaller(
   /** Versi baru terbit di tengah unduhan: `.part` versi lama tidak boleh disambung dengan file lain. */
   let changed: string | null = null;
   let slowRestarts = 0;
+  /** Satu bagian gagal total → hentikan bagian lain (jangan terus menulis `.part<i>` setelah fungsi ini selesai). */
+  let halted = false;
+  const live = new Set<AbortController>();
 
   /** Unduh satu bagian [from, to) ke `dest`; true = lengkap. */
   const fetchPart = async (i: number): Promise<void> => {
@@ -76,7 +81,7 @@ export async function downloadInstaller(
     const len = to - from;
     let lastError: unknown;
     for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
-      if (changed) return;
+      if (changed || halted) return;
       let have = await stat(dest).then(
         (s) => s.size,
         () => 0,
@@ -88,6 +93,7 @@ export async function downloadInstaller(
       got[i] = have;
       if (have === len) return;
       const abort = new AbortController();
+      live.add(abort);
       let stall = setTimeout(() => abort.abort(), STALL_MS);
       try {
         if (attempt > 1 || i > 0) {
@@ -146,19 +152,30 @@ export async function downloadInstaller(
         );
       } finally {
         clearTimeout(stall);
+        live.delete(abort);
       }
     }
     const have = await stat(dest).then(
       (s) => s.size,
       () => 0,
     );
-    if (have !== len && !changed)
+    if (have !== len && !changed && !halted)
       throw new Error(
         `installer gagal diunduh: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
       );
   };
 
-  await Promise.all(bounds.map((_, i) => fetchPart(i)));
+  const results = await Promise.allSettled(
+    bounds.map((_, i) =>
+      fetchPart(i).catch((e: unknown) => {
+        halted = true;
+        for (const a of live) a.abort();
+        throw e;
+      }),
+    ),
+  );
+  const failed = results.find((x) => x.status === "rejected");
+  if (failed) throw failed.reason;
   if (changed) {
     await Promise.all(files.map((f) => rm(f, { force: true })));
     throw new Error(`versi ${changed} terbit saat mengunduh ${version}, unduhan diulang`);
@@ -175,8 +192,12 @@ export async function downloadInstaller(
     if (n > 1) await Promise.all(files.map((f) => rm(f, { force: true })));
     return file;
   }
-  // Rusak: buang semua bagian, unduhan berikutnya mulai dari awal.
+  // Rusak: buang semua bagian lalu ulang sekali dari awal (dulu: diulang di dalam loop percobaan).
   await Promise.all([part, ...files].map((f) => rm(f, { force: true })));
+  if (retryCorrupt) {
+    console.warn("[update] checksum tidak cocok, unduh ulang dari awal");
+    return downloadInstaller(release, tempDir, onProgress, false);
+  }
   throw new Error("installer gagal diunduh: checksum tidak cocok");
 }
 

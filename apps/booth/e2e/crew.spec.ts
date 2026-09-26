@@ -98,15 +98,15 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await expect(w.getByText(/2inch cut harus (Enable|Disable)/)).toBeVisible();
   await expect(w.getByRole("button", { name: "Simpan & Mulai Ulang" })).toBeDisabled();
   // Cermin: bawaan live view nyala, hasil foto mati (DECISIONS #35); ubah → bisa disimpan.
-  await expect(w.getByRole("button", { name: "Live view · ON" })).toHaveAttribute(
+  await expect(w.getByRole("button", { name: "Live view · Nyala" })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
-  await w.getByRole("button", { name: "Hasil foto · OFF" }).click();
+  await w.getByRole("button", { name: "Hasil foto · Mati" }).click();
   await expect(w.getByText(/tulisan di baju & latar ikut terbalik/)).toBeVisible();
   await expect(w.getByRole("button", { name: "Simpan & Mulai Ulang" })).toBeEnabled();
   await w.screenshot({ path: "test-results/crew-device.png" });
-  await w.getByRole("button", { name: "Hasil foto · ON" }).click();
+  await w.getByRole("button", { name: "Hasil foto · Nyala" }).click();
   await expect(w.getByRole("button", { name: "Simpan & Mulai Ulang" })).toBeDisabled();
   await w.getByRole("button", { name: "Batal" }).click();
 

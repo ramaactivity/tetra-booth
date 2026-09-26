@@ -299,8 +299,12 @@ export function registerIpc(
     // Log "memakai … yang sudah diunduh" / "mengunduh …" ditulis downloadInstaller (tahu isi folder temp).
     console.info(`[update] menyiapkan ${r.version}`);
     // Unduhan latar belakang versi lama masih jalan → tunggu selesai, lalu unduh versi yang diminta.
+    // Kegagalan sungguhan tidak diulang di sini (crew menekan Coba Lagi); hanya versi lama/tergantikan yang diulang.
     const get = async () => {
-      const f = await getInstaller(r.version).catch(() => null);
+      const f = await getInstaller(r.version).catch((e: unknown) => {
+        if (e instanceof Error && e.message.includes("terbit saat mengunduh")) return null;
+        throw e;
+      });
       return f?.endsWith(`-${r.version}.exe`) ? f : getInstaller(r.version);
     };
     const file = await get().catch((err: unknown) => {

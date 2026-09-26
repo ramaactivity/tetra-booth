@@ -59,6 +59,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page.getByLabel(dev?.name ?? "").check();
     await page.getByRole("button", { name: "Simpan" }).click();
     await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v2");
+    await page.waitForLoadState("networkidle"); // refresh RSC setelah simpan selesai dulu
     await page.screenshot({ path: "test-results/admin-settings.png", fullPage: true });
 
     const auth = { Authorization: `Bearer ${token}` };
@@ -105,6 +106,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page.getByLabel("Harga lembar tambahan").fill("10000");
     await page.getByRole("button", { name: "Simpan" }).click();
     await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v3");
+    await page.waitForLoadState("networkidle"); // refresh RSC setelah simpan selesai dulu
     const pb = await (
       await request.get(`/api/booth/events/${ev.id}/bundle`, { headers: auth })
     ).json();
@@ -125,6 +127,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page.getByLabel("Wajib: foto tampil setelah form diisi").check();
     await page.getByRole("button", { name: "Simpan" }).click();
     await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v4");
+    await page.waitForLoadState("networkidle"); // refresh RSC setelah simpan selesai dulu
     const { data: lc } = await db.from("events").select("lead_capture").eq("id", ev.id).single();
     expect(lc?.lead_capture).toMatchObject({
       enabled: true,

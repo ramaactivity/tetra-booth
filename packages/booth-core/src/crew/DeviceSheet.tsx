@@ -152,7 +152,7 @@ export function DeviceSheet({
                 className={choice(!!draft.afBeforeCapture)}
                 onClick={() => set({ afBeforeCapture: !draft.afBeforeCapture })}
               >
-                {copy.crew.afBeforeCapture} · {draft.afBeforeCapture ? "ON" : "OFF"}
+                {copy.crew.afBeforeCapture} · {draft.afBeforeCapture ? copy.crew.on : copy.crew.off}
               </button>
               {running === "hotfolder" &&
                 (props === null ? (
@@ -199,7 +199,7 @@ export function DeviceSheet({
                   className={choice(on)}
                   onClick={() => set({ [k]: !on })}
                 >
-                  {copy.crew[k]} · {on ? "ON" : "OFF"}
+                  {copy.crew[k]} · {on ? copy.crew.on : copy.crew.off}
                 </button>
               );
             })}
