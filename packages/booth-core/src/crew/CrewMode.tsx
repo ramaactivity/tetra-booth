@@ -88,6 +88,7 @@ export function CrewMode({
         <CrewMenu
           event={event}
           onChangeEvent={() => setView("start")}
+          onReloadEvents={onReloadEvents}
           onCameraCheck={() => setView("camera")}
           onChangePin={() => setView("change")}
           onPair={() => setView("pair")}

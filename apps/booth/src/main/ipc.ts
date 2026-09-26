@@ -28,6 +28,13 @@ import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./cre
 import type { BoothDb } from "./db";
 import { CAMERA_PROPS, dcc, dccBase, dccProp } from "./dcc";
 import { FOCUS_STEPS, focus, liveViewFrame, liveViewStart, liveViewStop } from "./digicam";
+import {
+  applyOverride,
+  diffOverride,
+  EventOverride,
+  overrideKey,
+  parseOverride,
+} from "./event-override";
 import { allowQuit, autoStart, setAutoStart } from "./kiosk";
 import { onPhase } from "./shots";
 import { downloadInstaller, runInstaller } from "./update";
@@ -140,9 +147,11 @@ export function registerIpc(
   });
   ipcMain.handle("cameraStatus", () => request({ id: crypto.randomUUID(), type: "camera.status" }));
   // Live view DSLR lewat digiCamControl (--digicam). Diambil di main supaya CSP renderer tetap 'self'.
-  ipcMain.handle("liveViewStart", () =>
-    config.liveView ? liveViewStart(!!deviceNow.afBeforeCapture) : undefined,
-  );
+  ipcMain.handle("liveViewStart", async () => {
+    if (!config.liveView) return;
+    await liveViewStart(!!deviceNow.afBeforeCapture);
+    if (deviceNow.afBeforeCapture) console.info("[camera] AF sebelum jepret");
+  });
   ipcMain.handle("liveViewFrame", () => {
     if (!config.liveView) throw new Error("live view tidak aktif");
     return liveViewFrame();
@@ -468,7 +477,26 @@ export function registerIpc(
   ipcMain.handle("printerAlert", () => alerts.get());
 
   // Event lokal dari bundle (M6); Fase 2 mengisi folder yang sama lewat sync.
-  ipcMain.handle("eventsList", () => reloadBundles().map(({ dir: _dir, ...b }) => b));
+  const overrideOf = (id: string) => parseOverride(db.kv.get(overrideKey(id)));
+  ipcMain.handle("eventsList", () =>
+    reloadBundles().map(({ dir: _dir, ...b }) => applyOverride(b, overrideOf(b.id))),
+  );
+  // Override pengaturan event di booth (DECISIONS #100): nilai cloud + override lokal; null = kembalikan ke cloud.
+  ipcMain.handle("crewEventSettings", (_e, id: unknown) => {
+    crewOnly();
+    const b = bundles.find((x) => x.id === z.string().parse(id));
+    if (!b) throw new Error("event tidak ditemukan");
+    return { cloud: b.settings, override: overrideOf(b.id) };
+  });
+  ipcMain.handle("crewSetEventSettings", (_e, id: unknown, next: unknown) => {
+    crewOnly();
+    const b = bundles.find((x) => x.id === z.string().parse(id));
+    if (!b) throw new Error("event tidak ditemukan");
+    const o = next === null ? {} : diffOverride(b.settings, EventOverride.parse(next));
+    db.kv.set(overrideKey(b.id), Object.keys(o).length ? JSON.stringify(o) : "");
+    console.info(`[event] pengaturan ${b.id} di booth: ${JSON.stringify(o)}`);
+    return { cloud: b.settings, override: o };
+  });
   ipcMain.handle("eventsActive", () => db.kv.get("active_event_id"));
   ipcMain.handle("eventsSetActive", (_e, id: unknown) => {
     // Layar awal saat app dibuka manual: satu kali pilih tanpa PIN (DECISIONS #86); selanjutnya lewat mode crew.

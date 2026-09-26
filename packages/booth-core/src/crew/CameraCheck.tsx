@@ -27,6 +27,10 @@ const METER_MS = 300;
 export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () => void }) {
   const p = usePlatform();
   const [shot, setShot] = useState<string>();
+  // Capture DSLR mematikan live view (700D macet kalau jepret saat live view jalan); di sesi tamu countdown
+  // menyalakannya lagi. Di sini LiveView dipasang ulang setelah tiap Tes Jepret, kalau tidak gambar membeku
+  // dan tombol fokus tidak berpengaruh (uji 60D, 2026-09-26).
+  const [liveRun, setLiveRun] = useState(0);
   const [info, setInfo] = useState<string>();
   const [meter, setMeter] = useState<{ now: number; peak: number }>();
   const lastMeter = useRef(0);
@@ -64,11 +68,13 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
       );
     } catch (e) {
       setInfo(errText(e));
+    } finally {
+      setLiveRun((n) => n + 1);
     }
   };
   return (
     <div className="relative h-full w-full">
-      <LiveView onFrame={onFrame} />
+      <LiveView key={liveRun} onFrame={onFrame} />
       <div className="absolute top-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-3">
         {p.crew.focus && (
           <div className="flex items-center gap-2 rounded-[20px] border-[2.5px] border-ink bg-paper p-2">

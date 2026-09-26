@@ -148,6 +148,7 @@ export function DeviceSheet({
               <button
                 type="button"
                 aria-pressed={!!draft.afBeforeCapture}
+                disabled={!info}
                 className={choice(!!draft.afBeforeCapture)}
                 onClick={() => set({ afBeforeCapture: !draft.afBeforeCapture })}
               >
@@ -194,6 +195,7 @@ export function DeviceSheet({
                   key={k}
                   type="button"
                   aria-pressed={on}
+                  disabled={!info}
                   className={choice(on)}
                   onClick={() => set({ [k]: !on })}
                 >

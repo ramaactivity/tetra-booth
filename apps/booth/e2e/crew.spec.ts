@@ -109,6 +109,25 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await w.getByRole("button", { name: "Hasil foto · ON" }).click();
   await expect(w.getByRole("button", { name: "Simpan & Mulai Ulang" })).toBeDisabled();
   await w.getByRole("button", { name: "Batal" }).click();
+
+  // Pengaturan event di booth (DECISIONS #100): override lokal, badge, kembalikan ke cloud.
+  await w.getByRole("button", { name: "Pengaturan Event" }).click();
+  const countdown = w.getByTestId("setting-countdownSec");
+  await expect(countdown).toContainText("cloud: 3");
+  await expect(w.getByTestId("setting-sessionSec")).toHaveCount(0);
+  await w.getByRole("button", { name: "Hitung mundur (detik) +" }).click();
+  await w.getByRole("button", { name: "Hitung mundur (detik) +" }).click();
+  await w.getByRole("button", { name: "Simpan", exact: true }).click();
+  await expect(countdown).toContainText("diubah di booth");
+  await expect(countdown).toContainText("5");
+  await w.screenshot({ path: "test-results/crew-event-settings.png" });
+  await w.getByRole("button", { name: "Batal" }).click();
+  await expect(w.getByTestId("settings-local")).toBeVisible();
+  await w.getByRole("button", { name: "Pengaturan Event" }).click();
+  await w.getByRole("button", { name: "Kembalikan ke cloud" }).click();
+  await expect(countdown).not.toContainText("diubah di booth");
+  await w.getByRole("button", { name: "Batal" }).click();
+  await expect(w.getByTestId("settings-local")).toHaveCount(0);
   await w.getByRole("button", { name: /keluar ke mode tamu/i }).click();
 
   await expect(w.getByRole("heading", { name: "Andi & Sari" })).toBeVisible();
