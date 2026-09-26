@@ -284,7 +284,11 @@ export function registerIpc(
     const { r, available } = await release();
     if (!r || !available) throw new Error("Sudah versi terbaru");
     listener = e.sender;
-    console.info(`[update] mengunduh ${r.version} (${Math.round(r.size / 1e6)} MB)`);
+    console.info(
+      ready === r.version
+        ? `[update] memakai ${r.version} yang sudah diunduh`
+        : `[update] mengunduh ${r.version} (${Math.round(r.size / 1e6)} MB)`,
+    );
     const file = await getInstaller(r.version).catch((err: unknown) => {
       console.warn(`[update] unduh gagal: ${err instanceof Error ? err.message : String(err)}`);
       throw new Error(
