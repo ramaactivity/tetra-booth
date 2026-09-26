@@ -85,7 +85,13 @@ export type DeviceSettings = {
 export type DeviceInfo = { now: DeviceSettings; locked: string[]; printers: string[] };
 /** Setelan eksposur kamera DSLR (sementara lewat digiCamControl). */
 export type CameraProp = { name: string; label: string; value: string; options: string[] };
-export type UpdateCheck = { current: string; latest: string | null; available: boolean };
+/** `ready` = installer versi terbaru sudah terunduh di latar belakang (tinggal dipasang). */
+export type UpdateCheck = {
+  current: string;
+  latest: string | null;
+  available: boolean;
+  ready?: boolean;
+};
 /** Hasil update terakhir, dibaca sekali setelah booth terbuka lagi. */
 export type UpdateResult = { ok: boolean; from: string; to: string; now: string } | null;
 export type FailedPrint = { id: string; copies: number; error: string | null; createdAt: string };

@@ -124,6 +124,8 @@ export const copy = {
     updateChecking: "Mengecek versi terbaru…",
     updateLatest: (v: string) => `Sudah versi terbaru (${v}).`,
     updateNone: "Belum ada rilis di cloud.",
+    updateReady: (latest: string, current: string) =>
+      `Versi ${latest} sudah diunduh (terpasang ${current}). Pemasangan ±1 menit: booth tertutup lalu terbuka lagi sendiri.`,
     updateAvailable: (latest: string, current: string) =>
       `Versi ${latest} tersedia (terpasang ${current}). Booth mengunduh ±150 MB, lalu tertutup dan terbuka lagi sendiri dalam ±1 menit. Jangan matikan laptop.`,
     updateNow: "Pasang Sekarang",

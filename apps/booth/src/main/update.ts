@@ -11,6 +11,13 @@ import type { BoothUpdateResponse } from "@tetra/shared";
 /** Tanpa data selama ini = koneksi macet → coba lagi, lanjut dari byte terakhir. */
 const STALL_MS = 60_000;
 const ATTEMPTS = 8;
+/**
+ * Koneksi yang terjebak di jalur lambat (W-032: 130 KB/s, koneksi baru ke server yang sama 8 MB/s): kalau rata-rata
+ * < `slowBps` selama `slowMs` sejak tersambung, putus dan sambung ulang (Range). Tidak dihitung sebagai gagal;
+ * paling banyak `SLOW_RESTARTS` kali, setelah itu diterima apa adanya (jaringan memang lambat).
+ */
+const SLOW_RESTARTS = 10;
+export const SLOW = { bps: 500_000, ms: 20_000 };
 
 export type UpdateProgress = { received: number; total: number };
 
@@ -34,7 +41,14 @@ export async function downloadInstaller(
   let r = await release();
   const file = join(tempDir, `Tetra-Booth-Setup-${r.version}.exe`);
   const part = `${file}.part`;
+  // Sudah terunduh lengkap sebelumnya (unduhan latar belakang): langsung pakai kalau utuh.
+  const done = await stat(file).then(
+    (s) => s.size,
+    () => 0,
+  );
+  if (done === r.size && (await sha256File(file)) === r.sha256) return file;
   let lastError: unknown;
+  let slowRestarts = 0;
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     const have = await stat(part).then(
       (s) => s.size,
@@ -54,6 +68,9 @@ export async function downloadInstaller(
         const resume = res.status === 206;
         if (!res.ok || !res.body) throw new Error(`server ${res.status}`);
         let received = resume ? have : 0;
+        const start = received;
+        const t0 = Date.now();
+        let slowChecked = false;
         await pipeline(
           Readable.fromWeb(res.body as WebStream<Uint8Array>),
           new Transform({
@@ -62,12 +79,27 @@ export async function downloadInstaller(
               stall = setTimeout(() => abort.abort(), STALL_MS);
               received += chunk.byteLength;
               onProgress({ received, total: r.size });
+              const dt = Date.now() - t0;
+              if (!slowChecked && dt >= SLOW.ms && slowRestarts < SLOW_RESTARTS) {
+                slowChecked = true;
+                if (((received - start) * 1000) / dt < SLOW.bps) {
+                  done(null, chunk);
+                  abort.abort(new Error("slow"));
+                  return;
+                }
+              }
               done(null, chunk);
             },
           }),
           createWriteStream(part, { flags: resume ? "a" : "w" }),
         );
       } catch (e) {
+        if (abort.signal.reason instanceof Error && abort.signal.reason.message === "slow") {
+          slowRestarts++;
+          console.info(`[update] koneksi lambat, sambung ulang (${slowRestarts}/${SLOW_RESTARTS})`);
+          attempt--; // bukan kegagalan
+          continue;
+        }
         lastError = e;
         console.warn(
           `[update] unduhan terputus (percobaan ${attempt}/${ATTEMPTS}): ${e instanceof Error ? e.message : String(e)}`,

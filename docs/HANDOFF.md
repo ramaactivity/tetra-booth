@@ -199,6 +199,7 @@ Selesai: kata sandi admin, CORS R2, `CRON_SECRET` (cron menolak tanpa secret: 40
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-09-26 | Mac | Update 0.5.6 → 0.5.8 LULUS tapi lambat (19 min, W-032). Booth **0.5.9**: unduh latar belakang saat senggang + putus-sambung koneksi < 500 KB/s (DECISIONS #94), tes unit server lambat. Midtrans: akun perorangan terdaftar (review 2–3 hari), adapter siap (#93). |
 | 2026-09-26 | Mac | Adapter Midtrans QRIS + webhook `/api/webhooks/midtrans` (DECISIONS #93), unit 3 + e2e webhook. Menunggu akun Midtrans Rama: env `MIDTRANS_SERVER_KEY` di Vercel + Notification URL. Website: /syarat-ketentuan, /kebijakan-refund, /privasi tayang (sesi website). |
 | 2026-09-26 | Mac | Merge `win@ee2dbaf` (tombol Dashboard Admin dengan PIN, sheet Update dengan progress bar + Coba Lagi, toast hasil update, PIN via keyboard; DECISIONS #92). e2e booth 7/7. Booth **0.5.8** dirilis: uji 0.5.7 → 0.5.8 (progress + uninstaller baru + toast). |
 | 2026-09-26 | Mac | Update Aplikasi LULUS (Windows): 0.5.3 build Mac → 0.5.6 build Windows, unduh 2 menit, pasang + buka ulang 27 s, tanpa dialog uninstall, langsung ke event terakhir, data utuh (#90/#91). Booth **0.5.7** dirilis untuk uji progress/lanjut-unduh (#89) + uninstaller `customRemoveFiles`. |

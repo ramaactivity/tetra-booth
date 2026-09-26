@@ -229,43 +229,68 @@ export function registerIpc(
     }
     return { current, r, available: !!r && newerVersion(r.version, current) };
   };
+  // Satu unduhan installer bersama untuk unduhan latar belakang & tombol Pasang Sekarang (#89, W-032).
+  let inflight: Promise<string> | null = null;
+  let ready: string | null = null; // versi yang installer-nya sudah lengkap di folder temp
+  let listener: Electron.WebContents | null = null;
+  let sent = 0;
+  const fresh = async () => {
+    const x = await cloud.latestRelease();
+    if (!x) throw new Error("rilis tidak ditemukan");
+    return x;
+  };
+  const getInstaller = (version: string) =>
+    (inflight ??= downloadInstaller(fresh, app.getPath("temp"), (p) => {
+      // Progress ke layar crew paling sering tiap 500 ms.
+      const now = Date.now();
+      if (now - sent < 500 && p.received < p.total) return;
+      sent = now;
+      if (listener && !listener.isDestroyed()) listener.send("updateProgress", p);
+    })
+      .then((f) => {
+        ready = version;
+        return f;
+      })
+      .finally(() => {
+        inflight = null;
+      }));
+  // Unduh di latar belakang saat senggang (antrean upload kosong): crew cukup memasang ±1 menit di lokasi.
+  // Hanya build terpasang Windows; update tetap dipasang manual oleh crew (aturan 7).
+  const prefetch = async () => {
+    if (process.platform !== "win32" || !app.isPackaged || inflight || db.uploadPending() > 0)
+      return;
+    const { r, available } = await release().catch(() => ({ r: null, available: false }));
+    if (!r || !available || ready === r.version) return;
+    console.info(`[update] unduh latar belakang ${r.version} (${Math.round(r.size / 1e6)} MB)`);
+    await getInstaller(r.version).then(
+      () => console.info(`[update] ${r.version} siap dipasang`),
+      (e: unknown) =>
+        console.warn(
+          `[update] unduh latar belakang gagal: ${e instanceof Error ? e.message : String(e)}`,
+        ),
+    );
+  };
+  setTimeout(() => void prefetch(), 2 * 60_000).unref();
+  setInterval(() => void prefetch(), 3 * 60 * 60_000).unref();
+
   ipcMain.handle("crewCheckUpdate", async () => {
     crewOnly();
     const { current, r, available } = await release();
-    return { current, latest: r?.version ?? null, available };
+    return { current, latest: r?.version ?? null, available, ready: !!r && ready === r.version };
   });
-  let updating = false;
   ipcMain.handle("crewInstallUpdate", async (e) => {
     crewOnly();
     if (process.platform !== "win32") throw new Error("Update hanya untuk booth Windows");
     const { r, available } = await release();
     if (!r || !available) throw new Error("Sudah versi terbaru");
-    if (updating) throw new Error("Update sedang diunduh");
-    updating = true;
+    listener = e.sender;
     console.info(`[update] mengunduh ${r.version} (${Math.round(r.size / 1e6)} MB)`);
-    // Progress ke layar crew paling sering tiap 500 ms (#89).
-    let sent = 0;
-    const progress = (p: { received: number; total: number }) => {
-      const now = Date.now();
-      if (now - sent < 500 && p.received < p.total) return;
-      sent = now;
-      if (!e.sender.isDestroyed()) e.sender.send("updateProgress", p);
-    };
-    const fresh = async () => {
-      const x = await cloud.latestRelease();
-      if (!x) throw new Error("rilis tidak ditemukan");
-      return x;
-    };
-    const file = await downloadInstaller(fresh, app.getPath("temp"), progress)
-      .catch((err: unknown) => {
-        console.warn(`[update] unduh gagal: ${err instanceof Error ? err.message : String(err)}`);
-        throw new Error(
-          "Gagal mengunduh update. Cek internet lalu tekan Pasang Sekarang lagi (unduhan dilanjutkan)",
-        );
-      })
-      .finally(() => {
-        updating = false;
-      });
+    const file = await getInstaller(r.version).catch((err: unknown) => {
+      console.warn(`[update] unduh gagal: ${err instanceof Error ? err.message : String(err)}`);
+      throw new Error(
+        "Gagal mengunduh update. Cek internet lalu tekan Pasang Sekarang lagi (unduhan dilanjutkan)",
+      );
+    });
     console.info(`[update] memasang ${r.version}, aplikasi ditutup`);
     // Dicek saat booth terbuka lagi: versi = to → "berhasil", selain itu "gagal dipasang" (masukan Rama).
     db.kv.set(UPDATE_PENDING_KEY, JSON.stringify({ from: app.getVersion(), to: r.version }));

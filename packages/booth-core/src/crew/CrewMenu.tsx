@@ -517,7 +517,10 @@ export function CrewMenu({
             {!update
               ? copy.crew.updateChecking
               : update.available && update.latest
-                ? copy.crew.updateAvailable(update.latest, update.current)
+                ? (update.ready ? copy.crew.updateReady : copy.crew.updateAvailable)(
+                    update.latest,
+                    update.current,
+                  )
                 : update.latest
                   ? copy.crew.updateLatest(update.current)
                   : copy.crew.updateNone}
