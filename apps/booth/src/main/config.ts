@@ -75,6 +75,7 @@ export const DeviceSettings = z.object({
   webcamId: z.string().max(512).optional(),
   mirrorLiveView: z.boolean().optional(),
   mirrorPhoto: z.boolean().optional(),
+  afBeforeCapture: z.boolean().optional(),
   hotFolder: z.string().min(1).max(260).optional(),
   hotFolderTrigger: z.url().max(512).optional(),
   printer: z.string().min(1).max(256).optional(),
@@ -212,6 +213,7 @@ export const deviceNow: DeviceSettings = {
   ...(device.webcamId ? { webcamId: device.webcamId } : {}),
   mirrorLiveView: config.mirrorLiveView ?? true,
   mirrorPhoto: config.mirrorPhoto ?? false,
+  afBeforeCapture: !!device.afBeforeCapture,
   ...(flags.value("hot-folder") ? { hotFolder: flags.value("hot-folder") } : {}),
   ...(flags.value("hot-folder-trigger") || digicam
     ? { hotFolderTrigger: flags.value("hot-folder-trigger") ?? DIGICAM_TRIGGER }

@@ -1,18 +1,51 @@
 import { newSessionId } from "@tetra/shared";
 import { Button } from "@tetra/ui";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { copy } from "../copy";
 import { errText } from "../errors";
 import { previewUrl } from "../finalize";
 import { usePlatform } from "../PlatformContext";
+import type { FocusStep, LiveFrame } from "../platform";
 import { LiveView } from "../screens/LiveView";
-import { sharpNotes } from "../sharpness";
+import { sharpNotes, sharpnessOf } from "../sharpness";
 
-/** Cek kamera: live view + test shot (FSD §1.3). */
+const FOCUS_ROW: { step: FocusStep; label: string }[] = [
+  { step: "near3", label: "◀◀◀" },
+  { step: "near2", label: "◀◀" },
+  { step: "near1", label: "◀" },
+  { step: "af", label: copy.crew.focusAf },
+  { step: "far1", label: "▶" },
+  { step: "far2", label: "▶▶" },
+  { step: "far3", label: "▶▶▶" },
+];
+const METER_MS = 300;
+
+/**
+ * Cek kamera: live view + test shot (FSD §1.3). Meter ketajaman live view (skor yang sama dengan pengingat
+ * foto buram #88, puncak = fokus terbaik yang terlihat) + kontrol fokus DSLR bila kamera mendukung.
+ */
 export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () => void }) {
   const p = usePlatform();
   const [shot, setShot] = useState<string>();
   const [info, setInfo] = useState<string>();
+  const [meter, setMeter] = useState<{ now: number; peak: number }>();
+  const lastMeter = useRef(0);
+  const onFrame = ({ source, width, height }: LiveFrame) => {
+    const t = performance.now();
+    if (t - lastMeter.current < METER_MS) return;
+    lastMeter.current = t;
+    const now = Math.round(sharpnessOf(source, width, height));
+    setMeter((m) => ({ now, peak: Math.max(now, m?.peak ?? 0) }));
+  };
+  const focus = async (step: FocusStep) => {
+    try {
+      await p.crew.focus?.(step);
+      // Puncak dihitung ulang setelah fokus digeser, supaya meter menunjukkan arah yang benar.
+      setMeter((m) => m && { now: m.now, peak: m.now });
+    } catch (e) {
+      setInfo(errText(e));
+    }
+  };
   const take = async () => {
     try {
       const t0 = performance.now();
@@ -35,7 +68,38 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
   };
   return (
     <div className="relative h-full w-full">
-      <LiveView />
+      <LiveView onFrame={onFrame} />
+      <div className="absolute top-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-3">
+        {p.crew.focus && (
+          <div className="flex items-center gap-2 rounded-[20px] border-[2.5px] border-ink bg-paper p-2">
+            <span className="px-3 text-xl font-bold">{copy.crew.focus}</span>
+            <span className="text-lg text-text-2">{copy.crew.focusNear}</span>
+            {FOCUS_ROW.map(({ step, label }) => (
+              <Button
+                key={step}
+                variant={step === "af" ? "primary" : "secondary"}
+                className="h-16 min-w-16 rounded-[14px] px-4 text-xl"
+                onClick={() => void focus(step)}
+              >
+                {label}
+              </Button>
+            ))}
+            <span className="pr-3 text-lg text-text-2">{copy.crew.focusFar}</span>
+          </div>
+        )}
+        {meter && (
+          <p
+            data-testid="focus-meter"
+            className="rounded-full border-2 border-ink bg-white px-5 py-2 font-mono text-lg"
+          >
+            {copy.crew.focusMeter} {meter.now}
+            <span className="text-text-2">
+              {" "}
+              / {copy.crew.focusPeak} {meter.peak}
+            </span>
+          </p>
+        )}
+      </div>
       {shot && (
         <img
           src={shot}

@@ -145,6 +145,14 @@ export function DeviceSheet({
                   onChange={(e) => set({ hotFolderTrigger: e.target.value })}
                 />
               </label>
+              <button
+                type="button"
+                aria-pressed={!!draft.afBeforeCapture}
+                className={choice(!!draft.afBeforeCapture)}
+                onClick={() => set({ afBeforeCapture: !draft.afBeforeCapture })}
+              >
+                {copy.crew.afBeforeCapture} · {draft.afBeforeCapture ? "ON" : "OFF"}
+              </button>
               {running === "hotfolder" &&
                 (props === null ? (
                   <p className="text-lg text-text-2">…</p>

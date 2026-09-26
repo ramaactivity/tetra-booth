@@ -17,7 +17,11 @@ export function Sheet({
       <div className="layered flex max-h-[90%] w-[760px] flex-col gap-6 rounded-[28px] border-[2.5px] border-ink bg-white p-10 [--lx:10px]">
         <h2 className="text-[40px] font-extrabold tracking-[-0.02em]">{title}</h2>
         {children}
-        <Button variant="plain" className="h-[92px] rounded-[20px] text-2xl" onClick={onClose}>
+        <Button
+          variant="plain"
+          className="h-[92px] shrink-0 rounded-[20px] text-2xl"
+          onClick={onClose}
+        >
           {copy.crew.cancel}
         </Button>
       </div>

@@ -81,12 +81,16 @@ export type DeviceSettings = {
   mirrorLiveView?: boolean;
   /** Hasil foto ikut dibalik seperti cermin (bawaan mati, DECISIONS #35). */
   mirrorPhoto?: boolean;
+  /** DSLR: autofocus di awal tiap countdown (#88). */
+  afBeforeCapture?: boolean;
   hotFolder?: string;
   hotFolderTrigger?: string;
   printer?: string;
 };
 /** `locked` = flag yang dipaksa baris perintah (tidak bisa diubah dari mode crew). */
 export type DeviceInfo = { now: DeviceSettings; locked: string[]; printers: string[] };
+/** AF, atau geser fokus manual kecil/sedang/besar ke dekat / jauh. */
+export type FocusStep = "af" | "near3" | "near2" | "near1" | "far1" | "far2" | "far3";
 /** Setelan eksposur kamera DSLR (sementara lewat digiCamControl). */
 export type CameraProp = { name: string; label: string; value: string; options: string[] };
 /** `ready` = installer versi terbaru sudah terunduh di latar belakang (tinggal dipasang). */
@@ -133,6 +137,8 @@ export interface BoothCrew {
   /** Setelan eksposur DSLR yang tersedia (kosong = bukan DSLR / digiCamControl tidak menjawab). */
   cameraProps(): Promise<CameraProp[]>;
   setCameraProp(name: string, value: string): Promise<void>;
+  /** Fokus DSLR lewat live view (#88); tidak ada = kamera tanpa live view (webcam, hot folder biasa). */
+  focus?(step: FocusStep): Promise<void>;
   /** Bandingkan versi terpasang dengan rilis terbaru di cloud (DECISIONS #80). */
   checkUpdate(): Promise<UpdateCheck>;
   /** Unduh & pasang versi terbaru; aplikasi tertutup lalu terbuka lagi. Hanya booth Windows. */

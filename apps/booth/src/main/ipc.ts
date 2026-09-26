@@ -27,7 +27,7 @@ import {
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
 import type { BoothDb } from "./db";
 import { CAMERA_PROPS, dcc, dccBase, dccProp } from "./dcc";
-import { liveViewFrame, liveViewStart, liveViewStop } from "./digicam";
+import { FOCUS_STEPS, focus, liveViewFrame, liveViewStart, liveViewStop } from "./digicam";
 import { allowQuit, autoStart, setAutoStart } from "./kiosk";
 import { onPhase } from "./shots";
 import { downloadInstaller, runInstaller } from "./update";
@@ -140,7 +140,9 @@ export function registerIpc(
   });
   ipcMain.handle("cameraStatus", () => request({ id: crypto.randomUUID(), type: "camera.status" }));
   // Live view DSLR lewat digiCamControl (--digicam). Diambil di main supaya CSP renderer tetap 'self'.
-  ipcMain.handle("liveViewStart", () => (config.liveView ? liveViewStart() : undefined));
+  ipcMain.handle("liveViewStart", () =>
+    config.liveView ? liveViewStart(!!deviceNow.afBeforeCapture) : undefined,
+  );
   ipcMain.handle("liveViewFrame", () => {
     if (!config.liveView) throw new Error("live view tidak aktif");
     return liveViewFrame();
@@ -374,6 +376,15 @@ export function registerIpc(
     return (
       await Promise.all(CAMERA_PROPS.map(([name, label]) => dccProp(base, name, label)))
     ).filter((p) => p !== null);
+  });
+  ipcMain.handle("crewFocus", async (_e, step: unknown) => {
+    crewOnly();
+    if (!config.liveView) throw new Error("Kontrol fokus hanya untuk DSLR dengan live view");
+    const s = z.enum(FOCUS_STEPS).parse(step);
+    await focus(s).catch(() => {
+      throw new Error("digiCamControl tidak menjawab. Cek kamera menyala & live view jalan");
+    });
+    console.info(`[camera] fokus ${s}`);
   });
   ipcMain.handle("crewSetCameraProp", async (_e, name: unknown, value: unknown) => {
     crewOnly();

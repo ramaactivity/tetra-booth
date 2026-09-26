@@ -4,6 +4,7 @@ import {
   type BoothStorage,
   createSimulatedCamera,
   createWebcamCamera,
+  type FocusStep,
   withMirroredPhotos,
 } from "@tetra/booth-core";
 import type { BoothConfig, TetraBridge } from "./bridge";
@@ -112,6 +113,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       saveDevice: (s) => bridge.crewSaveDevice(s),
       cameraProps: () => bridge.crewCameraProps(),
       setCameraProp: (n, v) => bridge.crewSetCameraProp(n, v),
+      ...(cfg.liveView ? { focus: (s: FocusStep) => bridge.crewFocus(s) } : {}),
       installUpdate: () => bridge.crewInstallUpdate(),
       onUpdateProgress: (cb) => bridge.onUpdateProgress(cb),
       updateResult: () => bridge.updateResult(),
