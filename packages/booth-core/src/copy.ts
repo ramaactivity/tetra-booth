@@ -99,6 +99,9 @@ export const copy = {
   start: {
     title: "Pilih mode booth",
     admin: "Dashboard Admin",
+    edit: "Edit",
+    editHint:
+      "Edit membuka pengaturan event di admin (browser). Setelah disimpan, tekan Sync dari Cloud.",
     sub: "Tentukan mode dulu, lalu pilih event.",
     mode: { event: "Mode Event", photobox: "Mode Photobox" },
     modeSub: {

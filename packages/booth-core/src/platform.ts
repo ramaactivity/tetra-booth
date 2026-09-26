@@ -138,7 +138,7 @@ export interface BoothCrew {
   /** Update terakhir berhasil / gagal dipasang (sekali, setelah booth dibuka lagi). */
   updateResult(): Promise<UpdateResult>;
   /** Buka dashboard admin di browser; kiosk dilepas sementara. Hanya saat mode crew terbuka. */
-  openAdmin(): Promise<void>;
+  openAdmin(path?: string): Promise<void>;
   printerAlert(): Promise<PrinterAlert>;
   onPrinterAlert(cb: (a: PrinterAlert) => void): Unsubscribe;
   /** Setiap print selesai/gagal (menyegarkan kertas & daftar gagal, dan hasil test print di menu crew). */

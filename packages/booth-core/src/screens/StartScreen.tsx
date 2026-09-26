@@ -1,6 +1,14 @@
 import type { EventBundle } from "@tetra/shared";
 import { Button } from "@tetra/ui";
-import { ArrowLeft, ArrowRight, ExternalLink, Heart, QrCode, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ExternalLink,
+  Heart,
+  Pencil,
+  QrCode,
+  RefreshCw,
+} from "lucide-react";
 import { useState } from "react";
 import { copy } from "../copy";
 import { errText } from "../errors";
@@ -20,6 +28,7 @@ export function StartScreen({
   onSync,
   onCrew,
   onAdmin,
+  onEditEvent,
   crewLabel = t.crew,
 }: {
   bundles: EventBundle[];
@@ -29,6 +38,8 @@ export function StartScreen({
   onSync?: () => Promise<number>;
   /** Buka mode crew (PIN) dari layar awal. */
   onCrew: () => void;
+  /** Ada = mode crew: tombol Edit per event cloud, buka pengaturan event itu di admin (browser). */
+  onEditEvent?: (id: string) => void;
   /** Buka dashboard admin di browser (di luar mode crew: minta PIN dulu). */
   onAdmin?: () => void;
   /** Label tautan ke mode crew (dari mode crew: "Kembali ke Mode Crew"). */
@@ -143,18 +154,33 @@ export function StartScreen({
           {note && <p className="text-xl font-semibold text-text-2">{note}</p>}
           <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pb-2">
             {list.map((b) => (
-              <button
-                key={b.id}
-                type="button"
-                onClick={() => onPick(b.id)}
-                className={`pressable flex min-h-[104px] items-center justify-between gap-6 rounded-[24px] border-[2.5px] border-ink px-8 text-left text-[30px] font-bold ${b.id === activeId ? "bg-mint-soft" : "bg-white"}`}
-              >
-                {b.name}
-                {b.date && (
-                  <span className="font-mono text-xl font-normal text-text-2">{b.date}</span>
+              <div key={b.id} className="flex items-stretch gap-4">
+                <button
+                  type="button"
+                  onClick={() => onPick(b.id)}
+                  className={`pressable flex min-h-[104px] flex-1 items-center justify-between gap-6 rounded-[24px] border-[2.5px] border-ink px-8 text-left text-[30px] font-bold ${b.id === activeId ? "bg-mint-soft" : "bg-white"}`}
+                >
+                  {b.name}
+                  {b.date && (
+                    <span className="font-mono text-xl font-normal text-text-2">{b.date}</span>
+                  )}
+                </button>
+                {onEditEvent && b.id !== "local" && (
+                  <button
+                    type="button"
+                    data-testid={`edit-${b.id}`}
+                    onClick={() => onEditEvent(b.id)}
+                    className="pressable flex w-[150px] items-center justify-center gap-2 rounded-[24px] border-[2.5px] border-ink bg-white text-2xl font-bold"
+                  >
+                    <Pencil size={22} strokeWidth={2.5} />
+                    {t.edit}
+                  </button>
                 )}
-              </button>
+              </div>
             ))}
+            {onEditEvent && list.some((b) => b.id !== "local") && (
+              <p className="text-xl font-medium text-text-2">{t.editHint}</p>
+            )}
             {!list.length && (
               <p className="rounded-[24px] border-[2.5px] border-dashed border-ink px-8 py-10 text-2xl font-medium text-text-2">
                 {t.empty}
