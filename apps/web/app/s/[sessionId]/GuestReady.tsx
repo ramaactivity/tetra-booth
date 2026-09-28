@@ -15,9 +15,10 @@ async function save(assets: GuestAsset[], sessionId: string) {
         const res = await fetch(a.url);
         if (!res.ok) throw new Error(String(res.status));
         const blob = await res.blob();
-        const ext = a.kind === "animation" ? "gif" : "jpg";
+        const ext = a.kind === "animation" ? "gif" : a.kind === "video" ? "mp4" : "jpg";
+        const fallback = { gif: "image/gif", mp4: "video/mp4", jpg: "image/jpeg" }[ext];
         return new File([blob], `tetra-${sessionId}-${a.kind}-${a.idx}.${ext}`, {
-          type: blob.type || (ext === "gif" ? "image/gif" : "image/jpeg"),
+          type: blob.type || fallback,
         });
       }),
     );
@@ -47,12 +48,14 @@ export function GuestReady({
   assets: GuestAsset[];
   expiresAt: string | null;
 }) {
-  const [tab, setTab] = useState<"strip" | "original" | "animation">("strip");
+  const [tab, setTab] = useState<"strip" | "original" | "animation" | "video">("strip");
   const [busy, setBusy] = useState(false);
   const strip = assets.find((a) => a.kind === "strip_web");
   const originals = assets.filter((a) => a.kind === "original");
   const gif = assets.find((a) => a.kind === "animation");
-  const main = tab === "animation" ? gif : strip;
+  // Video hitung mundur (#117).
+  const video = assets.find((a) => a.kind === "video");
+  const main = tab === "animation" ? gif : tab === "video" ? video : strip;
   const run =
     (list: GuestAsset[], all = false) =>
     async () => {
@@ -99,6 +102,17 @@ export function GuestReady({
             {t.animation}
           </button>
         )}
+        {video && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "video"}
+            className={`${tabClass(tab === "video")} border-l-[1.5px] border-ink`}
+            onClick={() => setTab("video")}
+          >
+            {t.video}
+          </button>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col items-center px-5 pt-5 pb-6">
@@ -108,6 +122,18 @@ export function GuestReady({
             alt=""
             fetchPriority="high"
             className="layered max-h-[62vh] max-w-[66%] rounded-lg border-[1.5px] border-ink bg-white [--lb:1.5px] [--lx:5px] [--under:#fff]"
+          />
+        )}
+        {tab === "video" && video && (
+          // biome-ignore lint/a11y/useMediaCaption: video momen booth tanpa suara/ucapan
+          <video
+            src={video.url}
+            controls
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="layered max-h-[62vh] max-w-full rounded-lg border-[1.5px] border-ink bg-white [--lb:1.5px] [--lx:5px] [--under:#fff]"
           />
         )}
         {tab === "animation" && gif && (
@@ -155,7 +181,13 @@ export function GuestReady({
             onClick={run(main ? [main] : [])}
             className="pressable layered h-[52px] rounded-[14px] border-[1.5px] border-ink bg-butter text-[15px] font-extrabold [--lb:1.5px] [--lx:4px] disabled:opacity-40"
           >
-            {busy ? t.saving : tab === "animation" ? t.saveGif : t.saveStrip}
+            {busy
+              ? t.saving
+              : tab === "animation"
+                ? t.saveGif
+                : tab === "video"
+                  ? t.saveVideo
+                  : t.saveStrip}
           </button>
         </div>
         <div className="flex justify-between text-[11px] text-text-2">

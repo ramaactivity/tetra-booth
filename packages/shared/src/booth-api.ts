@@ -114,13 +114,16 @@ export const AssetKindSchema = z.enum([
   "thumb_strip",
   "thumb_original",
   "animation",
+  "video",
 ]);
 export type AssetKindName = z.infer<typeof AssetKindSchema>;
-/** Aset sesi = JPEG, kecuali animasi (GIF). Dipakai key R2, URL bertanda tangan, dan PUT booth. */
+/** Aset sesi = JPEG, kecuali animasi (GIF) & video hitung mundur (MP4, #117). Dipakai key R2, URL bertanda tangan, PUT booth. */
 export const assetFile = (kind: AssetKindName) =>
   kind === "animation"
     ? { ext: "gif", contentType: "image/gif" }
-    : { ext: "jpg", contentType: "image/jpeg" };
+    : kind === "video"
+      ? { ext: "mp4", contentType: "video/mp4" }
+      : { ext: "jpg", contentType: "image/jpeg" };
 
 /** POST /api/booth/sessions: upsert metadata sesi (idempotent per id). */
 export const SessionUpsert = z.object({

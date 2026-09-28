@@ -219,6 +219,7 @@ export async function saveEvent(
     qrScreenSec: f.qrScreenSec,
     countdownSound: form.get("countdownSound") === "on",
     bumper: form.get("bumper") === "on",
+    countdownVideo: form.get("countdownVideo") === "on",
     // Filter pilihan tamu (#116): tanpa centang = langkah filter dilewati.
     filters: PHOTO_FILTERS.filter(
       (x) => x.id !== "normal" && form.get(`filter_${x.id}`) === "on",

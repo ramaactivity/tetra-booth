@@ -2,6 +2,7 @@ import { filterCss, newSessionId, printPaper } from "@tetra/shared";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { composeStrip, designPreview } from "./compose";
 import { copy } from "./copy";
+import { CountdownRecorder, recorderMime } from "./countdownVideo";
 import { errText } from "./errors";
 import type { BoothEvent } from "./event";
 import { buildOutputs, previewUrl } from "./finalize";
@@ -107,6 +108,33 @@ export function SessionRunner({
   const [bumperState, setBumperState] = useState<"play" | "leave" | "done">(
     bumper && event.settings.bumper && !demo ? "play" : "done",
   );
+  // Video hitung mundur (#117): rekam saat countdown/jepret, jeda di luar itu, simpan saat masuk compose.
+  const recorder = useRef<CountdownRecorder | null>(null);
+  const videoSaved = useRef<Promise<void>>(Promise.resolve());
+  useEffect(() => {
+    if (!cfg.countdownVideo || demo || !s.sessionId) return;
+    const shooting = s.phase === "countdown" || s.phase === "capture";
+    if (shooting) {
+      const mime = recorderMime();
+      if (!recorder.current && mime)
+        recorder.current = new CountdownRecorder(mime, p.mirrorLiveView ?? true);
+      recorder.current?.resume();
+    } else if (s.phase === "compose" || s.phase === "attract") {
+      const r = recorder.current;
+      recorder.current = null;
+      const id = s.sessionId;
+      if (r)
+        videoSaved.current = r
+          .stop()
+          .then(async (bytes) => {
+            if (!bytes) return;
+            await p.storage.writeFile(`${await p.storage.sessionDir(id)}/out/video.mp4`, bytes);
+            console.info(`[session] video hitung mundur ${Math.round(bytes.byteLength / 1024)} KB`);
+          })
+          .catch((e: unknown) => console.warn(`[session] video gagal: ${errText(e)}`));
+    } else recorder.current?.pause();
+  }, [s.phase, s.sessionId, cfg.countdownVideo, demo, p]);
+
   // Kalimat & suara di sela foto (#103): daftar event, atau bawaan booth.
   const before = cfg.promptsBefore.length ? cfg.promptsBefore : copy.prompts.before;
   // biome-ignore lint/correctness/useExhaustiveDependencies: sorakan baru tiap foto/percobaan
@@ -274,7 +302,10 @@ export function SessionRunner({
       photos.some((x) => isBlurry(x.sharp, ref)),
     );
     const t0 = performance.now();
-    (s.strip ? buildOutputs(p.storage, id, photos, s.strip) : Promise.resolve([]))
+    (s.strip
+      ? videoSaved.current.then(() => (s.strip ? buildOutputs(p.storage, id, photos, s.strip) : []))
+      : Promise.resolve([])
+    )
       .then((assets) => p.db.sessionCompleted({ ...done, assets }).then(() => assets.length))
       .then((n) =>
         console.info(
@@ -341,7 +372,12 @@ export function SessionRunner({
   const shooting = s.phase === "countdown" || s.phase === "capture";
   return (
     <div className="relative h-full w-full overflow-hidden bg-paper">
-      {shooting && <LiveView guide={slotAspect(ev.layout.slots[s.index])} />}
+      {shooting && (
+        <LiveView
+          guide={slotAspect(ev.layout.slots[s.index])}
+          onFrame={(f) => recorder.current?.draw(f.source, f.width, f.height)}
+        />
+      )}
       {/* printing → qr satu layar (A8): jangan animasi masuk dua kali. */}
       <div
         key={s.phase === "printing" ? "qr" : s.phase}

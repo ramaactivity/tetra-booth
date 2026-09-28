@@ -81,6 +81,7 @@ test.beforeAll(async () => {
       asset(ids.ready, "strip_web", 0),
       asset(ids.ready, "original", 1),
       asset(ids.ready, "animation", 0),
+      asset(ids.ready, "video", 0),
     ]);
 });
 
@@ -120,6 +121,10 @@ test("ready: strip, tab original, simpan, masa berlaku", async ({ page }) => {
   await page.screenshot({ path: "test-results/guest-ready.png" });
   await page.getByRole("tab", { name: "Animasi" }).click();
   await expect(page.getByRole("button", { name: "Simpan GIF ke HP" })).toBeEnabled();
+  // Video hitung mundur (#117).
+  await page.getByRole("tab", { name: "Video" }).click();
+  await expect(page.locator("video")).toHaveAttribute("src", /video_0/);
+  await expect(page.getByRole("button", { name: "Simpan Video ke HP" })).toBeEnabled();
   await page.getByRole("tab", { name: "Strip" }).click();
   await page.getByRole("tab", { name: "Original" }).click();
   await expect(page.getByRole("button", { name: "Original 1" })).toBeVisible();

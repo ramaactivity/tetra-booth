@@ -30,6 +30,8 @@ export const copy = {
     original: "Original",
     animation: "Animasi",
     saveGif: "Simpan GIF ke HP",
+    video: "Video",
+    saveVideo: "Simpan Video ke HP",
     saveStrip: "Simpan ke Galeri HP",
     saveAll: "Simpan Semua Original",
     saving: "Menyimpan…",

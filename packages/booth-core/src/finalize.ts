@@ -135,5 +135,9 @@ export async function buildOutputs(
     gif.finish();
     await save("animation", 0, "animation.gif", gif.bytes());
   }
+  // Video hitung mundur (#117), ditulis SessionRunner saat masuk compose (kalau event menyalakannya).
+  const video = await storage.readFile(`${dir}/video.mp4`).catch(() => null);
+  if (video?.byteLength)
+    assets.push({ kind: "video", idx: 0, path: `${dir}/video.mp4`, bytes: video.byteLength });
   return assets;
 }

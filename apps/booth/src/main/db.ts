@@ -43,6 +43,7 @@ export const UPLOAD_PRIORITY: Record<AssetKind, number> = {
   strip: 2,
   thumb_original: 2,
   animation: 2,
+  video: 3,
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

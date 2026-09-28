@@ -15,6 +15,8 @@ export const EventSettingsSchema = z.object({
   /** Bunyi "tik" tiap detik hitung mundur + bunyi jepret (DECISIONS #102). */
   countdownSound: z.boolean().default(false),
   /** Kalimat sebelum / setelah foto (#103); kosong = kalimat bawaan booth. */
+  /** Rekam video saat hitung mundur (#117) → aset `video` di halaman tamu. */
+  countdownVideo: z.boolean().default(false),
   /** Video bumper Tetra saat event dibuka di booth terpasang (#105). */
   bumper: z.boolean().default(true),
   /** Filter yang ditawarkan ke tamu setelah cek foto (#116); kosong = tanpa langkah filter. */

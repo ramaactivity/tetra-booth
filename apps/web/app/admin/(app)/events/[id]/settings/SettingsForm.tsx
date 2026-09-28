@@ -30,6 +30,7 @@ export type SettingsValues = {
   attract: { background: string; cta: string; brand: string; samples: boolean; hasImage: boolean };
   countdownSound: boolean;
   bumper: boolean;
+  countdownVideo: boolean;
   /** Filter yang ditawarkan ke tamu (#116). */
   filters: string[];
   promptsBefore: string[];
@@ -460,6 +461,10 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           <label className="flex items-center gap-2 self-end text-xs font-bold">
             <input type="checkbox" name="countdownSound" defaultChecked={v.countdownSound} /> Suara
             (kalimat, hitung mundur & jepret)
+          </label>
+          <label className="flex items-center gap-2 self-end text-xs font-bold">
+            <input type="checkbox" name="countdownVideo" defaultChecked={v.countdownVideo} /> Rekam
+            video saat hitung mundur (tab Video di halaman tamu)
           </label>
           <fieldset className="col-span-full flex flex-col gap-2">
             <legend className="mb-1.5 text-xs font-bold">

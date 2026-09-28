@@ -55,6 +55,7 @@ const CONFIG = {
     maxPrints: 3,
     countdownSound: true,
     filters: ["bw", "warm"],
+    countdownVideo: true,
   },
   assets: { attract: "attract.mp4" },
 };
@@ -66,6 +67,7 @@ const typePin = async (w: Page, pin: string) => {
 
 test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar", async () => {
   const sessions: Record<string, unknown>[] = [];
+  const signed: string[] = [];
   const server = createServer((req, res) => {
     let body = "";
     req.on("data", (c) => {
@@ -106,7 +108,16 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
         return res.end(MP4);
       }
       if (url === "/api/booth/sessions") sessions.push(JSON.parse(body));
-      if (url === "/api/booth/uploads/sign") return res.end(JSON.stringify({ uploads: [] }));
+      if (url === "/api/booth/uploads/sign") {
+        const assets: { kind: string; idx: number }[] = JSON.parse(body).assets;
+        for (const a of assets) signed.push(a.kind);
+        const uploads = assets.map((a) => ({
+          ...a,
+          key: "k",
+          url: `http://127.0.0.1:${port}/put`,
+        }));
+        return res.end(JSON.stringify({ uploads }));
+      }
       res.end(JSON.stringify({ ok: true, uploadStatus: "partial" }));
     });
   });
@@ -190,6 +201,8 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     await expect
       .poll(() => sessions[0], { timeout: 30_000 })
       .toMatchObject({ eventId: EVENT, photoCount: 2 });
+    // Video hitung mundur (#117) ikut diunggah sebagai aset "video".
+    await expect.poll(() => signed, { timeout: 30_000 }).toContain("video");
   } finally {
     await app.close();
     server.close();
