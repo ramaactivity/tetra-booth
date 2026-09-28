@@ -20,6 +20,8 @@ internal static class Edsdk
     public const uint PropSaveTo = 0x0000000b;
     public const uint PropEvfOutputDevice = 0x00000500;
     public const uint PropEvfMode = 0x00000501;
+    public const uint PropEvfZoomPosition = 0x00000508;
+    public const uint PropEvfCoordinateSystem = 0x00000540;
 
     public const uint SaveToHost = 2;
     public const uint EvfOutputDevicePc = 2;
@@ -65,6 +67,20 @@ internal static class Edsdk
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    public struct Point
+    {
+        public int X;
+        public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Size
+    {
+        public int Width;
+        public int Height;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     public struct PropertyDesc
     {
         public int Form;
@@ -88,6 +104,8 @@ internal static class Edsdk
     [DllImport(Dll)] public static extern uint EdsSendCommand(IntPtr inCameraRef, uint inCommand, int inParam);
     [DllImport(Dll)] public static extern uint EdsSetPropertyData(IntPtr inRef, uint inPropertyId, int inParam, uint inPropertySize, ref uint inPropertyData);
     [DllImport(Dll)] public static extern uint EdsGetPropertyData(IntPtr inRef, uint inPropertyId, int inParam, uint inPropertySize, out uint outPropertyData);
+    [DllImport(Dll)] public static extern uint EdsSetPropertyData(IntPtr inRef, uint inPropertyId, int inParam, uint inPropertySize, ref Point inPropertyData);
+    [DllImport(Dll)] public static extern uint EdsGetPropertyData(IntPtr inRef, uint inPropertyId, int inParam, uint inPropertySize, out Size outPropertyData);
     [DllImport(Dll)] public static extern uint EdsGetPropertyDesc(IntPtr inRef, uint inPropertyId, out PropertyDesc outPropertyDesc);
     [DllImport(Dll)] public static extern uint EdsSetCapacity(IntPtr inCameraRef, Capacity inCapacity);
     [DllImport(Dll)] public static extern uint EdsSetObjectEventHandler(IntPtr inCameraRef, uint inEvent, ObjectEventHandler inHandler, IntPtr inContext);

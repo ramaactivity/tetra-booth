@@ -79,6 +79,9 @@ public class CanonCameraTests
         Assert.True(await cam.FocusAsync("af"));
         Assert.True(await cam.FocusAsync("near2"));
         Assert.Equal(["af", "near2"], d.FocusSteps);
+        Assert.True(await cam.FocusAtAsync(0.25, 0.75));
+        Assert.Equal("at 0.25,0.75", d.FocusSteps[^1]);
+        await Assert.ThrowsAsync<CameraFailure>(() => cam.FocusAtAsync(1.5, 0));
         await Assert.ThrowsAsync<CameraFailure>(() => cam.FocusAsync("maju"));
     }
 

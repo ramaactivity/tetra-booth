@@ -83,6 +83,19 @@ test("canon (EDSDK palsu): setelan ISO dari kamera tampil & bisa diubah di mode 
     await w.getByRole("button", { name: "ISO 800", exact: true }).first().click();
     await expect(w.getByText("ISO live view · ISO 800")).toBeVisible();
     await w.screenshot({ path: "test-results/canon-crew.png" });
+
+    // Tap to focus (#114) di Tes Jepret: ketukan diteruskan ke Camera Service.
+    const logs: string[] = [];
+    app.process().stdout?.on("data", (d) => logs.push(String(d)));
+    await w.getByRole("button", { name: "Batal" }).click();
+    await w
+      .getByRole("button", { name: /Tes Jepret/ })
+      .first()
+      .click();
+    await expect(w.getByText("Ketuk subjek di live view untuk fokus")).toBeVisible();
+    await w.getByTestId("tap-focus").click({ position: { x: 500, y: 400 } });
+    await expect.poll(() => logs.join("")).toMatch(/\[camera\] fokus di 0\.\d\d,0\.\d\d/);
+    await w.screenshot({ path: "test-results/canon-tapfocus.png" });
   } finally {
     await app.close();
   }

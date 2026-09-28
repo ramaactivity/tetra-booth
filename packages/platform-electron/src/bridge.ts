@@ -68,6 +68,7 @@ export type TetraBridge = {
   crewCameraProps: BoothCrew["cameraProps"];
   crewSetCameraProp: BoothCrew["setCameraProp"];
   crewFocus: NonNullable<BoothCrew["focus"]>;
+  crewFocusAt: NonNullable<BoothCrew["focusAt"]>;
   crewEventSettings: BoothCrew["eventSettings"];
   crewSetEventSettings: BoothCrew["setEventSettings"];
   crewInstallUpdate: BoothCrew["installUpdate"];

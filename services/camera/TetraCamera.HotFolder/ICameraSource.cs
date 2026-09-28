@@ -20,6 +20,8 @@ public interface ICameraSource
     byte[]? LatestFrame { get; }
     /// <summary>`af`, `near1..3`, `far1..3`; false = tidak didukung.</summary>
     Task<bool> FocusAsync(string step);
+    /// <summary>Tap to focus (0–1 di frame kamera); false = tidak didukung.</summary>
+    Task<bool> FocusAtAsync(double x, double y);
     /// <summary>Setelan eksposur (ISO/shutter/aperture/WB); kosong = tidak didukung.</summary>
     Task<IReadOnlyList<CameraProp>> PropsAsync();
     /// <summary>Ubah setelan ke salah satu label di <see cref="CameraProp.Options"/>.</summary>

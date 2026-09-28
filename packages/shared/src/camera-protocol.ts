@@ -23,6 +23,8 @@ export const CommandSchema = z.discriminatedUnion("type", [
   /** Canon EDSDK (#111): `af`, `near1..3`, `far1..3`. */
   cmd("camera.focus", z.object({ step: z.string().min(1) })),
   /** Setelan eksposur Canon (#111): ISO/shutter/aperture/WB, nilai = label (mis. "ISO 400"). */
+  /** Tap to focus (#114): titik 0–1 di frame kamera (tanpa cermin). */
+  cmd("camera.focusAt", z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) })),
   cmd("camera.props", empty),
   cmd("camera.setProp", z.object({ name: z.string().min(1), value: z.string().min(1) })),
   cmd(
@@ -70,6 +72,7 @@ export const ResultSchemas = {
   "liveview.start": z.object({ ok: z.boolean() }),
   "liveview.stop": z.object({ ok: z.boolean() }),
   "camera.focus": z.object({ ok: z.boolean() }),
+  "camera.focusAt": z.object({ ok: z.boolean() }),
   "camera.props": z.array(
     z.object({
       name: z.string(),

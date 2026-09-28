@@ -116,6 +116,9 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       eventSettings: (id) => bridge.crewEventSettings(id),
       setEventSettings: (id, o) => bridge.crewSetEventSettings(id, o),
       ...(cfg.liveView ? { focus: (s: FocusStep) => bridge.crewFocus(s) } : {}),
+      ...(cfg.camera === "canon"
+        ? { focusAt: (x: number, y: number) => bridge.crewFocusAt(x, y) }
+        : {}),
       installUpdate: () => bridge.crewInstallUpdate(),
       onUpdateProgress: (cb) => bridge.onUpdateProgress(cb),
       updateResult: () => bridge.updateResult(),

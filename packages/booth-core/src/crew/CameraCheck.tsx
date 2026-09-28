@@ -21,6 +21,23 @@ const FOCUS_ROW: { step: FocusStep; label: string }[] = [
 const METER_MS = 300;
 
 /**
+ * Tap to focus (#114): titik ketuk di layar → titik 0–1 di frame kamera. Live view digambar cover ke layar
+ * (potong tengah) dan bisa dicermin; titik di luar frame dijepit ke tepi.
+ */
+export function tapToFrame(
+  tap: { x: number; y: number },
+  screen: { w: number; h: number },
+  frame: { w: number; h: number },
+  mirror: boolean,
+) {
+  const scale = Math.max(screen.w / frame.w, screen.h / frame.h);
+  const fx = (tap.x - (screen.w - frame.w * scale) / 2) / scale / frame.w;
+  const fy = (tap.y - (screen.h - frame.h * scale) / 2) / scale / frame.h;
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
+  return { x: clamp(mirror ? 1 - fx : fx), y: clamp(fy) };
+}
+
+/**
  * Cek kamera: live view + test shot (FSD §1.3). Meter ketajaman live view (skor yang sama dengan pengingat
  * foto buram #88, puncak = fokus terbaik yang terlihat) + kontrol fokus DSLR bila kamera mendukung.
  */
@@ -34,7 +51,26 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
   const [info, setInfo] = useState<string>();
   const [meter, setMeter] = useState<{ now: number; peak: number }>();
   const lastMeter = useRef(0);
+  const frameSize = useRef<{ w: number; h: number } | undefined>(undefined);
+  const [reticle, setReticle] = useState<{ x: number; y: number }>();
+  const tap = async (e: React.PointerEvent<HTMLDivElement>) => {
+    const f = frameSize.current;
+    if (!f || !p.crew.focusAt) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const at = { x: e.clientX - r.left, y: e.clientY - r.top };
+    setReticle(at);
+    const pt = tapToFrame(at, { w: r.width, h: r.height }, f, p.mirrorLiveView ?? true);
+    try {
+      await p.crew.focusAt(pt.x, pt.y);
+      setMeter((m) => m && { now: m.now, peak: m.now });
+    } catch (err) {
+      setInfo(errText(err));
+    } finally {
+      setTimeout(() => setReticle(undefined), 1200);
+    }
+  };
   const onFrame = ({ source, width, height }: LiveFrame) => {
+    frameSize.current = { w: width, h: height };
     const t = performance.now();
     if (t - lastMeter.current < METER_MS) return;
     lastMeter.current = t;
@@ -75,6 +111,21 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
   return (
     <div className="relative h-full w-full">
       <LiveView key={liveRun} onFrame={onFrame} />
+      {p.crew.focusAt && (
+        // biome-ignore lint/a11y/noStaticElementInteractions: area ketuk live view (crew, layar sentuh)
+        <div
+          data-testid="tap-focus"
+          className="absolute inset-0"
+          onPointerDown={(e) => void tap(e)}
+        >
+          {reticle && (
+            <span
+              style={{ left: reticle.x - 60, top: reticle.y - 60 }}
+              className="absolute size-[120px] animate-[tick_300ms_ease-out] rounded-[18px] border-4 border-dashed border-white"
+            />
+          )}
+        </div>
+      )}
       <div className="absolute top-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-3">
         {p.crew.focus && (
           <div className="flex items-center gap-2 rounded-[20px] border-[2.5px] border-ink bg-paper p-2">
@@ -92,6 +143,11 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
             ))}
             <span className="pr-3 text-lg text-text-2">{copy.crew.focusFar}</span>
           </div>
+        )}
+        {p.crew.focusAt && (
+          <p className="rounded-full border-2 border-ink bg-white px-5 py-2 text-lg font-semibold">
+            {copy.crew.tapToFocus}
+          </p>
         )}
         {meter && (
           <p

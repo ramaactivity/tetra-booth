@@ -61,6 +61,10 @@ public sealed class Dispatcher(IPrinterAdapter printer, ICameraSource? camera = 
                 "liveview.stop" => await LiveView(id, type, false),
                 "camera.props" => Reply(id, type, camera is null ? [] : await camera.PropsAsync()),
                 "camera.setProp" => await SetProp(id, type, payload),
+                "camera.focusAt" => Reply(id, type, new
+                {
+                    ok = camera is not null && await camera.FocusAtAsync(Number(payload, "x"), Number(payload, "y")),
+                }),
                 "camera.focus" => Reply(id, type, new
                 {
                     ok = camera is not null && await camera.FocusAsync(RequiredString(payload, "step")),
@@ -156,6 +160,12 @@ public sealed class Dispatcher(IPrinterAdapter printer, ICameraSource? camera = 
             return string.IsNullOrEmpty(v) ? throw new BadPayload($"{key} wajib diisi") : v;
         }
         catch (InvalidOperationException) { throw new BadPayload($"{key} harus string"); }
+    }
+
+    private static double Number(JsonNode? p, string key)
+    {
+        try { return p?[key]?.GetValue<double>() ?? throw new BadPayload($"{key} wajib diisi"); }
+        catch (Exception e) when (e is InvalidOperationException or FormatException) { throw new BadPayload($"{key} harus angka"); }
     }
 
     private static int PositiveInt(JsonNode? p, string key)

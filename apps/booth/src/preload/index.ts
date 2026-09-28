@@ -38,6 +38,7 @@ const bridge: TetraBridge = {
   crewCameraProps: () => ipcRenderer.invoke("crewCameraProps"),
   crewSetCameraProp: (n, v) => ipcRenderer.invoke("crewSetCameraProp", n, v),
   crewFocus: (step) => ipcRenderer.invoke("crewFocus", step),
+  crewFocusAt: (x, y) => ipcRenderer.invoke("crewFocusAt", x, y),
   crewEventSettings: (id) => ipcRenderer.invoke("crewEventSettings", id),
   crewSetEventSettings: (id, o) => ipcRenderer.invoke("crewSetEventSettings", id, o),
   crewInstallUpdate: () => ipcRenderer.invoke("crewInstallUpdate"),

@@ -415,6 +415,13 @@ export function registerIpc(
       await Promise.all(CAMERA_PROPS.map(([name, label]) => dccProp(base, name, label)))
     ).filter((p) => p !== null);
   });
+  ipcMain.handle("crewFocusAt", async (_e, x: unknown, y: unknown) => {
+    crewOnly();
+    if (!canonOn) throw new Error("Tap to focus hanya untuk DSLR Canon (EDSDK)");
+    const at = { x: z.number().min(0).max(1).parse(x), y: z.number().min(0).max(1).parse(y) };
+    await request({ id: crypto.randomUUID(), type: "camera.focusAt", payload: at }, 8000);
+    console.info(`[camera] fokus di ${at.x.toFixed(2)},${at.y.toFixed(2)}`);
+  });
   ipcMain.handle("crewFocus", async (_e, step: unknown) => {
     crewOnly();
     if (!config.liveView) throw new Error("Kontrol fokus hanya untuk DSLR dengan live view");

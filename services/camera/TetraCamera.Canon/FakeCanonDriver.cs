@@ -54,6 +54,7 @@ public sealed class FakeCanonDriver : ICanonDriver
     public void SetLiveView(bool on) => LiveView = on;
     public byte[]? LiveViewFrame() => LiveView && IsOpen ? Jpeg : null;
     public void Focus(string step) => FocusSteps.Add(step);
+    public void FocusAt(double x, double y) => FocusSteps.Add($"at {x:0.00},{y:0.00}");
 
     /// <summary>Setelan kamera palsu: ISO 100, 1/125, f/5.6, Auto; beberapa pilihan per setelan.</summary>
     public Dictionary<uint, uint> Props { get; } =

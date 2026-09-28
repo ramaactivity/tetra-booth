@@ -19,6 +19,8 @@ public interface ICanonDriver : IDisposable
     byte[]? LiveViewFrame();
     /// <summary>`af`, `near1..3`, `far1..3`.</summary>
     void Focus(string step);
+    /// <summary>Tap to focus: pindahkan area AF live view ke titik (0–1 di frame kamera, tanpa cermin), lalu AF.</summary>
+    void FocusAt(double x, double y);
     /// <summary>Nilai setelan saat ini (kode EDSDK).</summary>
     uint GetProp(uint propId);
     /// <summary>Kode yang bisa dipilih sekarang (bergantung mode dial & lensa).</summary>

@@ -163,6 +163,14 @@ public sealed class CanonCamera : ICameraSource, IDisposable
         return true;
     }
 
+    public async Task<bool> FocusAtAsync(double x, double y)
+    {
+        if (x is < 0 or > 1 || y is < 0 or > 1) throw new CameraFailure("bad_focus", "titik fokus harus 0–1");
+        RequireConnected();
+        await Run(() => { _driver.FocusAt(x, y); return 0; });
+        return true;
+    }
+
     /// <summary>Setelan yang terbaca (mode dial yang mengunci satu setelan = opsinya kosong, tetap ditampilkan).</summary>
     public async Task<IReadOnlyList<CameraProp>> PropsAsync()
     {

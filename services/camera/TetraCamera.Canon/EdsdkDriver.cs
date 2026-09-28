@@ -152,6 +152,16 @@ public sealed class EdsdkDriver : ICanonDriver
         finally { EdsRelease(stream); }
     }
 
+    public void FocusAt(double x, double y)
+    {
+        Check(EdsGetPropertyData(_cam, PropEvfCoordinateSystem, 0, 8, out Size sys), "koordinat live view");
+        // Posisi = sudut kiri-atas area zoom/AF live view (±1/5 frame): digeser supaya titik ketuk di tengahnya.
+        int Pos(double v, int size) => Math.Clamp((int)(v * size - size / 10.0), 0, size - size / 5);
+        var p = new Point { X = Pos(x, sys.Width), Y = Pos(y, sys.Height) };
+        Check(EdsSetPropertyData(_cam, PropEvfZoomPosition, 0, 8, ref p), "posisi AF");
+        Focus("af");
+    }
+
     public void Focus(string step)
     {
         if (step == "af")
@@ -173,7 +183,7 @@ public sealed class EdsdkDriver : ICanonDriver
 
     public uint GetProp(uint propId)
     {
-        Check(EdsGetPropertyData(_cam, propId, 0, sizeof(uint), out var v), "baca setelan");
+        Check(EdsGetPropertyData(_cam, propId, 0, sizeof(uint), out uint v), "baca setelan");
         return v;
     }
 

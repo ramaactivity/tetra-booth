@@ -197,6 +197,7 @@ export const copy = {
     focusNear: "dekat",
     focusFar: "jauh",
     focusMeter: "ketajaman live view",
+    tapToFocus: "Ketuk subjek di live view untuk fokus",
     focusPeak: "puncak",
     afBeforeCapture: "AF sebelum tiap jepret",
     paper: (r: number, c: number) => `Kertas ${r} / ${c} lembar`,
