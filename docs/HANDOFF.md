@@ -196,6 +196,8 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 ## Untuk Windows: uji Canon EDSDK (#111) — saat laptop, 60D, dan DNP kembali
 1. Salin DLL Canon (dari paket SDK yang Rama unduh; **link/password jangan ditulis di issue/repo — public**): `Windows\EDSDK_64\Dll\EDSDK.dll` + `EdsImage.dll` → `%APPDATA%\TetraBooth\edsdk\`.
 2. Tutup digiCamControl / EOS Utility (hanya satu aplikasi boleh memegang kamera). 60D: USB, mode M, kualitas JPEG (bukan RAW), auto power off terserah (diperpanjang tiap jepret).
+   - 60D (bodi lama): menu **Live View shoot: Enable** harus aktif, kalau tidak frame EVF tidak pernah siap (log berulang `frame live view gagal` / tidak ada gambar). AF lewat live view mengikuti **AF mode Live** di menu kamera; fokus manual butuh lensa di posisi AF.
+   - Setelan ISO/shutter/aperture/WB muncul di Kamera & Printer (dial di M supaya semuanya bisa diubah).
 3. Booth dev dari source: `electron apps/booth --camera=canon` (atau mode crew → Kamera & Printer → **DSLR Canon (EDSDK)** → Simpan). Cek log `[canon] tersambung: Canon EOS 60D`.
 4. Uji: fps live view (target ≥ 20), 3 sesi jepret + cetak DNP, AF & fokus manual di Tes Jepret, "AF sebelum jepret", cabut USB di attract & di tengah countdown (harus `[canon] kamera terputus, menyambung ulang` lalu tersambung lagi), matikan-nyalakan kamera. Laporan `docs/reports/windows/<tanggal>-edsdk-60d.md`, kalau ada error sertakan kode `0x…` dari log.
 
