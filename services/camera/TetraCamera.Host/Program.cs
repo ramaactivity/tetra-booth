@@ -13,7 +13,7 @@ var paperFitMargin = false;
 string? printer2x6x2 = null;
 Uri? hotFolderTrigger = null;
 // Canon EDSDK (DECISIONS #111): folder berisi EDSDK.dll, atau "fake" (kamera simulasi untuk dev/e2e).
-string? canon = null;
+string? canon = null, canonSettings = null;
 for (var i = 0; i + 1 < args.Length; i++)
 {
     switch (args[i])
@@ -34,6 +34,7 @@ for (var i = 0; i + 1 < args.Length; i++)
             break;
         case "--hot-folder-trigger": hotFolderTrigger = new Uri(args[i + 1]); break;
         case "--canon": canon = args[i + 1]; break;
+        case "--canon-settings": canonSettings = Path.GetFullPath(args[i + 1]); break;
     }
 }
 var tokenBytes = Encoding.UTF8.GetBytes(token);
@@ -61,7 +62,8 @@ if (canon is not null)
     {
         var cam = new TetraCamera.Canon.CanonCamera(canon == "fake"
             ? new TetraCamera.Canon.FakeCanonDriver()
-            : new TetraCamera.Canon.EdsdkDriver(Path.GetFullPath(canon)));
+            : new TetraCamera.Canon.EdsdkDriver(Path.GetFullPath(canon)),
+            settingsPath: canonSettings);
         cam.ConnectionChanged += on => events.Publish(Dispatcher.CameraEvent(cam, on));
         camera = cam;
     }

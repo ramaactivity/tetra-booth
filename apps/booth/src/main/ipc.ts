@@ -432,7 +432,13 @@ export function registerIpc(
   ipcMain.handle("crewSetCameraProp", async (_e, name: unknown, value: unknown) => {
     crewOnly();
     const base = dccBase();
-    const n = z.enum(CAMERA_PROPS.map(([k]) => k) as [string, ...string[]]).parse(name);
+    // Canon punya setelan tambahan: ISO jepret (flash) & kualitas JPEG (#113).
+    const n = z
+      .enum([...CAMERA_PROPS.map(([k]) => k), ...(canonOn ? ["iso_capture", "quality"] : [])] as [
+        string,
+        ...string[],
+      ])
+      .parse(name);
     const v = z.string().min(1).max(64).parse(value);
     if (canonOn) {
       await request(

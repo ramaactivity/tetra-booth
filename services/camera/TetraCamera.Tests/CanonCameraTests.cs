@@ -127,6 +127,24 @@ public class CanonCameraTests
     }
 
     [Fact]
+    public async Task Setelan_disimpan_ke_file_dan_dipasang_lagi_saat_kamera_tersambung()
+    {
+        var file = Path.Combine(Path.GetTempPath(), $"tc-set-{Guid.NewGuid():N}.json");
+        var d = new FakeCanonDriver();
+        using (var cam = new CanonCamera(d, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(10), file))
+        {
+            await Until(() => cam.Connected);
+            await cam.SetPropAsync("iso", "ISO 400");
+            await cam.SetPropAsync("iso_capture", "ISO 200");
+        }
+        // Kamera baru dinyalakan (setelan pabrik) + Camera Service baru: setelan dari file dipasang lagi.
+        var d2 = new FakeCanonDriver();
+        using var cam2 = new CanonCamera(d2, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(10), file);
+        await Until(() => cam2.Connected && d2.Props[0x402] == 0x58);
+        Assert.Equal("ISO 200", (await cam2.PropsAsync()).Single(p => p.Name == "iso_capture").Value);
+    }
+
+    [Fact]
     public async Task Dispatcher_Canon_list_liveview_focus_capture()
     {
         using var cam = Make(new FakeCanonDriver());

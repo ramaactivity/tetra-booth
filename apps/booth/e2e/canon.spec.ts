@@ -77,9 +77,11 @@ test("canon (EDSDK palsu): setelan ISO dari kamera tampil & bisa diubah di mode 
     await typePin(w, "2468");
     await typePin(w, "2468");
     await w.getByRole("button", { name: "Kamera & Printer" }).click();
-    await expect(w.getByText("ISO · ISO 100")).toBeVisible({ timeout: 10_000 });
-    await w.getByRole("button", { name: "ISO 800", exact: true }).click();
-    await expect(w.getByText("ISO · ISO 800")).toBeVisible();
+    await expect(w.getByText("ISO live view · ISO 100")).toBeVisible({ timeout: 10_000 });
+    await expect(w.getByText("ISO jepret (flash) · Sama dengan live view")).toBeVisible();
+    await expect(w.getByText("Kualitas · JPEG L Fine")).toBeVisible();
+    await w.getByRole("button", { name: "ISO 800", exact: true }).first().click();
+    await expect(w.getByText("ISO live view · ISO 800")).toBeVisible();
     await w.screenshot({ path: "test-results/canon-crew.png" });
   } finally {
     await app.close();

@@ -84,6 +84,10 @@ export async function startCameraService(
     ...extraArgs,
     "--print-journal",
     join(app.getPath("userData"), "print-journal.log"),
+    // Setelan Canon dari mode crew, dipasang ulang tiap kamera tersambung (#113).
+    ...(cameraServiceFlags.args.includes("--canon")
+      ? ["--canon-settings", join(app.getPath("userData"), "canon-settings.json")]
+      : []),
   ];
   log(`[supervisor] ${bin} port ${port} ${args.join(" ")}`);
 

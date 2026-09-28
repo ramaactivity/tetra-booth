@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
 using TetraCamera.HotFolder;
 
 namespace TetraCamera.Canon;
@@ -22,12 +23,22 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     private (string Model, string Serial)? _info;
     /// <summary>ISO jepret (#113); null = sama dengan live view.</summary>
     private volatile string? _isoCapture;
+    /// <summary>File setelan crew (nama → label); dipasang ulang tiap kamera tersambung (#113).</summary>
+    private readonly string? _settingsPath;
+    private readonly Dictionary<string, string> _saved;
 
     /// <summary>Kamera tersambung (true) / terputus (false); dipanggil dari thread SDK.</summary>
     public event Action<bool>? ConnectionChanged;
 
-    public CanonCamera(ICanonDriver driver, TimeSpan? reconnect = null, TimeSpan? frameEvery = null)
+    public CanonCamera(
+        ICanonDriver driver,
+        TimeSpan? reconnect = null,
+        TimeSpan? frameEvery = null,
+        string? settingsPath = null)
     {
+        _settingsPath = settingsPath;
+        _saved = Load(settingsPath);
+        if (_saved.TryGetValue(CanonProps.IsoCapture.Name, out var ic)) _isoCapture = ic;
         _driver = driver;
         _reconnect = reconnect ?? TimeSpan.FromSeconds(2);
         _frameEvery = frameEvery ?? TimeSpan.FromMilliseconds(33);
@@ -68,6 +79,11 @@ public sealed class CanonCamera : ICameraSource, IDisposable
                     if (info is null) continue;
                     _info = info;
                     Console.WriteLine($"[canon] tersambung: {info.Value.Model}");
+                    foreach (var (name, value) in _saved)
+                    {
+                        try { ApplyProp(name, value); }
+                        catch (Exception e) { Console.Error.WriteLine($"[canon] setelan {name}={value} tidak dipasang: {e.Message}"); }
+                    }
                     ConnectionChanged?.Invoke(true);
                     if (_live) _driver.SetLiveView(true);
                 }
@@ -180,15 +196,45 @@ public sealed class CanonCamera : ICameraSource, IDisposable
             if (!CanonProps.IsoCapture.Values.Values.Contains(value))
                 throw new CameraFailure("bad_prop", $"nilai '{value}' tidak dikenal untuk ISO jepret");
             _isoCapture = value == CanonProps.SameAsLiveLabel ? null : value;
+            Save(name, value);
             return;
         }
         RequireConnected();
+        await Run(() => { ApplyProp(name, value); return 0; });
+        Save(name, value);
+    }
+
+    /// <summary>Pasang satu setelan ke kamera (thread SDK). Label tak dikenal = CameraFailure.</summary>
+    private void ApplyProp(string name, string value)
+    {
+        if (name == CanonProps.IsoCapture.Name) return; // virtual, dipakai saat jepret
         var d = CanonProps.All.FirstOrDefault(x => x.Name == name)
             ?? throw new CameraFailure("bad_prop", $"setelan '{name}' tidak dikenal");
-        var code = d.Values.FirstOrDefault(kv => kv.Value == value).Key;
-        if (!d.Values.ContainsKey(code) || d.Values[code] != value)
-            throw new CameraFailure("bad_prop", $"nilai '{value}' tidak dikenal untuk {d.Label}");
-        await Run(() => { _driver.SetProp(d.PropId, code); return 0; });
+        var code = d.Values.Where(kv => kv.Value == value).Select(kv => (uint?)kv.Key).FirstOrDefault()
+            ?? throw new CameraFailure("bad_prop", $"nilai '{value}' tidak dikenal untuk {d.Label}");
+        _driver.SetProp(d.PropId, code);
+    }
+
+    private static Dictionary<string, string> Load(string? path)
+    {
+        try
+        {
+            return path is not null && File.Exists(path)
+                ? JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path)) ?? []
+                : [];
+        }
+        catch (Exception e) when (e is IOException or JsonException) { return []; }
+    }
+
+    private void Save(string name, string value)
+    {
+        lock (_saved)
+        {
+            _saved[name] = value;
+            if (_settingsPath is null) return;
+            try { File.WriteAllText(_settingsPath, JsonSerializer.Serialize(_saved)); }
+            catch (IOException e) { Console.Error.WriteLine($"[canon] setelan tidak tersimpan: {e.Message}"); }
+        }
     }
 
     public void Dispose()
