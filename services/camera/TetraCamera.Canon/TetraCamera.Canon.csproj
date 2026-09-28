@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- EDSDK: taruh DLL Canon di folder sdk/ (tidak di-commit). Disalin ke output jika ada. -->
+  <!-- EDSDK: DLL Canon tidak di-commit (lisensi). Dev: taruh di sdk/ (disalin ke output); booth: flag canon berisi folder DLL. -->
   <ItemGroup>
     <None Include="sdk/**/*.dll" CopyToOutputDirectory="PreserveNewest" LinkBase="" />
+    <EmbeddedResource Include="fake.jpg" LogicalName="TetraCamera.Canon.fake.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../TetraCamera.HotFolder/TetraCamera.HotFolder.csproj" />
   </ItemGroup>
 </Project>

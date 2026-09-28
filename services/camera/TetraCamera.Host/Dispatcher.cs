@@ -9,7 +9,7 @@ namespace TetraCamera.Host;
 /// Menerima pesan teks JSON `{ id, type, payload }`, membalas dengan `id` yang sama. TSD §2.
 /// Skema: packages/shared/src/camera-protocol.ts. Perintah kamera ditambah bersama sumber kamera simulasi (M1).
 /// </summary>
-public sealed class Dispatcher(IPrinterAdapter printer, HotFolderCamera? camera = null)
+public sealed class Dispatcher(IPrinterAdapter printer, ICameraSource? camera = null)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private readonly DateTime _startedAt = DateTime.UtcNow;
@@ -38,23 +38,31 @@ public sealed class Dispatcher(IPrinterAdapter printer, HotFolderCamera? camera 
                 "system.health" => Reply(id, type, new
                 {
                     uptime = (DateTime.UtcNow - _startedAt).TotalSeconds,
-                    camera = camera is null ? "disconnected" : "connected",
+                    camera = camera?.Connected == true ? "connected" : "disconnected",
                     printer = State((await printer.GetStatusAsync(ct)).State),
                     workingSetMb = Math.Round(Environment.WorkingSet / 1048576.0, 1),
                     handles = System.Diagnostics.Process.GetCurrentProcess().HandleCount,
                 }),
-                "camera.list" => Reply(id, type, camera is null
+                "camera.list" => Reply(id, type, camera is not { Connected: true }
                     ? Array.Empty<object>()
-                    : [new { id = "hotfolder", brand = "hotfolder", model = "Hot folder", serial = camera.Folder }]),
-                "camera.connect" => Reply(id, type, new { ok = camera is not null && RequiredString(payload, "id") == "hotfolder" }),
+                    : [new { id = camera.Id, brand = camera.Brand, model = camera.Model, serial = camera.Serial }]),
+                "camera.connect" => Reply(id, type, new
+                {
+                    ok = camera is { Connected: true } && RequiredString(payload, "id") == camera.Id,
+                }),
                 "camera.status" => Reply(id, type, new
                 {
-                    connected = camera is not null,
-                    model = camera is null ? null : "Hot folder",
+                    connected = camera?.Connected == true,
+                    model = camera?.Model,
                     battery = (int?)null,
                     shotsRemaining = (int?)null,
                 }),
-                "liveview.start" or "liveview.stop" => Error(id, "unsupported", "hot folder tidak punya live view"),
+                "liveview.start" => await LiveView(id, type, true),
+                "liveview.stop" => await LiveView(id, type, false),
+                "camera.focus" => Reply(id, type, new
+                {
+                    ok = camera is not null && await camera.FocusAsync(RequiredString(payload, "step")),
+                }),
                 "capture" => await Capture(id, type, payload, ct),
                 "print.submit" => await PrintSubmit(id, type, payload, ct),
                 "print.status" => await PrintStatus(id, type, payload, ct),
@@ -68,7 +76,7 @@ public sealed class Dispatcher(IPrinterAdapter printer, HotFolderCamera? camera 
 
     private async Task<string> Capture(string id, string type, JsonNode? p, CancellationToken ct)
     {
-        if (camera is null) throw new CameraFailure("no_camera", "tidak ada kamera (jalankan dengan --hot-folder)");
+        if (camera is null) throw new CameraFailure("no_camera", "tidak ada kamera (jalankan dengan --hot-folder atau --canon)");
         RequiredString(p, "sessionId");
         var outputDir = RequiredString(p, "outputDir");
         if (!Path.IsPathFullyQualified(outputDir)) throw new BadPayload("outputDir harus path absolut");
@@ -79,6 +87,24 @@ public sealed class Dispatcher(IPrinterAdapter printer, HotFolderCamera? camera 
         var r = await camera.CaptureAsync(outputDir, index, ct);
         return Reply(id, type, new { path = r.Path, width = r.Width, height = r.Height });
     }
+
+    private async Task<string> LiveView(string id, string type, bool on)
+    {
+        if (camera is null) throw new CameraFailure("no_camera", "tidak ada kamera");
+        if (!on)
+        {
+            await camera.StopLiveViewAsync();
+            return Reply(id, type, new { ok = true });
+        }
+        return await camera.StartLiveViewAsync()
+            ? Reply(id, type, new { ok = true })
+            : Error(id, "unsupported", "sumber kamera ini tidak punya live view");
+    }
+
+    /// <summary>Kamera tersambung / terputus → event `camera.connected` / `camera.disconnected`.</summary>
+    public static string CameraEvent(ICameraSource c, bool connected) => connected
+        ? Event("camera.connected", new { id = c.Id, brand = c.Brand, model = c.Model ?? "", serial = c.Serial })
+        : Event("camera.disconnected", new { id = c.Id });
 
     private async Task<string> PrintSubmit(string id, string type, JsonNode? p, CancellationToken ct)
     {

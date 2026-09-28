@@ -14,7 +14,7 @@ public sealed record CaptureResult(string Path, int Width, int Height);
 /// ponytail: folder dipindai tiap 100 ms, bukan FileSystemWatcher (yang bisa kehilangan event dan berbeda
 /// perilaku antar OS). Cukup untuk folder berisi puluhan file; ganti ke watcher kalau foldernya ribuan file.
 /// </summary>
-public sealed class HotFolderCamera
+public sealed class HotFolderCamera : ICameraSource
 {
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(10);
     /// <summary>File yang tersimpan sesaat sebelum capture diminta tetap dihitung (tamu/operator menekan sedikit lebih cepat).</summary>
@@ -42,6 +42,15 @@ public sealed class HotFolderCamera
     }
 
     public string Folder { get; }
+    public string Brand => "hotfolder";
+    public string Id => "hotfolder";
+    public bool Connected => true;
+    public string? Model => "Hot folder";
+    public string Serial => Folder;
+    public byte[]? LatestFrame => null;
+    public Task<bool> StartLiveViewAsync() => Task.FromResult(false);
+    public Task StopLiveViewAsync() => Task.CompletedTask;
+    public Task<bool> FocusAsync(string step) => Task.FromResult(false);
 
     private IEnumerable<FileInfo> Candidates() =>
         new DirectoryInfo(Folder).EnumerateFiles()

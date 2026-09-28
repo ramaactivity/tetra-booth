@@ -12,6 +12,8 @@ var paperFitMargin = false;
 (double X, double Y)? printOffset = null;
 string? printer2x6x2 = null;
 Uri? hotFolderTrigger = null;
+// Canon EDSDK (DECISIONS #111): folder berisi EDSDK.dll, atau "fake" (kamera simulasi untuk dev/e2e).
+string? canon = null;
 for (var i = 0; i + 1 < args.Length; i++)
 {
     switch (args[i])
@@ -31,6 +33,7 @@ for (var i = 0; i + 1 < args.Length; i++)
             if (printOffset is null) Console.Error.WriteLine($"--print-offset '{args[i + 1]}' tidak valid (format \"x,y\" dalam 1/100 in), diabaikan");
             break;
         case "--hot-folder-trigger": hotFolderTrigger = new Uri(args[i + 1]); break;
+        case "--canon": canon = args[i + 1]; break;
     }
 }
 var tokenBytes = Encoding.UTF8.GetBytes(token);
@@ -51,8 +54,29 @@ IPrinterAdapter printer = OperatingSystem.IsWindows()
     : new NullPrinterAdapter();
 var events = new EventHub();
 printer.Event += e => events.Publish(Dispatcher.SerializeEvent(e));
-var camera = hotFolder is null ? null : new TetraCamera.HotFolder.HotFolderCamera(hotFolder, trigger: hotFolderTrigger);
+TetraCamera.HotFolder.ICameraSource? camera = null;
+if (canon is not null)
+{
+    try
+    {
+        var cam = new TetraCamera.Canon.CanonCamera(canon == "fake"
+            ? new TetraCamera.Canon.FakeCanonDriver()
+            : new TetraCamera.Canon.EdsdkDriver(Path.GetFullPath(canon)));
+        cam.ConnectionChanged += on => events.Publish(Dispatcher.CameraEvent(cam, on));
+        camera = cam;
+    }
+    catch (TetraCamera.HotFolder.CameraFailure e) { Console.Error.WriteLine($"Canon EDSDK tidak dipakai: {e.Message}"); }
+}
+camera ??= hotFolder is null ? null : new TetraCamera.HotFolder.HotFolderCamera(hotFolder, trigger: hotFolderTrigger);
 var dispatcher = new Dispatcher(printer, camera);
+
+// Frame live view terbaru (Canon): diambil berulang oleh Electron main, sama seperti /liveview.jpg digiCamControl.
+app.MapGet("/liveview.jpg", (HttpContext ctx) =>
+{
+    var provided = Encoding.UTF8.GetBytes(ctx.Request.Query["token"].ToString());
+    if (!CryptographicOperations.FixedTimeEquals(provided, tokenBytes)) return Results.Unauthorized();
+    return camera?.LatestFrame is { } f ? Results.File(f, "image/jpeg") : Results.NoContent();
+});
 
 app.Map("/ws", async (HttpContext ctx) =>
 {
@@ -68,6 +92,6 @@ app.Map("/ws", async (HttpContext ctx) =>
 });
 
 Console.WriteLine($"TetraCamera siap di ws://127.0.0.1:{port}/ws");
-if (camera is not null) Console.WriteLine($"Kamera: hot folder {camera.Folder}");
+if (camera is not null) Console.WriteLine($"Kamera: {camera.Brand} ({camera.Serial})");
 if (printerName is not null) Console.WriteLine($"Printer: {printerName} (4R: {paper4R ?? "ukuran 4x6"}, 2x6x2: {paper2x6x2 ?? "-"}{(paperFitMargin ? ", mode ber-margin" : "")})");
 app.Run();
