@@ -22,6 +22,9 @@ export const CommandSchema = z.discriminatedUnion("type", [
   cmd("liveview.stop", empty),
   /** Canon EDSDK (#111): `af`, `near1..3`, `far1..3`. */
   cmd("camera.focus", z.object({ step: z.string().min(1) })),
+  /** Setelan eksposur Canon (#111): ISO/shutter/aperture/WB, nilai = label (mis. "ISO 400"). */
+  cmd("camera.props", empty),
+  cmd("camera.setProp", z.object({ name: z.string().min(1), value: z.string().min(1) })),
   cmd(
     "capture",
     z.object({
@@ -67,6 +70,15 @@ export const ResultSchemas = {
   "liveview.start": z.object({ ok: z.boolean() }),
   "liveview.stop": z.object({ ok: z.boolean() }),
   "camera.focus": z.object({ ok: z.boolean() }),
+  "camera.props": z.array(
+    z.object({
+      name: z.string(),
+      label: z.string(),
+      value: z.string(),
+      options: z.array(z.string()),
+    }),
+  ),
+  "camera.setProp": z.object({ ok: z.boolean() }),
   capture: z.object({ path: z.string(), width: z.number().int(), height: z.number().int() }),
   "print.submit": z.object({ accepted: z.boolean() }),
   "print.status": z.object({ status: PrintJobStatusSchema, error: z.string().optional() }),

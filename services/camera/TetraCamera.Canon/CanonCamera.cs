@@ -131,6 +131,33 @@ public sealed class CanonCamera : ICameraSource, IDisposable
         return true;
     }
 
+    /// <summary>Setelan yang terbaca (mode dial yang mengunci satu setelan = opsinya kosong, tetap ditampilkan).</summary>
+    public async Task<IReadOnlyList<CameraProp>> PropsAsync()
+    {
+        if (!Connected) return [];
+        return await Run(() => CanonProps.All.Select(d =>
+        {
+            try
+            {
+                var v = _driver.GetProp(d.PropId);
+                var opts = _driver.PropOptions(d.PropId).Where(d.Values.ContainsKey).Select(o => d.Values[o]).ToArray();
+                return new CameraProp(d.Name, d.Label, d.Values.GetValueOrDefault(v, $"0x{v:X}"), opts);
+            }
+            catch (CameraFailure) { return null; }
+        }).OfType<CameraProp>().ToList());
+    }
+
+    public async Task SetPropAsync(string name, string value)
+    {
+        RequireConnected();
+        var d = CanonProps.All.FirstOrDefault(x => x.Name == name)
+            ?? throw new CameraFailure("bad_prop", $"setelan '{name}' tidak dikenal");
+        var code = d.Values.FirstOrDefault(kv => kv.Value == value).Key;
+        if (!d.Values.ContainsKey(code) || d.Values[code] != value)
+            throw new CameraFailure("bad_prop", $"nilai '{value}' tidak dikenal untuk {d.Label}");
+        await Run(() => { _driver.SetProp(d.PropId, code); return 0; });
+    }
+
     public void Dispose()
     {
         _stop = true;

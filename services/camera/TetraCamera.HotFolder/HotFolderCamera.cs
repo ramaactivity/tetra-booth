@@ -51,6 +51,9 @@ public sealed class HotFolderCamera : ICameraSource
     public Task<bool> StartLiveViewAsync() => Task.FromResult(false);
     public Task StopLiveViewAsync() => Task.CompletedTask;
     public Task<bool> FocusAsync(string step) => Task.FromResult(false);
+    public Task<IReadOnlyList<CameraProp>> PropsAsync() => Task.FromResult<IReadOnlyList<CameraProp>>([]);
+    public Task SetPropAsync(string name, string value) =>
+        throw new CameraFailure("unsupported", "hot folder tidak punya setelan kamera");
 
     private IEnumerable<FileInfo> Candidates() =>
         new DirectoryInfo(Folder).EnumerateFiles()

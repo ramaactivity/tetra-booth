@@ -171,6 +171,28 @@ public sealed class EdsdkDriver : ICanonDriver
         Check(EdsSendCommand(_cam, CmdDriveLensEvf, code), "fokus manual");
     }
 
+    public uint GetProp(uint propId)
+    {
+        Check(EdsGetPropertyData(_cam, propId, 0, sizeof(uint), out var v), "baca setelan");
+        return v;
+    }
+
+    public uint[] PropOptions(uint propId)
+    {
+        Check(EdsGetPropertyDesc(_cam, propId, out var d), "pilihan setelan");
+        return d.PropDesc.Take(Math.Clamp(d.NumElements, 0, 128)).Select(x => (uint)x).ToArray();
+    }
+
+    public void SetProp(uint propId, uint value)
+    {
+        uint busy = 0;
+        uint err;
+        // Kamera sibuk sesaat (mis. sedang mengirim frame) → coba lagi sebentar.
+        while ((err = EdsSetPropertyData(_cam, propId, 0, sizeof(uint), ref value)) == ErrDeviceBusy && busy++ < 10)
+            Thread.Sleep(50);
+        Check(err, "ubah setelan");
+    }
+
     private uint OnObject(uint inEvent, IntPtr inRef, IntPtr _)
     {
         if (inEvent == ObjectEventDirItemRequestTransfer)

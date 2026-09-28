@@ -83,6 +83,28 @@ public class CanonCameraTests
     }
 
     [Fact]
+    public async Task Setelan_ISO_shutter_aperture_WB_terbaca_berlabel_dan_bisa_diubah_lewat_label()
+    {
+        var d = new FakeCanonDriver();
+        using var cam = Make(d);
+        await Until(() => cam.Connected);
+        var props = await cam.PropsAsync();
+        Assert.Equal(["iso", "shutterspeed", "aperture", "whitebalance"], props.Select(p => p.Name));
+        var iso = props[0];
+        Assert.Equal("ISO 100", iso.Value);
+        Assert.Equal(["ISO 100", "ISO 200", "ISO 400", "ISO 800", "ISO 1600"], iso.Options);
+        Assert.Equal("1/125", props[1].Value);
+        Assert.Equal("f/5.6", props[2].Value);
+        Assert.Equal("Auto", props[3].Value);
+        await cam.SetPropAsync("iso", "ISO 800");
+        Assert.Equal(0x60u, d.Props[0x402]);
+        await cam.SetPropAsync("whitebalance", "Shade");
+        Assert.Equal(8u, d.Props[0x106]);
+        await Assert.ThrowsAsync<CameraFailure>(() => cam.SetPropAsync("iso", "ISO 123"));
+        await Assert.ThrowsAsync<CameraFailure>(() => cam.SetPropAsync("zoom", "2x"));
+    }
+
+    [Fact]
     public async Task Dispatcher_Canon_list_liveview_focus_capture()
     {
         using var cam = Make(new FakeCanonDriver());
@@ -101,6 +123,9 @@ public class CanonCameraTests
             payload = new { sessionId = "s", index = 0, outputDir = dir },
         }));
         Assert.Equal(1200, cap.GetProperty("payload").GetProperty("width").GetInt32());
+        var props = (await Send("""{"id":"6","type":"camera.props"}""")).GetProperty("payload");
+        Assert.Equal("ISO 100", props[0].GetProperty("value").GetString());
+        Assert.True((await Send("""{"id":"7","type":"camera.setProp","payload":{"name":"iso","value":"ISO 400"}}""")).GetProperty("payload").GetProperty("ok").GetBoolean());
         var h = (await Send("""{"id":"5","type":"system.health"}""")).GetProperty("payload");
         Assert.Equal("connected", h.GetProperty("camera").GetString());
     }

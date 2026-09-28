@@ -53,5 +53,18 @@ public sealed class FakeCanonDriver : ICanonDriver
     public void SetLiveView(bool on) => LiveView = on;
     public byte[]? LiveViewFrame() => LiveView && IsOpen ? Jpeg : null;
     public void Focus(string step) => FocusSteps.Add(step);
+
+    /// <summary>Setelan kamera palsu: ISO 100, 1/125, f/5.6, Auto; beberapa pilihan per setelan.</summary>
+    public Dictionary<uint, uint> Props { get; } = new() { [0x402] = 0x48, [0x406] = 0x70, [0x405] = 0x30, [0x106] = 0 };
+    private static readonly Dictionary<uint, uint[]> Options = new()
+    {
+        [0x402] = [0x48, 0x50, 0x58, 0x60, 0x68],
+        [0x406] = [0x60, 0x68, 0x70, 0x78, 0x80],
+        [0x405] = [0x20, 0x28, 0x30, 0x38, 0x40],
+        [0x106] = [0, 1, 2, 3, 8],
+    };
+    public uint GetProp(uint propId) => Props[propId];
+    public uint[] PropOptions(uint propId) => Options[propId];
+    public void SetProp(uint propId, uint value) => Props[propId] = value;
     public void Dispose() => Close();
 }

@@ -76,6 +76,48 @@ export function DeviceSheet({
     }
   };
 
+  // DSLR (digiCamControl / Canon EDSDK): AF sebelum jepret + setelan eksposur kamera yang sedang jalan.
+  const dslr = (
+    <>
+      <button
+        type="button"
+        aria-pressed={!!draft.afBeforeCapture}
+        disabled={!info}
+        className={choice(!!draft.afBeforeCapture)}
+        onClick={() => set({ afBeforeCapture: !draft.afBeforeCapture })}
+      >
+        {copy.crew.afBeforeCapture} · {draft.afBeforeCapture ? copy.crew.on : copy.crew.off}
+      </button>
+      {running === camera &&
+        (props === null ? (
+          <p className="text-lg text-text-2">…</p>
+        ) : props.length ? (
+          props.map((x) => (
+            <div key={x.name} className="flex flex-col gap-1.5">
+              <span className={label}>
+                {x.label} · <span className="font-mono">{x.value || "—"}</span>
+              </span>
+              <div className="relative flex gap-2 overflow-x-auto pb-1">
+                {x.options.map((o) => (
+                  <button
+                    key={o}
+                    type="button"
+                    className={chip(o === x.value)}
+                    ref={o === x.value ? centerInRow : undefined}
+                    onClick={() => void setProp(x.name, o)}
+                  >
+                    {o}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-lg text-text-2">{copy.crew.noExposure}</p>
+        ))}
+    </>
+  );
+
   return (
     <Sheet title={copy.crew.device} onClose={onClose}>
       <div className="flex min-h-0 flex-col gap-6 overflow-y-auto pr-1">
@@ -84,7 +126,7 @@ export function DeviceSheet({
             {copy.crew.deviceCamera}
             {locked("camera") && ` · ${copy.crew.deviceLocked}`}
           </p>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {CAMERAS.map((c) => (
               <button
                 key={c}
@@ -108,7 +150,12 @@ export function DeviceSheet({
             ))}
           </div>
 
-          {camera === "canon" && <p className="text-lg text-text-2">{copy.crew.canonNote}</p>}
+          {camera === "canon" && (
+            <div className="flex flex-col gap-3">
+              <p className="text-lg text-text-2">{copy.crew.canonNote}</p>
+              {dslr}
+            </div>
+          )}
 
           {camera === "webcam" && (
             <div className="flex flex-col gap-2">
@@ -147,42 +194,7 @@ export function DeviceSheet({
                   onChange={(e) => set({ hotFolderTrigger: e.target.value })}
                 />
               </label>
-              <button
-                type="button"
-                aria-pressed={!!draft.afBeforeCapture}
-                disabled={!info}
-                className={choice(!!draft.afBeforeCapture)}
-                onClick={() => set({ afBeforeCapture: !draft.afBeforeCapture })}
-              >
-                {copy.crew.afBeforeCapture} · {draft.afBeforeCapture ? copy.crew.on : copy.crew.off}
-              </button>
-              {running === "hotfolder" &&
-                (props === null ? (
-                  <p className="text-lg text-text-2">…</p>
-                ) : props.length ? (
-                  props.map((x) => (
-                    <div key={x.name} className="flex flex-col gap-1.5">
-                      <span className={label}>
-                        {x.label} · <span className="font-mono">{x.value || "—"}</span>
-                      </span>
-                      <div className="relative flex gap-2 overflow-x-auto pb-1">
-                        {x.options.map((o) => (
-                          <button
-                            key={o}
-                            type="button"
-                            className={chip(o === x.value)}
-                            ref={o === x.value ? centerInRow : undefined}
-                            onClick={() => void setProp(x.name, o)}
-                          >
-                            {o}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-lg text-text-2">{copy.crew.noExposure}</p>
-                ))}
+              {dslr}
             </div>
           )}
         </section>

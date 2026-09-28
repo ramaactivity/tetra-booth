@@ -59,6 +59,8 @@ public sealed class Dispatcher(IPrinterAdapter printer, ICameraSource? camera = 
                 }),
                 "liveview.start" => await LiveView(id, type, true),
                 "liveview.stop" => await LiveView(id, type, false),
+                "camera.props" => Reply(id, type, camera is null ? [] : await camera.PropsAsync()),
+                "camera.setProp" => await SetProp(id, type, payload),
                 "camera.focus" => Reply(id, type, new
                 {
                     ok = camera is not null && await camera.FocusAsync(RequiredString(payload, "step")),
@@ -86,6 +88,13 @@ public sealed class Dispatcher(IPrinterAdapter printer, ICameraSource? camera = 
         if (index < 0) throw new BadPayload("index harus ≥ 0");
         var r = await camera.CaptureAsync(outputDir, index, ct);
         return Reply(id, type, new { path = r.Path, width = r.Width, height = r.Height });
+    }
+
+    private async Task<string> SetProp(string id, string type, JsonNode? p)
+    {
+        if (camera is null) throw new CameraFailure("no_camera", "tidak ada kamera");
+        await camera.SetPropAsync(RequiredString(p, "name"), RequiredString(p, "value"));
+        return Reply(id, type, new { ok = true });
     }
 
     private async Task<string> LiveView(string id, string type, bool on)

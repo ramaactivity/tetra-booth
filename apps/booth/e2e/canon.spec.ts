@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { _electron as electron, expect, test } from "@playwright/test";
+import { _electron as electron, expect, type Page, test } from "@playwright/test";
 
 /**
  * Canon EDSDK lewat Camera Service (DECISIONS #111) dengan driver palsu (`--canon fake`): live view dari
@@ -11,6 +11,11 @@ import { _electron as electron, expect, test } from "@playwright/test";
 
 const appDir = join(__dirname, "..");
 const electronPath = createRequire(__filename)("electron") as unknown as string;
+const typePin = async (w: Page, pin: string) => {
+  for (const d of pin) await w.getByRole("button", { name: d, exact: true }).click();
+  await w.getByRole("button", { name: "OK" }).click();
+};
+
 const serviceBin = join(
   appDir,
   "../../services/camera/TetraCamera.Host/bin/Debug/net10.0",
@@ -45,6 +50,37 @@ test("canon (EDSDK palsu): live view dari Camera Service, 3 jepretan sampai laya
       timeout: 30_000,
     });
     await expect(w.locator("main img")).toHaveCount(3);
+  } finally {
+    await app.close();
+  }
+});
+
+test("canon (EDSDK palsu): setelan ISO dari kamera tampil & bisa diubah di mode crew", async () => {
+  test.skip(!existsSync(serviceBin), "Camera Service belum di-build");
+  const env = { ...process.env };
+  delete env.ELECTRON_RUN_AS_NODE;
+  const app = await electron.launch({
+    executablePath: electronPath,
+    args: [
+      appDir,
+      "--camera=canon",
+      "--canon=fake",
+      `--data=${mkdtempSync(join(tmpdir(), "tb-canon-"))}`,
+    ],
+    env: env as Record<string, string>,
+  });
+  try {
+    const w = await app.firstWindow();
+    await expect(w.getByRole("button", { name: /sentuh untuk mulai/i })).toBeVisible();
+    await w.waitForTimeout(1500);
+    for (let i = 0; i < 5; i++) await w.getByTestId("crew-hotspot").click();
+    await typePin(w, "2468");
+    await typePin(w, "2468");
+    await w.getByRole("button", { name: "Kamera & Printer" }).click();
+    await expect(w.getByText("ISO · ISO 100")).toBeVisible({ timeout: 10_000 });
+    await w.getByRole("button", { name: "ISO 800", exact: true }).click();
+    await expect(w.getByText("ISO · ISO 800")).toBeVisible();
+    await w.screenshot({ path: "test-results/canon-crew.png" });
   } finally {
     await app.close();
   }

@@ -64,6 +64,15 @@ internal static class Edsdk
         public int Reset;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct PropertyDesc
+    {
+        public int Form;
+        public int Access;
+        public int NumElements;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 128)] public int[] PropDesc;
+    }
+
     public delegate uint ObjectEventHandler(uint inEvent, IntPtr inRef, IntPtr inContext);
     public delegate uint StateEventHandler(uint inEvent, uint inEventData, IntPtr inContext);
 
@@ -79,6 +88,7 @@ internal static class Edsdk
     [DllImport(Dll)] public static extern uint EdsSendCommand(IntPtr inCameraRef, uint inCommand, int inParam);
     [DllImport(Dll)] public static extern uint EdsSetPropertyData(IntPtr inRef, uint inPropertyId, int inParam, uint inPropertySize, ref uint inPropertyData);
     [DllImport(Dll)] public static extern uint EdsGetPropertyData(IntPtr inRef, uint inPropertyId, int inParam, uint inPropertySize, out uint outPropertyData);
+    [DllImport(Dll)] public static extern uint EdsGetPropertyDesc(IntPtr inRef, uint inPropertyId, out PropertyDesc outPropertyDesc);
     [DllImport(Dll)] public static extern uint EdsSetCapacity(IntPtr inCameraRef, Capacity inCapacity);
     [DllImport(Dll)] public static extern uint EdsSetObjectEventHandler(IntPtr inCameraRef, uint inEvent, ObjectEventHandler inHandler, IntPtr inContext);
     [DllImport(Dll)] public static extern uint EdsSetCameraStateEventHandler(IntPtr inCameraRef, uint inEvent, StateEventHandler inHandler, IntPtr inContext);

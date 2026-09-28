@@ -19,4 +19,9 @@ public interface ICanonDriver : IDisposable
     byte[]? LiveViewFrame();
     /// <summary>`af`, `near1..3`, `far1..3`.</summary>
     void Focus(string step);
+    /// <summary>Nilai setelan saat ini (kode EDSDK).</summary>
+    uint GetProp(uint propId);
+    /// <summary>Kode yang bisa dipilih sekarang (bergantung mode dial & lensa).</summary>
+    uint[] PropOptions(uint propId);
+    void SetProp(uint propId, uint value);
 }

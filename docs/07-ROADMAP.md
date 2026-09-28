@@ -7,7 +7,7 @@ Prinsip:
 
 ## Paralel sejak hari pertama (non-coding)
 - [ ] Daftar merchant Xendit (verifikasi butuh waktu).
-- [ ] Download Canon EDSDK (daftar developer Canon). Diajukan 25 Sep 2026 lewat asia.canon (NIB perorangan, email ramadan@tetraphoto.com, model 60D/700D/70D); balasan 2–4 minggu.
+- [x] Download Canon EDSDK (daftar developer Canon). _(Disetujui 28 Sep 2026, EDSDK 13.20.21; 60D/700D/70D/600D didukung)_
 - [ ] Siapkan laptop booth khusus test + 1 kamera + DNP + roll kertas test.
 - [ ] Tentukan domain pendek.
 
@@ -41,7 +41,7 @@ Prinsip:
 2. Stress test otomatis 500 sesi (kamera simulasi) tanpa crash atau memory leak. _(Selesai 2026-09-25: W-024 500/500 sesi tanpa crash, tanpa tren memori; dinyatakan cukup oleh Rama, DECISIONS #53)_
 
 ## Fase 1b — Kamera DSLR (dipindah dari Fase 1, menunggu EDSDK & kamera)
-- [ ] Camera Service: Canon EDSDK (connect, reconnect, live view, capture).
+- [ ] Camera Service: Canon EDSDK (connect, reconnect, live view, capture). _(Kode selesai & diuji dengan driver palsu di Mac, 28 Sep, DECISIONS #111; menunggu uji 60D di Windows)_
 - [x] Cetak fisik DNP RX1HS 4R & 2x6x2. _(W-022/W-023, 2026-09-25: tanpa tepi putih, offset terkalibrasi `7.335,6.70`; potong 2 inci hanya lewat dialog Printing Preferences, DECISIONS #59. 60D lewat digiCamControl + hot folder sebagai pengganti sementara EDSDK)_
 
 **Selesai jika:**

@@ -408,6 +408,7 @@ export function registerIpc(
   });
   ipcMain.handle("crewCameraProps", async () => {
     crewOnly();
+    if (canonOn) return request({ id: crypto.randomUUID(), type: "camera.props" }, 8000);
     const base = dccBase();
     if (!base) return [];
     return (
@@ -433,6 +434,14 @@ export function registerIpc(
     const base = dccBase();
     const n = z.enum(CAMERA_PROPS.map(([k]) => k) as [string, ...string[]]).parse(name);
     const v = z.string().min(1).max(64).parse(value);
+    if (canonOn) {
+      await request(
+        { id: crypto.randomUUID(), type: "camera.setProp", payload: { name: n, value: v } },
+        8000,
+      );
+      console.info(`[camera] ${n} = ${v}`);
+      return;
+    }
     if (!base) throw new Error("Kamera DSLR (digiCamControl) belum dipakai");
     const res = await dcc(base, { slc: "set", param1: n, param2: v }).catch(() => null);
     if (!res?.ok) throw new Error("digiCamControl menolak setelan. Cek kamera menyala & dial di M");
