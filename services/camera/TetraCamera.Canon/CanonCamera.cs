@@ -20,6 +20,8 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     private volatile bool _live, _stop;
     private volatile byte[]? _frame;
     private (string Model, string Serial)? _info;
+    /// <summary>ISO jepret (#113); null = sama dengan live view.</summary>
+    private volatile string? _isoCapture;
 
     /// <summary>Kamera tersambung (true) / terputus (false); dipanggil dari thread SDK.</summary>
     public event Action<bool>? ConnectionChanged;
@@ -100,13 +102,27 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     public async Task<CaptureResult> CaptureAsync(string outputDir, int index, CancellationToken ct = default)
     {
         RequireConnected();
-        var bytes = await Run(() => _driver.Capture(CaptureTimeout)).WaitAsync(ct);
+        var bytes = await Run(CaptureWithIso).WaitAsync(ct);
         var dims = JpegInfo.ReadSize(new MemoryStream(bytes))
             ?? throw new CameraFailure("capture_unreadable", "kamera mengirim file yang bukan JPEG (set kualitas ke JPEG)");
         Directory.CreateDirectory(outputDir);
         var dst = Path.Combine(outputDir, $"{index + 1}.jpg");
         await File.WriteAllBytesAsync(dst, bytes, ct);
         return new CaptureResult(dst, dims.Width, dims.Height);
+    }
+
+    /// <summary>Jepret; kalau ISO jepret beda dari ISO live view, tukar sebentar lalu kembalikan (flash, #113).</summary>
+    private byte[] CaptureWithIso()
+    {
+        var label = _isoCapture;
+        uint? want = label is null
+            ? null
+            : CanonProps.IsoCapture.Values.Where(kv => kv.Value == label).Select(kv => (uint?)kv.Key).FirstOrDefault();
+        uint live = 0;
+        var swap = want is { } w && w != CanonProps.SameAsLive && (live = _driver.GetProp(CanonProps.IsoProp)) != w;
+        if (swap) _driver.SetProp(CanonProps.IsoProp, want!.Value);
+        try { return _driver.Capture(CaptureTimeout); }
+        finally { if (swap) _driver.SetProp(CanonProps.IsoProp, live); }
     }
 
     public async Task<bool> StartLiveViewAsync()
@@ -135,7 +151,12 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     public async Task<IReadOnlyList<CameraProp>> PropsAsync()
     {
         if (!Connected) return [];
-        return await Run(() => CanonProps.All.Select(d =>
+        var capture = new CameraProp(
+            CanonProps.IsoCapture.Name,
+            CanonProps.IsoCapture.Label,
+            _isoCapture ?? CanonProps.SameAsLiveLabel,
+            []);
+        var list = await Run(() => CanonProps.All.Select(d =>
         {
             try
             {
@@ -145,10 +166,22 @@ public sealed class CanonCamera : ICameraSource, IDisposable
             }
             catch (CameraFailure) { return null; }
         }).OfType<CameraProp>().ToList());
+        // ISO jepret memakai pilihan ISO yang sama dengan kamera, ditambah "Sama dengan live view".
+        if (list.FirstOrDefault(p => p.Name == "iso") is { } iso)
+            list.Insert(1, capture with { Options = [CanonProps.SameAsLiveLabel, .. iso.Options] });
+        return list;
     }
 
     public async Task SetPropAsync(string name, string value)
     {
+        // ISO jepret tidak dikirim ke kamera saat diubah: boleh diset kapan saja.
+        if (name == CanonProps.IsoCapture.Name)
+        {
+            if (!CanonProps.IsoCapture.Values.Values.Contains(value))
+                throw new CameraFailure("bad_prop", $"nilai '{value}' tidak dikenal untuk ISO jepret");
+            _isoCapture = value == CanonProps.SameAsLiveLabel ? null : value;
+            return;
+        }
         RequireConnected();
         var d = CanonProps.All.FirstOrDefault(x => x.Name == name)
             ?? throw new CameraFailure("bad_prop", $"setelan '{name}' tidak dikenal");

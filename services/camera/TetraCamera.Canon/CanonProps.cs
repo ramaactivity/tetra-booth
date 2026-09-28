@@ -7,11 +7,23 @@ namespace TetraCamera.Canon;
 /// </summary>
 public static class CanonProps
 {
-    public sealed record Def(string Name, string Label, uint PropId, IReadOnlyDictionary<uint, string> Values);
+    /// <param name="Virtual">Tidak dikirim ke kamera saat diubah (mis. ISO jepret: dipasang tepat sebelum rana).</param>
+    public sealed record Def(
+        string Name,
+        string Label,
+        uint PropId,
+        IReadOnlyDictionary<uint, string> Values,
+        bool Virtual = false);
+
+    public const uint IsoProp = 0x00000402;
+    /// <summary>"ISO jepret" = ISO live view (tanpa penukaran).</summary>
+    public const uint SameAsLive = 0xFFFFFFFE;
+    public const string SameAsLiveLabel = "Sama dengan live view";
 
     public static readonly Def[] All =
     [
-        new("iso", "ISO", 0x00000402, new Dictionary<uint, string>
+        // ISO kamera saat live view; ISO jepret (#113) dipasang tepat sebelum rana lalu dikembalikan (flash).
+        new("iso", "ISO live view", IsoProp, new Dictionary<uint, string>
         {
             [0x00] = "ISO Auto",
             [0x28] = "ISO 6",
@@ -200,5 +212,27 @@ public static class CanonProps
             [0x09] = "Color temperature",
             [0x17] = "Auto (white priority)",
         }),
+        // Ukuran JPEG (EdsImageQuality di EDSDKTypes.h): lebih kecil = jepret, unduh, & upload lebih cepat.
+        new("quality", "Kualitas", 0x00000100, new Dictionary<uint, string>
+        {
+            [0x0013FF0F] = "JPEG L Fine",
+            [0x0012FF0F] = "JPEG L Normal",
+            [0x0113FF0F] = "JPEG M Fine",
+            [0x0112FF0F] = "JPEG M Normal",
+            [0x0213FF0F] = "JPEG S Fine",
+            [0x0212FF0F] = "JPEG S Normal",
+            [0x0E13FF0F] = "JPEG S1 Fine",
+            [0x0E12FF0F] = "JPEG S1 Normal",
+            [0x0F13FF0F] = "JPEG S2",
+            [0x1013FF0F] = "JPEG S3",
+        }),
     ];
+
+    /// <summary>ISO jepret: nilai ISO + "Sama dengan live view" (bawaan).</summary>
+    public static readonly Def IsoCapture = new(
+        "iso_capture",
+        "ISO jepret (flash)",
+        IsoProp,
+        new Dictionary<uint, string>(All[0].Values) { [SameAsLive] = SameAsLiveLabel },
+        Virtual: true);
 }
