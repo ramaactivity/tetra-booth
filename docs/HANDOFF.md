@@ -194,7 +194,7 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 - Gotcha sesi ini: e2e booth jalankan `--workers=1` (paralel berebut Camera Service); `DOTNET_ROOT` wajib; skrip antrean rilis jangan `pgrep -f dist-dev.mjs` dari shell yang perintahnya memuat teks itu (mencocokkan diri sendiri) — tunggu PID.
 
 ## Untuk Windows: uji Canon EDSDK (#111) — saat laptop, 60D, dan DNP kembali
-1. DLL Canon **otomatis**: pastikan booth sudah dipasangkan & online, pilih DSLR Canon (EDSDK) → booth mengunduh sendiri ke `%APPDATA%\\TetraBooth\\edsdk\\` (log `[edsdk] DLL Canon 13.20.21 diunduh`, #112). Jangan tulis link/password Canon di issue/repo (public).
+1. DLL Canon **otomatis**: pastikan booth sudah dipasangkan & online, pilih DSLR Canon (EDSDK) → booth mengunduh sendiri ke `%APPDATA%\TetraBooth\edsdk\` (log `[edsdk] DLL Canon 13.20.21 diunduh`, #112). Jangan tulis link/password Canon di issue/repo (public).
 2. Tutup digiCamControl / EOS Utility (hanya satu aplikasi boleh memegang kamera). 60D: USB, mode M, kualitas JPEG (bukan RAW), auto power off terserah (diperpanjang tiap jepret).
    - 60D (bodi lama): menu **Live View shoot: Enable** harus aktif, kalau tidak frame EVF tidak pernah siap (log berulang `frame live view gagal` / tidak ada gambar). AF lewat live view mengikuti **AF mode Live** di menu kamera; fokus manual butuh lensa di posisi AF.
    - Setelan ISO/shutter/aperture/WB muncul di Kamera & Printer (dial di M supaya semuanya bisa diubah).
