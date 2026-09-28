@@ -9,7 +9,7 @@ import { Sheet } from "./Sheet";
 
 const DEFAULT_HOT = "C:\\TetraBooth\\hot";
 const DEFAULT_TRIGGER = "http://localhost:5513/?CMD=Capture";
-const CAMERAS = ["webcam", "hotfolder", "simulated"] as const;
+const CAMERAS = ["webcam", "canon", "hotfolder", "simulated"] as const;
 
 const choice = (on: boolean) =>
   `pressable flex min-h-[72px] items-center justify-center rounded-[18px] border-[2.5px] border-ink px-4 text-center text-xl font-bold disabled:opacity-40 ${on ? "bg-mint-soft" : "bg-white"}`;
@@ -84,7 +84,7 @@ export function DeviceSheet({
             {copy.crew.deviceCamera}
             {locked("camera") && ` · ${copy.crew.deviceLocked}`}
           </p>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             {CAMERAS.map((c) => (
               <button
                 key={c}
@@ -107,6 +107,8 @@ export function DeviceSheet({
               </button>
             ))}
           </div>
+
+          {camera === "canon" && <p className="text-lg text-text-2">{copy.crew.canonNote}</p>}
 
           {camera === "webcam" && (
             <div className="flex flex-col gap-2">

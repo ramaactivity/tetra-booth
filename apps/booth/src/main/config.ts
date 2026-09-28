@@ -23,6 +23,7 @@ export const VALUE_FLAGS = [
   "print-offset",
   "printer-2x6x2",
   "digicam-exe",
+  "canon",
 ] as const;
 type ValueFlag = (typeof VALUE_FLAGS)[number];
 
@@ -71,7 +72,7 @@ export const userDir = dataDir ?? join(appData, "TetraBooth");
 
 /** Pengaturan perangkat dari mode crew (DECISIONS #85), satu file per laptop. */
 export const DeviceSettings = z.object({
-  camera: z.enum(["webcam", "simulated", "hotfolder"]).optional(),
+  camera: z.enum(["webcam", "simulated", "hotfolder", "canon"]).optional(),
   webcamId: z.string().max(512).optional(),
   mirrorLiveView: z.boolean().optional(),
   mirrorPhoto: z.boolean().optional(),
@@ -158,11 +159,24 @@ export const digicam =
     ? { exe: flags.value("digicam-exe") }
     : undefined;
 
+/**
+ * `--camera=canon`: DSLR Canon lewat EDSDK di Camera Service (DECISIONS #111). DLL Canon tidak ikut installer
+ * (lisensi): disalin sekali ke `<folder data>/edsdk` (EDSDK.dll + EdsImage.dll), atau `--canon <folder>`;
+ * `--canon fake` = kamera simulasi (dev/e2e).
+ */
+export const canon =
+  !digicam && flags.value("camera") === "canon"
+    ? (flags.value("canon") ?? join(userDir, "edsdk"))
+    : undefined;
+
 export const config: BoothConfig = {
   camera: digicam
     ? "hotfolder"
-    : ((["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ?? "webcam"),
-  liveView: !!digicam,
+    : canon
+      ? "canon"
+      : ((["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ??
+        "webcam"),
+  liveView: !!digicam || !!canon,
   demo: flags.has("demo"),
   fast: flags.has("fast"),
   guestUrl: process.env.TETRA_GUEST_URL ?? "https://booth.tetraphoto.com",
@@ -207,6 +221,7 @@ export const cameraServiceFlags = {
     return v ? [`--${k}`, v] : [];
   }),
 };
+if (canon) cameraServiceFlags.args.push("--canon", canon);
 
 /** Antrean printer utama (`--printer`), untuk membuka dialog Printing Preferences dari menu crew. */
 export const printerName = flags.value("printer");

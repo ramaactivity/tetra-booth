@@ -226,7 +226,14 @@ export const copy = {
     deviceCamera: "Kamera",
     devicePrinter: "Printer",
     deviceLocked: "diatur lewat baris perintah",
-    cameraKind: { webcam: "Webcam", hotfolder: "DSLR (digiCamControl)", simulated: "Simulasi" },
+    cameraKind: {
+      webcam: "Webcam",
+      canon: "DSLR Canon (EDSDK)",
+      hotfolder: "DSLR (digiCamControl)",
+      simulated: "Simulasi",
+    },
+    canonNote:
+      "Butuh file Canon EDSDK (EDSDK.dll + EdsImage.dll) di folder %APPDATA%\\TetraBooth\\edsdk. Kamera USB, mode M, kualitas JPEG.",
     noWebcam: "Tidak ada webcam terdeteksi.",
     on: "Nyala",
     off: "Mati",

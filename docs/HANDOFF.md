@@ -193,6 +193,12 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 - Gotcha: setelah merge `origin/win`, JANGAN `git pull --rebase` biasa sebelum push (merge dilinearkan jadi commit baru ber-hash lain; isi aman tapi hash `win` terlihat "belum di main"). Push merge dulu, atau `git pull --rebase=merges`.
 - Gotcha sesi ini: e2e booth jalankan `--workers=1` (paralel berebut Camera Service); `DOTNET_ROOT` wajib; skrip antrean rilis jangan `pgrep -f dist-dev.mjs` dari shell yang perintahnya memuat teks itu (mencocokkan diri sendiri) — tunggu PID.
 
+## Untuk Windows: uji Canon EDSDK (#111) — saat laptop, 60D, dan DNP kembali
+1. Salin DLL Canon (dari paket SDK yang Rama unduh; **link/password jangan ditulis di issue/repo — public**): `Windows\EDSDK_64\Dll\EDSDK.dll` + `EdsImage.dll` → `%APPDATA%\TetraBooth\edsdk\`.
+2. Tutup digiCamControl / EOS Utility (hanya satu aplikasi boleh memegang kamera). 60D: USB, mode M, kualitas JPEG (bukan RAW), auto power off terserah (diperpanjang tiap jepret).
+3. Booth dev dari source: `electron apps/booth --camera=canon` (atau mode crew → Kamera & Printer → **DSLR Canon (EDSDK)** → Simpan). Cek log `[canon] tersambung: Canon EOS 60D`.
+4. Uji: fps live view (target ≥ 20), 3 sesi jepret + cetak DNP, AF & fokus manual di Tes Jepret, "AF sebelum jepret", cabut USB di attract & di tengah countdown (harus `[canon] kamera terputus, menyambung ulang` lalu tersambung lagi), matikan-nyalakan kamera. Laporan `docs/reports/windows/<tanggal>-edsdk-60d.md`, kalau ada error sertakan kode `0x…` dari log.
+
 ## Untuk Rama (diperbarui 2026-09-25 pagi)
 Selesai: kata sandi admin, CORS R2, `CRON_SECRET` (cron menolak tanpa secret: 401), Sentry 2 DSN (terpasang, DECISIONS #68).
 1. **Supabase Auth → URL Configuration** (wajib untuk undangan tim & lupa kata sandi, DECISIONS #69): Site URL `https://booth.tetraphoto.com`; Redirect URLs tambah `https://booth.tetraphoto.com/**` dan `http://localhost:3000/**`. Sekarang Site URL masih `http://localhost:3000`, jadi link email mendarat di localhost.

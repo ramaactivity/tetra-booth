@@ -15,6 +15,9 @@ export const setEndpoint = (port: number, token: string) => {
   endpoint = { port, token };
 };
 const TIMEOUT_MS = 3000;
+/** Frame live view terbaru (Canon EDSDK, #111). */
+export const liveViewUrl = () =>
+  `http://127.0.0.1:${endpoint.port}/liveview.jpg?token=${encodeURIComponent(endpoint.token)}`;
 
 /** Camera Service tidak bisa dihubungi (mati/restart/macet), berbeda dari error yang dibalas service. */
 export class ServiceUnavailable extends Error {}

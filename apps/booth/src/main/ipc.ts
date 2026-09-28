@@ -12,7 +12,7 @@ import {
 import { app, BrowserWindow, ipcMain, net, shell } from "electron";
 import { z } from "zod";
 import type { Alerts } from "./alerts";
-import { cameraHealth, request, ServiceUnavailable } from "./camera-client";
+import { cameraHealth, liveViewUrl, request, ServiceUnavailable } from "./camera-client";
 import type { Cloud } from "./cloud";
 import {
   config,
@@ -147,16 +147,37 @@ export function registerIpc(
   });
   ipcMain.handle("cameraStatus", () => request({ id: crypto.randomUUID(), type: "camera.status" }));
   // Live view DSLR lewat digiCamControl (--digicam). Diambil di main supaya CSP renderer tetap 'self'.
+  // Canon EDSDK (#111): live view & fokus lewat Camera Service; frame JPEG terbaru dari /liveview.jpg.
+  const canonOn = config.camera === "canon";
   ipcMain.handle("liveViewStart", async () => {
     if (!config.liveView) return;
+    if (canonOn) {
+      await request({ id: crypto.randomUUID(), type: "liveview.start" }, 5000);
+      if (deviceNow.afBeforeCapture)
+        void request(
+          { id: crypto.randomUUID(), type: "camera.focus", payload: { step: "af" } },
+          5000,
+        )
+          .then(() => console.info("[camera] AF sebelum jepret"))
+          .catch((e: unknown) => console.warn(`[camera] AF sebelum jepret gagal: ${String(e)}`));
+      return;
+    }
     await liveViewStart(!!deviceNow.afBeforeCapture);
     if (deviceNow.afBeforeCapture) console.info("[camera] AF sebelum jepret");
   });
-  ipcMain.handle("liveViewFrame", () => {
+  ipcMain.handle("liveViewFrame", async () => {
     if (!config.liveView) throw new Error("live view tidak aktif");
+    if (canonOn) {
+      const r = await fetch(liveViewUrl(), { signal: AbortSignal.timeout(3000) });
+      return r.status === 200 ? new Uint8Array(await r.arrayBuffer()) : new Uint8Array(0);
+    }
     return liveViewFrame();
   });
-  ipcMain.handle("liveViewStop", () => (config.liveView ? liveViewStop() : undefined));
+  ipcMain.handle("liveViewStop", async () => {
+    if (!config.liveView) return;
+    if (canonOn) await request({ id: crypto.randomUUID(), type: "liveview.stop" }, 5000);
+    else await liveViewStop();
+  });
 
   ipcMain.handle("printSubmit", async (_e, job: unknown) => {
     const j = PrintJob.parse(job);
@@ -397,6 +418,11 @@ export function registerIpc(
     crewOnly();
     if (!config.liveView) throw new Error("Kontrol fokus hanya untuk DSLR dengan live view");
     const s = z.enum(FOCUS_STEPS).parse(step);
+    if (canonOn) {
+      await request({ id: crypto.randomUUID(), type: "camera.focus", payload: { step: s } }, 5000);
+      console.info(`[camera] fokus ${s}`);
+      return;
+    }
     await focus(s).catch(() => {
       throw new Error("digiCamControl tidak menjawab. Cek kamera menyala & live view jalan");
     });

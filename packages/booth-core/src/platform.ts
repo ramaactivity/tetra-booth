@@ -76,7 +76,7 @@ export type CrewStatus = {
 export type CloudDevice = { name: string; shortCode: string };
 /** Kamera & printer dari mode crew (DECISIONS #85). */
 export type DeviceSettings = {
-  camera?: "webcam" | "simulated" | "hotfolder";
+  camera?: "webcam" | "simulated" | "hotfolder" | "canon";
   webcamId?: string;
   /** Live view seperti cermin (bawaan nyala, FSD §1.7). */
   mirrorLiveView?: boolean;
