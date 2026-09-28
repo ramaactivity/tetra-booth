@@ -55,6 +55,7 @@ export const copy = {
     scanWhile: "Sambil menunggu, scan dulu",
     digital: "Versi digital langsung ada di HP-mu",
   },
+  filter: { title: "Pilih filter", next: "Pakai Filter Ini" },
   qr: {
     brand: (b: string) => `Jangan lupa tag ${b}`,
     title: "Scan untuk simpan fotomu",

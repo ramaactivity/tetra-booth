@@ -49,7 +49,13 @@ const CONFIG = {
     { id: grid.id, name: "Bingkai Emas", info: "4R", layout: grid },
   ],
   attract: { cta: "Ayo Foto!", samples: false, imageAssetId: "attract", brand: "@tetraphoto" },
-  settings: { countdownSec: 1, shotDelaySec: 0.2, maxPrints: 3, countdownSound: true },
+  settings: {
+    countdownSec: 1,
+    shotDelaySec: 0.2,
+    maxPrints: 3,
+    countdownSound: true,
+    filters: ["bw", "warm"],
+  },
   assets: { attract: "attract.mp4" },
 };
 
@@ -171,6 +177,12 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     await w.waitForTimeout(400);
     await w.screenshot({ path: "test-results/designs-review.png" });
     await w.getByRole("button", { name: /pakai semua foto/i }).click();
+    // Filter (#116): Normal + filter yang ditawarkan event.
+    await expect(w.getByRole("heading", { name: "Pilih filter" })).toBeVisible();
+    await expect(w.getByTestId("filter-card")).toHaveCount(3);
+    await w.getByTestId("filter-card").filter({ hasText: "Hitam Putih" }).click();
+    await w.screenshot({ path: "test-results/designs-filter.png" });
+    await w.getByRole("button", { name: /Pakai Filter Ini/ }).click();
     await expect(w.getByRole("heading", { name: "Mau cetak berapa?" })).toBeVisible({
       timeout: 15_000,
     });

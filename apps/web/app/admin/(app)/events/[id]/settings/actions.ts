@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
   EVENT_PRESETS,
   LAYOUT_PRESETS,
+  PHOTO_FILTERS,
   type PresetId,
   SOUND_CUES,
   type SoundCue,
@@ -218,6 +219,10 @@ export async function saveEvent(
     qrScreenSec: f.qrScreenSec,
     countdownSound: form.get("countdownSound") === "on",
     bumper: form.get("bumper") === "on",
+    // Filter pilihan tamu (#116): tanpa centang = langkah filter dilewati.
+    filters: PHOTO_FILTERS.filter(
+      (x) => x.id !== "normal" && form.get(`filter_${x.id}`) === "on",
+    ).map((x) => x.id),
     promptsBefore: lines(form.get("prompts_before")),
     promptsAfter: lines(form.get("prompts_after")),
   };

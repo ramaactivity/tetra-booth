@@ -10,6 +10,8 @@ export interface Ctx2D {
   textAlign: "left" | "center" | "right" | "start" | "end";
   textBaseline: "top" | "middle" | "bottom" | "alphabetic" | "hanging" | "ideographic";
   imageSmoothingQuality?: "low" | "medium" | "high";
+  /** CSS filter (#116), hanya dipasang ke foto slot. */
+  filter?: string;
   save(): void;
   restore(): void;
   translate(x: number, y: number): void;
@@ -33,6 +35,8 @@ export type RenderInputs = {
   assets: Readonly<Record<string, ImageLike>>;
   /** Nilai placeholder teks. */
   vars: { event_name?: string; date?: string; custom?: string };
+  /** CSS filter pilihan tamu untuk foto di slot (#116); kosong/"none" = tanpa filter. Overlay & teks tidak kena. */
+  photoFilter?: string;
 };
 
 export type RenderContext = {

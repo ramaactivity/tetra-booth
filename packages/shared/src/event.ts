@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PHOTO_FILTER_IDS } from "./filters";
 import { LayoutSpecSchema } from "./layout";
 
 /** Pengaturan pengalaman per event (FSD §5.4 "Pengalaman"). Field kosong = default. */
@@ -16,6 +17,8 @@ export const EventSettingsSchema = z.object({
   /** Kalimat sebelum / setelah foto (#103); kosong = kalimat bawaan booth. */
   /** Video bumper Tetra saat event dibuka di booth terpasang (#105). */
   bumper: z.boolean().default(true),
+  /** Filter yang ditawarkan ke tamu setelah cek foto (#116); kosong = tanpa langkah filter. */
+  filters: z.array(z.enum(PHOTO_FILTER_IDS)).max(5).default([]),
   promptsBefore: z.array(z.string().min(1).max(40)).max(10).default([]),
   promptsAfter: z.array(z.string().min(1).max(40)).max(10).default([]),
 });

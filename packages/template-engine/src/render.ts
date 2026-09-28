@@ -14,7 +14,12 @@ const get2d = (c: CanvasLike): Ctx2D => {
 };
 
 /** Gambar `img` memenuhi kotak slot (cover, crop tengah), dengan rotasi opsional. */
-const drawSlot = (ctx: Ctx2D, slot: LayoutSlot, img: ImageLike | undefined): void => {
+const drawSlot = (
+  ctx: Ctx2D,
+  slot: LayoutSlot,
+  img: ImageLike | undefined,
+  filter?: string,
+): void => {
   if (!img) return;
   const scale = Math.max(slot.w / img.width, slot.h / img.height);
   const dw = img.width * scale;
@@ -28,6 +33,7 @@ const drawSlot = (ctx: Ctx2D, slot: LayoutSlot, img: ImageLike | undefined): voi
   // Foto kamera (5184 px) diperkecil ±4× ke slot: kualitas "low" bawaan membuat foto bergerigi/kurang tajam (W-031).
   // Hanya saat memperkecil: filter "high" Skia beda tipis antar platform, hash fixture (foto seukuran slot) tetap sama.
   if (scale < 1) ctx.imageSmoothingQuality = "high";
+  if (filter && filter !== "none") ctx.filter = filter;
   ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
   ctx.restore();
 };
@@ -83,7 +89,7 @@ const renderLayout = (spec: LayoutSpec, inputs: RenderInputs, ctx: RenderContext
     for (const l of layer(spec, z)) {
       const slot = l.slot ? spec.slots[l.i] : undefined;
       const text = l.slot ? undefined : spec.texts[l.i];
-      if (slot) drawSlot(c, slot, inputs.photos[l.i]);
+      if (slot) drawSlot(c, slot, inputs.photos[l.i], inputs.photoFilter);
       if (text) drawText(c, text, inputs, ctx);
     }
   };

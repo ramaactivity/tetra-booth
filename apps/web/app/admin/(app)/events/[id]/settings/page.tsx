@@ -95,6 +95,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           },
           countdownSound: s.countdownSound,
           bumper: s.bumper,
+          filters: s.filters,
           promptsBefore: s.promptsBefore,
           promptsAfter: s.promptsAfter,
           sounds: await Promise.all(

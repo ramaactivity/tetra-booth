@@ -3,6 +3,7 @@ import {
   EVENT_PRESETS,
   LAYOUT_PRESETS,
   type LayoutPaper,
+  PHOTO_FILTERS,
   type PresetId,
   paperLabel,
 } from "@tetra/shared";
@@ -29,6 +30,8 @@ export type SettingsValues = {
   attract: { background: string; cta: string; brand: string; samples: boolean; hasImage: boolean };
   countdownSound: boolean;
   bumper: boolean;
+  /** Filter yang ditawarkan ke tamu (#116). */
+  filters: string[];
   promptsBefore: string[];
   promptsAfter: string[];
   /** Suara per cue (#104): nyala/mati + URL file pengganti (presigned) kalau ada. */
@@ -458,6 +461,27 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
             <input type="checkbox" name="countdownSound" defaultChecked={v.countdownSound} /> Suara
             (kalimat, hitung mundur & jepret)
           </label>
+          <fieldset className="col-span-full flex flex-col gap-2">
+            <legend className="mb-1.5 text-xs font-bold">
+              Filter pilihan tamu setelah cek foto (kosong = tanpa langkah filter)
+            </legend>
+            <div className="flex flex-wrap gap-2">
+              {PHOTO_FILTERS.filter((f) => f.id !== "normal").map((f) => (
+                <label
+                  key={f.id}
+                  className="flex cursor-pointer items-center gap-2 rounded-full border-[1.5px] border-dashed border-ink bg-white px-3 py-1.5 text-xs font-bold has-checked:border-solid has-checked:bg-lavender"
+                >
+                  <input
+                    type="checkbox"
+                    name={`filter_${f.id}`}
+                    defaultChecked={v.filters.includes(f.id)}
+                    className="sr-only"
+                  />
+                  {f.label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <Field label="Kalimat sebelum foto (satu per baris; baris terakhir = foto terakhir; kosong = bawaan)">
             <textarea
               name="prompts_before"

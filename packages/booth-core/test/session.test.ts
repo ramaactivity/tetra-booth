@@ -245,6 +245,18 @@ describe("sessionReducer", () => {
       );
     });
 
+    it("filter (#116): cek foto → pilih filter → compose dengan filter; tanpa filter langsung compose", () => {
+      const withFilters: SessionEvent = { ...start, filters: true } as SessionEvent;
+      const review = run([withFilters, ...shootAll]);
+      const pick = run([{ type: "CONTINUE" }], review);
+      expect(pick.phase).toBe("filter");
+      expect(run([{ type: "FILTER_CHOSEN", filter: "bw" }], pick)).toMatchObject({
+        phase: "compose",
+        filter: "bw",
+      });
+      expect(run([start, ...shootAll, { type: "CONTINUE" }]).phase).toBe("compose");
+    });
+
     it("mode event tidak pernah minta bayar", () => {
       const select = run([
         start,

@@ -1,4 +1,4 @@
-import { newSessionId, printPaper } from "@tetra/shared";
+import { filterCss, newSessionId, printPaper } from "@tetra/shared";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { composeStrip, designPreview } from "./compose";
 import { copy } from "./copy";
@@ -20,6 +20,7 @@ import { Attract } from "./screens/Attract";
 import { Bumper } from "./screens/Bumper";
 import { Capturing } from "./screens/Capturing";
 import { Countdown } from "./screens/Countdown";
+import { FilterSelect } from "./screens/FilterSelect";
 import { LayoutSelect } from "./screens/LayoutSelect";
 import { LiveView } from "./screens/LiveView";
 import { CameraError, Message } from "./screens/Message";
@@ -41,6 +42,7 @@ const TIMED = new Set([
   "preview",
   "camera_error",
   "review",
+  "filter",
   "print_select",
 ]);
 /** Mode demo: jeda "tamu" di layar yang butuh sentuhan (dipersingkat di mode cepat stress test). */
@@ -63,6 +65,7 @@ const startEvent = (
   slots: (design?.layout ?? event.layout).slots.length,
   retakeMax: event.settings.retakeMax,
   ...(design && { layoutId: design.id }),
+  filters: event.settings.filters.length > 0,
 });
 
 /**
@@ -155,6 +158,7 @@ export function SessionRunner({
               sessionId: s.draftId,
               slots: ev.layout.slots.length,
               retakeMax: cfg.retakeMax,
+              filters: cfg.filters.length > 0,
               deadline: Date.now() + PAID_SEC * 1000 + cfg.sessionSec * 1000,
             })
           : undefined;
@@ -162,6 +166,11 @@ export function SessionRunner({
         return after(cfg.shotDelaySec * 1000, { type: "PREVIEW_DONE" });
       case "review":
         return after(demo ? tapMs : cfg.reviewTimeoutSec * 1000, { type: "CONTINUE" });
+      case "filter":
+        return after(demo ? tapMs : cfg.reviewTimeoutSec * 1000, {
+          type: "FILTER_CHOSEN",
+          filter: "normal",
+        });
       case "print_select":
         return demo ? after(tapMs, { type: "PRINTS_SELECTED", count: 1 }) : undefined;
       case "qr":
@@ -285,6 +294,7 @@ export function SessionRunner({
       s.sessionId,
       ev,
       s.photos.filter((x): x is Photo => x !== null),
+      filterCss(s.filter),
     )
       .then((strip) => {
         urls.current.push(strip.url);
@@ -298,7 +308,7 @@ export function SessionRunner({
     return () => {
       live = false;
     };
-  }, [p, s.phase, s.sessionId, s.photos, ev]);
+  }, [p, s.phase, s.sessionId, s.photos, s.filter, ev]);
 
   // Cetak: gagal tidak menghentikan sesi, QR tetap muncul (FSD §1.10).
   useEffect(() => {
@@ -464,6 +474,14 @@ export function SessionRunner({
         ) : null;
       case "camera_error":
         return <CameraError attempt={reconnects + 1} />;
+      case "filter":
+        return (
+          <FilterSelect
+            photoUrl={s.photos.find((x) => x)?.url ?? ""}
+            filters={cfg.filters}
+            onChoose={(filter) => dispatch({ type: "FILTER_CHOSEN", filter })}
+          />
+        );
       case "review":
         return (
           <Review

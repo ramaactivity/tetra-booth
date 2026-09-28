@@ -24,6 +24,7 @@ export type Phase =
   | "preview"
   | "camera_error"
   | "review"
+  | "filter"
   | "compose"
   | "print_select"
   | "printing"
@@ -56,6 +57,10 @@ export type SessionState = {
   paymentId: string | null;
   /** Photobox: batas waktu sesi (epoch ms) sejak paket lunas; null = tanpa timer. */
   deadline: number | null;
+  /** Event menawarkan filter (#116): review → pilih filter → compose. */
+  filterStep: boolean;
+  /** Filter pilihan tamu (id PHOTO_FILTERS); null = normal. */
+  filter: string | null;
 };
 
 export type SessionEvent =
@@ -67,7 +72,10 @@ export type SessionEvent =
       deadline?: number;
       /** Mode event multi desain: desain pilihan tamu. */
       layoutId?: string;
+      /** Event menawarkan filter foto (#116). */
+      filters?: boolean;
     }
+  | { type: "FILTER_CHOSEN"; filter: string }
   | { type: "PHOTOBOX_START"; draftId: string }
   /** Mode event dengan beberapa desain (DECISIONS #99): tamu memilih desain dulu, tanpa bayar. */
   | { type: "CHOOSE_DESIGN" }
@@ -109,6 +117,8 @@ export const initialSession: SessionState = {
   paying: null,
   paymentId: null,
   deadline: null,
+  filterStep: false,
+  filter: null,
 };
 
 /** Waktu habis: slot kosong diisi foto terakhir yang ada (FSD §1.5). */
@@ -129,6 +139,8 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
       return {
         ...(s.phase === "paid" ? s : initialSession),
         ...(e.layoutId && { layoutId: e.layoutId }),
+        filterStep: !!e.filters,
+        filter: null,
         phase: "countdown",
         sessionId: e.sessionId,
         slots: e.slots,
@@ -168,6 +180,7 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
         case "preview":
         case "camera_error":
         case "review":
+        case "filter":
           return { ...s, phase: "compose", photos: fillPhotos(s.photos), retaking: false };
         case "print_select":
           // Photobox (satu-satunya pemakai timer): lembar paket sudah dibayar → tetap dicetak 1 (DECISIONS #84).
@@ -214,7 +227,10 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
         retakesUsed: s.retakesUsed.with(e.index, (s.retakesUsed[e.index] ?? 0) + 1),
       };
     case "CONTINUE":
-      return s.phase === "review" ? { ...s, phase: "compose" } : s;
+      if (s.phase !== "review") return s;
+      return { ...s, phase: s.filterStep ? "filter" : "compose" };
+    case "FILTER_CHOSEN":
+      return s.phase === "filter" ? { ...s, phase: "compose", filter: e.filter } : s;
     case "COMPOSED":
       return s.phase === "compose" ? { ...s, phase: "print_select", strip: e.strip } : s;
     case "COMPOSE_FAILED":

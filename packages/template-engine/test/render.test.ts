@@ -16,6 +16,28 @@ describe("template engine", () => {
     expect(await pixelHash(out)).toMatchSnapshot();
   });
 
+  it("filter foto (#116): hanya foto di slot yang kena; hash tanpa filter tidak berubah", async () => {
+    const spec = FIXTURES["4R"];
+    const inputs = makeFixtureInputs(ctx, spec);
+    const plain = render(spec, inputs, ctx);
+    const bw = render(spec, { ...inputs, photoFilter: "grayscale(1)" }, ctx);
+    const s0 = spec.slots[0];
+    if (!s0) throw new Error("tanpa slot");
+    const at = (c: typeof plain, x: number, y: number) => [
+      ...(c.getContext("2d")?.getImageData(x, y, 1, 1).data ?? []),
+    ];
+    const [r, g, b] = at(bw, Math.round(s0.x + s0.w / 2), Math.round(s0.y + s0.h / 2));
+    expect(r).toBe(g);
+    expect(g).toBe(b);
+    expect(at(plain, Math.round(s0.x + s0.w / 2), Math.round(s0.y + s0.h / 2))).not.toEqual(
+      at(bw, Math.round(s0.x + s0.w / 2), Math.round(s0.y + s0.h / 2)),
+    );
+    // "none" = sama persis dengan tanpa filter.
+    expect(await pixelHash(render(spec, { ...inputs, photoFilter: "none" }, ctx))).toBe(
+      await pixelHash(plain),
+    );
+  });
+
   it("2x6x2: strip digandakan ke 1200x1800, hash sama dengan snapshot", async () => {
     const spec = FIXTURES["2x6x2"];
     const out = render(spec, makeFixtureInputs(ctx, spec), ctx);
