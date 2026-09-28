@@ -79,7 +79,17 @@ if (!process.argv.includes("--tools")) {
   sh("pnpm exec electron-builder --win --x64 --dir --publish never", "apps/booth");
   cpSync("apps/booth/release/win-unpacked", "dist/app/booth", { recursive: true });
   sh(`gh run watch ${run} --exit-status`);
-  sh(`gh run download ${run} -n booth-installer -D dist/installer`);
+  // Unduhan artifact kadang putus di tengah (timeout jaringan): ulang sampai 3x.
+  for (let i = 1; ; i++) {
+    try {
+      rmSync("dist/installer", { recursive: true, force: true });
+      sh(`gh run download ${run} -n booth-installer -D dist/installer`);
+      break;
+    } catch (e) {
+      if (i === 3) throw e;
+      console.log(`  unduh artifact gagal, ulang (${i}/3)`);
+    }
+  }
 
   console.log("\n[3/4] Zip (update.cmd)");
   writeFileSync("dist/app/run.cmd", tool("run.cmd"));
