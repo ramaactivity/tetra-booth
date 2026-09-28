@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import "server-only";
 import {
   DeleteObjectsCommand,
@@ -95,6 +96,13 @@ export async function getStream(key: string) {
   const r = await client().send(new GetObjectCommand({ Bucket: env("R2_BUCKET"), Key: key }));
   return r.Body?.transformToWebStream();
 }
+
+/**
+ * Folder privat DLL Canon EDSDK di R2 (DECISIONS #112). Nama folder = HMAC dari secret R2 (tidak ada di repo),
+ * jadi tidak bisa ditebak walau bucket punya akses publik r2.dev; booth hanya menerima URL bertanda tangan.
+ */
+export const edsdkPrefix = () =>
+  `private/edsdk/${createHmac("sha256", env("R2_SECRET_ACCESS_KEY")).update("tetra-edsdk").digest("hex").slice(0, 32)}/`;
 
 /** Rilis booth terbaru (`dev-builds/latest.json`, DECISIONS #80), null kalau belum ada. */
 export async function latestBoothRelease() {

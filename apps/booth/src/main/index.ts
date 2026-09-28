@@ -7,6 +7,7 @@ import { createCloud } from "./cloud";
 import {
   bumperFlag,
   cameraServiceFlags,
+  canon,
   config,
   digicam,
   flagWarnings,
@@ -19,6 +20,7 @@ import {
 } from "./config";
 import { openDb } from "./db";
 import { ensureDigiCam } from "./digicam";
+import { ensureEdsdk } from "./edsdk";
 import { createFrameWatch } from "./frame-watch";
 import { createGpuWatch } from "./gpu-watch";
 import { registerIpc } from "./ipc";
@@ -148,6 +150,8 @@ app.whenReady().then(async () => {
   const hot = digicam ? await ensureDigiCam(log, digicam.exe) : undefined;
   const extra =
     hot && !cameraServiceFlags.args.includes("--hot-folder") ? ["--hot-folder", hot] : [];
+  // Canon EDSDK (#112): DLL diunduh sendiri dari cloud kalau belum ada (bukan untuk `--canon fake`).
+  if (canon && canon !== "fake") await ensureEdsdk(canon, () => cloud.edsdk(), log);
   if (cameraServiceFlags.spawn) await startCameraService(log, db, alerts, extra);
   else app.on("will-quit", watchPrintEvents(log, db, alerts));
   if (!digicam) createWindow();

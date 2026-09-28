@@ -45,6 +45,28 @@ export const BoothRelease = z.object({
 });
 export type BoothRelease = z.infer<typeof BoothRelease>;
 export const BoothUpdateResponse = BoothRelease.extend({ url: z.url() });
+
+/**
+ * DLL Canon EDSDK untuk booth yang sudah dipasangkan (DECISIONS #112): disimpan privat di R2 (lisensi Canon,
+ * repo public), booth mengunduh sendiri ke `<folder data>/edsdk` lalu mencocokkan ukuran + sha256.
+ */
+export const EDSDK_FILES = ["EDSDK.dll", "EdsImage.dll"] as const;
+export const EdsdkManifest = z.object({
+  version: z.string().min(1).max(40),
+  files: z
+    .array(
+      z.object({
+        name: z.enum(EDSDK_FILES),
+        size: z.number().int().positive(),
+        sha256: z.string().regex(/^[0-9a-f]{64}$/),
+      }),
+    )
+    .length(EDSDK_FILES.length),
+});
+export const EdsdkResponse = EdsdkManifest.extend({
+  files: z.array(EdsdkManifest.shape.files.element.extend({ url: z.url() })),
+});
+export type EdsdkResponse = z.infer<typeof EdsdkResponse>;
 export type BoothUpdateResponse = z.infer<typeof BoothUpdateResponse>;
 
 /** a > b untuk versi "x.y.z". */

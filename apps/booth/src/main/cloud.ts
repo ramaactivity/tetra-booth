@@ -3,6 +3,7 @@ import {
   BoothEventsResponse,
   BoothUpdateResponse,
   BundleManifest,
+  EdsdkResponse,
   type HeartbeatRequest,
   PairResponse,
   type PaymentCreateRequest,
@@ -177,6 +178,18 @@ export function createCloud(
       if (res.status === 404) return null;
       if (!res.ok) throw new Error(`/api/booth/update: server ${res.status}`);
       return BoothUpdateResponse.parse(await res.json());
+    },
+    /** DLL Canon EDSDK privat (DECISIONS #112); null = belum ada di cloud. */
+    async edsdk() {
+      const t = token();
+      if (!t) throw new Error("booth belum dipasangkan");
+      const res = await fetch(`${baseUrl}/api/booth/edsdk`, {
+        headers: { authorization: `Bearer ${t}` },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`/api/booth/edsdk: server ${res.status}`);
+      return EdsdkResponse.parse(await res.json());
     },
     /** Tagihan QRIS photobox (TSD §8). Gagal apa pun (offline, belum dipasangkan, server) = Error. */
     async createPayment(req: PaymentCreateRequest) {
