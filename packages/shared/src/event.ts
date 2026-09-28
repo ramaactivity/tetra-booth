@@ -25,7 +25,10 @@ export const DEFAULT_SETTINGS: EventSettings = EventSettingsSchema.parse({});
 /** Nama file aset di folder bundle: tanpa path, tanpa `..`. */
 const AssetFile = z
   .string()
-  .regex(/^[\w][\w.-]*\.(png|jpg|jpeg|ttf|otf|woff2|wav|mp3)$/i, "nama file aset tidak valid");
+  .regex(
+    /^[\w][\w.-]*\.(png|jpg|jpeg|gif|mp4|webm|ttf|otf|woff2|wav|mp3)$/i,
+    "nama file aset tidak valid",
+  );
 
 /** Momen suara booth (#103/#104). Nama = file bawaan `sounds/<cue>.wav` di booth dan web admin. */
 export const SOUND_CUES = [
@@ -56,8 +59,10 @@ export const AttractSchema = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional(),
-  /** assetId gambar latar (PNG/JPG, ditarik penuh ke layar). */
+  /** assetId latar: gambar (PNG/JPG/GIF) atau video loop (MP4/WebM), ditarik penuh ke layar (#115). */
   imageAssetId: z.string().min(1).max(64).optional(),
+  /** Brand label (#115), mis. "@tetraphoto": di layar awal & layar QR. */
+  brand: z.string().min(1).max(40).optional(),
   cta: z.string().min(1).max(30).optional(),
   samples: z.boolean().default(true),
 });

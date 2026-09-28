@@ -69,7 +69,12 @@ export const storeOverlay = (orgId: string, eventId: string, bytes: Uint8Array) 
   storeBundleFile(orgId, eventId, bytes, "overlay.png", "image/png");
 
 /** Pengaturan layar awal di `events.settings.attract` (tanpa gambar; gambarnya file bundle `attract.*`). */
-export type AttractSettings = { background?: string; cta?: string; samples: boolean };
+export type AttractSettings = {
+  background?: string;
+  cta?: string;
+  brand?: string;
+  samples: boolean;
+};
 
 /** Bundle lengkap siap disimpan di events.bundle (jsonb); gagal validasi → Error (tidak pernah menyimpan bundle rusak). */
 export function buildBundle(e: {

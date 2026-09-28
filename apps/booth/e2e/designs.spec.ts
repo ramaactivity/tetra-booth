@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
@@ -37,11 +37,8 @@ const grid = layout("4r-grid-e2e", "4R", 1200, [
   slot("a", 40, 40, 540, 720),
   slot("b", 620, 40, 540, 720),
 ]);
-// PNG 1×1 biru: gambar latar layar awal uji.
-const PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
-  "base64",
-);
+// Latar video loop (#115): pakai bumper.mp4 yang sudah ada di renderer.
+const MP4 = readFileSync(join(__dirname, "../src/renderer/public/bumper.mp4"));
 const CONFIG = {
   id: EVENT,
   name: "Rina & Dimas",
@@ -51,9 +48,9 @@ const CONFIG = {
     { id: strip.id, name: "Strip Klasik", info: "2x6", layout: strip },
     { id: grid.id, name: "Bingkai Emas", info: "4R", layout: grid },
   ],
-  attract: { cta: "Ayo Foto!", samples: false, imageAssetId: "attract" },
+  attract: { cta: "Ayo Foto!", samples: false, imageAssetId: "attract", brand: "@tetraphoto" },
   settings: { countdownSec: 1, shotDelaySec: 0.2, maxPrints: 3, countdownSound: true },
-  assets: { attract: "attract.png" },
+  assets: { attract: "attract.mp4" },
 };
 
 const typePin = async (w: Page, pin: string) => {
@@ -91,16 +88,16 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
             config: CONFIG,
             files: [
               {
-                file: "attract.png",
-                sha256: createHash("sha256").update(PNG).digest("hex"),
+                file: "attract.mp4",
+                sha256: createHash("sha256").update(MP4).digest("hex"),
                 url: `http://127.0.0.1:${port}/m/attract`,
               },
             ],
           }),
         );
       if (url === "/m/attract") {
-        res.setHeader("content-type", "image/png");
-        return res.end(PNG);
+        res.setHeader("content-type", "video/mp4");
+        return res.end(MP4);
       }
       if (url === "/api/booth/sessions") sessions.push(JSON.parse(body));
       if (url === "/api/booth/uploads/sign") return res.end(JSON.stringify({ uploads: [] }));
@@ -140,7 +137,16 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     // Layar awal per event: gambar latar, teks tombol sendiri, strip contoh disembunyikan.
     const start = w.getByRole("button", { name: /Ayo Foto!/ });
     await expect(start).toBeVisible();
-    await expect(w.locator("main > img").first()).toHaveAttribute("src", /^blob:/);
+    await expect(w.locator("main > video").first()).toHaveAttribute("src", /^blob:/);
+    // Video latar benar-benar diputar (CSP media-src mengizinkan blob:, #115).
+    await expect
+      .poll(() =>
+        w.evaluate(
+          () => document.querySelector<HTMLVideoElement>("main > video")?.currentTime ?? 0,
+        ),
+      )
+      .toBeGreaterThan(0.3);
+    await expect(w.getByText("· @tetraphoto")).toBeVisible();
     await expect(w.getByText("Rina & Dimas", { exact: true }).nth(1)).toBeHidden();
     await w.screenshot({ path: "test-results/designs-attract.png" });
     await start.click();

@@ -14,7 +14,17 @@ export type BoothEvent = {
   /** Photobox (Fase 4): layout dijual + harga; tanpa ini = mode event. */
   photobox?: Photobox | undefined;
   /** Layar awal per event (#102); `imageUrl` = object URL gambar latar. */
-  attract?: { background?: string; cta?: string; samples: boolean; imageUrl?: string } | undefined;
+  attract?:
+    | {
+        background?: string;
+        cta?: string;
+        brand?: string;
+        samples: boolean;
+        imageUrl?: string;
+        /** Latar berupa video loop (MP4/WebM, #115). */
+        video?: boolean;
+      }
+    | undefined;
   /** Suara per event (#104): "off" atau object URL file pengganti. */
   sounds?: Partial<Record<SoundCue, string>> | undefined;
   /** Mode event: 2–5 desain pilihan tamu (DECISIONS #99); tanpa ini = satu desain `layout`. */
@@ -36,13 +46,18 @@ export async function loadEvent(bundle: EventBundle, events: BoothEvents): Promi
   const images: Record<string, ImageBitmap> = {};
   const fonts: Record<string, string> = {};
   let imageUrl: string | undefined;
+  let video = false;
   const soundIds = new Set(Object.values(bundle.sounds ?? {}));
   const soundUrls: Record<string, string> = {};
   await Promise.all(
     Object.entries(bundle.assets).map(async ([assetId, file]) => {
       const bytes = await events.asset(bundle.id, assetId);
       if (assetId === bundle.attract?.imageAssetId) {
-        imageUrl = URL.createObjectURL(new Blob([bytes]));
+        const ext = file.split(".").pop()?.toLowerCase() ?? "";
+        video = ext === "mp4" || ext === "webm";
+        imageUrl = URL.createObjectURL(
+          new Blob([bytes], { type: video ? `video/${ext}` : ext === "gif" ? "image/gif" : "" }),
+        );
       } else if (soundIds.has(assetId)) {
         soundUrls[assetId] = URL.createObjectURL(new Blob([bytes]));
       } else if (FONT_FILE.test(file)) {
@@ -68,6 +83,8 @@ export async function loadEvent(bundle: EventBundle, events: BoothEvents): Promi
       attract: {
         ...(bundle.attract.background && { background: bundle.attract.background }),
         ...(bundle.attract.cta && { cta: bundle.attract.cta }),
+        ...(bundle.attract.brand && { brand: bundle.attract.brand }),
+        ...(video ? { video: true } : {}),
         samples: bundle.attract.samples,
         ...(imageUrl && { imageUrl }),
       },

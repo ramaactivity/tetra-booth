@@ -29,6 +29,14 @@ import { requireMember } from "@/lib/supabase/server";
 const DAY = 86_400_000;
 const MAX_OVERLAY = 4 * 1024 * 1024;
 const MAX_LOGO = 1024 * 1024;
+/** Latar layar awal (#102/#115): gambar, GIF, atau video loop. */
+const ATTRACT_EXT: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/gif": "gif",
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+};
 /** Tanpa SVG: logo ditampilkan di halaman publik. */
 const LOGO_EXT: Record<string, string> = {
   "image/png": "png",
@@ -57,6 +65,7 @@ const Form = z.object({
   guest_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   attract_bg: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   attract_cta: z.string().trim().max(30),
+  attract_brand: z.string().trim().max(40),
   countdownSec: int(1, 10),
   retakeMax: int(0, 5),
   maxPrints: int(1, 10),
@@ -119,9 +128,11 @@ export async function saveEvent(
     : null;
   const bgFile = form.get("attract_image");
   if (bgFile instanceof File && bgFile.size > 0) {
-    const ext = bgFile.type === "image/png" ? "png" : bgFile.type === "image/jpeg" ? "jpg" : null;
-    if (!ext) return { ok: false, message: "Gambar layar awal harus JPG atau PNG" };
-    if (bgFile.size > MAX_OVERLAY) return { ok: false, message: "Gambar layar awal maksimal 4 MB" };
+    const ext = ATTRACT_EXT[bgFile.type];
+    if (!ext) return { ok: false, message: "Latar layar awal harus JPG, PNG, GIF, MP4, atau WebM" };
+    // ponytail: batas request Vercel 4,5 MB; video lebih besar butuh unggah langsung ke R2 (URL bertanda tangan).
+    if (bgFile.size > MAX_OVERLAY)
+      return { ok: false, message: "Latar layar awal maksimal 4 MB (kompres video ±10 dtk 720p)" };
     const bytes = new Uint8Array(await bgFile.arrayBuffer());
     attractImage = await storeBundleFile(orgId, eventId, bytes, `attract.${ext}`, bgFile.type);
   } else if (form.get("remove_attract_image") === "on") attractImage = null;
@@ -147,6 +158,7 @@ export async function saveEvent(
   const attract: AttractSettings = {
     ...(f.attract_bg.toLowerCase() !== PAPER ? { background: f.attract_bg } : {}),
     ...(f.attract_cta ? { cta: f.attract_cta } : {}),
+    ...(f.attract_brand ? { brand: f.attract_brand } : {}),
     samples: form.get("attract_samples") === "on",
   };
 

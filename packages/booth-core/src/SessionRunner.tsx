@@ -501,6 +501,7 @@ export function SessionRunner({
             counting={s.phase === "qr"}
             seconds={cfg.qrScreenSec}
             print={s.print}
+            brand={event.attract?.brand}
             onDone={send({ type: "FINISH" })}
           />
         );

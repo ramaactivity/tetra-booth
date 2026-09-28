@@ -18,6 +18,7 @@ export function Qr({
   seconds,
   print,
   onDone,
+  brand,
 }: {
   url: string;
   /** Tanpa strip (compose gagal) = tanpa cetak, hanya QR. */
@@ -28,6 +29,8 @@ export function Qr({
   seconds: number;
   print: "pending" | "done" | "failed";
   onDone: () => void;
+  /** Brand label event (#115), mis. "@tetraphoto". */
+  brand?: string | undefined;
 }) {
   const [left, setLeft] = useState(seconds);
   useEffect(() => {
@@ -118,6 +121,11 @@ export function Qr({
             {copy.qr.title}
           </h1>
           <p className="text-[26px] font-medium text-text-2">{copy.qr.sub}</p>
+          {brand && (
+            <p className="rounded-full border-2 border-ink bg-butter px-5 py-1.5 text-2xl font-bold">
+              {copy.qr.brand(brand)}
+            </p>
+          )}
         </div>
         <div className="flex w-[420px] flex-col items-center gap-5">
           <div className="layered w-full rounded-[32px] border-[2.5px] border-ink bg-white p-7 [--lx:10px]">

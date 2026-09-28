@@ -26,7 +26,7 @@ export type SettingsValues = {
   background: string;
   hasOverlay: boolean;
   /** Layar awal booth (#102). */
-  attract: { background: string; cta: string; samples: boolean; hasImage: boolean };
+  attract: { background: string; cta: string; brand: string; samples: boolean; hasImage: boolean };
   countdownSound: boolean;
   bumper: boolean;
   promptsBefore: string[];
@@ -347,11 +347,11 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
         </Section>
 
         <Section title="Layar awal booth">
-          <Field label="Gambar latar (JPG/PNG, 1920×1080; maks. 4 MB)">
+          <Field label="Latar: gambar, GIF, atau video loop (JPG/PNG/GIF/MP4/WebM, 1920×1080; maks. 4 MB)">
             <input
               name="attract_image"
               type="file"
-              accept="image/png,image/jpeg"
+              accept="image/png,image/jpeg,image/gif,video/mp4,video/webm"
               className="text-sm"
             />
           </Field>
@@ -370,6 +370,14 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
               maxLength={30}
               placeholder="Sentuh untuk Mulai"
               defaultValue={v.attract.cta}
+              className={input}
+            />
+          </Field>
+          <Field label="Brand label (mis. @tetraphoto; tampil di layar awal & layar QR)">
+            <input
+              name="attract_brand"
+              maxLength={40}
+              defaultValue={v.attract.brand}
               className={input}
             />
           </Field>

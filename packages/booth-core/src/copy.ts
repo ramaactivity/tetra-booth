@@ -56,6 +56,7 @@ export const copy = {
     digital: "Versi digital langsung ada di HP-mu",
   },
   qr: {
+    brand: (b: string) => `Jangan lupa tag ${b}`,
     title: "Scan untuk simpan fotomu",
     sub: "Strip dan foto original ada di sini",
     chips: ["Strip", "Original"],

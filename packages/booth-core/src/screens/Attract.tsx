@@ -115,7 +115,16 @@ export function Attract({
       className="relative h-full w-full overflow-hidden bg-paper"
       style={theme?.background ? { background: theme.background } : undefined}
     >
-      {theme?.imageUrl ? (
+      {theme?.imageUrl && theme.video ? (
+        <video
+          src={theme.imageUrl}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : theme?.imageUrl ? (
         <img src={theme.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <>
@@ -211,6 +220,7 @@ export function Attract({
         </h1>
         <p style={rise(220)} className="font-mono text-[40px] text-text-3">
           {date}
+          {theme?.brand && <span className="text-ink"> · {theme.brand}</span>}
         </p>
         <Button
           style={rise(300)}

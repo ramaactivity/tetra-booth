@@ -88,6 +88,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           attract: {
             background: raw.attract?.background ?? "#f8f7f4",
             cta: raw.attract?.cta ?? "",
+            brand: raw.attract?.brand ?? "",
             samples: raw.attract?.samples ?? true,
             hasImage:
               bundle.success && bundle.data.files.some((f) => f.file.startsWith("attract.")),
