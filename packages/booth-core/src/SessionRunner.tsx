@@ -302,8 +302,11 @@ export function SessionRunner({
       photos.some((x) => isBlurry(x.sharp, ref)),
     );
     const t0 = performance.now();
-    (s.strip
-      ? videoSaved.current.then(() => (s.strip ? buildOutputs(p.storage, id, photos, s.strip) : []))
+    const strip = s.strip;
+    (strip
+      ? videoSaved.current.then(() =>
+          buildOutputs(p.storage, id, photos, strip, filterCss(s.filter)),
+        )
       : Promise.resolve([])
     )
       .then((assets) => p.db.sessionCompleted({ ...done, assets }).then(() => assets.length))
@@ -313,7 +316,7 @@ export function SessionRunner({
         ),
       )
       .catch((e: unknown) => console.error(`[session] gagal menyelesaikan ${id}: ${errText(e)}`));
-  }, [p, s.phase, s.sessionId, s.photos, s.retakesUsed, s.strip, s.prints, ev.id]);
+  }, [p, s.phase, s.sessionId, s.photos, s.retakesUsed, s.strip, s.prints, s.filter, ev.id]);
 
   // Compose strip.
   useEffect(() => {
