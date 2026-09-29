@@ -18,6 +18,13 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     private readonly BlockingCollection<Action> _queue = new();
     private readonly Thread _thread;
     private readonly TimeSpan _reconnect, _frameEvery;
+    /// <summary>Live view diminta tapi tanpa frame selama ini → EVF dinyalakan ulang (maks. sekali per selang ini).</summary>
+    private static readonly TimeSpan EvfRetry = TimeSpan.FromSeconds(2);
+    /// <summary>
+    /// Terakhir ada frame / terakhir EVF dinyalakan (thread SDK). 60D kadang mengabaikan EVF yang dinyalakan tepat
+    /// setelah sambung ulang (cabut-colok USB saat live view, W-034): frame tidak pernah siap sampai layar dibuka ulang.
+    /// </summary>
+    private DateTime _evfOnAt, _frameAt;
     private volatile bool _live, _stop;
     private volatile byte[]? _frame;
     private (string Model, string Serial)? _info;
@@ -85,14 +92,31 @@ public sealed class CanonCamera : ICameraSource, IDisposable
                         catch (Exception e) { Console.Error.WriteLine($"[canon] setelan {name}={value} tidak dipasang: {e.Message}"); }
                     }
                     ConnectionChanged?.Invoke(true);
-                    if (_live) _driver.SetLiveView(true);
+                    if (_live)
+                    {
+                        _driver.SetLiveView(true);
+                        _evfOnAt = _frameAt = DateTime.UtcNow;
+                    }
                 }
                 catch (Exception e) { Console.Error.WriteLine($"[canon] sambung gagal: {e.Message}"); }
             }
             else if (_live && now >= nextFrame)
             {
                 nextFrame = now + _frameEvery;
-                try { if (_driver.LiveViewFrame() is { } f) _frame = f; }
+                try
+                {
+                    if (_driver.LiveViewFrame() is { } f)
+                    {
+                        _frame = f;
+                        _frameAt = now;
+                    }
+                    else if (now - _frameAt > EvfRetry && now - _evfOnAt > EvfRetry)
+                    {
+                        _evfOnAt = now;
+                        Console.WriteLine("[canon] live view tanpa frame, EVF dinyalakan ulang");
+                        _driver.SetLiveView(true);
+                    }
+                }
                 catch (Exception e) { Console.Error.WriteLine($"[canon] frame live view gagal: {e.Message}"); }
             }
         }
@@ -144,7 +168,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     public async Task<bool> StartLiveViewAsync()
     {
         _live = true;
-        if (Connected) await Run(() => { _driver.SetLiveView(true); return 0; });
+        if (Connected) await Run(() => { _driver.SetLiveView(true); _evfOnAt = _frameAt = DateTime.UtcNow; return 0; });
         return true;
     }
 
