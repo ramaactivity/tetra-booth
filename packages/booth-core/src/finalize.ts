@@ -57,7 +57,7 @@ export async function previewUrl(bytes: Uint8Array<ArrayBuffer>, w: number, h: n
 /**
  * Output upload sesi (FSD §1.9) dari strip & foto mentah, dijalankan di belakang layar setelah cetak:
  * strip_web (satu potong desain, bukan lembar cetak), original_n (2400 px), thumb 480 px,
- * animation (GIF berulang dari foto sesi, ≥ 2 foto).
+ * animation (GIF berulang dari foto sesi, ≥ 2 foto, memakai filter pilihan tamu #116; original tetap tanpa filter).
  * Full-res mentah tetap di raw/ dan tidak masuk daftar aset.
  */
 export async function buildOutputs(
@@ -65,6 +65,7 @@ export async function buildOutputs(
   sessionId: string,
   photos: Photo[],
   strip: Strip,
+  filter?: string,
   /** SessionRunner sudah menulis `out/video.mp4` untuk sesi ini (#117). */
   withVideo = false,
 ): Promise<SessionAsset[]> {
@@ -104,6 +105,7 @@ export async function buildOutputs(
       const g = c.getContext("2d");
       if (g) {
         g.imageSmoothingQuality = "high";
+        if (filter) g.filter = filter;
         g.drawImage(raw, 0, 0, a.width, a.height);
         frames.push(g.getImageData(0, 0, a.width, a.height));
       }

@@ -58,7 +58,7 @@ public sealed class FakeCanonDriver : ICanonDriver
 
     /// <summary>Setelan kamera palsu: ISO 100, 1/125, f/5.6, Auto; beberapa pilihan per setelan.</summary>
     public Dictionary<uint, uint> Props { get; } =
-        new() { [0x402] = 0x48, [0x406] = 0x70, [0x405] = 0x30, [0x106] = 0, [0x100] = 0x0013FF0F };
+        new() { [0x402] = 0x48, [0x406] = 0x70, [0x405] = 0x30, [0x106] = 0, [0x100] = 0x0013FF0F, [Edsdk.PropBatteryLevel] = 80 };
     /// <summary>ISO yang terpasang tepat saat tiap jepret (uji ISO jepret #113).</summary>
     public List<uint> IsoAtCapture { get; } = [];
     private static readonly Dictionary<uint, uint[]> Options = new()
