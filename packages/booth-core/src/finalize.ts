@@ -66,6 +66,8 @@ export async function buildOutputs(
   photos: Photo[],
   strip: Strip,
   filter?: string,
+  /** SessionRunner sudah menulis `out/video.mp4` untuk sesi ini (#117). */
+  withVideo = false,
 ): Promise<SessionAsset[]> {
   const dir = `${await storage.sessionDir(sessionId)}/out`;
   const assets: SessionAsset[] = [];
@@ -138,7 +140,7 @@ export async function buildOutputs(
     await save("animation", 0, "animation.gif", gif.bytes());
   }
   // Video hitung mundur (#117), ditulis SessionRunner saat masuk compose (kalau event menyalakannya).
-  const video = await storage.readFile(`${dir}/video.mp4`).catch(() => null);
+  const video = withVideo ? await storage.readFile(`${dir}/video.mp4`).catch(() => null) : null;
   if (video?.byteLength)
     assets.push({ kind: "video", idx: 0, path: `${dir}/video.mp4`, bytes: video.byteLength });
   return assets;

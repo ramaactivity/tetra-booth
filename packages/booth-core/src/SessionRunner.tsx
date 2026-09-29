@@ -110,7 +110,8 @@ export function SessionRunner({
   );
   // Video hitung mundur (#117): rekam saat countdown/jepret, jeda di luar itu, simpan saat masuk compose.
   const recorder = useRef<CountdownRecorder | null>(null);
-  const videoSaved = useRef<Promise<void>>(Promise.resolve());
+  // Id sesi yang video-nya benar-benar tertulis: sesi tanpa video tidak membaca video.mp4 (ENOENT di log tiap sesi).
+  const videoSaved = useRef<Promise<string | null>>(Promise.resolve(null));
   useEffect(() => {
     if (!cfg.countdownVideo || demo || !s.sessionId) return;
     const shooting = s.phase === "countdown" || s.phase === "capture";
@@ -127,11 +128,15 @@ export function SessionRunner({
         videoSaved.current = r
           .stop()
           .then(async (bytes) => {
-            if (!bytes) return;
+            if (!bytes) return null;
             await p.storage.writeFile(`${await p.storage.sessionDir(id)}/out/video.mp4`, bytes);
             console.info(`[session] video hitung mundur ${Math.round(bytes.byteLength / 1024)} KB`);
+            return id;
           })
-          .catch((e: unknown) => console.warn(`[session] video gagal: ${errText(e)}`));
+          .catch((e: unknown) => {
+            console.warn(`[session] video gagal: ${errText(e)}`);
+            return null;
+          });
     } else recorder.current?.pause();
   }, [s.phase, s.sessionId, cfg.countdownVideo, demo, p]);
 
@@ -304,8 +309,8 @@ export function SessionRunner({
     const t0 = performance.now();
     const strip = s.strip;
     (strip
-      ? videoSaved.current.then(() =>
-          buildOutputs(p.storage, id, photos, strip, filterCss(s.filter)),
+      ? videoSaved.current.then((vid) =>
+          buildOutputs(p.storage, id, photos, strip, filterCss(s.filter), vid === id),
         )
       : Promise.resolve([])
     )
