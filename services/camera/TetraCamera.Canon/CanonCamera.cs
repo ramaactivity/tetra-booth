@@ -193,6 +193,13 @@ public sealed class CanonCamera : ICameraSource, IDisposable
         // ISO jepret memakai pilihan ISO yang sama dengan kamera, ditambah "Sama dengan live view".
         if (list.FirstOrDefault(p => p.Name == "iso") is { } iso)
             list.Insert(1, capture with { Options = [CanonProps.SameAsLiveLabel, .. iso.Options] });
+        // Baterai: hanya dibaca (tanpa pilihan), terbaca tiap sheet crew dibuka. 0xFFFFFFFF = adaptor AC.
+        try
+        {
+            var level = await Run(() => _driver.GetProp(Edsdk.PropBatteryLevel));
+            list.Add(new CameraProp("battery", "Baterai", level > 100 ? "Adaptor AC" : $"{level}%", []));
+        }
+        catch (CameraFailure) { /* model tanpa info baterai */ }
         return list;
     }
 

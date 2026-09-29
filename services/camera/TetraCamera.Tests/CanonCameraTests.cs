@@ -92,7 +92,7 @@ public class CanonCameraTests
         using var cam = Make(d);
         await Until(() => cam.Connected);
         var props = await cam.PropsAsync();
-        Assert.Equal(["iso", "iso_capture", "shutterspeed", "aperture", "whitebalance", "quality"], props.Select(p => p.Name));
+        Assert.Equal(["iso", "iso_capture", "shutterspeed", "aperture", "whitebalance", "quality", "battery"], props.Select(p => p.Name));
         var iso = props[0];
         Assert.Equal("ISO 100", iso.Value);
         Assert.Equal(["ISO 100", "ISO 200", "ISO 400", "ISO 800", "ISO 1600"], iso.Options);
@@ -101,6 +101,8 @@ public class CanonCameraTests
         Assert.Equal("f/5.6", props[3].Value);
         Assert.Equal("Auto", props[4].Value);
         Assert.Equal("JPEG L Fine", props[5].Value);
+        Assert.Equal("80%", props[6].Value);
+        Assert.Empty(props[6].Options);
         await cam.SetPropAsync("quality", "JPEG S1 Fine");
         Assert.Equal(0x0E13FF0Fu, d.Props[0x100]);
         await cam.SetPropAsync("iso", "ISO 800");
