@@ -248,7 +248,7 @@ export function registerIpc(
   ipcMain.handle("crewSyncEvents", async () => {
     crewOnly();
     try {
-      return await cloud.syncEvents();
+      return await cloud.syncEvents(true);
     } catch (e) {
       console.warn(`[cloud] sync event gagal: ${e instanceof Error ? e.message : String(e)}`);
       throw new Error("Tidak bisa mengunduh event dari cloud. Cek koneksi internet lalu coba lagi");

@@ -130,15 +130,19 @@ export function createCloud(
   const uploadQuiet = () => void uploader.drain();
 
   let syncing: Promise<number> | null = null;
-  /** Unduh bundle event yang versinya berubah; kembalikan jumlah event yang diperbarui. Idempotent. */
-  const syncEvents = () => {
+  /**
+   * Unduh bundle event yang versinya berubah; kembalikan jumlah event yang diperbarui. Idempotent.
+   * `force` (Sync dari Cloud oleh crew): pasang ulang walau versi sama, sehingga bundle lokal yang rusak/terubah
+   * pulih (W-034). File yang hash-nya sama dipakai ulang, jadi yang diunduh hanya manifest.
+   */
+  const syncEvents = (force = false) => {
     syncing ??= (async () => {
       const t = token();
       if (!t) return 0;
       const { events } = BoothEventsResponse.parse(await get("/api/booth/events", t));
       let updated = 0;
       for (const e of events) {
-        if (db.kv.get(`bundle_version:${e.id}`) === String(e.bundleVersion)) continue;
+        if (!force && db.kv.get(`bundle_version:${e.id}`) === String(e.bundleVersion)) continue;
         const m = BundleManifest.parse(await get(`/api/booth/events/${e.id}/bundle`, t));
         await installBundle(join(app.getPath("userData"), "events", e.id), m, download);
         db.kv.set(`bundle_version:${e.id}`, String(m.bundleVersion));
