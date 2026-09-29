@@ -165,11 +165,18 @@ export function registerIpc(
     await liveViewStart(!!deviceNow.afBeforeCapture);
     if (deviceNow.afBeforeCapture) console.info("[camera] AF sebelum jepret");
   });
+  let lastCanonFrame: Buffer | undefined;
   ipcMain.handle("liveViewFrame", async () => {
     if (!config.liveView) throw new Error("live view tidak aktif");
     if (canonOn) {
       const r = await fetch(liveViewUrl(), { signal: AbortSignal.timeout(3000) });
-      return r.status === 200 ? new Uint8Array(await r.arrayBuffer()) : new Uint8Array(0);
+      if (r.status !== 200) return new Uint8Array(0);
+      // Camera Service selalu mengirim frame terakhir; renderer meminta lebih cepat dari 60D (±18 fps) sehingga tiap
+      // frame di-decode ±4×. Frame yang sama = kosong, renderer menunggu 40 ms (sama seperti digiCamControl).
+      const b = Buffer.from(await r.arrayBuffer());
+      if (lastCanonFrame?.equals(b)) return new Uint8Array(0);
+      lastCanonFrame = b;
+      return new Uint8Array(b);
     }
     return liveViewFrame();
   });

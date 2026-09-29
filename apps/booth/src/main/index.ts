@@ -19,7 +19,7 @@ import {
   windowSize,
 } from "./config";
 import { openDb } from "./db";
-import { ensureDigiCam } from "./digicam";
+import { ensureDigiCam, releaseCameraForEdsdk } from "./digicam";
 import { ensureEdsdk } from "./edsdk";
 import { createFrameWatch } from "./frame-watch";
 import { createGpuWatch } from "./gpu-watch";
@@ -151,7 +151,10 @@ app.whenReady().then(async () => {
   const extra =
     hot && !cameraServiceFlags.args.includes("--hot-folder") ? ["--hot-folder", hot] : [];
   // Canon EDSDK (#112): DLL diunduh sendiri dari cloud kalau belum ada (bukan untuk `--canon fake`).
-  if (canon && canon !== "fake") await ensureEdsdk(canon, () => cloud.edsdk(), log);
+  if (canon && canon !== "fake") {
+    await releaseCameraForEdsdk(log);
+    await ensureEdsdk(canon, () => cloud.edsdk(), log);
+  }
   if (cameraServiceFlags.spawn) await startCameraService(log, db, alerts, extra);
   else app.on("will-quit", watchPrintEvents(log, db, alerts));
   if (!digicam) createWindow();

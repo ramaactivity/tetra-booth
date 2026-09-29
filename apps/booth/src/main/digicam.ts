@@ -118,6 +118,26 @@ async function startMinimized(log: (m: string) => void) {
 }
 
 /**
+ * Canon EDSDK (#111) tidak bisa berbagi kamera: digiCamControl (mis. masih dibuka booth sebelum crew pindah ke
+ * "DSLR Canon (EDSDK)") atau EOS Utility yang jalan membuat buka sesi gagal terus `0x000000C0` (port dipakai,
+ * uji 60D 2026-09-29). Tutup dulu sebelum Camera Service mulai.
+ */
+export async function releaseCameraForEdsdk(log: (m: string) => void) {
+  if (process.platform !== "win32") return;
+  for (const im of [
+    "CameraControl.exe",
+    "EOS Utility 3.exe",
+    "EOS Utility 2.exe",
+    "EOS Utility.exe",
+  ]) {
+    const closed = await new Promise<boolean>((r) =>
+      execFile("taskkill", ["/IM", im, "/F"], { windowsHide: true }, (err) => r(!err)),
+    );
+    if (closed) log(`[canon] ${im} ditutup (memegang kamera, EDSDK tidak bisa berbagi)`);
+  }
+}
+
+/**
  * Pastikan web server digiCamControl hidup; kalau belum, jalankan aplikasinya (tanpa dialog sambutan),
  * dan tunggu sampai web server hidup (log tiap 60 s). Kamera & printer Camera Service menunggu ini karena hot folder
  * = folder sesi digiCamControl.
