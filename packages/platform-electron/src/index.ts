@@ -31,7 +31,14 @@ const serviceCamera = (
   let run = 0;
   // Live view DSLR butuh 1–2 s untuk mulai; tetap nyala di antara foto satu sesi, mati setelah idle.
   let hide: ReturnType<typeof setTimeout> | undefined;
+  const warm = () => {
+    if (!liveView) return;
+    clearTimeout(hide);
+    void bridge.liveViewStart().catch(() => {});
+    hide = setTimeout(() => void bridge.liveViewStop().catch(() => {}), LIVE_VIEW_IDLE_MS);
+  };
   return {
+    warm,
     startLiveView: async (onFrame) => {
       if (!liveView) return;
       clearTimeout(hide);
@@ -74,8 +81,7 @@ const serviceCamera = (
       try {
         return await bridge.cameraCapture(req);
       } finally {
-        void bridge.liveViewStart().catch(() => {});
-        hide = setTimeout(() => void bridge.liveViewStop().catch(() => {}), LIVE_VIEW_IDLE_MS);
+        warm();
       }
     },
     reconnect: async () => {

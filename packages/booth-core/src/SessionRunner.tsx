@@ -140,6 +140,11 @@ export function SessionRunner({
     } else recorder.current?.pause();
   }, [s.phase, s.sessionId, cfg.countdownVideo, demo, p]);
 
+  // Foto 1 (W-034): EVF DSLR dinyalakan saat tamu memilih desain / selesai bayar, bukan baru saat hitung mundur.
+  useEffect(() => {
+    if (s.phase === "layout_select" || s.phase === "paid") p.camera.warm?.();
+  }, [s.phase, p]);
+
   // Kalimat & suara di sela foto (#103): daftar event, atau bawaan booth.
   const before = cfg.promptsBefore.length ? cfg.promptsBefore : copy.prompts.before;
   // biome-ignore lint/correctness/useExhaustiveDependencies: sorakan baru tiap foto/percobaan

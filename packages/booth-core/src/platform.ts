@@ -25,6 +25,8 @@ export interface BoothCamera {
   startLiveView(onFrame: (frame: LiveFrame) => void): Promise<void>;
   stopLiveView(): Promise<void>;
   capture(req: CaptureRequest): Promise<CaptureResult>;
+  /** Nyalakan live view kamera lebih awal tanpa membaca frame (DSLR butuh ±1,5 s sampai frame pertama). */
+  warm?(): void;
   /** Buka ulang koneksi kamera setelah gagal (FSD §1.7). */
   reconnect(): Promise<void>;
 }
