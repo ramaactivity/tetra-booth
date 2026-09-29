@@ -18,7 +18,16 @@ export type { BoothConfig, TetraBridge } from "./bridge";
  */
 const LIVE_VIEW_IDLE_MS = 60_000;
 
-const serviceCamera = (bridge: TetraBridge, liveView: boolean): BoothCamera => {
+const serviceCamera = (
+  bridge: TetraBridge,
+  liveView: boolean,
+  /**
+   * Canon EDSDK: nyalakan lagi EVF tepat setelah jepret (selama layar preview). 60D butuh ±1,5 s sampai frame
+   * pertama, jadi tanpa ini separuh countdown 3 dtk berikutnya tanpa gambar. Jepret tetap dengan EVF mati: jepret
+   * dengan EVF nyala memakai AF Live yang lambat (preview 5,3 s vs 1,9 s) dan gagal AF di tempat gelap (W-034).
+   */
+  rewarmAfterCapture = false,
+): BoothCamera => {
   let run = 0;
   // Live view DSLR butuh 1–2 s untuk mulai; tetap nyala di antara foto satu sesi, mati setelah idle.
   let hide: ReturnType<typeof setTimeout> | undefined;
@@ -61,7 +70,13 @@ const serviceCamera = (bridge: TetraBridge, liveView: boolean): BoothCamera => {
         await bridge.liveViewStop().catch(() => {});
         await new Promise((r) => setTimeout(r, 300));
       }
-      return bridge.cameraCapture(req);
+      if (!liveView || !rewarmAfterCapture) return bridge.cameraCapture(req);
+      try {
+        return await bridge.cameraCapture(req);
+      } finally {
+        void bridge.liveViewStart().catch(() => {});
+        hide = setTimeout(() => void bridge.liveViewStop().catch(() => {}), LIVE_VIEW_IDLE_MS);
+      }
     },
     reconnect: async () => {
       const s = await bridge.cameraStatus();
@@ -81,7 +96,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
     cfg.camera === "simulated"
       ? createSimulatedCamera(storage)
       : cfg.camera === "hotfolder" || cfg.camera === "canon"
-        ? serviceCamera(bridge, !!cfg.liveView)
+        ? serviceCamera(bridge, !!cfg.liveView, cfg.camera === "canon")
         : createWebcamCamera(storage, cfg.webcamId);
   return {
     camera: cfg.mirrorPhoto ? withMirroredPhotos(camera, storage) : camera,
