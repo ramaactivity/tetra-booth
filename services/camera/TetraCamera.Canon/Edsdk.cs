@@ -106,6 +106,7 @@ internal static class Edsdk
     [DllImport(Dll)] public static extern uint EdsGetPropertyData(IntPtr inRef, uint inPropertyId, int inParam, uint inPropertySize, out uint outPropertyData);
     [DllImport(Dll)] public static extern uint EdsSetPropertyData(IntPtr inRef, uint inPropertyId, int inParam, uint inPropertySize, ref Point inPropertyData);
     [DllImport(Dll)] public static extern uint EdsGetPropertyData(IntPtr inRef, uint inPropertyId, int inParam, uint inPropertySize, out Size outPropertyData);
+    [DllImport(Dll)] public static extern uint EdsGetPropertyData(IntPtr inRef, uint inPropertyId, int inParam, uint inPropertySize, out Point outPropertyData);
     [DllImport(Dll)] public static extern uint EdsGetPropertyDesc(IntPtr inRef, uint inPropertyId, out PropertyDesc outPropertyDesc);
     [DllImport(Dll)] public static extern uint EdsSetCapacity(IntPtr inCameraRef, Capacity inCapacity);
     [DllImport(Dll)] public static extern uint EdsSetObjectEventHandler(IntPtr inCameraRef, uint inEvent, ObjectEventHandler inHandler, IntPtr inContext);

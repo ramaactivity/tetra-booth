@@ -128,8 +128,15 @@ public sealed class EdsdkDriver : ICanonDriver
         finally { EdsRelease(item); }
     }
 
+    /// <summary>
+    /// Sistem koordinat live view, dibaca dari frame EVF (seperti contoh EDSDK). 60D menolaknya dari objek kamera
+    /// (`0x00000050` PROPERTIES_UNAVAILABLE, uji 2026-09-29), jadi disimpan saat frame pertama diunduh.
+    /// </summary>
+    private Size? _evfSys;
+
     public void SetLiveView(bool on)
     {
+        if (on) _evfSys = null;
         var device = on ? EvfOutputDevicePc : 0;
         Check(EdsSetPropertyData(_cam, PropEvfOutputDevice, 0, sizeof(uint), ref device), "live view");
     }
@@ -145,6 +152,8 @@ public sealed class EdsdkDriver : ICanonDriver
                 var err = EdsDownloadEvfImage(_cam, evf);
                 if (err == ErrObjectNotReady) return null;
                 Check(err, "unduh frame live view");
+                if (_evfSys is null && EdsGetPropertyData(evf, PropEvfCoordinateSystem, 0, 8, out Size sys) == 0 && sys.Width > 0)
+                    _evfSys = sys;
                 return Bytes(stream);
             }
             finally { EdsRelease(evf); }
@@ -154,11 +163,17 @@ public sealed class EdsdkDriver : ICanonDriver
 
     public void FocusAt(double x, double y)
     {
-        Check(EdsGetPropertyData(_cam, PropEvfCoordinateSystem, 0, 8, out Size sys), "koordinat live view");
+        var sys = _evfSys
+            ?? (EdsGetPropertyData(_cam, PropEvfCoordinateSystem, 0, 8, out Size cam) == 0 && cam.Width > 0
+                ? cam
+                : throw new CameraFailure("focus_unavailable", "koordinat live view belum ada; tunggu live view tampil"));
         // Posisi = sudut kiri-atas area zoom/AF live view (±1/5 frame): digeser supaya titik ketuk di tengahnya.
         int Pos(double v, int size) => Math.Clamp((int)(v * size - size / 10.0), 0, size - size / 5);
         var p = new Point { X = Pos(x, sys.Width), Y = Pos(y, sys.Height) };
         Check(EdsSetPropertyData(_cam, PropEvfZoomPosition, 0, 8, ref p), "posisi AF");
+        // Dibaca balik: kamera bisa membulatkan/menolak posisi (bukti area AF benar-benar pindah, #114).
+        var got = EdsGetPropertyData(_cam, PropEvfZoomPosition, 0, 8, out Point back) == 0 ? $"{back.X},{back.Y}" : "?";
+        Console.WriteLine($"[canon] fokus ketuk {x:0.00},{y:0.00} → posisi {p.X},{p.Y} (dibaca {got}) dari {sys.Width}×{sys.Height}");
         Focus("af");
     }
 
