@@ -21,7 +21,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: dotnet publish services/camera/TetraCamera.Host -c Release -r win-x64 --self-contained -o dist/camera
       - run: pnpm --filter booth build
-      - run: pnpm exec electron-builder --win --x64 --publish never
+      # Ikon exe (build/icon.png) dipasang rcedit; hanya di Windows (di Mac butuh Wine, jadi package.json mematikannya).
+      - run: pnpm exec electron-builder --win --x64 --publish never -c.win.signAndEditExecutable=true
         working-directory: apps/booth
       - uses: actions/upload-artifact@v4
         with:
