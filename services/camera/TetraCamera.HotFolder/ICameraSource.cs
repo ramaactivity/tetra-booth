@@ -26,6 +26,11 @@ public interface ICameraSource
     Task<IReadOnlyList<CameraProp>> PropsAsync();
     /// <summary>Ubah setelan ke salah satu label di <see cref="CameraProp.Options"/>.</summary>
     Task SetPropAsync(string name, string value);
+    /// <summary>
+    /// true = driver kamera macet (panggilan SDK tidak kembali). Health melapor gagal supaya supervisor booth
+    /// me-restart Camera Service; proses baru memulai SDK dari nol.
+    /// </summary>
+    bool Stuck => false;
 }
 
 public sealed record CameraProp(string Name, string Label, string Value, string[] Options);

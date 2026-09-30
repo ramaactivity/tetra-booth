@@ -18,6 +18,8 @@ public sealed class FakeCanonDriver : ICanonDriver
     }
 
     public volatile bool Plugged = true;
+    /// <summary>Jepret tertahan selama ini (ms): meniru panggilan EDSDK yang tidak kembali.</summary>
+    public volatile int HangMs;
     public bool LiveView { get; private set; }
     public List<string> FocusSteps { get; } = [];
     public int Captures { get; private set; }
@@ -45,6 +47,7 @@ public sealed class FakeCanonDriver : ICanonDriver
 
     public byte[] Capture(TimeSpan timeout)
     {
+        if (HangMs > 0) Thread.Sleep(HangMs);
         if (!IsOpen) throw new CameraFailure("camera_disconnected", "kamera terputus saat jepret");
         Captures++;
         IsoAtCapture.Add(Props[0x402]);
