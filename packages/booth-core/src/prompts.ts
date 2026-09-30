@@ -72,8 +72,9 @@ export function playAfter(cue: Cue, waitMs = 600): Promise<boolean> {
 /**
  * Putar satu cue; selesai saat audio habis (maks. `maxMs`). false = file tidak ada / audio gagal
  * (pemanggil boleh memakai bunyi tik). Cue yang dimatikan event = true tanpa bunyi.
+ * `maxMs` hanya pengaman audio macet: 4 dtk memotong "selesai" (4,46 s) & "bayar" (4,18 s) di booth (W-034, Rama).
  */
-export function play(cue: Cue, maxMs = 4000): Promise<boolean> {
+export function play(cue: Cue, maxMs = 8000): Promise<boolean> {
   const src = overrides[cue];
   if (src === "off") return Promise.resolve(true);
   return new Promise((resolve) => {
