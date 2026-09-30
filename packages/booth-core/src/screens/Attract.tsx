@@ -184,10 +184,17 @@ export function Attract({
       >
         <Logo />
       </button>
+      {/* Setup pertama (PIN belum dibuat): tombol jelas ke Mode Crew, plus cara masuk lagi nanti. */}
       {needsSetup && (
-        <p className="absolute right-6 bottom-6 z-10 max-w-[760px] rounded-2xl border-2 border-dashed border-ink/40 bg-white px-5 py-3 text-right text-xl font-semibold text-text-3">
-          {copy.attract.crewHint}
-        </p>
+        <div className="absolute right-6 bottom-6 z-10 flex max-w-[760px] items-center gap-6 rounded-[22px] border-[2.5px] border-ink bg-white p-5">
+          <p className="text-xl font-semibold text-text-2">{copy.attract.crewHint}</p>
+          <Button
+            className="h-[76px] shrink-0 rounded-[18px] px-7 text-2xl"
+            onClick={() => onCrew?.()}
+          >
+            {copy.attract.setup} <ArrowRight size={24} strokeWidth={2.5} />
+          </Button>
+        </div>
       )}
       {/* Pojok kanan atas tak terlihat: tap 5x dalam 3 detik → mode crew (FSD §1.3). */}
       <button

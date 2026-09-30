@@ -4,6 +4,7 @@ import {
   ArrowRight,
   ArrowUpDown,
   Camera,
+  Check,
   Focus,
   Heart,
   LayoutGrid,
@@ -128,6 +129,50 @@ function Group({
         {children}
       </div>
     </section>
+  );
+}
+
+/** Satu langkah checklist "Siapkan booth": nomor/centang, judul, keterangan, satu tombol. */
+function Step({
+  n,
+  done,
+  title,
+  detail,
+  action,
+  onAction,
+  testId,
+}: {
+  n: number;
+  done: boolean;
+  title: string;
+  detail: string;
+  action: string;
+  onAction: () => void;
+  testId: string;
+}) {
+  return (
+    <li
+      data-testid={testId}
+      data-done={done}
+      className={`flex min-w-0 flex-col gap-3 rounded-[22px] border-[2.5px] border-ink p-5 ${done ? "bg-mint-soft" : "bg-white"}`}
+    >
+      <div className="flex items-center gap-3">
+        <span
+          className={`flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-ink text-xl font-extrabold ${done ? "bg-green text-white" : "bg-butter"}`}
+        >
+          {done ? <Check size={22} strokeWidth={3} /> : n}
+        </span>
+        <h3 className="truncate text-2xl font-bold">{title}</h3>
+      </div>
+      <p className="line-clamp-2 min-h-[56px] text-lg font-semibold text-text-2">{detail}</p>
+      <Button
+        variant={done ? "plain" : "secondary"}
+        className="mt-auto h-16 rounded-2xl text-xl"
+        onClick={onAction}
+      >
+        {action}
+      </Button>
+    </li>
   );
 }
 
@@ -337,6 +382,83 @@ export function CrewMenu({
   const content: Record<Section, ReactNode> = {
     home: (
       <>
+        {/* Urutan kerja crew (masukan pengguna 30 Sep: alur crew membingungkan). */}
+        <section
+          aria-labelledby="setup-title"
+          className="flex flex-col gap-5 rounded-[28px] border-[2.5px] border-ink bg-white p-8"
+        >
+          <div className="flex items-baseline gap-4">
+            <h2 id="setup-title" className="text-[32px] font-extrabold">
+              {copy.crew.setup.title}
+            </h2>
+            <p className="text-xl font-semibold text-text-2">{copy.crew.setup.sub}</p>
+          </div>
+          <ol className="grid grid-cols-5 gap-5 portrait:grid-cols-2">
+            <Step
+              n={1}
+              testId="step-pair"
+              done={!!status?.device}
+              title={copy.crew.setup.pair}
+              detail={
+                status?.device
+                  ? copy.crew.paired(status.device.name, status.device.shortCode)
+                  : copy.crew.setup.pairTodo
+              }
+              action={copy.crew.setup.pairAction}
+              onAction={onPair}
+            />
+            <Step
+              n={2}
+              testId="step-event"
+              done={hasEvent}
+              title={copy.crew.setup.event}
+              detail={hasEvent ? event.name : copy.crew.setup.eventTodo}
+              action={hasEvent ? copy.crew.setup.eventChange : copy.crew.setup.eventAction}
+              onAction={onChangeEvent}
+            />
+            <Step
+              n={3}
+              testId="step-camera"
+              done={!!status?.cameraService}
+              title={copy.crew.setup.camera}
+              detail={status?.cameraService ? copy.crew.setup.cameraOk : copy.crew.setup.cameraTodo}
+              action={
+                status?.cameraService ? copy.crew.setup.cameraAction : copy.crew.setup.pickDevice
+              }
+              onAction={status?.cameraService ? onCameraCheck : () => setSheet("device")}
+            />
+            <Step
+              n={4}
+              testId="step-printer"
+              done={status?.printer.status === "ready"}
+              title={copy.crew.setup.printer}
+              detail={
+                status?.printer.status === "ready"
+                  ? copy.crew.setup.printerOk
+                  : copy.crew.setup.printerTodo
+              }
+              action={
+                status?.printer.status === "ready"
+                  ? copy.crew.setup.printerAction
+                  : copy.crew.setup.pickDevice
+              }
+              onAction={
+                status?.printer.status === "ready"
+                  ? act(async () => setWatching(await testPrint(p, event)), copy.crew.sent)
+                  : () => setSheet("device")
+              }
+            />
+            <li className="flex flex-col justify-end gap-3 portrait:col-span-2">
+              <p className="text-lg font-semibold text-text-2">{copy.crew.setup.openHint}</p>
+              <Button
+                className="h-[120px] rounded-[22px] text-[28px] [--lx:7px] [--under:#fff]"
+                onClick={onClose}
+              >
+                {copy.crew.setup.open} <ArrowRight size={28} strokeWidth={2.5} />
+              </Button>
+            </li>
+          </ol>
+        </section>
         <div className="grid grid-cols-4 gap-6 portrait:grid-cols-2">
           <Tile
             icon={Camera}
@@ -387,20 +509,6 @@ export function CrewMenu({
             <div className={sub}>{failed.length ? copy.crew.reprint : copy.crew.none}</div>
           </Tile>
         </div>
-        <Group title={copy.crew.quick}>
-          <Button variant="plain" className={action} onClick={onCameraCheck}>
-            {copy.crew.testShot}
-          </Button>
-          <Button variant="plain" className={action} onClick={doTestPrint}>
-            {copy.crew.testPrint}
-          </Button>
-          <Button variant="plain" className={action} onClick={onChangeEvent}>
-            {copy.crew.changeEvent}
-          </Button>
-          <Button variant="plain" className={action} onClick={onPair}>
-            {copy.crew.pair}
-          </Button>
-        </Group>
       </>
     ),
     camera: (
