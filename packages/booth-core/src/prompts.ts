@@ -30,6 +30,8 @@ export function after(
 }
 
 let current: HTMLAudioElement | null = null;
+/** Hentikan suara yang sedang diputar (fade pendek) dan selesaikan promise `play`-nya. */
+let supersede: (() => void) | null = null;
 /** Pengaturan suara event aktif (#104): "off" = diam, selain itu URL file pengganti. */
 let overrides: Partial<Record<Cue, string>> = {};
 export const setSoundOverrides = (o: Partial<Record<Cue, string>> | undefined) => {
@@ -81,8 +83,9 @@ export function play(cue: Cue, maxMs = 8000): Promise<boolean> {
     let a: HTMLAudioElement;
     try {
       a = new Audio(src ?? `sounds/${cue}.wav`);
-      // Satu suara pada satu waktu: suara baru memotong yang sebelumnya.
-      current?.pause();
+      // Satu suara pada satu waktu: suara baru menggantikan yang sebelumnya, dengan fade 150 ms (bukan potong
+      // mendadak, W-034) dan promise suara lama langsung selesai (pemanggilnya tidak menunggu sampai maxMs).
+      supersede?.();
       current = a;
     } catch {
       resolve(false);
@@ -91,8 +94,14 @@ export function play(cue: Cue, maxMs = 8000): Promise<boolean> {
     const done = (ok: boolean) => {
       clearTimeout(t);
       a.onended = a.onerror = null;
+      if (supersede === stop) supersede = null;
       resolve(ok);
     };
+    const stop = () => {
+      fadeOutSound(150);
+      done(true);
+    };
+    supersede = stop;
     const t = setTimeout(() => {
       a.pause();
       done(true);
