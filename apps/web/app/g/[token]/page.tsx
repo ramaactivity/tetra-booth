@@ -34,7 +34,9 @@ export default async function GalleryPage({ params }: { params: Promise<{ token:
         </p>
       </main>
     );
-  const cover = g.photos.find((p) => p.kind === "strip");
+  // Cover lebar = foto original (2400 px), bukan strip sempit yang di-crop & diperbesar (buram, Rama 30 Sep).
+  const cover =
+    g.photos.find((p) => p.kind === "original") ?? g.photos.find((p) => p.kind === "strip");
   const left = g.expiresAt
     ? Math.max(0, Math.ceil((new Date(g.expiresAt).getTime() - Date.now()) / 86_400_000))
     : null;

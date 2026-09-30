@@ -141,7 +141,14 @@ export function GalleryView({
                   onClick={() => setOpen(i)}
                   className="relative mb-2 block w-full break-inside-avoid overflow-hidden rounded-xl border-[1.5px] border-ink bg-neutral md:mb-3"
                 >
-                  <img src={p.thumb} alt="" loading="lazy" className="block w-full" />
+                  {/* Ukuran penuh (lazy): thumbnail 480 px buram di kolom grid & layar retina. */}
+                  <img
+                    src={p.full}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="block w-full"
+                  />
                   {p.favorite && (
                     <span className="absolute top-1.5 right-1.5 rounded-full border-[1.5px] border-ink bg-coral px-1.5 text-xs">
                       ♥
