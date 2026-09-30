@@ -1,5 +1,6 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useState } from "react";
 import { addDevice, newPairingCode, type PairResult, revokeDevice } from "./actions";
 
 /** Panel kode pairing (E5): kode per karakter + penjelasan. */
@@ -99,4 +100,16 @@ export function DeviceActions({ id, name }: { id: string; name: string }) {
       </div>
     </>
   );
+}
+
+/** Pantauan jarak jauh: muat ulang data server berkala selama tab terlihat (tanpa state klien yang hilang). */
+export function AutoRefresh({ seconds }: { seconds: number }) {
+  const router = useRouter();
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (document.visibilityState === "visible") router.refresh();
+    }, seconds * 1000);
+    return () => clearInterval(t);
+  }, [router, seconds]);
+  return null;
 }

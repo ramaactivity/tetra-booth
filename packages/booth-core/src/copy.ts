@@ -21,6 +21,7 @@ export const copy = {
   countdown: {
     ready: "Siap? Senyum!",
     lookAtCamera: "Lihat ke kamera",
+    preparing: "Menyiapkan kamera…",
     waiting: "Sebentar, menunggu foto dari kamera…",
     progress: (n: number, total: number) => `Foto ${n} dari ${total}`,
     snap: "Cekrek!",

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
+import { usePlatform } from "../PlatformContext";
 import { type Cue, play } from "../prompts";
 import type { Photo } from "../session";
 import { beep } from "../sound";
 import { Done, Steps } from "../ui";
+import { LIVE_WAIT_MS, liveMissed, waitsForLive } from "./LiveView";
 
 /** Pill progres "Foto n dari N" + stepper, dipakai di countdown dan preview. */
 export function ShotProgress({
@@ -66,6 +68,7 @@ export function Countdown({
   sound = false,
   prompt = "",
   cue = "foto-1",
+  live = true,
 }: {
   seconds: number;
   index: number;
@@ -77,7 +80,21 @@ export function Countdown({
   prompt?: string;
   /** Suara kalimat pembuka; null = tanpa suara kalimat (kalimat buatan event). */
   cue?: Cue | null;
+  /** Live view sudah menampilkan frame. Angka baru jalan setelahnya (maks. LIVE_WAIT_MS): EVF DSLR dingin ±1,6 s. */
+  live?: boolean;
 }) {
+  const { camera } = usePlatform();
+  const [waited, setWaited] = useState(() => !waitsForLive(camera));
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sekali per countdown (komponen di-key per foto)
+  useEffect(() => {
+    if (waited) return;
+    const t = setTimeout(() => {
+      liveMissed(camera);
+      setWaited(true);
+    }, LIVE_WAIT_MS);
+    return () => clearTimeout(t);
+  }, []);
+  const ready = live || waited;
   const [left, setLeft] = useState(seconds);
   // Dengan suara, angka baru jalan setelah kalimat pembuka selesai diucapkan (maks. 3 dtk).
   const [go, setGo] = useState(!sound);
@@ -98,7 +115,7 @@ export function Countdown({
   const done = useRef(onDone);
   done.current = onDone;
   useEffect(() => {
-    if (!go) return;
+    if (!go || !ready) return;
     if (sound) {
       const kind = left > 0 ? "tick" : "shutter";
       const voice: Cue = left > 0 && left <= 3 ? (String(left) as Cue) : "jepret";
@@ -111,7 +128,7 @@ export function Countdown({
     }
     const t = setTimeout(() => setLeft((n) => n - 1), 1000);
     return () => clearTimeout(t);
-  }, [left, go, sound]);
+  }, [left, go, ready, sound]);
 
   return (
     <div className="absolute inset-0">
@@ -123,7 +140,12 @@ export function Countdown({
         </p>
       )}
       <div className="absolute inset-0 flex items-center justify-center">
-        {go && left > 0 && (
+        {!ready && (
+          <p className="animate-[enter_250ms_ease-out_400ms_both] rounded-full bg-ink/70 px-8 py-3.5 text-[28px] font-bold text-white">
+            {copy.countdown.preparing}
+          </p>
+        )}
+        {go && ready && left > 0 && (
           <div className="layered flex size-[340px] items-center justify-center rounded-full border-4 border-ink bg-white [--lb:4px] [--lx:14px] [--under:var(--mint)]">
             <span
               key={left}

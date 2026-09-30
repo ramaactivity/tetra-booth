@@ -40,6 +40,7 @@ export const copy = {
     viewerPrev: "Foto sebelumnya",
     viewerNext: "Foto berikutnya",
     photoOf: (n: number, m: number) => `Foto ${n} dari ${m}`,
+    zoomHint: "Ketuk dua kali untuk zoom",
     availableUntil: "Tersedia sampai",
     poweredBy: "Powered by Tetra Photobooth",
     pendingTitle: "Fotomu lagi dikirim dari booth",

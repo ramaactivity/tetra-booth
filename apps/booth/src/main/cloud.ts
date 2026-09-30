@@ -1,6 +1,10 @@
+import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { statfs } from "node:fs/promises";
 import { join } from "node:path";
 import {
   BoothEventsResponse,
+  type BoothStatus,
   BoothUpdateResponse,
   BundleManifest,
   EdsdkResponse,
@@ -13,7 +17,8 @@ import {
 import { app, safeStorage, screen } from "electron";
 import type { Alerts } from "./alerts";
 import { installBundle } from "./bundle-sync";
-import { cameraHealth } from "./camera-client";
+import { cameraHealth, request } from "./camera-client";
+import { config, printerName } from "./config";
 import type { BoothDb } from "./db";
 import { createUploader } from "./upload";
 
@@ -37,6 +42,53 @@ const PAIR_ERRORS: Record<string, string> = {
   bad_request: "Kode harus 6 digit",
 };
 
+/**
+ * Ringkasan kondisi booth untuk admin (monitoring jarak jauh). Semua dari data lokal + Camera Service
+ * (timeout 3 dtk); bagian yang gagal dibaca dikosongkan, heartbeat tetap terkirim.
+ */
+async function statusSnapshot(db: BoothDb, alerts: Alerts): Promise<BoothStatus> {
+  const activeEvent = db.kv.get("active_event_id") ?? "local";
+  const userData = app.getPath("userData");
+  let activeEventName: string | undefined;
+  try {
+    const cfg = JSON.parse(
+      readFileSync(join(userData, "events", activeEvent, "bundle", "config.json"), "utf8"),
+    ) as { name?: unknown };
+    if (typeof cfg.name === "string") activeEventName = cfg.name.slice(0, 120);
+  } catch {
+    // bundle tidak ada/rusak: admin menampilkan id saja
+  }
+  const health = await cameraHealth().catch(() => null);
+  const model =
+    config.camera === "canon"
+      ? await request({ id: randomUUID(), type: "camera.status" })
+          .then((s) => s.model?.slice(0, 80) ?? null)
+          .catch(() => null)
+      : null;
+  const printer = alerts.printer();
+  const disk = await statfs(userData).catch(() => null);
+  return {
+    activeEvent,
+    ...(activeEventName ? { activeEventName } : {}),
+    camera: {
+      kind: config.camera,
+      // Webcam dibuka renderer, bukan Camera Service: main tidak tahu status sambungannya.
+      connected: config.camera === "webcam" ? null : health?.camera === "connected",
+      model,
+    },
+    printer: {
+      name: printerName?.slice(0, 120) ?? null,
+      status: health ? printer.status : "unavailable",
+      message: printer.message?.slice(0, 200) ?? null,
+    },
+    paper: db.paper(),
+    failedPrints: db.failedPrintCount(),
+    uploadPending: db.uploadPending(),
+    lastError: db.uploadError()?.slice(0, 300) ?? null,
+    ...(disk ? { diskFreeGb: Math.round((disk.bavail * disk.bsize) / 1e8) / 10 } : {}),
+  };
+}
+
 export function createCloud(
   db: BoothDb,
   alerts: Alerts,
@@ -56,21 +108,10 @@ export function createCloud(
     const t = token();
     if (!t) return;
     const { width, height } = screen.getPrimaryDisplay().size;
-    const camera = await cameraHealth().then(
-      (h) => h,
-      () => null,
-    );
     const body: HeartbeatRequest = {
       appVersion: app.getVersion(),
       screen: { width, height },
-      status: {
-        activeEvent: db.kv.get("active_event_id") ?? "local",
-        paper: db.paper(),
-        printer: alerts.printer().status,
-        camera,
-        uploadPending: db.uploadPending(),
-        lastError: db.uploadError(),
-      },
+      status: await statusSnapshot(db, alerts),
     };
     try {
       const res = await fetch(`${baseUrl}/api/booth/heartbeat`, {

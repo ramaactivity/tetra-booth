@@ -3,7 +3,7 @@ import { HeartbeatRequest } from "@tetra/shared";
 import { apiError, authDevice, parseBody } from "@/lib/booth";
 import { createServiceClient } from "@/lib/supabase/service";
 
-/** Status booth tiap 60 detik saat online (TSD §10) → devices.status & last_seen_at. */
+/** Status booth tiap 60 detik saat online (TSD §10) → devices.status (BoothStatus tervalidasi) & last_seen_at. */
 export async function POST(req: Request) {
   const device = await authDevice(req);
   if (!device) return apiError("unauthorized", 401);
