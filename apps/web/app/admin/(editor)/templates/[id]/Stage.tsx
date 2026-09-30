@@ -45,8 +45,11 @@ const CURSOR: Record<string, string> = {
   "1,0": "ew-resize",
 };
 
-/** Sisi QR minimum (px kanvas, ±1 cm @300 dpi) supaya masih bisa dipindai. */
-export const QR_MIN = 120;
+/**
+ * Sisi QR minimum (px kanvas, ±7,6 mm @300 dpi; modul ±0,23 mm untuk link sesi QR versi 3) supaya masih
+ * bisa dipindai ponsel dari dekat. Rama minta lebih kecil dari 1 cm (2026-09-30).
+ */
+export const QR_MIN = 90;
 /** Ubah posisi/ukuran QR (dibulatkan); tanpa QR = tidak berubah. */
 const setQr = (l: LayoutSpec, p: { x: number; y: number; size?: number }): LayoutSpec =>
   l.qr

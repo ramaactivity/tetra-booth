@@ -181,6 +181,7 @@ export function StartScreen({
             {onEditEvent && list.some((b) => b.id !== "local") && (
               <p className="text-xl font-medium text-text-2">{t.editHint}</p>
             )}
+            {onSync && <p className="text-xl font-medium text-text-2">{t.missingHint}</p>}
             {!list.length && (
               <p className="rounded-[24px] border-[2.5px] border-dashed border-ink px-8 py-10 text-2xl font-medium text-text-2">
                 {t.empty}

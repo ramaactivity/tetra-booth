@@ -222,7 +222,7 @@ export function Toolbar({
         <Sep />
         <span
           className="text-[13px] whitespace-nowrap text-text-2"
-          title={`Kotak QR berlatar putih. Pakai warna gelap dan ukuran minimal ${QR_MIN} px.`}
+          title={`Kotak QR berlatar putih. Pakai warna gelap dan ukuran minimal ${QR_MIN} px (±7,6 mm); di bawah 120 px (1 cm) uji pindai hasil cetak dulu.`}
         >
           Perlu latar terang agar bisa dipindai
         </span>
