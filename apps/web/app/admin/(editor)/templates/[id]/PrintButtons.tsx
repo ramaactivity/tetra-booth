@@ -1,10 +1,10 @@
 "use client";
+import { GEIST, samplePhoto, VARS } from "@tetra/editor";
 import type { LayoutSpec } from "@tetra/shared";
 import { browserContext, type ImageLike, render } from "@tetra/template-engine";
+import { Popover } from "@tetra/ui";
 import { Printer, Settings2 } from "lucide-react";
 import { useRef, useState } from "react";
-import { Popover } from "@/components/Popover";
-import { GEIST, samplePhoto, VARS } from "./Stage";
 
 const btn =
   "flex h-9 items-center gap-1.5 rounded-[10px] border-[1.5px] border-ink bg-white px-3 text-[13px] font-bold disabled:opacity-50";

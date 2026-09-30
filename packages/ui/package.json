@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./tokens.css": "./src/tokens.css"
+    "./tokens.css": "./src/tokens.css",
+    "./color-picker.css": "./src/color-picker.css"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -17,10 +18,13 @@
     "@fontsource/geist-mono": "^5.3.0",
     "qrcode": "^1.5.4",
     "react": "^19.3.0",
+    "react-colorful": "^5.8.1",
+    "react-dom": "^19.3.0",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@types/qrcode": "^1.5.6",
-    "@types/react": "^19.3.0"
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0"
   }
 }

@@ -82,3 +82,26 @@ export type LayoutSpec = z.infer<typeof LayoutSpecSchema>;
 export type LayoutSlot = z.infer<typeof SlotSchema>;
 export type LayoutText = z.infer<typeof TextSchema>;
 export type LayoutQr = z.infer<typeof QrSchema>;
+
+/** Tata letak tersimpan (tabel `layout_presets`): posisi slot foto saja, untuk satu kanvas (format + orientasi). */
+export const SavedPreset = z.object({
+  id: z.string(),
+  name: z.string(),
+  paper: LayoutPaperSchema,
+  width: z.number().int(),
+  height: z.number().int(),
+  slots: z.array(SlotSchema).min(1).max(40),
+});
+export type SavedPreset = z.infer<typeof SavedPreset>;
+
+/** assetId tetap: overlay, gambar latar, font f1..f4. Nama file di bundle = `${assetId}.${ext}`. */
+export const FONT_IDS = ["f1", "f2", "f3", "f4"] as const;
+export const ASSET_IDS = ["ov", "bg", ...FONT_IDS] as const;
+export type AssetId = (typeof ASSET_IDS)[number];
+
+/**
+ * Margin aman cetak: 3 mm (36 px @300 dpi) dari tiap tepi kanvas. Kalibrasi DNP (DECISIONS #47/#59): gambar
+ * dicetak *cover* dengan pembesaran ±3%, jadi ±1,8 mm tiap tepi bisa terpotong; 3 mm memberi cadangan pisau.
+ * Untuk 2x6 berlaku per strip (garis potong di tengah lembar).
+ */
+export const SAFE_MARGIN_PX = 36;

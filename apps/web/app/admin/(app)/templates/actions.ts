@@ -3,12 +3,19 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Json } from "@tetra/db";
-import { canvasFits, LAYOUT_PRESETS, LayoutSpecSchema } from "@tetra/shared";
+import { libFont } from "@tetra/editor";
+import {
+  ASSET_IDS,
+  type AssetId,
+  canvasFits,
+  LAYOUT_PRESETS,
+  LayoutSpecSchema,
+  SavedPreset,
+} from "@tetra/shared";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { libFont } from "@/lib/fonts";
-import { ASSET_IDS, type AssetId, copyLayout, SavedPreset, StoredLayout } from "@/lib/layouts";
+import { copyLayout, StoredLayout } from "@/lib/layouts";
 import { putObject } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 

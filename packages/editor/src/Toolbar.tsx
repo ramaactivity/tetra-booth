@@ -1,4 +1,5 @@
 "use client";
+import { ColorPicker, Select } from "@tetra/ui";
 import {
   AlignCenter,
   AlignLeft,
@@ -12,10 +13,8 @@ import {
   Unlock,
 } from "lucide-react";
 import type { ReactNode, RefObject } from "react";
-import { ColorPicker } from "@/components/ColorPicker";
-import { Select } from "@/components/Select";
-import { OVERLAY, QR, setOverlayRect } from "@/lib/editor/geometry";
 import type { EditorApi } from "./Editor";
+import { OVERLAY, QR, setOverlayRect } from "./geometry";
 import type { Tab } from "./Panels";
 import { AlignButtons } from "./Panels";
 import { QR_MIN } from "./Stage";

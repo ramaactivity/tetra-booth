@@ -17,7 +17,7 @@ import {
   snapMove,
   snapValue,
   union,
-} from "@/lib/editor/geometry";
+} from "./geometry";
 
 export type Box = Rect & { rot: number };
 const SAMPLE = ["#CEC8F6", "#D6EEF8", "#FCE3C6", "#D6F1EA", "#F7D5CC", "#EFEDE8"];

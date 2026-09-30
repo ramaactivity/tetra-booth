@@ -1,7 +1,7 @@
 "use client";
 import { LAYOUT_PRESETS, type PresetId } from "@tetra/shared";
+import { Select } from "@tetra/ui";
 import { useActionState, useState } from "react";
-import { Select } from "@/components/Select";
 import { createTemplate } from "./actions";
 
 const FORMATS = ["4R", "2R", "Polaroid"] as const;
