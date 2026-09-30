@@ -323,6 +323,10 @@ export const copy = {
     changePin: "Ganti PIN",
     autoStartDev: "Auto-start hanya di app hasil build",
     pairTitle: "Kode pairing dari admin",
+    pairHint: "Kode 6 digit dari admin → Device → Tambah booth. Berlaku 10 menit.",
+    pairAlready: (name: string, code: string) =>
+      `Booth ini SUDAH terhubung sebagai ${name} · ${code}. Lanjutkan hanya untuk menghubungkan ulang ke booth/akun lain.`,
+    pairAgain: "Hubungkan ulang (ganti booth/akun)",
     pairing: "Menghubungkan ke server…",
     pair: "Pasangkan",
     paired: (name: string, code: string) => `${name} · ${code}`,

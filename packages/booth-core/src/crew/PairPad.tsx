@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { copy } from "../copy";
 import { crewText } from "../errors";
 import { usePlatform } from "../PlatformContext";
@@ -10,6 +10,13 @@ export function PairPad({ onDone, onCancel }: { onDone: () => void; onCancel: ()
   const [code, setCode] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [intro, setIntro] = useState<string>(copy.crew.pairHint);
+  useEffect(() => {
+    crew.status().then(
+      (s) => s.device && setIntro(copy.crew.pairAlready(s.device.name, s.device.shortCode)),
+      () => {},
+    );
+  }, [crew]);
 
   const submit = async () => {
     setBusy(true);
@@ -33,7 +40,7 @@ export function PairPad({ onDone, onCancel }: { onDone: () => void; onCancel: ()
       minBoxes={6}
       maxLength={6}
       masked={false}
-      status={msg}
+      status={msg ?? intro}
       locked={busy}
       onSubmit={() => void submit()}
       onCancel={onCancel}
