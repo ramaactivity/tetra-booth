@@ -1,6 +1,6 @@
 import { filterCss, newSessionId, printPaper } from "@tetra/shared";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { composeStrip, designPreview } from "./compose";
+import { composeStrip, designPreview, renderWebPiece } from "./compose";
 import { copy } from "./copy";
 import { CountdownRecorder, recorderMime } from "./countdownVideo";
 import { errText } from "./errors";
@@ -83,7 +83,7 @@ export function SessionRunner({
   fast?: boolean;
   /** Booth terpasang: putar bumper saat event ini dibuka (#105). */
   bumper?: boolean;
-  onCrew?: () => void;
+  onCrew?: (intent?: "exit") => void;
 }) {
   const p = usePlatform();
   const [s, dispatch] = useReducer(sessionReducer, initialSession);
@@ -107,6 +107,8 @@ export function SessionRunner({
   const recorder = useRef<CountdownRecorder | null>(null);
   // Id sesi yang video-nya benar-benar tertulis: sesi tanpa video tidak membaca video.mp4 (ENOENT di log tiap sesi).
   const videoSaved = useRef<Promise<string | null>>(Promise.resolve(null));
+  /** Potongan web 2× sesi ini (#133), dirender di latar belakang setelah compose; [sessionId, path]. */
+  const webPiece = useRef<Promise<[string, string | null]>>(Promise.resolve(["", null]));
   useEffect(() => {
     if (!cfg.countdownVideo || demo || !s.sessionId) return;
     const shooting = s.phase === "countdown" || s.phase === "capture";
@@ -309,8 +311,15 @@ export function SessionRunner({
     const t0 = performance.now();
     const strip = s.strip;
     (strip
-      ? videoSaved.current.then((vid) =>
-          buildOutputs(p.storage, id, photos, strip, filterCss(s.filter), vid === id),
+      ? Promise.all([videoSaved.current, webPiece.current]).then(([vid, [webId, web]]) =>
+          buildOutputs(
+            p.storage,
+            id,
+            photos,
+            webId === id && web ? { ...strip, piecePath: web } : strip,
+            filterCss(s.filter),
+            vid === id,
+          ),
         )
       : Promise.resolve([])
     )
@@ -328,19 +337,20 @@ export function SessionRunner({
     if (s.phase !== "compose" || !s.sessionId) return;
     let live = true;
     const t0 = performance.now();
-    composeStrip(
-      p.storage,
-      s.sessionId,
-      ev,
-      s.photos.filter((x): x is Photo => x !== null),
-      filterCss(s.filter),
-      // QR di desain = link halaman tamu sesi ini (sama dengan QR di layar; ID dibuat booth, jalan offline).
-      `${guestBaseUrl}/s/${s.sessionId}`,
-    )
+    const sid = s.sessionId;
+    const photos = s.photos.filter((x): x is Photo => x !== null);
+    const filter = filterCss(s.filter);
+    // QR di desain = link halaman tamu sesi ini (sama dengan QR di layar; ID dibuat booth, jalan offline).
+    const qrUrl = `${guestBaseUrl}/s/${sid}`;
+    composeStrip(p.storage, sid, ev, photos, filter, qrUrl)
       .then((strip) => {
         urls.current.push(strip.url);
         console.info(`[session] compose ${Math.round(performance.now() - t0)} ms`);
         if (live) dispatch({ type: "COMPOSED", strip });
+        // Versi web 2× di latar belakang, tamu tidak menunggu (#133); finalize menunggunya.
+        webPiece.current = renderWebPiece(p.storage, sid, ev, photos, filter, qrUrl).then(
+          (path) => [sid, path],
+        );
       })
       .catch((e: unknown) => {
         console.error(`[session] compose gagal: ${errText(e)}`);

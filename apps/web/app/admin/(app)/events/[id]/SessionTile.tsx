@@ -1,5 +1,5 @@
 "use client";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { moderate } from "./actions";
 
 export function SessionTile({
@@ -19,6 +19,18 @@ export function SessionTile({
 }) {
   const [pending, start] = useTransition();
   const act = (a: "hide" | "show" | "delete") => () => start(() => moderate(eventId, id, a));
+  const [copied, setCopied] = useState(false);
+  // Bagikan link halaman tamu sesi ini: share sheet di HP, salin ke clipboard di laptop.
+  const share = async () => {
+    const url = `${window.location.origin}/s/${id}`;
+    if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+      await navigator.share({ url }).catch(() => {});
+      return;
+    }
+    await navigator.clipboard.writeText(url).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
   return (
     <div
       data-testid="session-tile"
@@ -49,11 +61,19 @@ export function SessionTile({
         <span className="text-text-2">{time}</span>
       </div>
       <div className="px-2.5 pb-2 text-[11px] font-semibold text-text-2">{status}</div>
+      <button
+        type="button"
+        aria-label={`Bagikan link sesi ${id}`}
+        className="h-9 border-t-[1.5px] border-ink bg-mint-soft px-2 text-xs font-bold"
+        onClick={() => void share()}
+      >
+        {copied ? "Link tersalin" : "Bagikan link"}
+      </button>
       <div className="flex border-t-[1.5px] border-ink text-[11px] font-bold">
         <button
           type="button"
           disabled={pending}
-          className="h-8 flex-1"
+          className="h-9 flex-1 px-2"
           onClick={act(hidden ? "show" : "hide")}
         >
           {hidden ? "Tampilkan" : "Sembunyikan"}
@@ -61,7 +81,7 @@ export function SessionTile({
         <button
           type="button"
           disabled={pending}
-          className="h-8 flex-1 border-l-[1.5px] border-ink bg-coral"
+          className="h-9 flex-1 border-l-[1.5px] border-ink bg-coral px-2"
           onClick={() => {
             if (confirm(`Hapus sesi ${id}? Foto dihapus permanen.`)) act("delete")();
           }}

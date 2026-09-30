@@ -112,7 +112,8 @@ test("editor template: QR unduh foto tersimpan di layout", async ({ page }) => {
       .eq("version", 2)
       .single();
     const spec = v?.spec as { layout: { qr?: { x: number; y: number; size: number } } };
-    expect(spec.layout.qr).toMatchObject({ x, y: 1800 - 36 - 264, size: 300 });
+    // Ukuran diketik 300: QR digeser naik supaya tetap di dalam margin aman (36 px).
+    expect(spec.layout.qr).toMatchObject({ y: 1800 - 36 - 300, size: 300 });
   } finally {
     const { data: l } = await db.from("layouts").select("id").eq("name", tplName).maybeSingle();
     if (l) {

@@ -157,7 +157,8 @@ function useEditorApi(p: TemplateEditorProps) {
           .then(createImageBitmap)
           .then((img) => setImages((m) => ({ ...m, [assetId]: img })))
           .catch(() => {});
-      else if (!assetId.startsWith("lib-")) addFont(assetId, `tpl-${assetId}`, url).catch(() => {});
+      else if (!assetId.startsWith("lib-"))
+        addFont(assetId, `tpl-${p.initial.id}-${assetId}`, url).catch(() => {});
     }
   }, [p.files, addFont]);
 

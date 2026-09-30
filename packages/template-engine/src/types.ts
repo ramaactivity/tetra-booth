@@ -15,6 +15,7 @@ export interface Ctx2D {
   save(): void;
   restore(): void;
   translate(x: number, y: number): void;
+  scale(x: number, y: number): void;
   rotate(rad: number): void;
   beginPath(): void;
   rect(x: number, y: number, w: number, h: number): void;

@@ -62,6 +62,7 @@ async function draw(
   layout: LayoutSpec,
   t: PreviewTemplate | undefined,
   vars: PreviewVars,
+  overlayUrl?: string,
 ): Promise<string> {
   const asset = (id: string) =>
     t && id in t.files ? `/admin/templates/${t.id}/asset/${id}?v=${t.version}` : null;
@@ -78,6 +79,12 @@ async function draw(
     const url = id && asset(id);
     const img = url ? await loadImage(url) : null;
     if (id && img) assets[id] = img;
+  }
+  // Preset utama: overlay PNG event (seperti bundle booth).
+  const ov = !t && overlayUrl ? await loadImage(overlayUrl) : null;
+  if (ov) {
+    assets.ov = ov;
+    layout = { ...layout, overlay: { assetId: "ov" } };
   }
   const piece = renderPiece(
     layout,
@@ -103,25 +110,28 @@ export function DesignPreview({
   vars,
   alt,
   className = "",
+  overlayUrl,
 }: {
   layout: LayoutSpec;
   template?: PreviewTemplate | undefined;
+  /** Overlay event untuk preset utama (route admin same-origin). */
+  overlayUrl?: string | undefined;
   vars: PreviewVars;
   alt: string;
   className?: string;
 }) {
   const [url, setUrl] = useState<string | null>(null);
-  const latest = useRef({ layout, template, vars });
-  latest.current = { layout, template, vars };
-  const key = JSON.stringify([layout, template?.id, template?.version, vars]);
+  const latest = useRef({ layout, template, vars, overlayUrl });
+  latest.current = { layout, template, vars, overlayUrl };
+  const key = JSON.stringify([layout, template?.id, template?.version, vars, overlayUrl]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `key` = isi layout & vars; nilai terbaru dibaca dari ref
   useEffect(() => {
     let alive = true;
     // Jeda singkat: mengetik nama event tidak memicu render tiap huruf.
     const timer = setTimeout(() => {
-      const { layout: l, template: t, vars: v } = latest.current;
-      const job = queue.then(() => (alive ? draw(l, t, v) : null));
+      const { layout: l, template: t, vars: v, overlayUrl: o } = latest.current;
+      const job = queue.then(() => (alive ? draw(l, t, v, o) : null));
       queue = job.catch(() => {});
       job
         .then((u) => {

@@ -229,6 +229,7 @@ const sub = "mt-2 block text-lg font-semibold text-text-2";
  */
 export function CrewMenu({
   event,
+  startExit = false,
   onChangeEvent,
   onEditDesign,
   onReloadEvents,
@@ -238,6 +239,8 @@ export function CrewMenu({
   onClose,
 }: {
   event: BoothEvent;
+  /** Buka langsung konfirmasi Tutup Aplikasi (Ctrl+Shift+Q). */
+  startExit?: boolean;
   /** Ganti event lewat layar pilih mode (DECISIONS #86). */
   onChangeEvent: () => void;
   /** Buka editor desain di booth untuk satu layout.id (DECISIONS #131). */
@@ -254,7 +257,7 @@ export function CrewMenu({
   const [failed, setFailed] = useState<FailedPrint[]>([]);
   const [roll, setRoll] = useState<string | null>(null);
   const [sheet, setSheet] = useState<"roll" | "exit" | "update" | "device" | "settings" | null>(
-    null,
+    startExit ? "exit" : null,
   );
   const [localSettings, setLocalSettings] = useState(false);
   const hasEvent = event.id !== DEFAULT_EVENT.id;

@@ -5,6 +5,8 @@ import type { BoothStorage } from "./platform";
 import type { Photo, Strip } from "./session";
 
 const FONT = "Geist Variable";
+/** Skala potongan web (strip_web & pratinjau layar) terhadap kanvas desain. */
+const WEB_SCALE = 2;
 
 /**
  * Render layout event (aset & font bundle ikut) dengan foto apa pun; dipakai compose dan test print.
@@ -17,26 +19,27 @@ export async function renderEvent(
   photoFilter = "none",
   /** Link halaman tamu sesi untuk elemen QR di desain; kosong = URL contoh (tes cetak, pratinjau). */
   qrUrl?: string,
-): Promise<{ piece: OffscreenCanvas; sheet: OffscreenCanvas }> {
+  /** Skala versi web (`web`); 1 = sama dengan potongan cetak. */
+  webScale = 1,
+): Promise<{ piece: OffscreenCanvas; sheet: OffscreenCanvas; web: OffscreenCanvas }> {
   const fonts = event.render?.fonts ?? {};
   if (event.layout.texts.some((t) => !fonts[t.fontAssetId]))
     await document.fonts.load(`40px "${FONT}"`);
   const ctx = { ...browserContext(FONT), fontFamily: (id: string) => fonts[id] ?? FONT };
-  const piece = renderPiece(
-    event.layout,
-    {
-      photos,
-      assets: event.render?.images ?? {},
-      vars: { event_name: event.name, date: event.date },
-      photoFilter,
-      qrUrl,
-    },
-    ctx,
-  );
+  const inputs = {
+    photos,
+    assets: event.render?.images ?? {},
+    vars: { event_name: event.name, date: event.date },
+    photoFilter,
+    qrUrl,
+  };
+  const piece = renderPiece(event.layout, inputs, ctx);
   const sheet = toSheet(event.layout, piece, ctx);
+  const web = webScale === 1 ? piece : renderPiece(event.layout, inputs, ctx, webScale);
   return {
     piece: piece as unknown as OffscreenCanvas,
     sheet: sheet as unknown as OffscreenCanvas,
+    web: web as unknown as OffscreenCanvas,
   };
 }
 
@@ -95,6 +98,34 @@ export async function composeStrip(
       piecePath: `${dir}/${same ? "strip" : "piece"}.jpg`,
       url: URL.createObjectURL(pieceBlob),
     };
+  } finally {
+    for (const b of bitmaps) b.close();
+  }
+}
+
+/**
+ * Potongan web 2× (strip_web & thumbnail HP/galeri, #133) di latar belakang SETELAH tamu melihat hasilnya:
+ * potongan 2R cuma 600 px lebar, buram di layar rapat. Menulis out/piece@2x.jpg; null = gagal (pakai potongan 1×).
+ */
+export async function renderWebPiece(
+  storage: BoothStorage,
+  sessionId: string,
+  event: BoothEvent,
+  photos: Photo[],
+  photoFilter = "none",
+  qrUrl?: string,
+): Promise<string | null> {
+  const bitmaps = await Promise.all(
+    photos.map(async (p) => createImageBitmap(new Blob([await storage.readFile(p.path)]))),
+  );
+  try {
+    const { web } = await renderEvent(event, bitmaps, photoFilter, qrUrl, WEB_SCALE);
+    const blob = await web.convertToBlob({ type: "image/jpeg", quality: 0.92 });
+    const path = `${await storage.sessionDir(sessionId)}/out/piece@2x.jpg`;
+    await storage.writeFile(path, new Uint8Array(await blob.arrayBuffer()));
+    return path;
+  } catch {
+    return null;
   } finally {
     for (const b of bitmaps) b.close();
   }

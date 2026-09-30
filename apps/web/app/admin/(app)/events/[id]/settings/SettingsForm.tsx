@@ -384,6 +384,27 @@ export function SettingsForm({
   useEffect(() => {
     if (r?.ok) setDirty(false);
   }, [r]);
+  // Perubahan belum disimpan: tanya dulu saat menutup tab/reload, atau saat mengklik link lain di admin
+  // (navigasi Next tidak memicu beforeunload). Link anchor bagian (#…) di halaman ini tidak ditanya.
+  useEffect(() => {
+    if (!dirty) return;
+    const onUnload = (e: BeforeUnloadEvent) => e.preventDefault();
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest("a[href]");
+      const href = a?.getAttribute("href");
+      if (!href || href.startsWith("#") || a?.getAttribute("target") === "_blank") return;
+      if (!confirm("Ada perubahan belum disimpan. Tinggalkan halaman ini?")) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener("beforeunload", onUnload);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("beforeunload", onUnload);
+      document.removeEventListener("click", onClick, true);
+    };
+  }, [dirty]);
   const pb = mode === "photobox";
 
   // Bagian yang sedang terbaca → disorot di navigasi kiri.
@@ -715,6 +736,7 @@ export function SettingsForm({
               }}
               vars={{ event_name: name, date: longDate(date) }}
               background={background}
+              overlayUrl={v.hasOverlay ? `/admin/events/${eventId}/overlay` : undefined}
             />
             {pb && (
               <p className="rounded-[11px] border-[1.5px] border-dashed border-ink bg-sky px-3.5 py-2.5 text-xs leading-normal md:col-span-2">
@@ -1287,7 +1309,7 @@ export function SettingsForm({
                 </span>
               )}
               {r?.message ??
-                "Booth menerima pengaturan baru saat online (atau lewat Sync dari Cloud di mode crew)."}
+                "Booth menerima pengaturan baru saat online (atau lewat tombol Ambil event terbaru di mode crew)."}
             </p>
             <button
               type="submit"

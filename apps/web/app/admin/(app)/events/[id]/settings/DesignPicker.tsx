@@ -38,12 +38,15 @@ export function DesignPicker({
   onChange,
   vars,
   background,
+  overlayUrl,
 }: {
   options: DesignOption[];
   value: string[];
   onChange: (next: string[]) => void;
   vars: PreviewVars;
   background: string;
+  /** Overlay PNG event; dipakai di pratinjau desain utama kalau preset. */
+  overlayUrl?: string | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const byValue = new Map(options.map((o) => [o.value, o]));
@@ -78,6 +81,7 @@ export function DesignPicker({
                   template={t}
                   vars={vars}
                   alt={`Pratinjau ${o.name}`}
+                  overlayUrl={i === 0 ? overlayUrl : undefined}
                 />
               </div>
               <div className="flex flex-1 flex-col gap-3 p-4">

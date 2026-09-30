@@ -91,7 +91,8 @@ export function Attract({
   /** Layar awal per event (#102): warna/gambar latar, teks tombol, strip contoh. */
   theme?: BoothEvent["attract"];
   onStart: () => void;
-  onCrew?: (() => void) | undefined;
+  /** `"exit"` = Ctrl+Shift+Q: setelah PIN langsung konfirmasi Tutup Aplikasi. */
+  onCrew?: ((intent?: "exit") => void) | undefined;
 }) {
   const tap = useRef(createTapDetector());
   // Tombol mulai baru aktif sebentar setelah layar muncul: sentuhan ganda dari layar QR ("Selesai") atau
@@ -125,6 +126,11 @@ export function Attract({
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "m") {
         e.preventDefault();
         onCrew?.();
+      }
+      // Tutup aplikasi dari keyboard laptop tetap lewat PIN crew (Alt+F4 diblokir di kiosk).
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "q") {
+        e.preventDefault();
+        onCrew?.("exit");
       }
     };
     window.addEventListener("keydown", onKey);
