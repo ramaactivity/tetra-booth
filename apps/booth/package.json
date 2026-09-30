@@ -2,6 +2,10 @@
   "name": "booth",
   "version": "0.5.27",
   "private": true,
+  "description": "Tetra Booth",
+  "author": {
+    "name": "Tetra Photobooth"
+  },
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -75,6 +79,7 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Tetra Booth",
       "artifactName": "Tetra-Booth-Setup-${version}.${ext}"
-    }
+    },
+    "copyright": "Copyright © 2026 Tetra Photobooth"
   }
 }
