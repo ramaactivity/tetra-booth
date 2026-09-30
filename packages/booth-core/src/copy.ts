@@ -57,7 +57,7 @@ export const copy = {
     scanWhile: "Sambil menunggu, scan dulu",
     digital: "Versi digital langsung ada di HP-mu",
   },
-  filter: { title: "Pilih filter", next: "Pakai Filter Ini" },
+  filter: { title: "Pilih filter", next: "Pakai Filter Ini", back: "Cek Foto Lagi" },
   qr: {
     brand: (b: string) => `Jangan lupa tag ${b}`,
     title: "Scan untuk simpan fotomu",
@@ -95,6 +95,9 @@ export const copy = {
     ],
     waiting: "Menunggu pembayaran…",
     cancel: "Batalkan",
+    cancelSure: "Ya, Batalkan",
+    cancelWarn: "Sudah scan atau sudah bayar? Jangan batalkan, tunggu layar lanjut sendiri.",
+    paidHelp: "Sudah bayar tapi layar belum lanjut? Panggil crew, uangmu aman.",
     success: "Pembayaran berhasil",
     startsIn: "Sesi foto dimulai dalam",
   },
@@ -113,6 +116,7 @@ export const copy = {
     includedLine: "1 lembar termasuk paket",
     extraTotal: "Tambahan",
     printOne: "Cetak 1 Saja",
+    printPaid: "Cetak Sekarang",
     payPrint: "Bayar & Cetak",
   },
   start: {

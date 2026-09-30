@@ -1,7 +1,7 @@
 import { Button } from "@tetra/ui";
 import { useEffect, useState } from "react";
 import { copy } from "../copy";
-import { Done, QrCode } from "../ui";
+import { QrCode } from "../ui";
 
 /** Perkiraan waktu keluar per lembar (DNP ±8–15 s). ponytail: konstanta, ganti dengan status spooler kalau ada. */
 export const PRINT_SEC_PER_SHEET = 12;
@@ -135,9 +135,8 @@ export function Qr({
             {copy.qr.chips.map((c) => (
               <span
                 key={c}
-                className="flex items-center gap-2 rounded-full border-2 border-ink bg-white py-1.5 pr-4 pl-1.5 text-lg font-bold"
+                className="rounded-full border-2 border-dashed border-ink bg-white px-5 py-1.5 text-lg font-bold"
               >
-                <Done size={26} />
                 {c}
               </span>
             ))}

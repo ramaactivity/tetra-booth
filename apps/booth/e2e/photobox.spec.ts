@@ -163,6 +163,10 @@ test("photobox: layout → QRIS → foto dengan timer → tambah lembar → QRIS
     await expect(w.getByText(/QR berlaku 0[45]:/)).toBeVisible();
     await w.waitForTimeout(400);
     await w.screenshot({ path: "test-results/photobox-A3-qris.png" });
+    // Batalkan dua langkah (audit UX): ketukan pertama hanya meminta konfirmasi.
+    await w.getByRole("button", { name: "Batalkan" }).click();
+    await expect(w.getByRole("button", { name: "Ya, Batalkan" })).toBeVisible();
+    await expect(w.getByText(/Jangan batalkan/)).toBeVisible();
     await expect(w.getByRole("heading", { name: "Pembayaran berhasil" })).toBeVisible({
       timeout: 10_000,
     });
