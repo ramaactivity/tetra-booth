@@ -83,7 +83,7 @@ export function SessionRunner({
   fast?: boolean;
   /** Booth terpasang: putar bumper saat event ini dibuka (#105). */
   bumper?: boolean;
-  onCrew?: () => void;
+  onCrew?: (intent?: "exit") => void;
 }) {
   const p = usePlatform();
   const [s, dispatch] = useReducer(sessionReducer, initialSession);

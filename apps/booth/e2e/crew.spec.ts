@@ -204,14 +204,12 @@ test("kiosk: tidak bisa ditutup, keluar hanya lewat mode crew", async () => {
   await w.waitForTimeout(500);
   expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
 
-  // Keluar lewat mode crew menutup aplikasi.
-  await openCrew(w);
+  // Ctrl+Shift+Q di layar awal: PIN crew lalu langsung konfirmasi Tutup Aplikasi.
+  await w.keyboard.press("Control+Shift+Q");
   await typePin(w, "1357");
   await typePin(w, "1357");
-  await w.getByTestId("crew-nav-system").click();
-  await expect(w.getByText("Auto-start hanya di app hasil build")).toBeVisible();
+  await expect(w.getByRole("button", { name: "Ya, Tutup Aplikasi" })).toBeVisible();
   const closed = app.waitForEvent("close");
-  await w.getByRole("button", { name: "Tutup Aplikasi", exact: true }).click();
   // Jendela tertutup di tengah klik: Playwright menolak klik itu, yang penting event close datang.
   await w
     .getByRole("button", { name: "Ya, Tutup Aplikasi" })

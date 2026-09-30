@@ -99,6 +99,25 @@ export function GalleryView({
       setPlaying(false);
     }
   }, [open, shown.length]);
+  // Jam yang sedang terlihat → chip Jam disorot (bagian teratas yang masih tampil di bawah toolbar).
+  const [activeHour, setActiveHour] = useState<number | null>(null);
+  useEffect(() => {
+    const els = sections
+      .map(([h]) => document.getElementById(`jam-${h}`))
+      .filter((e): e is HTMLElement => !!e);
+    if (!els.length) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const top = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (top) setActiveHour(Number(top.target.id.slice(4)));
+      },
+      { rootMargin: "-140px 0px -55% 0px" },
+    );
+    for (const el of els) obs.observe(el);
+    return () => obs.disconnect();
+  }, [sections]);
   const cur = open !== null ? shown[open] : undefined;
   const act =
     "flex h-12 min-w-0 flex-1 flex-col items-center justify-center leading-tight md:flex-row md:gap-1.5";
@@ -185,7 +204,8 @@ export function GalleryView({
                     .getElementById(`jam-${hour}`)
                     ?.scrollIntoView({ behavior: "smooth", block: "start" })
                 }
-                className="flex h-11 flex-none items-center gap-1.5 rounded-full border-[1.5px] border-ink bg-white px-3.5 text-[13px] font-bold"
+                aria-current={activeHour === hour ? "true" : undefined}
+                className={`flex h-11 flex-none items-center gap-1.5 rounded-full border-[1.5px] border-ink px-3.5 text-[13px] font-bold ${activeHour === hour ? "bg-mint-soft" : "bg-white"}`}
               >
                 {hh(hour)}
                 <span className="font-mono text-[11px] font-normal text-text-2">{idx.length}</span>

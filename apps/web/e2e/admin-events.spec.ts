@@ -49,6 +49,16 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page.setViewportSize({ width: 1280, height: 800 });
 
     await page.getByLabel(/Teks kecil di layar booth/).fill("The Wedding of");
+    // Ada perubahan belum disimpan: klik link keluar → konfirmasi; batal = tetap di halaman pengaturan.
+    let asked = "";
+    page.once("dialog", (d) => {
+      asked = d.message();
+      void d.dismiss();
+    });
+    await page.getByRole("link", { name: /› ?$/ }).first().click();
+    await page.waitForTimeout(500);
+    expect(asked).toContain("belum disimpan");
+    await expect(page).toHaveURL(/\/settings$/);
     await expect(page.getByText("Ada perubahan belum disimpan")).toBeVisible();
     // Desain frame: hanya desain terpilih yang tampil. Event baru = Strip Klasik (2R), jadi pemilih
     // hanya menampilkan desain 2R (4R disembunyikan, bukan dinonaktifkan).

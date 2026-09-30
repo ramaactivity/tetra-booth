@@ -1,4 +1,5 @@
 "use client";
+import { SAFE_MARGIN_PX } from "@tetra/shared";
 import { ColorPicker, Select } from "@tetra/ui";
 import {
   AlignCenter,
@@ -205,9 +206,17 @@ export function Toolbar({
             type="number"
             min={QR_MIN}
             value={Math.round(qr.size)}
-            onChange={(e) =>
-              Number(e.target.value) > 0 && ed.patchQr({ size: Number(e.target.value) }, "size")
-            }
+            onChange={(e) => {
+              // Tetap di dalam margin aman: dibatasi ke ruang aman, posisi digeser kalau keluar tepi.
+              const { width: W, height: H } = ed.layout.canvas;
+              const max = Math.min(W, H) - 2 * SAFE_MARGIN_PX;
+              const size = Math.min(Number(e.target.value), max);
+              if (!(size > 0)) return;
+              const x = Math.max(SAFE_MARGIN_PX, Math.min(qr.x, W - SAFE_MARGIN_PX - size));
+              const y = Math.max(SAFE_MARGIN_PX, Math.min(qr.y, H - SAFE_MARGIN_PX - size));
+              ed.patchQr({ size, x, y }, "size");
+            }}
+            onBlur={() => qr.size < QR_MIN && ed.patchQr({ size: QR_MIN }, "size")}
             className="h-9 w-20 rounded-[10px] border-[1.5px] border-ink text-center font-mono text-[13px]"
           />
           px

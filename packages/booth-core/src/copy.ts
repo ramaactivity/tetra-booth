@@ -126,7 +126,7 @@ export const copy = {
     editHint:
       "Edit membuka pengaturan event di admin (browser). Setelah disimpan, tekan Ambil event terbaru.",
     missingHint:
-      "Event tidak muncul? Di admin buka event → Pengaturan → Device, pilih Semua booth atau centang booth ini → Simpan, lalu tekan Sync dari Cloud.",
+      "Event tidak muncul? Di admin buka event → Pengaturan → Device, pilih Semua booth atau centang booth ini → Simpan, lalu tekan Ambil event terbaru.",
     sub: "Tentukan mode dulu, lalu pilih event.",
     mode: { event: "Mode Event", photobox: "Mode Photobox" },
     modeSub: {

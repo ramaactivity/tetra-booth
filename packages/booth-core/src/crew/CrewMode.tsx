@@ -19,6 +19,7 @@ export function CrewMode({
   onReloadEvents,
   onClose,
   openAdmin = false,
+  openExit = false,
 }: {
   event: BoothEvent;
   bundles: EventBundle[];
@@ -27,6 +28,8 @@ export function CrewMode({
   onClose: () => void;
   /** Dibuka dari tombol Dashboard Admin di layar awal: setelah PIN benar, langsung buka browser. */
   openAdmin?: boolean;
+  /** Ctrl+Shift+Q: setelah PIN langsung konfirmasi Tutup Aplikasi. */
+  openExit?: boolean;
 }) {
   const { crew } = usePlatform();
   const [view, setView] = useState<View | null>(null);
@@ -95,6 +98,7 @@ export function CrewMode({
       return (
         <CrewMenu
           event={event}
+          startExit={openExit}
           onChangeEvent={() => setView("start")}
           onReloadEvents={onReloadEvents}
           onCameraCheck={() => setView("camera")}
