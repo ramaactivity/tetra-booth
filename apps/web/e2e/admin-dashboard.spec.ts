@@ -66,6 +66,16 @@ test("statistik, sembunyikan, hapus, audit", async ({ page }) => {
     await page.screenshot({ path: "test-results/admin-dashboard.png", fullPage: true });
 
     const tile = (id: string) => page.getByTestId("session-tile").filter({ hasText: id });
+    // Link untuk dibagikan langsung di ringkasan event; Bagikan per sesi menyalin link halaman tamu.
+    await expect(page.getByRole("region", { name: "Link untuk dibagikan" })).toBeVisible();
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await tile(ids[0])
+      .getByRole("button", { name: `Bagikan link sesi ${ids[0]}` })
+      .click();
+    await expect(tile(ids[0])).toContainText("Link tersalin");
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(
+      new RegExp(`/s/${ids[0]}$`),
+    );
     await tile(ids[1]).getByRole("button", { name: "Sembunyikan" }).click();
     await expect(tile(ids[1])).toContainText("Disembunyikan");
     page.once("dialog", (d) => d.accept());

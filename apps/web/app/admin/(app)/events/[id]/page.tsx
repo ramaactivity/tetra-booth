@@ -1,10 +1,12 @@
 import { LAYOUT_PRESETS, type LayoutPaper, type PresetId, paperLabel } from "@tetra/shared";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DEFAULT_TEMPLATE, type EventTemplate } from "@/lib/event-bundle";
 import { presignGet } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 import { SessionTile } from "./SessionTile";
+import { LinksPanel } from "./settings/LinksPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -137,6 +139,8 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   const btn =
     "flex h-10 items-center rounded-[11px] border-[1.5px] border-ink px-3.5 text-[13px] font-bold no-underline";
 
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -225,6 +229,27 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
           </Link>
         )}
       </section>
+
+      {/* Link untuk dibagikan ke klien (galeri & slideshow) tanpa membuka Pengaturan. */}
+      {role !== "crew" && (
+        <section
+          aria-label="Link untuk dibagikan"
+          className="flex flex-col gap-3 rounded-2xl border-[1.5px] border-ink bg-white px-5 py-4"
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="text-[15px] font-extrabold">Link untuk dibagikan</span>
+            <span className="text-xs text-text-2">
+              Link foto per tamu ada di tombol Bagikan tiap sesi di bawah.
+            </span>
+          </div>
+          <LinksPanel
+            eventId={ev.id}
+            origin={origin}
+            clientToken={ev.client_token}
+            liveToken={ev.live_token}
+          />
+        </section>
+      )}
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {stats.map((s) => (
