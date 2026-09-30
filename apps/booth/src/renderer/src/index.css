@@ -1,3 +1,6 @@
 @import "tailwindcss";
 @import "@tetra/ui/tokens.css";
+@import "@tetra/ui/color-picker.css";
 @source "../../../../../packages/booth-core/src";
+@source "../../../../../packages/ui/src";
+@source "../../../../../packages/editor/src";

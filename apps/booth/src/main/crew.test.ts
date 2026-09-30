@@ -26,7 +26,9 @@ const memStore = () => {
 describe("PIN crew", () => {
   it("hash tidak menyimpan PIN mentah; cek benar/salah", () => {
     const h = hashPin("1234");
-    expect(h).not.toContain("1234");
+    // Per bagian, bukan substring: hex acak kadang kebetulan memuat "1234" (tes flaky ±0,15%).
+    expect(h.split("$")).not.toContain("1234");
+    expect(h.startsWith("scrypt$")).toBe(true);
     expect(checkPin("1234", h)).toBe(true);
     expect(checkPin("4321", h)).toBe(false);
     expect(hashPin("1234")).not.toBe(h); // salt acak

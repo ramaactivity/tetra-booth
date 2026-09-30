@@ -12,6 +12,13 @@ namespace TetraCamera.Canon;
 public sealed class CanonCamera : ICameraSource, IDisposable
 {
     public static readonly TimeSpan CaptureTimeout = TimeSpan.FromSeconds(10);
+    /// <summary>
+    /// Thread SDK tanpa detak selama ini = macet (mis. OpenSession 60D yang sibuk tidak pernah kembali, 2026-09-30).
+    /// Operasi terlama yang wajar: jepret (10 s) atau sambung dengan coba ulang BUSY (±2 s).
+    /// </summary>
+    public static readonly TimeSpan StuckAfter = TimeSpan.FromSeconds(20);
+    /// <summary>Batas tunggu perintah di antrean thread SDK: booth menerima error, bukan menunggu selamanya.</summary>
+    public static readonly TimeSpan CommandTimeout = CaptureTimeout + TimeSpan.FromSeconds(5);
     private static readonly HashSet<string> Steps = ["af", "near1", "near2", "near3", "far1", "far2", "far3"];
 
     private readonly ICanonDriver _driver;
@@ -26,6 +33,9 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     /// </summary>
     private DateTime _evfOnAt, _frameAt;
     private volatile bool _live, _stop;
+    /// <summary>Detak thread SDK (Environment.TickCount64), diperbarui tiap putaran loop.</summary>
+    private long _beat = Environment.TickCount64;
+    private readonly TimeSpan _stuckAfter, _commandTimeout;
     private volatile byte[]? _frame;
     private (string Model, string Serial)? _info;
     /// <summary>ISO jepret (#113) & shutter jepret: nama setelan → label; tidak ada = sama dengan live view.</summary>
@@ -41,8 +51,12 @@ public sealed class CanonCamera : ICameraSource, IDisposable
         ICanonDriver driver,
         TimeSpan? reconnect = null,
         TimeSpan? frameEvery = null,
-        string? settingsPath = null)
+        string? settingsPath = null,
+        TimeSpan? stuckAfter = null,
+        TimeSpan? commandTimeout = null)
     {
+        _stuckAfter = stuckAfter ?? StuckAfter;
+        _commandTimeout = commandTimeout ?? CommandTimeout;
         _settingsPath = settingsPath;
         _saved = Load(settingsPath);
         foreach (var o in CanonProps.CaptureOverrides)
@@ -60,6 +74,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     public string? Model => _info?.Model;
     public string Serial => _info?.Serial ?? "";
     public byte[]? LatestFrame => _live ? _frame : null;
+    public bool Stuck => Environment.TickCount64 - Interlocked.Read(ref _beat) > _stuckAfter.TotalMilliseconds;
 
     private void Loop()
     {
@@ -67,6 +82,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
         var nextFrame = DateTime.MinValue;
         while (!_stop)
         {
+            Interlocked.Exchange(ref _beat, Environment.TickCount64);
             if (_queue.TryTake(out var work, 5)) work();
             try { if (_driver.IsOpen) _driver.Pump(); } catch { /* event gagal diambil: dicek lagi putaran berikutnya */ }
             var now = DateTime.UtcNow;
@@ -123,8 +139,8 @@ public sealed class CanonCamera : ICameraSource, IDisposable
         }
     }
 
-    /// <summary>Jalankan di thread SDK.</summary>
-    private Task<T> Run<T>(Func<T> f)
+    /// <summary>Jalankan di thread SDK; tidak dijawab dalam <c>commandTimeout</c> = error "kamera tidak menjawab".</summary>
+    private async Task<T> Run<T>(Func<T> f)
     {
         var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
         _queue.Add(() =>
@@ -132,7 +148,11 @@ public sealed class CanonCamera : ICameraSource, IDisposable
             try { tcs.SetResult(f()); }
             catch (Exception e) { tcs.SetException(e); }
         });
-        return tcs.Task;
+        try { return await tcs.Task.WaitAsync(_commandTimeout); }
+        catch (TimeoutException)
+        {
+            throw new CameraFailure("camera_stuck", "kamera Canon tidak menjawab; matikan lalu nyalakan kamera");
+        }
     }
 
     private void RequireConnected()

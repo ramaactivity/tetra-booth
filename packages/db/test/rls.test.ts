@@ -18,6 +18,8 @@ const pg = new EmbeddedPostgres({
   password: "pw",
   port: 54390 + (process.pid % 100),
   persistent: false,
+  // Windows memakai encoding lokal (WIN1252) kalau tidak diminta: migrasi berisi "→" gagal dimuat.
+  initdbFlags: ["--encoding=UTF8", "--locale=C"],
 });
 let c: Client;
 let org: string;

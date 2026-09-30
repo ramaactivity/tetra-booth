@@ -23,6 +23,28 @@ public class CanonCameraTests
         new(d, reconnect: TimeSpan.FromMilliseconds(50), frameEvery: TimeSpan.FromMilliseconds(10));
 
     [Fact]
+    public async Task Driver_macet_perintah_gagal_dengan_waktu_habis_dan_health_melapor_macet()
+    {
+        var d = new FakeCanonDriver();
+        using var cam = new CanonCamera(d, reconnect: TimeSpan.FromMilliseconds(50),
+            stuckAfter: TimeSpan.FromMilliseconds(300), commandTimeout: TimeSpan.FromMilliseconds(300));
+        await Until(() => cam.Connected);
+        Assert.False(cam.Stuck);
+        d.HangMs = 1500;
+        var dir = Path.Combine(Path.GetTempPath(), $"tc-canon-{Guid.NewGuid():N}");
+        var e = await Assert.ThrowsAsync<CameraFailure>(() => cam.CaptureAsync(dir, 0));
+        Assert.Equal("camera_stuck", e.Code);
+        await Until(() => cam.Stuck);
+        var disp = new Dispatcher(new NullPrinterAdapter(), cam);
+        var r = JsonDocument.Parse(await disp.HandleAsync("""{"id":"h","type":"system.health"}""")).RootElement;
+        Assert.Equal("error", r.GetProperty("type").GetString());
+        Assert.Equal("camera_stuck", r.GetProperty("payload").GetProperty("code").GetString());
+        // Panggilan akhirnya kembali: detak jalan lagi, health normal.
+        d.HangMs = 0;
+        await Until(() => !cam.Stuck, 4000);
+    }
+
+    [Fact]
     public async Task Tersambung_lalu_jepret_menyimpan_JPEG_ke_folder_sesi()
     {
         var d = new FakeCanonDriver();

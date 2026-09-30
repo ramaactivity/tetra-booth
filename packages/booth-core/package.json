@@ -11,16 +11,19 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@tetra/editor": "workspace:*",
     "@tetra/shared": "workspace:*",
     "@tetra/template-engine": "workspace:*",
     "@tetra/ui": "workspace:*",
     "gifenc": "^1.0.3",
     "lucide-react": "^1.47.0",
     "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
-    "@types/react": "^19.3.0"
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0"
   }
 }

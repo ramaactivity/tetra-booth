@@ -35,6 +35,8 @@ public sealed class Dispatcher(IPrinterAdapter printer, ICameraSource? camera = 
         {
             return type switch
             {
+                "system.health" when camera?.Stuck == true =>
+                    Error(id, "camera_stuck", "driver kamera macet, Camera Service perlu dimulai ulang"),
                 "system.health" => Reply(id, type, new
                 {
                     uptime = (DateTime.UtcNow - _startedAt).TotalSeconds,

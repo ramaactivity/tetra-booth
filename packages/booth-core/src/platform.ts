@@ -3,6 +3,7 @@ import type {
   CommandResult,
   EventBundle,
   EventSettings,
+  LayoutSpec,
   Paper,
   PaymentCreateRequest,
   PaymentCreateResponse,
@@ -97,6 +98,8 @@ export type EventOverride = Partial<
   Pick<EventSettings, "countdownSec" | "retakeMax" | "maxPrints" | "qrScreenSec" | "sessionSec">
 >;
 export type EventSettingsInfo = { cloud: EventSettings; override: EventOverride };
+/** File aset baru dari editor desain booth (overlay/latar/font); disimpan di folder lokal event. */
+export type DesignFile = { assetId: string; ext: string; bytes: Uint8Array<ArrayBuffer> };
 /** AF, atau geser fokus manual kecil/sedang/besar ke dekat / jauh. */
 export type FocusStep = "af" | "near3" | "near2" | "near1" | "far1" | "far2" | "far3";
 /** Setelan eksposur kamera DSLR (sementara lewat digiCamControl). */
@@ -149,6 +152,12 @@ export interface BoothCrew {
   eventSettings(eventId: string): Promise<EventSettingsInfo>;
   /** Simpan override (hanya field yang beda dari cloud disimpan); null = kembalikan ke cloud. */
   setEventSettings(eventId: string, override: EventOverride | null): Promise<EventSettingsInfo>;
+  /** Desain yang diedit di booth (DECISIONS #128/#131): layout.id → ISO waktu simpan. */
+  designs(eventId: string): Promise<Record<string, string>>;
+  /** Simpan layout hasil editor sebagai override lokal; `files` = aset baru. Balas ISO waktu simpan. */
+  saveDesign(eventId: string, layout: LayoutSpec, files: DesignFile[]): Promise<string>;
+  /** Kembalikan desain ke versi cloud: satu layout.id, atau semua (null). */
+  resetDesign(eventId: string, layoutId: string | null): Promise<void>;
   /** Fokus DSLR lewat live view (#88); tidak ada = kamera tanpa live view (webcam, hot folder biasa). */
   focus?(step: FocusStep): Promise<void>;
   /** Tap to focus (#114, Canon EDSDK): titik 0–1 di frame kamera (tanpa cermin). */

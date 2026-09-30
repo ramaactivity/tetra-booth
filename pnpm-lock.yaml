@@ -193,6 +193,9 @@ importers:
       '@tetra/booth-core':
         specifier: workspace:*
         version: link:../../packages/booth-core
+      '@tetra/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
       '@tetra/platform-electron':
         specifier: workspace:*
         version: link:../../packages/platform-electron
@@ -327,6 +330,9 @@ importers:
 
   packages/booth-core:
     dependencies:
+      '@tetra/editor':
+        specifier: workspace:*
+        version: link:../editor
       '@tetra/shared':
         specifier: workspace:*
         version: link:../shared
@@ -345,6 +351,9 @@ importers:
       react:
         specifier: ^19.3.0
         version: 19.3.0
+      react-dom:
+        specifier: ^19.3.0
+        version: 19.3.0(react@19.3.0)
       zod:
         specifier: ^4.6.5
         version: 4.6.5
@@ -355,6 +364,9 @@ importers:
       '@types/react':
         specifier: ^19.3.0
         version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.3.0
+        version: 19.3.0(@types/react@19.3.0)
 
   packages/db:
     devDependencies:
