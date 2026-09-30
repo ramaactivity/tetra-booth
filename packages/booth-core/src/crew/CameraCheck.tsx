@@ -58,7 +58,10 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
     if (!f || !p.crew.focusAt) return;
     const r = e.currentTarget.getBoundingClientRect();
     const at = { x: e.clientX - r.left, y: e.clientY - r.top };
-    setReticle(at);
+    // Stage diskalakan ke jendela: posisi klik dalam piksel layar, kotak digambar dalam piksel Stage (W-034, jendela
+    // 1266 px: kotak meleset dari kursor).
+    const k = r.width / e.currentTarget.offsetWidth || 1;
+    setReticle({ x: at.x / k, y: at.y / k });
     const pt = tapToFrame(at, { w: r.width, h: r.height }, f, p.mirrorLiveView ?? true);
     try {
       await p.crew.focusAt(pt.x, pt.y);

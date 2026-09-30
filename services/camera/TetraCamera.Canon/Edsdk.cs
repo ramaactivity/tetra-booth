@@ -22,6 +22,7 @@ internal static class Edsdk
     public const uint PropEvfMode = 0x00000501;
     public const uint PropEvfZoomPosition = 0x00000508;
     public const uint PropEvfCoordinateSystem = 0x00000540;
+    public const uint PropEvfAFMode = 0x0000050E;
 
     public const uint SaveToHost = 2;
     public const uint EvfOutputDevicePc = 2;

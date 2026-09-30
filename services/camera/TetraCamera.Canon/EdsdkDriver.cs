@@ -92,10 +92,29 @@ public sealed class EdsdkDriver : ICanonDriver
         Release(ref _list);
     }
 
-    public void Pump() => EdsGetEvent();
+    /// <summary>
+    /// AF live view ditahan `AfHold` lalu dilepas di Pump (tidak memblokir thread SDK: live view tetap mengalir).
+    /// AF kontras 60D di ruang redup butuh &gt; 1,2 dtk; dilepas lebih cepat = lensa berhenti di tengah (W-034).
+    /// </summary>
+    private static readonly TimeSpan AfHold = TimeSpan.FromSeconds(3);
+    private DateTime? _afOffAt;
+
+    private void AfOff()
+    {
+        if (_afOffAt is null) return;
+        _afOffAt = null;
+        EdsSendCommand(_cam, CmdDoEvfAf, 0);
+    }
+
+    public void Pump()
+    {
+        EdsGetEvent();
+        if (_afOffAt is { } t && DateTime.UtcNow >= t) AfOff();
+    }
 
     public byte[] Capture(TimeSpan timeout)
     {
+        AfOff();
         Release(ref _pending);
         EdsSendCommand(_cam, CmdExtendShutDownTimer, 0);
         var deadline = DateTime.UtcNow + timeout;
@@ -136,6 +155,7 @@ public sealed class EdsdkDriver : ICanonDriver
 
     public void SetLiveView(bool on)
     {
+        if (!on) AfOff();
         if (on) _evfSys = null;
         var device = on ? EvfOutputDevicePc : 0;
         Check(EdsSetPropertyData(_cam, PropEvfOutputDevice, 0, sizeof(uint), ref device), "live view");
@@ -181,15 +201,14 @@ public sealed class EdsdkDriver : ICanonDriver
     {
         if (step == "af")
         {
-            // AF selama ±1 dtk, lalu dilepas (seperti menekan setengah lalu melepas tombol rana).
+            // Seperti menekan rana setengah: AF nyala, dilepas oleh Pump setelah AfHold.
+            AfOff();
+            var mode = EdsGetPropertyData(_cam, PropEvfAFMode, 0, sizeof(uint), out uint m) == 0
+                ? m switch { 0 => "Quick", 1 => "Live", 2 => "Live wajah", 3 => "Live multi", _ => $"0x{m:X}" }
+                : "?";
             Check(EdsSendCommand(_cam, CmdDoEvfAf, 1), "AF");
-            var until = DateTime.UtcNow.AddMilliseconds(1200);
-            while (DateTime.UtcNow < until)
-            {
-                EdsGetEvent();
-                Thread.Sleep(30);
-            }
-            EdsSendCommand(_cam, CmdDoEvfAf, 0);
+            _afOffAt = DateTime.UtcNow + AfHold;
+            Console.WriteLine($"[canon] AF live view (mode AF: {mode})");
             return;
         }
         if (!Drive.TryGetValue(step, out var code)) throw new CameraFailure("bad_focus", $"langkah fokus '{step}' tidak dikenal");
