@@ -6,7 +6,8 @@ import type { Photo, Strip } from "./session";
 import { sharpness } from "./sharpness";
 
 export const ORIGINAL_LONG_SIDE = 2400;
-export const THUMB_LONG_SIDE = 480;
+/** Thumbnail daftar (admin, galeri, HP): 960 px; 480 px buram untuk strip 2R (lebar ±160 px) di layar retina. */
+export const THUMB_LONG_SIDE = 960;
 /** GIF animasi foto sesi (DECISIONS #62): sisi panjang & jeda antar-frame. */
 export const ANIMATION_LONG_SIDE = 720;
 export const ANIMATION_FRAME_MS = 500;
@@ -56,7 +57,7 @@ export async function previewUrl(bytes: Uint8Array<ArrayBuffer>, w: number, h: n
 
 /**
  * Output upload sesi (FSD §1.9) dari strip & foto mentah, dijalankan di belakang layar setelah cetak:
- * strip_web (satu potong desain, bukan lembar cetak), original_n (2400 px), thumb 480 px,
+ * strip_web (satu potong desain, bukan lembar cetak), original_n (2400 px), thumb 960 px,
  * animation (GIF berulang dari foto sesi, ≥ 2 foto, memakai filter pilihan tamu #116; original tetap tanpa filter).
  * Full-res mentah tetap di raw/ dan tidak masuk daftar aset.
  */

@@ -14,6 +14,7 @@ const recorder = () => {
     save: () => calls.push("save"),
     restore: () => calls.push("restore"),
     translate: (x, y) => calls.push(`translate ${x} ${y}`),
+    scale: (x, y) => calls.push(`scale ${x} ${y}`),
     rotate: (r) => calls.push(`rotate ${r.toFixed(4)}`),
     beginPath: () => {},
     rect: (x, y, w, h) => calls.push(`clip ${x} ${y} ${w} ${h}`),
@@ -168,5 +169,17 @@ describe("QR link sesi (spec.qr)", () => {
       expect(y).toBeGreaterThan(1500 + 10);
       expect(x).toBeLessThan(900 + 250);
     }
+  });
+});
+
+describe("renderPiece scale (versi web tajam)", () => {
+  it("kanvas × scale, koordinat desain tetap (ctx.scale di awal)", async () => {
+    const { calls, rc } = recorder();
+    const { renderPiece } = await import("../src");
+    const photo = { width: 1000, height: 500 };
+    const out = renderPiece(spec, { photos: [photo, photo], assets: {}, vars: {} }, rc, 2);
+    expect([out.width, out.height]).toEqual([2400, 3600]);
+    expect(calls[0]).toBe("scale 2 2");
+    expect(calls).toContain("fillRect 0 0 1200 1800");
   });
 });

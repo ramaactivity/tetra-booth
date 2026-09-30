@@ -95,16 +95,26 @@ const layer = (spec: LayoutSpec, z: Z) =>
     .sort((a, b) => a.key - b.key);
 
 /** Render satu kanvas layout (ukuran `spec.canvas`). Urutan: background → kelompok bawah → overlay → kelompok atas. */
-const renderLayout = (spec: LayoutSpec, inputs: RenderInputs, ctx: RenderContext): CanvasLike => {
-  const canvas = ctx.createCanvas(spec.canvas.width, spec.canvas.height);
+const renderLayout = (
+  spec: LayoutSpec,
+  inputs: RenderInputs,
+  ctx: RenderContext,
+  scale = 1,
+): CanvasLike => {
+  const canvas = ctx.createCanvas(
+    Math.round(spec.canvas.width * scale),
+    Math.round(spec.canvas.height * scale),
+  );
   const c = get2d(canvas);
+  if (scale !== 1) c.scale(scale, scale);
 
+  const { width: W, height: H } = spec.canvas;
   if (spec.background?.color) {
     c.fillStyle = spec.background.color;
-    c.fillRect(0, 0, canvas.width, canvas.height);
+    c.fillRect(0, 0, W, H);
   }
   const bgImg = spec.background?.assetId ? inputs.assets[spec.background.assetId] : undefined;
-  if (bgImg) c.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+  if (bgImg) c.drawImage(bgImg, 0, 0, W, H);
 
   const draw = (z: Z) => {
     for (const l of layer(spec, z)) {
@@ -117,16 +127,22 @@ const renderLayout = (spec: LayoutSpec, inputs: RenderInputs, ctx: RenderContext
   draw("below_overlay");
   const ov = spec.overlay;
   const overlay = ov ? inputs.assets[ov.assetId] : undefined;
-  if (ov && overlay)
-    c.drawImage(overlay, ov.x ?? 0, ov.y ?? 0, ov.w ?? canvas.width, ov.h ?? canvas.height);
+  if (ov && overlay) c.drawImage(overlay, ov.x ?? 0, ov.y ?? 0, ov.w ?? W, ov.h ?? H);
   draw("above_overlay");
   if (spec.qr) drawQr(c, spec.qr, inputs.qrUrl ?? SAMPLE_QR_URL);
   return canvas;
 };
 
-/** Render satu potong desain (ukuran `spec.canvas`, orientasi asli): untuk layar, web, dan editor. */
-export const renderPiece = (spec: LayoutSpec, inputs: RenderInputs, ctx: RenderContext) =>
-  renderLayout(LayoutSpecSchema.parse(spec), inputs, ctx);
+/**
+ * Render satu potong desain (ukuran `spec.canvas` × `scale`, orientasi asli): untuk layar, web, dan editor.
+ * `scale` > 1 = versi web yang lebih tajam (foto & teks digambar ulang, bukan diperbesar); cetak selalu 1.
+ */
+export const renderPiece = (
+  spec: LayoutSpec,
+  inputs: RenderInputs,
+  ctx: RenderContext,
+  scale = 1,
+) => renderLayout(LayoutSpecSchema.parse(spec), inputs, ctx, scale);
 
 /**
  * Lembar cetak 1200×1800 dari satu potong (DECISIONS #78). 4R = potong itu sendiri; 2R & polaroid =
