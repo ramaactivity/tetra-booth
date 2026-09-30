@@ -117,11 +117,17 @@ export async function saveEvent(
   let overlay = prev.success
     ? (prev.data.files.find((x) => x.file === "overlay.png") ?? null)
     : null;
+  // Unggahan ke R2 berjalan paralel (dulu berurutan, ±0,8 dtk per file); validasi tetap sebelum mulai.
+  const uploads: Promise<unknown>[] = [];
   const file = form.get("overlay");
   if (file instanceof File && file.size > 0) {
     if (file.type !== "image/png") return { ok: false, message: "Overlay harus PNG transparan" };
     if (file.size > MAX_OVERLAY) return { ok: false, message: "Overlay maksimal 4 MB" };
-    overlay = await storeOverlay(orgId, eventId, new Uint8Array(await file.arrayBuffer()));
+    uploads.push(
+      file.arrayBuffer().then(async (b) => {
+        overlay = await storeOverlay(orgId, eventId, new Uint8Array(b));
+      }),
+    );
   } else if (form.get("remove_overlay") === "on") overlay = null;
 
   // Gambar latar layar awal (#102): JPG/PNG ≤ 4 MB, file bundle attract.<ext>.
@@ -135,8 +141,17 @@ export async function saveEvent(
     // ponytail: batas request Vercel 4,5 MB; video lebih besar butuh unggah langsung ke R2 (URL bertanda tangan).
     if (bgFile.size > MAX_OVERLAY)
       return { ok: false, message: "Latar layar awal maksimal 4 MB (kompres video ±10 dtk 720p)" };
-    const bytes = new Uint8Array(await bgFile.arrayBuffer());
-    attractImage = await storeBundleFile(orgId, eventId, bytes, `attract.${ext}`, bgFile.type);
+    uploads.push(
+      bgFile.arrayBuffer().then(async (b) => {
+        attractImage = await storeBundleFile(
+          orgId,
+          eventId,
+          new Uint8Array(b),
+          `attract.${ext}`,
+          bgFile.type,
+        );
+      }),
+    );
   } else if (form.get("remove_attract_image") === "on") attractImage = null;
   // Suara per event (#104): mati, atau file pengganti WAV/MP3 ≤ 1 MB (file bundle snd-<cue>.<ext>).
   const sounds: Partial<Record<SoundCue, SoundSetting>> = {};
@@ -145,17 +160,32 @@ export async function saveEvent(
       ? prev.data.files.find((x) => x.file.startsWith(`snd-${cue}.`))
       : undefined;
     const up = form.get(`snd_file_${cue}`);
-    let file = form.get(`snd_reset_${cue}`) === "on" ? undefined : old;
+    const keep = form.get(`snd_reset_${cue}`) === "on" ? undefined : old;
+    // Mati tetap menyimpan file pengganti, supaya menyalakan lagi tidak perlu upload ulang.
+    const setSound = (file: typeof old) => {
+      if (form.get(`snd_on_${cue}`) !== "on") sounds[cue] = file ? { off: true, file } : "off";
+      else if (file) sounds[cue] = file;
+    };
     if (up instanceof File && up.size > 0) {
       const ext = /wav/.test(up.type) ? "wav" : /mpeg|mp3/.test(up.type) ? "mp3" : null;
       if (!ext) return { ok: false, message: `Suara "${cue}" harus WAV atau MP3` };
       if (up.size > MAX_LOGO) return { ok: false, message: `Suara "${cue}" maksimal 1 MB` };
-      const bytes = new Uint8Array(await up.arrayBuffer());
-      file = await storeBundleFile(orgId, eventId, bytes, `snd-${cue}.${ext}`, up.type);
-    }
-    // Mati tetap menyimpan file pengganti, supaya menyalakan lagi tidak perlu upload ulang.
-    if (form.get(`snd_on_${cue}`) !== "on") sounds[cue] = file ? { off: true, file } : "off";
-    else if (file) sounds[cue] = file;
+      uploads.push(
+        up
+          .arrayBuffer()
+          .then(async (b) =>
+            setSound(
+              await storeBundleFile(
+                orgId,
+                eventId,
+                new Uint8Array(b),
+                `snd-${cue}.${ext}`,
+                up.type,
+              ),
+            ),
+          ),
+      );
+    } else setSound(keep);
   }
   const attract: AttractSettings = {
     ...(f.attract_bg.toLowerCase() !== PAPER ? { background: f.attract_bg } : {}),
@@ -173,8 +203,13 @@ export async function saveEvent(
     if (logo.size > MAX_LOGO) return { ok: false, message: "Logo maksimal 1 MB" };
     const bytes = new Uint8Array(await logo.arrayBuffer());
     logoKey = `${orgId}/${eventId}/branding/${createHash("sha256").update(bytes).digest("hex")}.${ext}`;
-    await putObject(logoKey, bytes, logo.type);
+    uploads.push(putObject(logoKey, bytes, logo.type));
   } else if (form.get("remove_logo") === "on") logoKey = undefined;
+  try {
+    await Promise.all(uploads);
+  } catch {
+    return { ok: false, message: "Gagal mengunggah file, coba lagi" };
+  }
 
   // Photobox (E3, DECISIONS #70/#108): tiap preset / template editor yang dicentang dijual dengan harganya sendiri.
   const layouts: PhotoboxLayoutSetting[] = [...form.keys()]
