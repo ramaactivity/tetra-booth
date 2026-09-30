@@ -96,6 +96,17 @@ test("canon (EDSDK palsu): setelan ISO dari kamera tampil & bisa diubah di mode 
     await w.getByTestId("tap-focus").click({ position: { x: 500, y: 400 } });
     await expect.poll(() => logs.join("")).toMatch(/\[camera\] fokus di 0\.\d\d,0\.\d\d/);
     await w.screenshot({ path: "test-results/canon-tapfocus.png" });
+
+    // Setelan kamera di Tes Jepret (W-034): panel di atas live view, perubahan langsung ke kamera.
+    await w.getByRole("button", { name: "Setelan kamera" }).click();
+    const shutter = w.getByTestId("camera-prop-shutterspeed");
+    await expect(shutter).toBeVisible();
+    await expect(w.getByTestId("camera-prop-shutter_capture")).toContainText(
+      "Sama dengan live view",
+    );
+    await shutter.getByRole("button", { name: "1/60", exact: true }).click();
+    await expect(shutter).toContainText("Shutter · 1/60");
+    await w.screenshot({ path: "test-results/canon-settings.png" });
   } finally {
     await app.close();
   }

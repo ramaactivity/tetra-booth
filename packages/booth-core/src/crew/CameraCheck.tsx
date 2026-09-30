@@ -8,6 +8,7 @@ import { usePlatform } from "../PlatformContext";
 import type { FocusStep, LiveFrame } from "../platform";
 import { LiveView } from "../screens/LiveView";
 import { sharpNotes, sharpnessOf } from "../sharpness";
+import { CameraProps } from "./CameraProps";
 
 const FOCUS_ROW: { step: FocusStep; label: string }[] = [
   { step: "near3", label: "◀◀◀" },
@@ -49,6 +50,8 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
   // dan tombol fokus tidak berpengaruh (uji 60D, 2026-09-26).
   const [liveRun, setLiveRun] = useState(0);
   const [info, setInfo] = useState<string>();
+  // Setelan kamera di atas live view (DSLR): efek ISO/shutter/aperture/WB terlihat langsung (Rama, W-034).
+  const [settings, setSettings] = useState(false);
   const [meter, setMeter] = useState<{ now: number; peak: number }>();
   const lastMeter = useRef(0);
   const frameSize = useRef<{ w: number; h: number } | undefined>(undefined);
@@ -172,8 +175,26 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
           className="absolute right-10 bottom-44 w-1/4 rounded-[20px] border-[2.5px] border-ink"
         />
       )}
+      {settings && (
+        <aside
+          data-testid="camera-settings"
+          className="absolute top-8 right-8 bottom-[168px] flex w-[520px] flex-col gap-4 overflow-y-auto rounded-[24px] border-[2.5px] border-ink bg-paper/95 p-6"
+        >
+          <CameraProps onNote={setInfo} showEmpty />
+        </aside>
+      )}
       <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-6 border-t-[2.5px] border-ink bg-paper px-10 py-6">
         <span className="font-mono text-xl text-text-2">{info}</span>
+        {p.crew.focus && (
+          <Button
+            variant="secondary"
+            aria-pressed={settings}
+            className="h-[92px] rounded-[20px] px-8 text-[26px]"
+            onClick={() => setSettings((v) => !v)}
+          >
+            {copy.crew.cameraSettings}
+          </Button>
+        )}
         <Button className="h-[92px] rounded-[20px] px-10 text-[26px]" onClick={() => void take()}>
           {copy.crew.testShot}
         </Button>

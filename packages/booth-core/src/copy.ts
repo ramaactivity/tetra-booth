@@ -194,6 +194,7 @@ export const copy = {
     retryUpload: "Coba sekarang",
     uploadQueue: "antrean upload",
     testShot: "Tes Jepret",
+    cameraSettings: "Setelan kamera",
     focus: "Fokus",
     focusAf: "AF",
     focusNear: "dekat",

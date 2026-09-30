@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { copy } from "../copy";
 import { crewText } from "../errors";
 import { usePlatform } from "../PlatformContext";
-import type { CameraProp, DeviceInfo, DeviceSettings } from "../platform";
+import type { DeviceInfo, DeviceSettings } from "../platform";
+import { CameraProps } from "./CameraProps";
 import { Sheet } from "./Sheet";
 
 const DEFAULT_HOT = "C:\\TetraBooth\\hot";
@@ -13,17 +14,9 @@ const CAMERAS = ["webcam", "canon", "hotfolder", "simulated"] as const;
 
 const choice = (on: boolean) =>
   `pressable flex min-h-[72px] items-center justify-center rounded-[18px] border-[2.5px] border-ink px-4 text-center text-xl font-bold disabled:opacity-40 ${on ? "bg-mint-soft" : "bg-white"}`;
-const chip = (on: boolean) =>
-  `h-12 shrink-0 rounded-full border-2 border-ink px-4 font-mono text-lg ${on ? "bg-butter font-bold" : "bg-white"}`;
 const input =
   "h-14 w-full rounded-[14px] border-[2.5px] border-ink bg-white px-4 font-mono text-lg disabled:opacity-40";
 const label = "text-lg font-bold text-text-2";
-
-/** Chip nilai aktif di tengah baris geser (tanpa scrollIntoView yang ikut menggeser Stage). */
-const centerInRow = (el: HTMLButtonElement | null) => {
-  const row = el?.parentElement;
-  if (el && row) row.scrollLeft = el.offsetLeft - (row.clientWidth - el.clientWidth) / 2;
-};
 
 /**
  * Kamera & printer dari mode crew (DECISIONS #85): sumber kamera, webcam, hot folder + pemicu digiCamControl,
@@ -43,7 +36,6 @@ export function DeviceSheet({
   const [info, setInfo] = useState<DeviceInfo>();
   const [draft, setDraft] = useState<DeviceSettings>({});
   const [webcams, setWebcams] = useState<MediaDeviceInfo[]>([]);
-  const [props, setProps] = useState<CameraProp[] | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -58,7 +50,6 @@ export function DeviceSheet({
       ?.enumerateDevices()
       .then((ds) => setWebcams(ds.filter((d) => d.kind === "videoinput")))
       .catch(() => {});
-    p.crew.cameraProps().then(setProps, () => setProps([]));
   }, [p, onNote]);
 
   const locked = (k: string) => info?.locked.includes(k) ?? true;
@@ -66,15 +57,6 @@ export function DeviceSheet({
   const changed = info && JSON.stringify(draft) !== JSON.stringify(info.now);
   const running = info?.now.camera;
   const camera = draft.camera ?? "webcam";
-
-  const setProp = async (name: string, value: string) => {
-    try {
-      await p.crew.setCameraProp(name, value);
-      setProps((ps) => ps?.map((x) => (x.name === name ? { ...x, value } : x)) ?? ps);
-    } catch (e) {
-      onNote(crewText(e));
-    }
-  };
 
   // DSLR (digiCamControl / Canon EDSDK): AF sebelum jepret + setelan eksposur kamera yang sedang jalan.
   const dslr = (
@@ -88,33 +70,7 @@ export function DeviceSheet({
       >
         {copy.crew.afBeforeCapture} · {draft.afBeforeCapture ? copy.crew.on : copy.crew.off}
       </button>
-      {running === camera &&
-        (props === null ? (
-          <p className="text-lg text-text-2">…</p>
-        ) : props.length ? (
-          props.map((x) => (
-            <div key={x.name} className="flex flex-col gap-1.5">
-              <span className={label}>
-                {x.label} · <span className="font-mono">{x.value || "—"}</span>
-              </span>
-              <div className="relative flex gap-2 overflow-x-auto pb-1">
-                {x.options.map((o) => (
-                  <button
-                    key={o}
-                    type="button"
-                    className={chip(o === x.value)}
-                    ref={o === x.value ? centerInRow : undefined}
-                    onClick={() => void setProp(x.name, o)}
-                  >
-                    {o}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="text-lg text-text-2">{copy.crew.noExposure}</p>
-        ))}
+      {running === camera && <CameraProps onNote={onNote} showEmpty />}
     </>
   );
 
