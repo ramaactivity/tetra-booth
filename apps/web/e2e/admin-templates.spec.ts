@@ -109,7 +109,7 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
       mimeType: "image/png",
       buffer: png(10, 10),
     });
-    await page.getByRole("button", { name: "Simpan" }).click();
+    await page.getByRole("button", { name: "Simpan", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("Overlay harus PNG 1200×1800 px", {
       timeout: 30_000,
     });
@@ -143,7 +143,7 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
     await page.getByRole("textbox", { name: "Cari font" }).fill("bodoni");
     await page.getByRole("option", { name: "Bodoni Moda" }).click();
 
-    await page.getByRole("button", { name: "Simpan" }).click();
+    await page.getByRole("button", { name: "Simpan", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("Tersimpan · versi 2", {
       timeout: 30_000,
     });
@@ -174,8 +174,12 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
     await page.getByRole("button", { name: "Buat", exact: true }).click();
     // Desain frame (#125): event baru = Strip Klasik; ganti ke template ini.
     const frames = page.getByRole("group", { name: "Desain frame" });
-    await frames.getByRole("checkbox", { name: /^Strip Klasik/ }).uncheck({ force: true });
-    await frames.getByRole("checkbox", { name: new RegExp(`^${tplName}`) }).check({ force: true });
+    await frames.getByRole("button", { name: "Lepas Strip Klasik" }).click();
+    await frames.getByRole("button", { name: /Tambah desain/ }).click();
+    const picker = page.getByRole("dialog", { name: "Tambah desain frame" });
+    await picker.getByRole("textbox", { name: "Cari nama desain" }).fill(tplName);
+    await picker.getByRole("button", { name: new RegExp(`^${tplName}`) }).click();
+    await picker.getByRole("button", { name: "Pakai desain ini" }).click();
     await page.getByLabel(/Pilih booth/).check();
     await page.getByLabel(dev?.name ?? "").check();
     await page.getByRole("button", { name: "Simpan" }).click();
@@ -217,7 +221,7 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
     await page.goto(`/admin/templates/${tpl?.id}`);
     await page.getByRole("button", { name: "Unggahan", exact: true }).click();
     await page.getByRole("button", { name: "Hapus overlay" }).click();
-    await page.getByRole("button", { name: "Simpan" }).click();
+    await page.getByRole("button", { name: "Simpan", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("Tersimpan · versi 3", {
       timeout: 30_000,
     });
@@ -264,7 +268,7 @@ test("format polaroid landscape: kanvas, label, dan tata letak cepat sesuai form
     await expect(page.getByRole("button", { name: /4R Grid/ })).toHaveCount(0);
     await page.getByRole("button", { name: /Polaroid.*4x3 · 1 foto/ }).click();
     await expect(page.getByRole("button", { name: "Foto 2", exact: true })).toHaveCount(0);
-    await page.getByRole("button", { name: "Simpan" }).click();
+    await page.getByRole("button", { name: "Simpan", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("Tersimpan · versi 2", {
       timeout: 30_000,
     });

@@ -1,5 +1,5 @@
 "use client";
-import { LAYOUT_PRESETS, type PresetId } from "@tetra/shared";
+import { LAYOUT_PRESETS, type LayoutSlot, type PresetId, paperLabel } from "@tetra/shared";
 import {
   AlignCenterHorizontal,
   AlignCenterVertical,
@@ -19,10 +19,12 @@ import {
   Move,
   QrCode,
   SendToBack,
+  Trash2,
   Type,
   Upload,
 } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
+import { deletePreset, savePreset } from "@/app/admin/(app)/templates/actions";
 import { type AlignMode, type Key, layerStack, OVERLAY, QR } from "@/lib/editor/geometry";
 import { FONT_PACKS } from "@/lib/fonts";
 import { FONT_IDS } from "@/lib/layouts";
@@ -239,6 +241,187 @@ function LayerRow({
   );
 }
 
+/** Miniatur proporsional kanvas + slot foto (muat di kotak 40 px). */
+function Mini({ w, h, slots }: { w: number; h: number; slots: LayoutSlot[] }) {
+  return (
+    <span className="flex size-10 flex-none items-center justify-center">
+      <span
+        className="relative overflow-hidden rounded-[3px] border-[1.5px] border-ink bg-white"
+        style={
+          w > h
+            ? { width: 40, aspectRatio: `${w} / ${h}` }
+            : { height: 40, aspectRatio: `${w} / ${h}` }
+        }
+      >
+        {slots.map((s) => (
+          <span
+            key={s.id}
+            className="absolute rounded-[1px] border border-ink bg-sky"
+            style={{
+              left: `${(s.x / w) * 100}%`,
+              top: `${(s.y / h) * 100}%`,
+              width: `${(s.w / w) * 100}%`,
+              height: `${(s.h / h) * 100}%`,
+              transform: s.rotation ? `rotate(${s.rotation}deg)` : undefined,
+            }}
+          />
+        ))}
+      </span>
+    </span>
+  );
+}
+
+/** "Tata letak saya": posisi slot tersimpan organisasi untuk kanvas yang sama (format + orientasi). */
+function MyLayouts({ ed }: { ed: EditorApi }) {
+  const { paper, canvas, slots } = ed.layout;
+  const [name, setName] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const mine = ed.presets.filter(
+    (p) => p.paper === paper && p.width === canvas.width && p.height === canvas.height,
+  );
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!name?.trim() || busy) return;
+    setBusy(true);
+    setErr("");
+    const r = await savePreset({
+      name,
+      paper,
+      canvas: { width: canvas.width, height: canvas.height },
+      slots,
+    }).catch(() => null);
+    setBusy(false);
+    if (!r?.ok) return setErr(r?.message ?? "Gagal menyimpan tata letak, coba lagi");
+    ed.setPresets((ps) => [r.preset, ...ps]);
+    setName(null);
+  };
+  const remove = async (id: string) => {
+    const before = ed.presets;
+    ed.setPresets((ps) => ps.filter((p) => p.id !== id));
+    setConfirm(null);
+    setErr("");
+    if (!(await deletePreset(id).catch(() => false))) {
+      ed.setPresets(before);
+      setErr("Gagal menghapus, coba lagi");
+    }
+  };
+
+  return (
+    <Section title="Tata letak saya">
+      {mine.map((p) => (
+        <div
+          key={p.id}
+          className="flex w-full items-center gap-1 rounded-[14px] border-[1.5px] border-ink bg-white text-sm font-bold"
+        >
+          <button
+            type="button"
+            aria-label={`Pakai tata letak ${p.name}`}
+            onClick={() => ed.applySlots(p.slots)}
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-l-[12px] py-2 pl-2 text-left hover:bg-paper"
+          >
+            <Mini w={p.width} h={p.height} slots={p.slots} />
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="truncate">{p.name}</span>
+              <span className={small}>
+                {paperLabel(p.paper, p)} · {p.slots.length} foto
+              </span>
+            </span>
+          </button>
+          {confirm === p.id ? (
+            <span className="flex flex-none items-center gap-1 pr-2 text-xs">
+              Hapus?
+              <button
+                type="button"
+                onClick={() => remove(p.id)}
+                className="rounded-[8px] border-[1.5px] border-ink bg-coral px-2 py-1 font-bold"
+              >
+                Ya
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirm(null)}
+                className="rounded-[8px] px-1.5 py-1 font-bold underline"
+              >
+                Batal
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              aria-label={`Hapus tata letak ${p.name}`}
+              title="Hapus"
+              onClick={() => setConfirm(p.id)}
+              className="mr-2 flex size-8 flex-none items-center justify-center rounded-[8px] text-text-2 hover:bg-paper hover:text-ink"
+            >
+              <Trash2 className="size-4" />
+            </button>
+          )}
+        </div>
+      ))}
+      {!mine.length && (
+        <p className={small}>
+          Belum ada tata letak tersimpan. Atur slot, lalu Simpan tata letak ini.
+        </p>
+      )}
+      {name === null ? (
+        <button
+          type="button"
+          disabled={!slots.length}
+          onClick={() => {
+            setErr("");
+            setName(`Tata letak ${slots.length} foto`);
+          }}
+          className="flex h-10 items-center justify-center rounded-[12px] border-[1.5px] border-dashed border-ink bg-white text-[13px] font-bold hover:bg-paper disabled:opacity-40"
+        >
+          Simpan tata letak ini
+        </button>
+      ) : (
+        <form
+          onSubmit={save}
+          className="flex flex-col gap-2 rounded-[14px] border-[1.5px] border-ink bg-white p-3"
+        >
+          <input
+            aria-label="Nama tata letak"
+            value={name}
+            maxLength={60}
+            // biome-ignore lint/a11y/noAutofocus: form kecil baru dibuka karena klik
+            autoFocus
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Escape" && setName(null)}
+            className="h-9 rounded-[10px] border-[1.5px] border-ink px-2 text-sm font-semibold"
+          />
+          <span className={small}>
+            {slots.length} slot · {paperLabel(paper, canvas)}. Teks &amp; overlay tidak ikut.
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={busy || !name.trim()}
+              className="h-9 flex-1 rounded-[10px] border-[1.5px] border-ink bg-butter text-[13px] font-extrabold disabled:opacity-50"
+            >
+              {busy ? "Menyimpan…" : "Simpan tata letak"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setName(null)}
+              className="h-9 rounded-[10px] px-3 text-[13px] font-bold underline"
+            >
+              Batal
+            </button>
+          </div>
+        </form>
+      )}
+      {err && (
+        <p role="alert" className="text-xs font-semibold text-coral-strong">
+          {err}
+        </p>
+      )}
+    </Section>
+  );
+}
+
 /** Rel ikon + panel kiri editor (seperti Canva). */
 export function Panels({
   ed,
@@ -320,6 +503,7 @@ export function Panels({
                   Nomor slot = urutan foto saat sesi. Ubah di toolbar "Foto ke-".
                 </p>
               </Section>
+              <MyLayouts ed={ed} />
               <Section title="Tata letak cepat">
                 {presets.map(([pid, p]) => (
                   <button

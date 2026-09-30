@@ -70,15 +70,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
   const assigned = new Set(ev.event_devices.map((d) => d.device_id));
   const pinned = { ...tpl.versions, ...(tpl.layoutId && { [tpl.layoutId]: tpl.layoutVersion }) };
+  // Template terbaru dulu (urutan "Terbaru" di pemilih), lalu preset.
   const designOptions: DesignOption[] = [
-    ...EVENT_PRESETS.map((id) => ({
-      value: id,
-      name: LAYOUT_PRESETS[id].name,
-      paper: LAYOUT_PRESETS[id].layout.paper,
-      info: `${paperLabel(LAYOUT_PRESETS[id].layout.paper, LAYOUT_PRESETS[id].layout.canvas)} · ${LAYOUT_PRESETS[id].layout.slots.length} foto`,
-      canvas: LAYOUT_PRESETS[id].layout.canvas,
-      slots: LAYOUT_PRESETS[id].layout.slots,
-    })),
     ...(layouts ?? []).flatMap((l) => {
       const lv = l.layout_versions[0];
       const spec = StoredLayout.safeParse(lv?.spec);
@@ -90,11 +83,25 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           name: l.name,
           paper,
           info: `${paperLabel(paper, canvas)} · ${slots.length} foto · v${lv.version}`,
-          canvas,
-          slots,
-          template: { id: l.id, version: lv.version, pinned: pinned[l.id] ?? null },
+          layout: spec.data.layout,
+          template: {
+            id: l.id,
+            version: lv.version,
+            pinned: pinned[l.id] ?? null,
+            files: Object.fromEntries(Object.entries(spec.data.files).map(([k, f]) => [k, f.file])),
+          },
         },
       ];
+    }),
+    ...EVENT_PRESETS.map((id) => {
+      const { layout } = LAYOUT_PRESETS[id];
+      return {
+        value: id,
+        name: LAYOUT_PRESETS[id].name,
+        paper: layout.paper,
+        info: `${paperLabel(layout.paper, layout.canvas)} · ${layout.slots.length} foto`,
+        layout: { id, version: 1, ...layout },
+      };
     }),
   ];
   const known = new Set(designOptions.map((o) => o.value));
@@ -179,13 +186,16 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           client_days: raw.clientDays ?? 90,
           devices: (devices ?? []).map((d) => ({ ...d, assigned: assigned.has(d.id) })),
           allDevices: ev.all_devices,
+          hasClientLink: !!ev.client_token,
         }}
-      />
-      <LinksPanel
-        eventId={ev.id}
-        origin={origin}
-        clientToken={ev.client_token}
-        liveToken={ev.live_token}
+        links={
+          <LinksPanel
+            eventId={ev.id}
+            origin={origin}
+            clientToken={ev.client_token}
+            liveToken={ev.live_token}
+          />
+        }
       />
     </>
   );

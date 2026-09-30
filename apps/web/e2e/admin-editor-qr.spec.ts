@@ -75,7 +75,7 @@ test("editor template: QR unduh foto tersimpan di layout", async ({ page }) => {
       .click();
     await expect(qr).toHaveAttribute("aria-pressed", "true");
 
-    await page.getByRole("button", { name: "Simpan" }).click();
+    await page.getByRole("button", { name: "Simpan", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("Tersimpan · versi 2", {
       timeout: 30_000,
     });
@@ -85,6 +85,24 @@ test("editor template: QR unduh foto tersimpan di layout", async ({ page }) => {
     await qr.click();
     await expect(page.getByLabel("Ukuran QR")).toHaveValue("300");
     await page.screenshot({ path: "test-results/editor-qr.png" });
+
+    // Zoom mengubah ukuran <canvas> pratinjau: isinya harus digambar ulang (bug 30 Sep: overlay/teks hilang).
+    const inked = () =>
+      page
+        .getByTestId("stage-page")
+        .locator("canvas")
+        .evaluate((c: HTMLCanvasElement) => {
+          const d = c.getContext("2d")?.getImageData(0, 0, c.width, c.height).data ?? [];
+          let dark = 0;
+          for (let i = 0; i < d.length; i += 16)
+            if ((d[i + 3] ?? 0) > 200 && (d[i] ?? 255) < 100) dark++;
+          return dark;
+        });
+    await page.getByRole("button", { name: "Perbesar" }).click();
+    await page.getByRole("button", { name: "Perbesar" }).click();
+    await expect.poll(inked).toBeGreaterThan(50);
+    await page.getByRole("button", { name: "Perkecil" }).click();
+    await expect.poll(inked).toBeGreaterThan(50);
 
     const { data: l } = await db.from("layouts").select("id").eq("name", tplName).single();
     const { data: v } = await db

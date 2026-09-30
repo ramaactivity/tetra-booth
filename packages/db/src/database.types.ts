@@ -430,6 +430,50 @@ export type Database = {
           },
         ]
       }
+      layout_presets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          height: number
+          id: string
+          name: string
+          organization_id: string
+          paper: string
+          slots: NonNullable<Json>
+          width: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          height: number
+          id?: string
+          name: string
+          organization_id: string
+          paper: string
+          slots: NonNullable<Json>
+          width: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          height?: number
+          id?: string
+          name?: string
+          organization_id?: string
+          paper?: string
+          slots?: NonNullable<Json>
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "layout_presets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       layout_versions: {
         Row: {
           created_at: string

@@ -74,15 +74,16 @@ test.beforeAll(async () => {
     idx,
     r2_key: `${R2}/${kind}_${idx}.jpg#${sid}`,
   });
-  await db
-    .from("assets")
-    .insert([
-      asset(ids.partial, "strip_web", 0),
-      asset(ids.ready, "strip_web", 0),
-      asset(ids.ready, "original", 1),
-      asset(ids.ready, "animation", 0),
-      asset(ids.ready, "video", 0),
-    ]);
+  await db.from("assets").insert([
+    asset(ids.partial, "strip_web", 0),
+    asset(ids.ready, "strip_web", 0),
+    asset(ids.ready, "original", 1),
+    // Penampil foto butuh >1 foto: original 2–3 memakai berkas R2 yang sama (kunci beda fragmen).
+    { ...asset(ids.ready, "original", 2), r2_key: `${R2}/original_1.jpg#${ids.ready}-2` },
+    { ...asset(ids.ready, "original", 3), r2_key: `${R2}/strip_web_0.jpg#${ids.ready}-3` },
+    asset(ids.ready, "animation", 0),
+    asset(ids.ready, "video", 0),
+  ]);
 });
 
 test.afterAll(async () => {
@@ -128,6 +129,40 @@ test("ready: strip, tab original, simpan, masa berlaku", async ({ page }) => {
   await page.getByRole("tab", { name: "Strip" }).click();
   await page.getByRole("tab", { name: "Original" }).click();
   await expect(page.getByRole("button", { name: "Original 1" })).toBeVisible();
+
+  // Penampil foto: tap foto → dialog layar penuh, panah/strip thumbnail, Esc & back menutup.
+  await page.getByRole("button", { name: "Original 1" }).click();
+  const viewer = page.getByRole("dialog");
+  await expect(viewer).toBeVisible();
+  await expect(viewer.getByText("1 / 3")).toBeVisible();
+  await viewer.getByRole("button", { name: "Foto berikutnya" }).click();
+  await expect(viewer.getByText("2 / 3")).toBeVisible();
+  await expect(viewer.getByRole("button", { name: /^Foto \d dari 3$/ })).toHaveCount(3);
+  await expect(viewer.getByRole("button", { name: "Foto 2 dari 3" })).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+  await expect(viewer.getByRole("img", { name: "Foto 2 dari 3" })).toBeVisible();
+  await expect(viewer.getByRole("button", { name: "Simpan foto ini" })).toBeEnabled();
+  await page.screenshot({ path: "test-results/guest-viewer.png", animations: "disabled" });
+  await page.keyboard.press("ArrowRight");
+  await expect(viewer.getByText("3 / 3")).toBeVisible();
+  // Geser ke kanan (swipe) → foto sebelumnya.
+  await page.mouse.move(80, 422);
+  await page.mouse.down();
+  await page.mouse.move(280, 422, { steps: 8 });
+  await page.mouse.up();
+  await expect(viewer.getByText("2 / 3")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(viewer).toBeHidden();
+  await expect(page.getByRole("button", { name: "Original 1" })).toBeFocused();
+  await expect(page).toHaveURL(new RegExp(`/s/${ids.ready}$`));
+  // Tombol back browser menutup penampil, tetap di halaman.
+  await page.getByRole("button", { name: "Original 2" }).click();
+  await expect(viewer.getByText("2 / 3")).toBeVisible();
+  await page.goBack();
+  await expect(viewer).toBeHidden();
+  await expect(page.getByRole("button", { name: "Original 2" })).toBeVisible();
 
   // N7: qr_open saat buka, save saat simpan → analytics_events.
   await page.getByRole("button", { name: "Simpan ke Galeri HP" }).click();

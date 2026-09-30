@@ -30,7 +30,7 @@ export function LinksPanel({
       });
     return (
       <div className="flex flex-col gap-1.5">
-        <span className="text-xs font-bold">{label}</span>
+        <span className="text-[13px] font-bold">{label}</span>
         <div className="flex flex-wrap items-center gap-2">
           <div
             className="flex h-[42px] min-w-0 flex-1 items-center justify-between gap-2 rounded-[11px] border-[1.5px] border-ink bg-white px-3 font-mono text-[13px]"
@@ -73,14 +73,9 @@ export function LinksPanel({
     );
   };
   return (
-    <section className="overflow-hidden rounded-2xl border-[1.5px] border-ink bg-white xl:mr-[308px]">
-      <h2 className="border-b-[1.5px] border-dashed border-ink px-5 py-3.5 text-[15px] font-extrabold">
-        Link klien
-      </h2>
-      <div className="flex flex-col gap-3 px-5 py-[18px]">
-        {row("client", "Galeri klien", "g", clientToken)}
-        {row("live", "Live slideshow", "live", liveToken)}
-      </div>
-    </section>
+    <div className="flex flex-col gap-4">
+      {row("client", "Galeri klien", "g", clientToken)}
+      {row("live", "Live slideshow", "live", liveToken)}
+    </div>
   );
 }
