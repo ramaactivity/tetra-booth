@@ -134,6 +134,23 @@ export const copy = {
     backToCrew: "Kembali ke Mode Crew",
   },
   crew: {
+    nav: {
+      home: "Ringkasan",
+      camera: "Kamera",
+      printer: "Printer",
+      event: "Event & Desain",
+      system: "Sistem",
+    },
+    quick: "Aksi cepat",
+    openCameraCheck: "Live View & Tes Jepret",
+    cameraSettingsTitle: "Setelan kamera (langsung)",
+    printerSource: "Pilih printer & kamera",
+    designTitle: "Desain frame & layar awal",
+    designAdmin: "Buka di admin",
+    designNote:
+      "Editor desain langsung di booth sedang disiapkan. Sementara ini dibuka di admin (browser, butuh internet & login), lalu tekan Sync dari Cloud.",
+    cloudTitle: "Cloud & perangkat",
+    appTitle: "Aplikasi",
     title: "Mode Crew",
     exit: "Tutup Aplikasi",
     exitConfirm: "Tutup aplikasi booth?",

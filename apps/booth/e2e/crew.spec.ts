@@ -85,6 +85,8 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await expect(w.getByRole("heading", { name: "Andi & Sari" })).toBeVisible();
   await openCrew(w);
   await typePin(w, "2468");
+  // Menu samping crew (W-034): tiap tombol ada di bagiannya.
+  await w.getByTestId("crew-nav-printer").click();
   await w.getByRole("button", { name: /ganti roll/i }).click();
   await w.getByRole("textbox").fill("25");
   await w.getByRole("button", { name: /simpan/i }).click();
@@ -92,6 +94,7 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await w.screenshot({ path: "test-results/crew-menu.png" });
 
   // Kamera & Printer (DECISIONS #85): kamera dipaksa baris perintah → terkunci; pengingat 2inch cut tampil.
+  await w.getByTestId("crew-nav-camera").click();
   await w.getByRole("button", { name: "Kamera & Printer" }).click();
   await expect(w.getByText(/Kamera · diatur lewat baris perintah/)).toBeVisible();
   await expect(w.getByRole("button", { name: "Simulasi" })).toBeDisabled();
@@ -111,6 +114,7 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await w.getByRole("button", { name: "Batal" }).click();
 
   // Pengaturan event di booth (DECISIONS #100): override lokal, badge, kembalikan ke cloud.
+  await w.getByTestId("crew-nav-event").click();
   await w.getByRole("button", { name: "Pengaturan Event" }).click();
   const countdown = w.getByTestId("setting-countdownSec");
   await expect(countdown).toContainText("cloud: 3");
@@ -202,6 +206,7 @@ test("kiosk: tidak bisa ditutup, keluar hanya lewat mode crew", async () => {
   await openCrew(w);
   await typePin(w, "1357");
   await typePin(w, "1357");
+  await w.getByTestId("crew-nav-system").click();
   await expect(w.getByText("Auto-start hanya di app hasil build")).toBeVisible();
   const closed = app.waitForEvent("close");
   await w.getByRole("button", { name: "Tutup Aplikasi", exact: true }).click();

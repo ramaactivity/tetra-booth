@@ -5,7 +5,6 @@ import { copy } from "../copy";
 import { crewText } from "../errors";
 import { usePlatform } from "../PlatformContext";
 import type { DeviceInfo, DeviceSettings } from "../platform";
-import { CameraProps } from "./CameraProps";
 import { Sheet } from "./Sheet";
 
 const DEFAULT_HOT = "C:\\TetraBooth\\hot";
@@ -55,10 +54,9 @@ export function DeviceSheet({
   const locked = (k: string) => info?.locked.includes(k) ?? true;
   const set = (patch: DeviceSettings) => setDraft((d) => ({ ...d, ...patch }));
   const changed = info && JSON.stringify(draft) !== JSON.stringify(info.now);
-  const running = info?.now.camera;
   const camera = draft.camera ?? "webcam";
 
-  // DSLR (digiCamControl / Canon EDSDK): AF sebelum jepret + setelan eksposur kamera yang sedang jalan.
+  // DSLR (digiCamControl / Canon EDSDK): AF sebelum jepret. Setelan eksposur ada di halaman Kamera & Tes Jepret.
   const dslr = (
     <>
       <button
@@ -70,7 +68,6 @@ export function DeviceSheet({
       >
         {copy.crew.afBeforeCapture} · {draft.afBeforeCapture ? copy.crew.on : copy.crew.off}
       </button>
-      {running === camera && <CameraProps onNote={onNote} showEmpty />}
     </>
   );
 

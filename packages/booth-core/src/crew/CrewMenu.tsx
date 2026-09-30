@@ -6,8 +6,11 @@ import {
   Camera,
   Focus,
   Heart,
+  LayoutGrid,
   type LucideIcon,
+  Palette,
   Printer,
+  Settings,
   TriangleAlert,
 } from "lucide-react";
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useState } from "react";
@@ -19,6 +22,7 @@ import { usePlatform } from "../PlatformContext";
 import type { CrewStatus, FailedPrint, UpdateCheck } from "../platform";
 import { sharpNotes } from "../sharpness";
 import { Logo } from "../ui";
+import { CameraProps } from "./CameraProps";
 import { DeviceSheet } from "./DeviceSheet";
 import { EventSettingsSheet } from "./EventSettingsSheet";
 import { Sheet } from "./Sheet";
@@ -51,54 +55,89 @@ function Pill({ tone, children }: { tone: Tone; children: ReactNode }) {
   );
 }
 
-/** Kartu status berlapis (A9b): ikon + judul + status, nilai besar, kaki dipisah garis putus-putus. */
-function StatCard({
+type Section = "home" | "camera" | "printer" | "event" | "system";
+const SECTIONS: { id: Section; icon: LucideIcon }[] = [
+  { id: "home", icon: LayoutGrid },
+  { id: "camera", icon: Camera },
+  { id: "printer", icon: Printer },
+  { id: "event", icon: Palette },
+  { id: "system", icon: Settings },
+];
+
+/** Ubin status ringkas di Ringkasan; diketuk = buka bagiannya. */
+function Tile({
   icon: Icon,
   title,
-  status,
+  pill,
   under,
+  onOpen,
   children,
-  foot,
 }: {
   icon: LucideIcon;
   title: string;
-  status: ReactNode;
+  pill: ReactNode;
   under: Tone;
+  onOpen: () => void;
   children: ReactNode;
-  foot?: ReactNode;
 }) {
   return (
-    <section
+    <button
+      type="button"
+      onClick={onOpen}
       style={{ "--under": FILL[under] } as CSSProperties}
-      className="layered flex min-h-0 flex-col justify-between gap-4 rounded-[28px] border-[2.5px] border-ink bg-white p-8 [--lx:9px]"
+      className="pressable layered flex min-w-0 flex-col gap-4 rounded-[26px] border-[2.5px] border-ink bg-white p-6 text-left [--lx:8px]"
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3.5">
+      <span className="flex w-full items-center justify-between gap-3">
+        <span className="flex items-center gap-3">
           <span
             style={{ background: FILL[under] }}
-            className="flex size-[52px] items-center justify-center rounded-[14px] border-2 border-dashed border-ink"
+            className="flex size-11 items-center justify-center rounded-[12px] border-2 border-dashed border-ink"
           >
-            <Icon size={24} strokeWidth={2} />
+            <Icon size={22} strokeWidth={2} />
           </span>
-          <h2 className="text-2xl font-bold">{title}</h2>
-        </div>
-        {status}
+          <span className="text-xl font-bold">{title}</span>
+        </span>
+        {pill}
+      </span>
+      <span className="block min-w-0">{children}</span>
+    </button>
+  );
+}
+
+/** Kelompok aksi berjudul dalam satu bagian; `column` = isi bebas (daftar, setelan). */
+function Group({
+  title,
+  pill,
+  column = false,
+  children,
+}: {
+  title: string;
+  pill?: ReactNode;
+  column?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <section className="flex flex-col gap-5 rounded-[26px] border-[2.5px] border-ink bg-white p-7">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-2xl font-bold">{title}</h2>
+        {pill}
       </div>
-      <div className="min-h-0">{children}</div>
-      {foot && (
-        <div className="flex items-center justify-between border-t-2 border-dashed border-ink pt-[18px] text-[22px] font-bold">
-          {foot}
-        </div>
-      )}
+      <div
+        className={column ? "flex flex-col gap-4" : "grid grid-cols-4 gap-5 portrait:grid-cols-2"}
+      >
+        {children}
+      </div>
     </section>
   );
 }
 
-const big = "text-[64px] leading-none font-extrabold tracking-[-0.03em]";
-const sub = "mt-3 text-[22px] font-semibold text-text-2";
-const link = "pressable flex min-h-12 items-center gap-2 font-bold";
+const big = "block text-[44px] leading-none font-extrabold tracking-[-0.03em]";
+const sub = "mt-2 block text-lg font-semibold text-text-2";
 
-/** Dashboard mode crew; lembar pilihan di atasnya (isi roll, update, kamera & printer, konfirmasi tutup). */
+/**
+ * Dashboard mode crew: menu samping (Ringkasan · Kamera · Printer · Event & Desain · Sistem, masukan Rama W-034),
+ * lembar pilihan di atasnya (isi roll, update, kamera & printer, pengaturan event, konfirmasi tutup).
+ */
 export function CrewMenu({
   event,
   onChangeEvent,
@@ -230,237 +269,200 @@ export function CrewMenu({
     setSheet(null);
     void act(fn, done)();
   };
-  return (
-    <main className="flex h-full w-full flex-col gap-8 overflow-y-auto bg-paper px-[72px] py-14 portrait:px-8">
-      <header className="flex items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <Logo />
-          <h1 className="rounded-full border-2 border-ink bg-lavender px-[18px] py-2 text-xl font-bold">
-            {copy.crew.title}
-          </h1>
-        </div>
-        {note && (
-          <p
-            className="truncate rounded-2xl border-2 border-dashed border-ink bg-sky px-5 py-3 text-xl font-semibold"
-            role="status"
+  const [section, setSection] = useState<Section>("home");
+  const modeLabel = event.photobox ? copy.start.mode.photobox : copy.start.mode.event;
+  const paperLow = !!status && status.paper.remaining <= PAPER_LOW;
+  const openRoll = () => {
+    setRoll(String(status?.paper.capacity ?? DEFAULT_ROLL));
+    setSheet("roll");
+  };
+  const openUpdate = () => {
+    setUpdate(null);
+    setSheet("update");
+    p.crew.checkUpdate().then(setUpdate, (e: unknown) => {
+      setSheet(null);
+      setNote(crewText(e));
+    });
+  };
+  const doTestPrint = act(async () => setWatching(await testPrint(p, event)), copy.crew.sent);
+
+  const cameraPill = status && (
+    <Pill tone={status.cameraService ? "mint" : "coral"}>
+      {dot}
+      {status.cameraService ? copy.crew.connected : copy.crew.down}
+    </Pill>
+  );
+  const printerPill = status && (
+    <Pill tone={printerTone}>
+      {dot}
+      {copy.crew.printerState(status.printer.status)}
+    </Pill>
+  );
+  const onlinePill = status && (
+    <Pill tone={status.online ? "mint" : "peach"}>
+      {dot}
+      {status.online ? copy.crew.online : copy.crew.offline}
+    </Pill>
+  );
+
+  const failedList =
+    failed.length === 0 ? (
+      <p className="text-xl font-semibold text-text-2">{copy.crew.none}</p>
+    ) : (
+      <ul className="flex flex-col">
+        {failed.map((f) => (
+          <li
+            key={f.id}
+            className="flex items-center justify-between gap-4 border-t-2 border-dashed border-ink py-3 first:border-0 first:pt-0"
           >
-            {note}
-          </p>
-        )}
-        <div className="flex items-center gap-4 rounded-[18px] border-[2.5px] border-ink bg-white px-[22px] py-3.5">
-          <span className="flex size-11 items-center justify-center rounded-xl border-2 border-dashed border-ink bg-peach">
-            <Heart size={20} fill="currentColor" />
-          </span>
-          <div>
-            <div className="text-[15px] font-semibold text-text-2">{copy.crew.activeEvent}</div>
-            <div className="text-[22px] font-extrabold">
-              {event.name} — {copy.print.mode}
+            <span className="min-w-0 text-lg font-semibold">
+              <span className="font-mono">{new Date(f.createdAt).toLocaleTimeString("id-ID")}</span>{" "}
+              · {f.copies}× · {f.error}
+              {f.error?.startsWith("print_uncertain") && (
+                <strong className="mt-1 block font-bold">{copy.crew.uncertain}</strong>
+              )}
+            </span>
+            <Button
+              variant="secondary"
+              className="h-14 shrink-0 rounded-2xl px-5 text-xl"
+              onClick={act(async () => setWatching(await p.crew.reprint(f.id)), copy.crew.sent)}
+            >
+              {copy.crew.reprint}
+            </Button>
+          </li>
+        ))}
+      </ul>
+    );
+
+  const content: Record<Section, ReactNode> = {
+    home: (
+      <>
+        <div className="grid grid-cols-4 gap-6 portrait:grid-cols-2">
+          <Tile
+            icon={Camera}
+            title={copy.crew.camera}
+            under="mint"
+            pill={cameraPill}
+            onOpen={() => setSection("camera")}
+          >
+            <div className={big}>
+              {status ? (status.cameraService ? copy.crew.ready : copy.crew.down) : "…"}
             </div>
-            {localSettings && (
-              <div
-                data-testid="settings-local"
-                className="mt-1 w-fit rounded-full border-2 border-ink bg-butter px-3 text-[15px] font-bold"
-              >
-                {copy.crew.changedHereBadge}
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-      {blurWarn && (
-        <div
-          role="alert"
-          className="flex items-center gap-6 rounded-[22px] border-[2.5px] border-ink bg-peach px-7 py-5"
-        >
-          <Focus size={30} strokeWidth={2.5} className="shrink-0" />
-          <p className="flex-1 text-xl font-semibold">{copy.crew.blurWarn}</p>
-          <Button
-            variant="secondary"
-            className="h-16 shrink-0 rounded-2xl px-5 text-xl"
-            onClick={() => setSheet("device")}
+            <div className={sub}>{copy.crew.cameraService}</div>
+          </Tile>
+          <Tile
+            icon={Printer}
+            title={copy.crew.printerTitle}
+            under="sky"
+            pill={printerPill}
+            onOpen={() => setSection("printer")}
           >
-            {copy.crew.blurFix}
-          </Button>
-          <button
-            type="button"
-            className="shrink-0 text-xl font-bold underline"
-            onClick={() => {
-              sharpNotes.dismissWarning();
-              setBlurWarn(false);
-            }}
+            <div className={big}>±{status?.paper.remaining ?? "…"}</div>
+            <div className={`${sub} truncate ${paperLow ? "text-coral-strong" : ""}`}>
+              {status ? copy.crew.paper(status.paper.remaining, status.paper.capacity) : "…"}
+            </div>
+          </Tile>
+          <Tile
+            icon={ArrowUpDown}
+            title={copy.crew.connection}
+            under="peach"
+            pill={onlinePill}
+            onOpen={() => setSection("system")}
           >
-            {copy.crew.blurDismiss}
-          </button>
-        </div>
-      )}
-
-      <div className="grid flex-1 grid-cols-3 grid-rows-2 gap-8 portrait:grid-cols-1 portrait:grid-rows-none">
-        <StatCard
-          icon={Camera}
-          title={copy.crew.camera}
-          under="mint"
-          status={
-            status && (
-              <Pill tone={status.cameraService ? "mint" : "coral"}>
-                {dot}
-                {status.cameraService ? copy.crew.connected : copy.crew.down}
-              </Pill>
-            )
-          }
-          foot={
-            <>
-              <span>{copy.crew.liveView}</span>
-              <button type="button" className={link} onClick={onCameraCheck}>
-                {copy.crew.testShot} <ArrowRight size={22} strokeWidth={2.5} />
-              </button>
-            </>
-          }
-        >
-          <div className={big}>
-            {status ? (status.cameraService ? copy.crew.ready : copy.crew.down) : "…"}
-          </div>
-          <div className={sub}>{copy.crew.cameraService}</div>
-        </StatCard>
-
-        <StatCard
-          icon={Printer}
-          title={copy.crew.printerTitle}
-          under="sky"
-          status={
-            status && (
-              <Pill tone={printerTone}>
-                {dot}
-                {copy.crew.printerState(status.printer.status)}
-              </Pill>
-            )
-          }
-          foot={
-            <>
-              <span
-                className={status && status.paper.remaining <= PAPER_LOW ? "text-coral-strong" : ""}
-              >
-                {status ? copy.crew.paper(status.paper.remaining, status.paper.capacity) : "…"}
-              </span>
-              <button
-                type="button"
-                className={link}
-                onClick={act(async () => setWatching(await testPrint(p, event)), copy.crew.sent)}
-              >
-                {copy.crew.testPrint} <ArrowRight size={22} strokeWidth={2.5} />
-              </button>
-            </>
-          }
-        >
-          <div className={big}>±{status?.paper.remaining ?? "…"}</div>
-          <div className={`${sub} truncate`}>
-            {status && status.paper.remaining <= PAPER_LOW
-              ? copy.crew.paperLow
-              : copy.crew.sheetsLeft}
-            {status?.printer.message && ` · ${status.printer.message}`}
-          </div>
-        </StatCard>
-
-        <StatCard
-          icon={ArrowUpDown}
-          title={copy.crew.connection}
-          under="peach"
-          status={
-            status && (
-              <Pill tone={status.online ? "mint" : "peach"}>
-                {dot}
-                {status.online ? copy.crew.online : copy.crew.offline}
-              </Pill>
-            )
-          }
-          foot={
-            <>
-              <span className="truncate" data-testid="cloud-device">
-                {status?.device
-                  ? copy.crew.paired(status.device.name, status.device.shortCode)
-                  : copy.crew.unpaired}
-              </span>
-              <button type="button" className={link} onClick={onPair}>
-                {copy.crew.pair} <ArrowRight size={22} strokeWidth={2.5} />
-              </button>
-            </>
-          }
-        >
-          <div className="flex items-center justify-between gap-4">
             <div className={big}>{copy.crew.files(status?.uploadPending ?? 0)}</div>
-            {!!status?.uploadPending && status.device && (
-              <button type="button" className={link} onClick={act(() => p.crew.retryUploads())}>
-                {copy.crew.retryUpload}
-              </button>
-            )}
-          </div>
-          <div className={`${sub} truncate`}>{status?.uploadError ?? copy.crew.uploadQueue}</div>
-        </StatCard>
-
-        <StatCard
-          icon={TriangleAlert}
-          title={copy.crew.failedPrints}
-          under="lavender"
-          status={<Pill tone="white">{failed.length}</Pill>}
-          foot={
-            <>
-              <span>{copy.crew.autoRefresh}</span>
-              <span>{copy.crew.every5s}</span>
-            </>
-          }
-        >
-          {failed.length === 0 ? (
-            <>
-              <div className={big}>0</div>
-              <div className={sub}>{copy.crew.none}</div>
-            </>
-          ) : (
-            <ul className="flex max-h-[200px] flex-col overflow-y-auto">
-              {failed.map((f) => (
-                <li
-                  key={f.id}
-                  className="flex items-center justify-between gap-4 border-t-2 border-dashed border-ink py-3 first:border-0 first:pt-0"
-                >
-                  <span className="min-w-0 text-lg font-semibold">
-                    <span className="font-mono">
-                      {new Date(f.createdAt).toLocaleTimeString("id-ID")}
-                    </span>{" "}
-                    · {f.copies}× · {f.error}
-                    {f.error?.startsWith("print_uncertain") && (
-                      <strong className="mt-1 block font-bold">{copy.crew.uncertain}</strong>
-                    )}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    className="h-16 shrink-0 rounded-2xl px-5 text-xl"
-                    onClick={act(
-                      async () => setWatching(await p.crew.reprint(f.id)),
-                      copy.crew.sent,
-                    )}
-                  >
-                    {copy.crew.reprint}
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </StatCard>
-
-        <section className="col-span-2 grid grid-cols-5 content-center gap-5 rounded-[28px] border-[2.5px] border-ink bg-white p-8 portrait:col-span-1 portrait:grid-cols-2">
+            <div className={`${sub} truncate`} data-testid="cloud-device">
+              {status?.device
+                ? copy.crew.paired(status.device.name, status.device.shortCode)
+                : copy.crew.unpaired}
+            </div>
+          </Tile>
+          <Tile
+            icon={TriangleAlert}
+            title={copy.crew.failedPrints}
+            under="lavender"
+            pill={<Pill tone={failed.length ? "coral" : "white"}>{failed.length}</Pill>}
+            onOpen={() => setSection("printer")}
+          >
+            <div className={big}>{failed.length}</div>
+            <div className={sub}>{failed.length ? copy.crew.reprint : copy.crew.none}</div>
+          </Tile>
+        </div>
+        <Group title={copy.crew.quick}>
+          <Button variant="plain" className={action} onClick={onCameraCheck}>
+            {copy.crew.testShot}
+          </Button>
+          <Button variant="plain" className={action} onClick={doTestPrint}>
+            {copy.crew.testPrint}
+          </Button>
           <Button variant="plain" className={action} onClick={onChangeEvent}>
             {copy.crew.changeEvent}
+          </Button>
+          <Button variant="plain" className={action} onClick={onPair}>
+            {copy.crew.pair}
+          </Button>
+        </Group>
+      </>
+    ),
+    camera: (
+      <>
+        <Group title={copy.crew.camera} pill={cameraPill}>
+          <Button className={action} onClick={onCameraCheck}>
+            {copy.crew.openCameraCheck}
+          </Button>
+          <Button variant="plain" className={action} onClick={() => setSheet("device")}>
+            {copy.crew.device}
+          </Button>
+        </Group>
+        {p.crew.focus && (
+          <Group title={copy.crew.cameraSettingsTitle} column>
+            <CameraProps onNote={setNote} />
+          </Group>
+        )}
+      </>
+    ),
+    printer: (
+      <>
+        <Group title={copy.crew.printerTitle} pill={printerPill}>
+          <p className={`col-span-full text-2xl font-bold ${paperLow ? "text-coral-strong" : ""}`}>
+            {status ? copy.crew.paper(status.paper.remaining, status.paper.capacity) : "…"}
+            {paperLow && ` · ${copy.crew.paperLow}`}
+            {status?.printer.message && ` · ${status.printer.message}`}
+          </p>
+          <Button variant="plain" className={action} onClick={doTestPrint}>
+            {copy.crew.testPrint}
+          </Button>
+          <Button variant="plain" className={action} onClick={openRoll}>
+            {copy.crew.newRoll}
           </Button>
           <Button
             variant="plain"
             className={action}
-            onClick={() => {
-              setRoll(String(status?.paper.capacity ?? DEFAULT_ROLL));
-              setSheet("roll");
-            }}
+            onClick={() =>
+              p.crew.printerSettings().then(
+                () => setNote(copy.crew.printerSettingsDone),
+                (e: unknown) => setNote(crewText(e)),
+              )
+            }
           >
-            {copy.crew.newRoll}
+            {copy.crew.printerSettings}
           </Button>
           <Button variant="plain" className={action} onClick={() => setSheet("device")}>
-            {copy.crew.device}
+            {copy.crew.printerSource}
+          </Button>
+        </Group>
+        <Group title={`${copy.crew.failedPrints} · ${failed.length}`} column>
+          {failedList}
+        </Group>
+      </>
+    ),
+    event: (
+      <>
+        <Group title={copy.crew.activeEvent}>
+          <p className="col-span-full text-3xl font-extrabold">
+            {event.name} <span className="text-text-2">· {modeLabel}</span>
+          </p>
+          <Button variant="plain" className={action} onClick={onChangeEvent}>
+            {copy.crew.changeEvent}
           </Button>
           <Button
             variant="plain"
@@ -469,6 +471,50 @@ export function CrewMenu({
             onClick={() => setSheet("settings")}
           >
             {copy.crew.eventSettings}
+          </Button>
+        </Group>
+        <Group title={copy.crew.designTitle} column>
+          <p className="text-xl font-medium text-text-2">{copy.crew.designNote}</p>
+          <Button
+            variant="plain"
+            className={`${action} w-fit px-10`}
+            disabled={!hasEvent}
+            onClick={() =>
+              p.crew
+                .openAdmin(`/admin/events/${event.id}/settings`)
+                .catch((e: unknown) => setNote(crewText(e)))
+            }
+          >
+            {copy.crew.designAdmin}
+          </Button>
+        </Group>
+      </>
+    ),
+    system: (
+      <>
+        <Group title={copy.crew.cloudTitle} pill={onlinePill}>
+          <p className="col-span-full text-2xl font-bold">
+            {status?.device
+              ? copy.crew.paired(status.device.name, status.device.shortCode)
+              : copy.crew.unpaired}
+            <span className="text-text-2">
+              {" "}
+              · {copy.crew.files(status?.uploadPending ?? 0)} ·{" "}
+              {status?.uploadError ?? copy.crew.uploadQueue}
+            </span>
+          </p>
+          <Button variant="plain" className={action} onClick={onPair}>
+            {copy.crew.pair}
+          </Button>
+          {!!status?.uploadPending && status.device && (
+            <Button variant="plain" className={action} onClick={act(() => p.crew.retryUploads())}>
+              {copy.crew.retryUpload}
+            </Button>
+          )}
+        </Group>
+        <Group title={copy.crew.appTitle}>
+          <Button variant="plain" className={action} onClick={openUpdate}>
+            {copy.crew.update}
           </Button>
           <Button variant="plain" className={action} onClick={onChangePin}>
             {copy.crew.changePin}
@@ -486,29 +532,6 @@ export function CrewMenu({
               {auto ? copy.crew.autoStartDev : "…"}
             </p>
           )}
-          <Button variant="destructive" className={action} onClick={() => setSheet("exit")}>
-            {copy.crew.exit}
-          </Button>
-          <Button
-            variant="plain"
-            className={action}
-            onClick={() => {
-              setUpdate(null);
-              setSheet("update");
-              p.crew.checkUpdate().then(setUpdate, (e: unknown) => {
-                setSheet(null);
-                setNote(crewText(e));
-              });
-            }}
-          >
-            {copy.crew.update}
-          </Button>
-          <Button
-            className="col-span-2 h-[92px] rounded-[20px] text-[26px] [--lx:7px] [--under:#fff] portrait:col-span-1"
-            onClick={onClose}
-          >
-            {copy.crew.toGuest} <ArrowRight size={26} strokeWidth={2.5} />
-          </Button>
           <Button
             variant="plain"
             className={action}
@@ -520,7 +543,111 @@ export function CrewMenu({
           >
             {cursorOn ? copy.crew.cursorShown : copy.crew.cursorHidden}
           </Button>
-        </section>
+          <Button variant="destructive" className={action} onClick={() => setSheet("exit")}>
+            {copy.crew.exit}
+          </Button>
+        </Group>
+      </>
+    ),
+  };
+
+  return (
+    <main className="flex h-full w-full bg-paper portrait:flex-col">
+      <nav className="flex w-[340px] shrink-0 flex-col gap-3 border-r-[2.5px] border-ink bg-white px-6 py-10 portrait:w-full portrait:flex-row portrait:flex-wrap portrait:border-r-0 portrait:border-b-[2.5px] portrait:py-4">
+        <div className="mb-6 flex items-center gap-4 portrait:mb-0">
+          <Logo />
+          <h1 className="rounded-full border-2 border-ink bg-lavender px-3.5 py-1.5 text-lg font-bold whitespace-nowrap">
+            {copy.crew.title}
+          </h1>
+        </div>
+        {SECTIONS.map(({ id, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            aria-current={section === id ? "page" : undefined}
+            data-testid={`crew-nav-${id}`}
+            onClick={() => setSection(id)}
+            className={`pressable flex h-[72px] items-center gap-4 rounded-[18px] border-[2.5px] px-5 text-left text-2xl font-bold ${section === id ? "border-ink bg-mint-soft" : "border-transparent"}`}
+          >
+            <Icon size={26} strokeWidth={2.2} />
+            {copy.crew.nav[id]}
+            {id === "printer" && failed.length > 0 && (
+              <span className="ml-auto rounded-full border-2 border-ink bg-coral px-2.5 text-base">
+                {failed.length}
+              </span>
+            )}
+          </button>
+        ))}
+        <Button
+          className="mt-auto h-[92px] gap-2 rounded-[20px] px-4 text-xl [--lx:7px] [--under:#fff] portrait:mt-0"
+          onClick={onClose}
+        >
+          {copy.crew.toGuest} <ArrowRight size={24} strokeWidth={2.5} />
+        </Button>
+      </nav>
+
+      <div className="flex min-w-0 flex-1 flex-col gap-7 overflow-y-auto px-14 py-10 portrait:px-8">
+        <header className="flex items-center justify-between gap-6">
+          <div className="flex min-w-0 items-center gap-4">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-ink bg-peach">
+              <Heart size={20} fill="currentColor" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-[15px] font-semibold text-text-2">{copy.crew.activeEvent}</div>
+              <div className="truncate text-[26px] font-extrabold">
+                {event.name} — {modeLabel}
+              </div>
+            </div>
+            {localSettings && (
+              <span
+                data-testid="settings-local"
+                className="shrink-0 rounded-full border-2 border-ink bg-butter px-3 text-[15px] font-bold"
+              >
+                {copy.crew.changedHereBadge}
+              </span>
+            )}
+          </div>
+          {note && (
+            <p
+              className="max-w-[45%] truncate rounded-2xl border-2 border-dashed border-ink bg-sky px-5 py-3 text-xl font-semibold"
+              role="status"
+            >
+              {note}
+            </p>
+          )}
+        </header>
+
+        {blurWarn && (
+          <div
+            role="alert"
+            className="flex items-center gap-6 rounded-[22px] border-[2.5px] border-ink bg-peach px-7 py-5"
+          >
+            <Focus size={30} strokeWidth={2.5} className="shrink-0" />
+            <p className="flex-1 text-xl font-semibold">{copy.crew.blurWarn}</p>
+            <Button
+              variant="secondary"
+              className="h-16 shrink-0 rounded-2xl px-5 text-xl"
+              onClick={() => setSection("camera")}
+            >
+              {copy.crew.blurFix}
+            </Button>
+            <button
+              type="button"
+              className="shrink-0 text-xl font-bold underline"
+              onClick={() => {
+                sharpNotes.dismissWarning();
+                setBlurWarn(false);
+              }}
+            >
+              {copy.crew.blurDismiss}
+            </button>
+          </div>
+        )}
+
+        <h2 className="text-[44px] leading-none font-extrabold tracking-[-0.03em]">
+          {copy.crew.nav[section]}
+        </h2>
+        {content[section]}
       </div>
 
       {sheet === "roll" && roll !== null && (

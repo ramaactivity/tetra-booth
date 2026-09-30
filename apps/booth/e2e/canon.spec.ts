@@ -76,18 +76,21 @@ test("canon (EDSDK palsu): setelan ISO dari kamera tampil & bisa diubah di mode 
     for (let i = 0; i < 5; i++) await w.getByTestId("crew-hotspot").click();
     await typePin(w, "2468");
     await typePin(w, "2468");
-    await w.getByRole("button", { name: "Kamera & Printer" }).click();
+    // Setelan eksposur langsung di halaman Kamera (menu samping crew, W-034).
+    await w.getByTestId("crew-nav-camera").click();
     await expect(w.getByText("ISO live view · ISO 100")).toBeVisible({ timeout: 10_000 });
     await expect(w.getByText("ISO jepret (flash) · Sama dengan live view")).toBeVisible();
     await expect(w.getByText("Kualitas · JPEG L Fine")).toBeVisible();
-    await w.getByRole("button", { name: "ISO 800", exact: true }).first().click();
+    await w
+      .getByTestId("camera-prop-iso")
+      .getByRole("button", { name: "ISO 800", exact: true })
+      .click();
     await expect(w.getByText("ISO live view · ISO 800")).toBeVisible();
     await w.screenshot({ path: "test-results/canon-crew.png" });
 
     // Tap to focus (#114) di Tes Jepret: ketukan diteruskan ke Camera Service.
     const logs: string[] = [];
     app.process().stdout?.on("data", (d) => logs.push(String(d)));
-    await w.getByRole("button", { name: "Batal" }).click();
     await w
       .getByRole("button", { name: /Tes Jepret/ })
       .first()
