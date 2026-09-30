@@ -10,14 +10,11 @@ import { LiveView } from "../screens/LiveView";
 import { sharpNotes, sharpnessOf } from "../sharpness";
 import { CameraProps } from "./CameraProps";
 
-const FOCUS_ROW: { step: FocusStep; label: string }[] = [
-  { step: "near3", label: "◀◀◀" },
+const FOCUS_FINE: { step: FocusStep; label: string }[] = [
   { step: "near2", label: "◀◀" },
   { step: "near1", label: "◀" },
-  { step: "af", label: copy.crew.focusAf },
   { step: "far1", label: "▶" },
   { step: "far2", label: "▶▶" },
-  { step: "far3", label: "▶▶▶" },
 ];
 const METER_MS = 300;
 
@@ -39,8 +36,9 @@ export function tapToFrame(
 }
 
 /**
- * Cek kamera: live view + test shot (FSD §1.3). Meter ketajaman live view (skor yang sama dengan pengingat
- * foto buram #88, puncak = fokus terbaik yang terlihat) + kontrol fokus DSLR bila kamera mendukung.
+ * Tes Jepret (FSD §1.3), dirombak dari masukan Rama (W-034): live view di kiri tanpa tumpukan tombol; kolom kanan
+ * berisi fokus, hasil tes terakhir, dan setelan kamera berkelompok, dengan Tes Jepret / Kembali selalu di bawah.
+ * Meter ketajaman = skor pengingat foto buram (#88); tes jepret = patokan event ini.
  */
 export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () => void }) {
   const p = usePlatform();
@@ -49,9 +47,9 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
   // menyalakannya lagi. Di sini LiveView dipasang ulang setelah tiap Tes Jepret, kalau tidak gambar membeku
   // dan tombol fokus tidak berpengaruh (uji 60D, 2026-09-26).
   const [liveRun, setLiveRun] = useState(0);
-  const [info, setInfo] = useState<string>();
-  // Setelan kamera di atas live view (DSLR): efek ISO/shutter/aperture/WB terlihat langsung (Rama, W-034).
-  const [settings, setSettings] = useState(false);
+  const [result, setResult] = useState<{ w: number; h: number; ms: number; score: number }>();
+  const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
   const [meter, setMeter] = useState<{ now: number; peak: number }>();
   const lastMeter = useRef(0);
   const frameSize = useRef<{ w: number; h: number } | undefined>(undefined);
@@ -70,7 +68,7 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
       await p.crew.focusAt(pt.x, pt.y);
       setMeter((m) => m && { now: m.now, peak: m.now });
     } catch (err) {
-      setInfo(errText(err));
+      setError(errText(err));
     } finally {
       setTimeout(() => setReticle(undefined), 1200);
     }
@@ -85,14 +83,17 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
   };
   const focus = async (step: FocusStep) => {
     try {
+      setError(undefined);
       await p.crew.focus?.(step);
       // Puncak dihitung ulang setelah fokus digeser, supaya meter menunjukkan arah yang benar.
       setMeter((m) => m && { now: m.now, peak: m.now });
     } catch (e) {
-      setInfo(errText(e));
+      setError(errText(e));
     }
   };
   const take = async () => {
+    setBusy(true);
+    setError(undefined);
     try {
       const t0 = performance.now();
       const r = await p.camera.capture({ sessionId: newSessionId(), index: 0 });
@@ -105,107 +106,131 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
       const score = Math.round(sharp);
       sharpNotes.setBaseline(eventId, score);
       sharpNotes.dismissWarning();
-      setInfo(
-        `${r.width}×${r.height} · ${Math.round(performance.now() - t0)} ms · ${copy.crew.sharpBase(score)}`,
-      );
+      setResult({ w: r.width, h: r.height, ms: performance.now() - t0, score });
     } catch (e) {
-      setInfo(errText(e));
+      setError(errText(e));
     } finally {
+      setBusy(false);
       setLiveRun((n) => n + 1);
     }
   };
+  const card = "flex flex-col gap-4 rounded-[22px] border-[2.5px] border-ink bg-white p-5";
   return (
-    <div className="relative h-full w-full">
-      <LiveView key={liveRun} onFrame={onFrame} />
-      {p.crew.focusAt && (
-        // biome-ignore lint/a11y/noStaticElementInteractions: area ketuk live view (crew, layar sentuh)
-        <div
-          data-testid="tap-focus"
-          className="absolute inset-0"
-          onPointerDown={(e) => void tap(e)}
-        >
-          {reticle && (
-            <span
-              style={{ left: reticle.x - 60, top: reticle.y - 60 }}
-              className="absolute size-[120px] animate-[tick_300ms_ease-out] rounded-[18px] border-4 border-dashed border-white"
-            />
-          )}
-        </div>
-      )}
-      <div className="absolute top-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-3">
-        {p.crew.focus && (
-          <div className="flex items-center gap-4 rounded-[22px] border-[2.5px] border-ink bg-paper px-5 py-3">
-            <span className="text-xl font-bold">{copy.crew.focus}</span>
-            <span className="text-lg text-text-2">{copy.crew.focusNear}</span>
-            {FOCUS_ROW.map(({ step, label }) => (
-              <Button
-                key={step}
-                variant={step === "af" ? "primary" : "secondary"}
-                className="h-16 min-w-16 rounded-[14px] px-4 text-xl"
-                onClick={() => void focus(step)}
-              >
-                {label}
-              </Button>
-            ))}
-            <span className="text-lg text-text-2">{copy.crew.focusFar}</span>
+    <div className="flex h-full w-full">
+      <section className="relative min-w-0 flex-1 bg-ink">
+        <LiveView key={liveRun} onFrame={onFrame} />
+        {p.crew.focusAt && (
+          // biome-ignore lint/a11y/noStaticElementInteractions: area ketuk live view (crew, layar sentuh)
+          <div
+            data-testid="tap-focus"
+            className="absolute inset-0"
+            onPointerDown={(e) => void tap(e)}
+          >
+            {reticle && (
+              <span
+                style={{ left: reticle.x - 60, top: reticle.y - 60 }}
+                className="absolute size-[120px] animate-[tick_300ms_ease-out] rounded-[18px] border-4 border-dashed border-white"
+              />
+            )}
           </div>
         )}
         {p.crew.focusAt && (
-          <p className="rounded-full border-2 border-ink bg-white px-5 py-2 text-lg font-semibold">
+          <p className="pointer-events-none absolute top-6 left-6 rounded-full border-2 border-ink bg-white/90 px-5 py-2 text-lg font-semibold">
             {copy.crew.tapToFocus}
           </p>
         )}
-        {meter && (
+      </section>
+
+      <aside className="flex w-[600px] shrink-0 flex-col border-l-[2.5px] border-ink bg-paper">
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-6">
+          {p.crew.focus && (
+            <section className={card}>
+              <h3 className="text-2xl font-extrabold">{copy.crew.focus}</h3>
+              <Button className="h-[76px] rounded-[18px] text-2xl" onClick={() => void focus("af")}>
+                {copy.crew.autoFocus}
+              </Button>
+              {/* Geser fokus manual hanya berguna untuk digiCamControl; Canon EDSDK selalu AF saat jepret. */}
+              {!p.crew.focusAt && (
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-semibold text-text-2">{copy.crew.focusFine}</span>
+                  {FOCUS_FINE.map(({ step, label }) => (
+                    <Button
+                      key={step}
+                      variant="secondary"
+                      className="h-14 min-w-14 flex-1 rounded-[14px] px-2 text-xl"
+                      onClick={() => void focus(step)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {meter && (
+                <div data-testid="focus-meter" className="flex flex-col gap-2">
+                  <div className="flex justify-between text-lg font-semibold text-text-2">
+                    <span>{copy.crew.sharpnessNow}</span>
+                    <span className="font-mono">
+                      {meter.now} · {copy.crew.sharpnessBest} {meter.peak}
+                    </span>
+                  </div>
+                  <div className="h-4 overflow-hidden rounded-full border-2 border-ink bg-paper">
+                    <div
+                      className="h-full bg-mint transition-[width] duration-300"
+                      style={{
+                        width: `${meter.peak ? Math.min(100, (meter.now / meter.peak) * 100) : 0}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          <section className={card} data-testid="last-shot">
+            <h3 className="text-2xl font-extrabold">{copy.crew.lastShot}</h3>
+            {shot && result ? (
+              <div className="flex items-center gap-4">
+                <img src={shot} alt="" className="w-[220px] rounded-[14px] border-2 border-ink" />
+                <div className="flex flex-col gap-1 text-lg font-semibold">
+                  <span className="font-mono">
+                    {copy.crew.shotInfo(result.w, result.h, (result.ms / 1000).toFixed(1))}
+                  </span>
+                  <span className="text-text-2">{copy.crew.sharpBase(result.score)}</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-lg text-text-2">{copy.crew.noShot}</p>
+            )}
+          </section>
+
+          {p.crew.focus && (
+            <div data-testid="camera-settings" className="flex flex-col gap-5">
+              <CameraProps onNote={setError} grouped />
+            </div>
+          )}
+        </div>
+
+        {error && (
           <p
-            data-testid="focus-meter"
-            className="rounded-full border-2 border-ink bg-white px-5 py-2 font-mono text-lg"
+            role="alert"
+            className="mx-6 mb-3 rounded-[16px] border-2 border-ink bg-coral px-4 py-3 text-lg font-semibold"
           >
-            {copy.crew.focusMeter} {meter.now}
-            <span className="text-text-2">
-              {" "}
-              / {copy.crew.focusPeak} {meter.peak}
-            </span>
+            {error}
           </p>
         )}
-      </div>
-      {shot && (
-        <img
-          src={shot}
-          alt=""
-          className="absolute right-10 bottom-44 w-1/4 rounded-[20px] border-[2.5px] border-ink"
-        />
-      )}
-      {settings && (
-        <aside
-          data-testid="camera-settings"
-          className="absolute top-8 right-8 bottom-[168px] flex w-[520px] flex-col gap-4 overflow-y-auto rounded-[24px] border-[2.5px] border-ink bg-paper/95 p-6"
-        >
-          <CameraProps onNote={setInfo} showEmpty />
-        </aside>
-      )}
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-6 border-t-[2.5px] border-ink bg-paper px-10 py-6">
-        <span className="font-mono text-xl text-text-2">{info}</span>
-        {p.crew.focus && (
+        <div className="flex gap-4 border-t-[2.5px] border-ink p-6">
           <Button
-            variant="secondary"
-            aria-pressed={settings}
-            className="h-[92px] rounded-[20px] px-8 text-[26px]"
-            onClick={() => setSettings((v) => !v)}
+            className="h-[92px] flex-1 rounded-[20px] text-[28px]"
+            disabled={busy}
+            onClick={() => void take()}
           >
-            {copy.crew.cameraSettings}
+            {busy ? copy.crew.shooting : copy.crew.testShot}
           </Button>
-        )}
-        <Button className="h-[92px] rounded-[20px] px-10 text-[26px]" onClick={() => void take()}>
-          {copy.crew.testShot}
-        </Button>
-        <Button
-          variant="secondary"
-          className="h-[92px] rounded-[20px] px-10 text-[26px]"
-          onClick={onBack}
-        >
-          {copy.crew.back}
-        </Button>
-      </div>
+          <Button variant="secondary" className="h-[92px] rounded-[20px] text-2xl" onClick={onBack}>
+            {copy.crew.back}
+          </Button>
+        </div>
+      </aside>
     </div>
   );
 }
