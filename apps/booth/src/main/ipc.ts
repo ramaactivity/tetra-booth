@@ -35,7 +35,7 @@ import {
   overrideKey,
   parseOverride,
 } from "./event-override";
-import { allowQuit, autoStart, setAutoStart } from "./kiosk";
+import { allowQuit, autoStart, setAutoStart, setKioskOn } from "./kiosk";
 import { onPhase } from "./shots";
 import { downloadInstaller, runInstaller } from "./update";
 
@@ -496,9 +496,9 @@ export function registerIpc(
     const win = BrowserWindow.fromWebContents(e.sender);
     await shell.openExternal(`${config.guestUrl}${p ?? "/admin"}`);
     if (win?.isKiosk()) {
-      win.setKiosk(false);
+      setKioskOn(win, false);
       win.once("focus", () => {
-        if (!win.isDestroyed()) win.setKiosk(true);
+        if (!win.isDestroyed()) setKioskOn(win, true);
       });
     }
     win?.minimize();
@@ -511,7 +511,7 @@ export function registerIpc(
     if (!name) throw new Error("Printer belum dikonfigurasi (--printer)");
     const win = BrowserWindow.fromWebContents(e.sender);
     const kiosk = win?.isKiosk() ?? false;
-    if (kiosk) win?.setKiosk(false);
+    if (kiosk && win) setKioskOn(win, false);
     win?.minimize();
     try {
       await new Promise<void>((ok, fail) =>
@@ -521,7 +521,7 @@ export function registerIpc(
       );
     } finally {
       win?.restore();
-      if (kiosk) win?.setKiosk(true);
+      if (kiosk && win) setKioskOn(win, true);
       win?.focus();
     }
     console.info(`[print] dialog Printing Preferences ${name} ditutup`);

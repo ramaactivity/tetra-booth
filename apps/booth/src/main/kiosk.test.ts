@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("electron", () => ({ app: {}, powerSaveBlocker: {} }));
-const { isBlockedShortcut } = await import("./kiosk");
+const { isBlockedShortcut, setKioskOn } = await import("./kiosk");
 
 const key = (
   key: string,
@@ -37,5 +37,23 @@ describe("kiosk: shortcut yang diblokir", () => {
       expect(isBlockedShortcut(k)).toBe(false);
     }
     expect(isBlockedShortcut({ ...key("F5"), type: "keyUp" })).toBe(false);
+  });
+});
+
+describe("kiosk: selalu di atas", () => {
+  it("dipasang dan dilepas bersama kiosk (taskbar tidak menimpa booth; dialog printer/admin tetap bisa tampil)", () => {
+    const calls: string[] = [];
+    const win = {
+      setKiosk: (on: boolean) => calls.push(`kiosk:${on}`),
+      setAlwaysOnTop: (on: boolean, level: string) => calls.push(`top:${on}:${level}`),
+    } as unknown as Parameters<typeof setKioskOn>[0];
+    setKioskOn(win, true);
+    setKioskOn(win, false);
+    expect(calls).toEqual([
+      "kiosk:true",
+      "top:true:screen-saver",
+      "kiosk:false",
+      "top:false:screen-saver",
+    ]);
   });
 });

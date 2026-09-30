@@ -25,8 +25,17 @@ export function isBlockedShortcut(
   return false;
 }
 
+/**
+ * Kiosk + selalu di atas: taskbar/aplikasi lain tidak bisa muncul di atas booth saat fokus pindah
+ * (uji Windows 2026-09-30). Dilepas bersama kiosk untuk dialog printer / dashboard admin.
+ */
+export function setKioskOn(win: BrowserWindow, on: boolean) {
+  win.setKiosk(on);
+  win.setAlwaysOnTop(on, "screen-saver");
+}
+
 export function applyKiosk(win: BrowserWindow, log: (m: string) => void) {
-  win.setKiosk(true);
+  setKioskOn(win, true);
   win.setMenu(null);
   win.webContents.on("before-input-event", (e, input) => {
     if (isBlockedShortcut(input)) e.preventDefault();
@@ -39,7 +48,7 @@ export function applyKiosk(win: BrowserWindow, log: (m: string) => void) {
   });
   const blocker = powerSaveBlocker.start("prevent-display-sleep");
   app.on("will-quit", () => powerSaveBlocker.stop(blocker));
-  log("[kiosk] aktif: layar penuh, anti-sleep, keluar hanya dari mode crew");
+  log("[kiosk] aktif: layar penuh, selalu di atas, anti-sleep, keluar hanya dari mode crew");
 }
 
 /** Auto-start = booth menyala sendiri (mis. setelah listrik mati) → lewati layar awal, lanjut event terakhir. */
