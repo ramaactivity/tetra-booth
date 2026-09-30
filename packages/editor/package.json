@@ -1,0 +1,23 @@
+{
+  "name": "@tetra/editor",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tetra/shared": "workspace:*",
+    "@tetra/template-engine": "workspace:*",
+    "@tetra/ui": "workspace:*",
+    "lucide-react": "^1.47.0",
+    "react": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0"
+  }
+}

@@ -6,6 +6,7 @@ import {
   PHOTO_FILTERS,
   paperLabel,
 } from "@tetra/shared";
+import { ColorPicker } from "@tetra/ui";
 import { Check, Play } from "lucide-react";
 import Link from "next/link";
 import {
@@ -16,7 +17,6 @@ import {
   useEffect,
   useState,
 } from "react";
-import { ColorPicker } from "@/components/ColorPicker";
 import { type SaveResult, saveEvent } from "./actions";
 import { type DesignOption, DesignPicker } from "./DesignPicker";
 

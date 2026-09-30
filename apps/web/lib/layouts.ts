@@ -1,5 +1,5 @@
 import type { Json } from "@tetra/db";
-import { LAYOUT_PRESETS, LayoutPaperSchema, LayoutSpecSchema, SlotSchema } from "@tetra/shared";
+import { LAYOUT_PRESETS, LayoutSpecSchema } from "@tetra/shared";
 import { z } from "zod";
 import type { requireMember } from "@/lib/supabase/server";
 
@@ -12,29 +12,6 @@ export const StoredLayout = z.object({
   files: z.record(z.string(), z.object({ file: z.string(), sha256: z.string(), key: z.string() })),
 });
 export type StoredLayout = z.infer<typeof StoredLayout>;
-
-/** Tata letak tersimpan (tabel `layout_presets`): posisi slot foto saja, untuk satu kanvas (format + orientasi). */
-export const SavedPreset = z.object({
-  id: z.string(),
-  name: z.string(),
-  paper: LayoutPaperSchema,
-  width: z.number().int(),
-  height: z.number().int(),
-  slots: z.array(SlotSchema).min(1).max(40),
-});
-export type SavedPreset = z.infer<typeof SavedPreset>;
-
-/** assetId tetap: overlay, gambar latar, font f1..f4. Nama file di bundle = `${assetId}.${ext}`. */
-export const FONT_IDS = ["f1", "f2", "f3", "f4"] as const;
-export const ASSET_IDS = ["ov", "bg", ...FONT_IDS] as const;
-export type AssetId = (typeof ASSET_IDS)[number];
-
-/**
- * Margin aman cetak: 3 mm (36 px @300 dpi) dari tiap tepi kanvas. Kalibrasi DNP (DECISIONS #47/#59): gambar
- * dicetak *cover* dengan pembesaran ±3%, jadi ±1,8 mm tiap tepi bisa terpotong; 3 mm memberi cadangan pisau.
- * Untuk 2x6 berlaku per strip (garis potong di tengah lembar).
- */
-export const SAFE_MARGIN_PX = 36;
 
 type Db = Awaited<ReturnType<typeof requireMember>>["db"];
 

@@ -1,7 +1,8 @@
+import { SavedPreset } from "@tetra/shared";
 import { notFound } from "next/navigation";
-import { SavedPreset, StoredLayout } from "@/lib/layouts";
+import { StoredLayout } from "@/lib/layouts";
 import { requireMember } from "@/lib/supabase/server";
-import { Editor } from "./Editor";
+import { EditorHost } from "./EditorHost";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ id: s
   const spec = StoredLayout.safeParse(data?.spec);
   if (!data || !spec.success || data.layouts.archived_at) notFound();
   return (
-    <Editor
+    <EditorHost
       id={id}
       name={data.layouts.name}
       version={data.version}

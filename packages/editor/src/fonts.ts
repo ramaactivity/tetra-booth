@@ -1,6 +1,6 @@
 /**
- * Pustaka font bawaan editor template (DECISIONS #77). File woff2 (subset latin, OFL) ada di `public/fonts/`;
- * saat template disimpan, font yang dipakai ikut diunggah ke R2 sebagai aset bundle (booth tidak butuh internet).
+ * Pustaka font bawaan editor template (DECISIONS #77). File woff2 (subset latin, OFL) disajikan host (web: `public/fonts/`,
+ * lihat `fontUrl` di README); saat template disimpan, font yang dipakai ikut diunggah ke R2 sebagai aset bundle (booth tidak butuh internet).
  * assetId = `lib-<nama file tanpa .woff2>`.
  */
 export type FontCategory =

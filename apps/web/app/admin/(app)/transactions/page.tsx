@@ -1,4 +1,4 @@
-import { Select } from "@/components/Select";
+import { Select } from "@tetra/ui";
 import { paymentProvider } from "@/lib/payments";
 import { layoutName, loadTransactions, parseFilter } from "./data";
 import { SimulateButton } from "./SimulateButton";

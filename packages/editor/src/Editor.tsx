@@ -1,24 +1,20 @@
 "use client";
 import {
+  type AssetId,
+  FONT_IDS,
   LAYOUT_PRESETS,
+  type LayoutPaper,
   type LayoutSlot,
   type LayoutSpec,
   type LayoutText,
   paperLabel,
+  SAFE_MARGIN_PX,
+  type SavedPreset,
 } from "@tetra/shared";
 import type { ImageLike } from "@tetra/template-engine";
 import { ChevronLeft, Eye, EyeOff, Minus, Plus, Redo2, Undo2 } from "lucide-react";
-import Link from "next/link";
-import {
-  startTransition,
-  useActionState,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { type SaveTemplateResult, saveTemplate } from "@/app/admin/(app)/templates/actions";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type FontPack, LIB_FONTS, type LibFont } from "./fonts";
 import {
   type AlignMode,
   type Arrange,
@@ -36,12 +32,9 @@ import {
   slotKey,
   textKey,
   union,
-} from "@/lib/editor/geometry";
-import { useHistory } from "@/lib/editor/history";
-import { type FontPack, LIB_FONTS } from "@/lib/fonts";
-import { type AssetId, FONT_IDS, SAFE_MARGIN_PX, type SavedPreset } from "@/lib/layouts";
+} from "./geometry";
+import { useHistory } from "./history";
 import { Panels, type Tab } from "./Panels";
-import { PrinterSettingsButton, TestPrintButton } from "./PrintButtons";
 import { type Box, GEIST, Stage } from "./Stage";
 import { Toolbar } from "./Toolbar";
 
@@ -61,16 +54,57 @@ const SAFE_KEY = "tetra.editor.safe";
 
 export type AlignTo = "page" | "safe" | "selection";
 
+/** Isi yang disimpan host. `layout` lengkap (id/version/paper/canvas lama); `pendingFiles` = file baru per assetId. */
+export type SaveInput = {
+  layout: LayoutSpec;
+  name: string;
+  pendingFiles: Partial<Record<AssetId, File>>;
+};
+export type SaveResult =
+  | { ok: true; version: number; message: string }
+  | { ok: false; message: string };
+export type NewPresetInput = {
+  name: string;
+  paper: LayoutPaper;
+  canvas: { width: number; height: number };
+  slots: LayoutSlot[];
+};
+export type SavePresetResult = { ok: true; preset: SavedPreset } | { ok: false; message: string };
+/** Keadaan editor untuk tombol tambahan host di header (mis. tes cetak & bantuan printer admin). */
+export type EditorActionsContext = {
+  layout: LayoutSpec;
+  images: Record<string, ImageLike>;
+  fontFamily: (fontAssetId: string) => string;
+};
+
+export type TemplateEditorProps = {
+  /** Versi layout yang dibuka. */
+  initial: LayoutSpec;
+  name: string;
+  version: number;
+  /** ISO waktu versi ini disimpan (label "tersimpan hh:mm"). */
+  savedAt: string;
+  /** assetId → nama file aset versi ini (`ov.png`, `f1.ttf`, `lib-….woff2`). */
+  files: Record<string, string>;
+  /** "Tata letak saya" organisasi (semua kertas; editor menyaring yang cocok). */
+  presets: SavedPreset[];
+  /** URL untuk memuat aset versi ini (gambar/font). Dibaca ulang hanya saat `files` berubah. */
+  assetUrl: (assetId: string) => string;
+  /** URL file woff2 font pustaka (`LIB_FONTS`). Dibaca ulang hanya saat `files` berubah. */
+  fontUrl: (font: LibFont) => string;
+  onSave: (input: SaveInput) => Promise<SaveResult>;
+  onSavePreset: (input: NewPresetInput) => Promise<SavePresetResult>;
+  /** true = terhapus. */
+  onDeletePreset: (id: string) => Promise<boolean>;
+  onBack: () => void;
+  /** Tombol tambahan di header sebelum "Margin aman" (admin: Printer + Tes cetak). Kosong = tidak ada. */
+  actions?: (ctx: EditorActionsContext) => ReactNode;
+};
+
 /** API editor yang dipakai panel & toolbar. */
 export type EditorApi = ReturnType<typeof useEditorApi>;
 
-function useEditorApi(p: {
-  id: string;
-  initial: LayoutSpec;
-  files: Record<string, string>;
-  version: number;
-  presets: SavedPreset[];
-}) {
+function useEditorApi(p: TemplateEditorProps) {
   const [presets, setPresets] = useState(p.presets);
   const h = useHistory<LayoutSpec>(withIds(p.initial));
   const layout = h.value;
@@ -111,21 +145,21 @@ function useEditorApi(p: {
     [],
   );
 
-  // Font pustaka + aset versi tersimpan (lewat route admin se-origin).
+  // Font pustaka + aset versi tersimpan (URL dari host).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: URL resolver host boleh fungsi inline; muat ulang hanya saat set file berganti
   useEffect(() => {
-    for (const f of LIB_FONTS) addFont(f.id, `tb-${f.id}`, `/fonts/${f.file}`).catch(() => {});
+    for (const f of LIB_FONTS) addFont(f.id, `tb-${f.id}`, p.fontUrl(f)).catch(() => {});
     for (const [assetId, file] of Object.entries(p.files)) {
-      const url = `/admin/templates/${p.id}/asset/${assetId}?v=${p.version}`;
+      const url = p.assetUrl(assetId);
       if (/\.(png|jpe?g)$/i.test(file))
         fetch(url)
           .then((r) => r.blob())
           .then(createImageBitmap)
           .then((img) => setImages((m) => ({ ...m, [assetId]: img })))
           .catch(() => {});
-      else if (!assetId.startsWith("lib-"))
-        addFont(assetId, `tpl-${p.id}-${assetId}`, url).catch(() => {});
+      else if (!assetId.startsWith("lib-")) addFont(assetId, `tpl-${assetId}`, url).catch(() => {});
     }
-  }, [p.files, p.id, p.version, addFont]);
+  }, [p.files, addFont]);
 
   const fontFamily = useCallback((id: string) => fonts[id] ?? GEIST, [fonts]);
 
@@ -429,7 +463,7 @@ function useEditorApi(p: {
           : { ...l, background: { ...l.background, assetId: "bg" } },
       );
     } else {
-      await addFont(assetId, `tpl-${p.id}-${assetId}-${Date.now()}`, await file.arrayBuffer());
+      await addFont(assetId, `tpl-${assetId}-${Date.now()}`, await file.arrayBuffer());
       setFontNames((m) => ({ ...m, [assetId]: file.name }));
     }
   };
@@ -478,6 +512,8 @@ function useEditorApi(p: {
     applySlots,
     presets,
     setPresets,
+    savePreset: p.onSavePreset,
+    deletePreset: p.onDeletePreset,
     moveBy,
     align,
     alignTo,
@@ -507,25 +543,13 @@ function useEditorApi(p: {
   };
 }
 
-/** Editor template gaya Canva (desain v2 E4, DECISIONS #74/#77). */
-export function Editor({
-  id,
-  name: initialName,
-  version: initialVersion,
-  savedAt,
-  initial,
-  files,
-  presets,
-}: {
-  id: string;
-  name: string;
-  version: number;
-  savedAt: string;
-  initial: LayoutSpec;
-  files: Record<string, string>;
-  presets: SavedPreset[];
-}) {
-  const ed = useEditorApi({ id, initial, files, version: initialVersion, presets });
+/**
+ * Editor template gaya Canva (desain v2 E4, DECISIONS #74/#77), dipakai admin & booth (#128). Tanpa Next/Node:
+ * penyimpanan, aset, dan navigasi disuntik host lewat props.
+ */
+export function TemplateEditor(props: TemplateEditorProps) {
+  const { name: initialName, onSave, onBack, actions } = props;
+  const ed = useEditorApi(props);
   const [name, setName] = useState(initialName);
   const [tab, setTab] = useState<Tab | null>("elemen");
   const [zoom, setZoom] = useState(1);
@@ -534,11 +558,9 @@ export function Editor({
   const [savedName, setSavedName] = useState(initialName);
   const areaRef = useRef<HTMLDivElement>(null);
   const textInput = useRef<HTMLInputElement>(null);
-  const [r, action, saving] = useActionState<SaveTemplateResult, FormData>(
-    saveTemplate.bind(null, id),
-    null,
-  );
-  const version = r?.version ?? initialVersion;
+  const [r, setR] = useState<SaveResult | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState({ version: props.version, at: new Date(props.savedAt) });
   const dirty =
     ed.layout !== savedLayout || name !== savedName || Object.keys(ed.pending).length > 0;
 
@@ -554,26 +576,21 @@ export function Editor({
   const fit = Math.min((area.w - 96) / ed.W, (area.h - 96) / ed.H);
   const scale = Math.max(0.05, fit * zoom);
 
-  const pendingSave = useRef<{ layout: LayoutSpec; name: string } | null>(null);
-  const save = () => {
-    const fd = new FormData();
-    const { id: _i, version: _v, paper: _p, canvas: _c, ...rest } = ed.layout;
-    fd.set("layout", JSON.stringify(rest));
-    fd.set("name", name);
-    for (const [k, f] of Object.entries(ed.pending)) if (f) fd.set(k, f);
-    const snapshot = ed.layout;
-    startTransition(() => action(fd));
-    pendingSave.current = { layout: snapshot, name };
+  const save = async () => {
+    if (saving) return;
+    const input = { layout: ed.layout, name, pendingFiles: ed.pending };
+    setSaving(true);
+    const res = await onSave(input).catch(
+      (): SaveResult => ({ ok: false, message: "Gagal menyimpan, coba lagi" }),
+    );
+    setSaving(false);
+    setR(res);
+    if (!res.ok) return;
+    setSavedLayout(input.layout);
+    setSavedName(input.name);
+    ed.setPending({});
+    setSaved({ version: res.version, at: new Date() });
   };
-  // biome-ignore lint/correctness/useExhaustiveDependencies: hanya saat hasil simpan berubah
-  useEffect(() => {
-    if (r?.ok && pendingSave.current) {
-      setSavedLayout(pendingSave.current.layout);
-      setSavedName(pendingSave.current.name);
-      ed.setPending({});
-    }
-    pendingSave.current = null;
-  }, [r]);
 
   // Peringatan keluar halaman kalau ada perubahan belum disimpan.
   useEffect(() => {
@@ -645,9 +662,14 @@ export function Editor({
   return (
     <div className="flex h-dvh flex-col">
       <header className="flex h-[60px] flex-none items-center gap-3 border-b-[1.5px] border-ink bg-white px-4">
-        <Link href="/admin/templates" aria-label="Kembali ke daftar template" className={icon}>
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Kembali ke daftar template"
+          className={icon}
+        >
           <ChevronLeft className="size-5" />
-        </Link>
+        </button>
         <span className="flex size-8 items-center justify-center rounded-[9px] border-[1.5px] border-ink bg-mint text-sm font-extrabold">
           T
         </span>
@@ -684,11 +706,10 @@ export function Editor({
             ? "menyimpan…"
             : dirty
               ? "belum disimpan"
-              : `v${version} · tersimpan ${time.format(r?.ok ? new Date() : new Date(savedAt))}`}
+              : `v${saved.version} · tersimpan ${time.format(saved.at)}`}
         </span>
         <div className="ml-auto flex items-center gap-2">
-          <PrinterSettingsButton paper={ed.layout.paper} />
-          <TestPrintButton layout={ed.layout} images={ed.images} fontFamily={ed.fontFamily} />
+          {actions?.({ layout: ed.layout, images: ed.images, fontFamily: ed.fontFamily })}
           <button
             type="button"
             aria-pressed={ed.showSafe}

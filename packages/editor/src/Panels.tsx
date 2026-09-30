@@ -1,5 +1,11 @@
 "use client";
-import { LAYOUT_PRESETS, type LayoutSlot, type PresetId, paperLabel } from "@tetra/shared";
+import {
+  FONT_IDS,
+  LAYOUT_PRESETS,
+  type LayoutSlot,
+  type PresetId,
+  paperLabel,
+} from "@tetra/shared";
 import {
   AlignCenterHorizontal,
   AlignCenterVertical,
@@ -24,11 +30,9 @@ import {
   Upload,
 } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
-import { deletePreset, savePreset } from "@/app/admin/(app)/templates/actions";
-import { type AlignMode, type Key, layerStack, OVERLAY, QR } from "@/lib/editor/geometry";
-import { FONT_PACKS } from "@/lib/fonts";
-import { FONT_IDS } from "@/lib/layouts";
 import type { EditorApi } from "./Editor";
+import { FONT_PACKS } from "./fonts";
+import { type AlignMode, type Key, layerStack, OVERLAY, QR } from "./geometry";
 
 export type Tab = "elemen" | "teks" | "unggahan" | "posisi" | "layer";
 const TABS: [Tab, string, typeof Type][] = [
@@ -286,12 +290,14 @@ function MyLayouts({ ed }: { ed: EditorApi }) {
     if (!name?.trim() || busy) return;
     setBusy(true);
     setErr("");
-    const r = await savePreset({
-      name,
-      paper,
-      canvas: { width: canvas.width, height: canvas.height },
-      slots,
-    }).catch(() => null);
+    const r = await ed
+      .savePreset({
+        name,
+        paper,
+        canvas: { width: canvas.width, height: canvas.height },
+        slots,
+      })
+      .catch(() => null);
     setBusy(false);
     if (!r?.ok) return setErr(r?.message ?? "Gagal menyimpan tata letak, coba lagi");
     ed.setPresets((ps) => [r.preset, ...ps]);
@@ -302,7 +308,7 @@ function MyLayouts({ ed }: { ed: EditorApi }) {
     ed.setPresets((ps) => ps.filter((p) => p.id !== id));
     setConfirm(null);
     setErr("");
-    if (!(await deletePreset(id).catch(() => false))) {
+    if (!(await ed.deletePreset(id).catch(() => false))) {
       ed.setPresets(before);
       setErr("Gagal menghapus, coba lagi");
     }
