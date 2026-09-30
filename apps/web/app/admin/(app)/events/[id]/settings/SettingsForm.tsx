@@ -149,9 +149,49 @@ const MODES = [
 
 const input = "h-[42px] w-full rounded-[11px] border-[1.5px] border-ink bg-white px-3 text-sm";
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+/** Anchor tiap bagian untuk navigasi cepat di atas form (halaman pengaturan panjang, audit UX 30 Sep). */
+const NAV = [
+  ["informasi", "Informasi"],
+  ["mode", "Mode"],
+  ["template", "Template"],
+  ["layar-awal", "Layar awal"],
+  ["suara", "Suara"],
+  ["photobox", "Photobox"],
+  ["sesi", "Sesi"],
+  ["halaman-tamu", "Halaman tamu"],
+  ["lead", "Lead"],
+  ["masa-simpan", "Masa simpan"],
+  ["device", "Device"],
+] as const;
+
+/** Pilih file dengan tombol berbahasa Indonesia (bukan "Choose File" bawaan browser, DECISIONS #77). */
+function FilePick({ name, accept }: { name: string; accept: string }) {
+  const [file, setFile] = useState<string | null>(null);
   return (
-    <section className="overflow-hidden rounded-2xl border-[1.5px] border-ink bg-white">
+    <span className="flex min-w-0 flex-1 items-center gap-3">
+      <span className="pressable inline-flex h-[42px] shrink-0 cursor-pointer items-center rounded-[11px] border-[1.5px] border-ink bg-white px-4 text-sm font-bold">
+        Pilih file
+      </span>
+      <span className="truncate text-xs font-semibold text-text-2">
+        {file ?? "Belum ada file dipilih"}
+      </span>
+      <input
+        name={name}
+        type="file"
+        accept={accept}
+        className="sr-only"
+        onChange={(e) => setFile(e.target.files?.[0]?.name ?? null)}
+      />
+    </span>
+  );
+}
+
+function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section
+      id={id}
+      className="scroll-mt-20 overflow-hidden rounded-2xl border-[1.5px] border-ink bg-white"
+    >
       <h2 className="border-b-[1.5px] border-dashed border-ink px-5 py-3.5 text-[15px] font-extrabold">
         {title}
       </h2>
@@ -205,7 +245,21 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
       className="grid grid-cols-1 items-start gap-7 xl:grid-cols-[1fr_280px]"
     >
       <div className="flex flex-col gap-4">
-        <Section title="Informasi">
+        <nav
+          aria-label="Bagian pengaturan"
+          className="sticky top-0 z-10 -mx-1 flex flex-wrap gap-1.5 bg-paper px-1 py-2"
+        >
+          {NAV.map(([id, label]) => (
+            <a
+              key={id}
+              href={`#${id}`}
+              className="rounded-full border-[1.5px] border-ink bg-white px-3.5 py-1.5 text-[13px] font-bold no-underline hover:bg-mint-soft"
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
+        <Section id="informasi" title="Informasi">
           <Field label="Nama event">
             <input name="name" required defaultValue={v.name} className={input} />
           </Field>
@@ -229,7 +283,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           </Field>
         </Section>
 
-        <Section title="Mode">
+        <Section id="mode" title="Mode">
           {MODES.map((m) => (
             <label
               key={m.v}
@@ -253,7 +307,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           ))}
         </Section>
 
-        <Section title="Template">
+        <Section id="template" title="Template">
           <fieldset className="col-span-full grid grid-cols-2 gap-3 lg:grid-cols-4">
             <legend className="mb-1.5 text-xs font-bold">Layout</legend>
             {EVENT_PRESETS.map((id) => [id, LAYOUT_PRESETS[id]] as const).map(([id, p]) => (
@@ -332,7 +386,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
             </div>
           </fieldset>
           <Field label="Overlay (PNG transparan, ukuran kanvas layout; hanya untuk layout preset)">
-            <input name="overlay" type="file" accept="image/png" className="text-sm" />
+            <FilePick name="overlay" accept="image/png" />
           </Field>
           <Field label="Warna latar">
             <ColorPicker
@@ -350,13 +404,11 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           )}
         </Section>
 
-        <Section title="Layar awal booth">
+        <Section id="layar-awal" title="Layar awal booth">
           <Field label="Latar: gambar, GIF, atau video loop (JPG/PNG/GIF/MP4/WebM, 1920×1080; maks. 4 MB)">
-            <input
+            <FilePick
               name="attract_image"
-              type="file"
               accept="image/png,image/jpeg,image/gif,video/mp4,video/webm"
-              className="text-sm"
             />
           </Field>
           <Field label="Warna latar">
@@ -400,7 +452,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           )}
         </Section>
 
-        <Section title="Suara (berlaku kalau Suara di bagian Sesi dinyalakan)">
+        <Section id="suara" title="Suara (berlaku kalau Suara di bagian Sesi dinyalakan)">
           <div className="col-span-full flex flex-col divide-y-[1.5px] divide-dashed divide-line-soft">
             {v.sounds.map((snd) => (
               <SoundRow key={snd.cue} {...snd} />
@@ -408,8 +460,8 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           </div>
         </Section>
 
-        <Section title="Photobox (berlaku di Mode Photobox)">
-          <fieldset className="col-span-full grid grid-cols-1 gap-2.5 lg:grid-cols-2">
+        <Section id="photobox" title="Photobox (berlaku di Mode Photobox)">
+          <fieldset className="col-span-full grid grid-cols-1 gap-2.5 2xl:grid-cols-2">
             <legend className="mb-1.5 text-xs font-bold">
               Layout yang dijual · harga termasuk 1 lembar cetak
             </legend>
@@ -427,13 +479,16 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
             ].map((p) => (
               <div
                 key={p.id}
-                className="flex items-center gap-3 rounded-[11px] border-[1.5px] border-ink px-3 py-2"
+                className="flex items-center gap-3 rounded-[11px] border-[1.5px] border-ink px-3.5 py-2.5"
               >
-                <label className="flex flex-1 items-center gap-2.5 text-sm font-semibold">
+                <label className="flex min-w-0 flex-1 items-center gap-2.5 text-sm font-semibold">
                   <input type="checkbox" name={`pb_${p.id}`} defaultChecked={p.id in v.prices} />
-                  {p.name} <span className="font-mono text-xs text-text-2">{p.info}</span>
+                  <span className="flex min-w-0 flex-col">
+                    {p.name}
+                    <span className="font-mono text-xs text-text-2">{p.info}</span>
+                  </span>
                 </label>
-                <span className="text-xs font-semibold text-text-2">Rp</span>
+                <span className="shrink-0 text-xs font-semibold text-text-2">Rp</span>
                 <input
                   name={`price_${p.id}`}
                   type="number"
@@ -441,7 +496,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
                   step={500}
                   aria-label={`Harga ${p.name}`}
                   defaultValue={v.prices[p.id] ?? 25000}
-                  className={`${input} w-28`}
+                  className={`${input.replace("w-full", "")} w-32 shrink-0 font-mono`}
                 />
               </div>
             ))}
@@ -454,7 +509,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           </Field>
         </Section>
 
-        <Section title="Sesi">
+        <Section id="sesi" title="Sesi">
           <Field label="Hitung mundur" unit="detik">
             {num("countdownSec", 1, 10)}
           </Field>
@@ -521,14 +576,9 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           </Field>
         </Section>
 
-        <Section title="Halaman tamu">
+        <Section id="halaman-tamu" title="Halaman tamu">
           <Field label="Logo / monogram (PNG, JPG, WebP; maks. 1 MB)">
-            <input
-              name="logo"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className="text-sm"
-            />
+            <FilePick name="logo" accept="image/png,image/jpeg,image/webp" />
           </Field>
           <Field label="Warna header">
             <ColorPicker
@@ -546,7 +596,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           )}
         </Section>
 
-        <Section title="Lead capture (halaman tamu)">
+        <Section id="lead" title="Lead capture (halaman tamu)">
           <label className="col-span-full flex items-center gap-2.5 text-sm font-bold">
             <input type="checkbox" name="lead_enabled" defaultChecked={!!v.lead?.enabled} />
             Minta data tamu sebelum / saat melihat foto
@@ -601,7 +651,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           </label>
         </Section>
 
-        <Section title="Masa simpan foto">
+        <Section id="masa-simpan" title="Masa simpan foto">
           <Field label="Halaman tamu" unit="hari setelah event">
             {num("guest_days", 1, 365)}
           </Field>
@@ -610,7 +660,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           </Field>
         </Section>
 
-        <Section title="Device">
+        <Section id="device" title="Device">
           {v.devices.length ? (
             v.devices.map((d) => (
               <label

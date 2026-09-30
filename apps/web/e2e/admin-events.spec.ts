@@ -15,6 +15,8 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
   page,
   request,
 }) => {
+  // Simpan pengaturan menulis bundle + aset ke R2: bisa > 5 dtk per simpan di jaringan lambat.
+  test.setTimeout(120_000);
   const u = await makeUser("owner");
   const token = randomBytes(40).toString("base64url");
   const name = `e2e event ${Date.now()}`;
@@ -35,6 +37,9 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page.getByLabel("Tanggal event").fill("2026-10-12");
     await page.getByRole("button", { name: "Buat", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Pengaturan" })).toBeVisible();
+    // Navigasi cepat antarbagian (audit UX 30 Sep).
+    await expect(page.getByRole("navigation", { name: "Bagian pengaturan" })).toBeVisible();
+    await page.screenshot({ path: "test-results/admin-settings-top.png" });
 
     await page.getByLabel(/Teks kecil di layar booth/).fill("The Wedding of");
     await page.getByRole("group", { name: "Layout", exact: true }).getByText("4R Grid").click();

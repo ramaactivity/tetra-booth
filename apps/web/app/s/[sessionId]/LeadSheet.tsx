@@ -101,7 +101,11 @@ export function LeadSheet({ sessionId, lead }: { sessionId: string; lead: GuestL
           {pending ? t.sending : t.submit}
         </button>
         {!gate && (
-          <button type="button" onClick={skip} className="text-[13px] font-semibold text-text-2">
+          <button
+            type="button"
+            onClick={skip}
+            className="min-h-11 px-3 text-sm font-semibold text-text-2 underline"
+          >
             {t.skip}
           </button>
         )}

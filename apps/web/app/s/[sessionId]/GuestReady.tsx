@@ -65,7 +65,7 @@ export function GuestReady({
       setBusy(false);
     };
   const tabClass = (on: boolean) =>
-    `flex h-10 flex-1 items-center justify-center text-[13px] ${on ? "bg-lavender font-bold" : "font-semibold"}`;
+    `flex h-11 flex-1 items-center justify-center px-1 text-[13px] ${on ? "bg-lavender font-bold" : "font-semibold"}`;
 
   return (
     <>
@@ -166,31 +166,29 @@ export function GuestReady({
       </div>
 
       <footer className="sticky bottom-0 flex flex-col gap-2.5 border-t-[1.5px] border-dashed border-ink bg-paper px-5 pt-3.5 pb-6">
-        <div className="grid grid-cols-[1fr_1.5fr] gap-2.5">
-          <button
-            type="button"
-            disabled={busy || !originals.length}
-            onClick={run(originals, true)}
-            className="pressable h-[52px] rounded-[14px] border-[1.5px] border-ink bg-white px-2 text-[13px] leading-tight font-bold disabled:opacity-40"
-          >
-            {t.saveAll}
-          </button>
-          <button
-            type="button"
-            disabled={busy || !main}
-            onClick={run(main ? [main] : [])}
-            className="pressable layered h-[52px] rounded-[14px] border-[1.5px] border-ink bg-butter text-[15px] font-extrabold [--lb:1.5px] [--lx:4px] disabled:opacity-40"
-          >
-            {busy
-              ? t.saving
-              : tab === "animation"
-                ? t.saveGif
-                : tab === "video"
-                  ? t.saveVideo
-                  : t.saveStrip}
-          </button>
-        </div>
-        <div className="flex justify-between text-[11px] text-text-2">
+        <button
+          type="button"
+          disabled={busy || !main}
+          onClick={run(main ? [main] : [])}
+          className="pressable layered h-[52px] rounded-[14px] border-[1.5px] border-ink bg-butter px-4 text-base font-extrabold [--lb:1.5px] [--lx:4px] disabled:opacity-40"
+        >
+          {busy
+            ? t.saving
+            : tab === "animation"
+              ? t.saveGif
+              : tab === "video"
+                ? t.saveVideo
+                : t.saveStrip}
+        </button>
+        <button
+          type="button"
+          disabled={busy || !originals.length}
+          onClick={run(originals, true)}
+          className="pressable h-12 rounded-[14px] border-[1.5px] border-ink bg-white px-4 text-[15px] font-bold disabled:opacity-40"
+        >
+          {t.saveAll}
+        </button>
+        <div className="flex justify-between gap-3 text-xs text-text-2">
           {expiresAt ? (
             <span>
               {t.availableUntil}{" "}

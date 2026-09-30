@@ -93,7 +93,7 @@ export function GalleryView({
             key={k}
             type="button"
             onClick={() => setFilter(k)}
-            className={`h-9 rounded-[10px] border-[1.5px] border-ink px-3.5 text-[13px] font-bold ${filter === k ? "bg-lavender" : "bg-white"}`}
+            className={`h-11 rounded-[10px] border-[1.5px] border-ink px-4 text-[13px] font-bold ${filter === k ? "bg-lavender" : "bg-white"}`}
           >
             {k === "favorit" ? `${t} (${favCount})` : t}
           </button>
@@ -113,7 +113,7 @@ export function GalleryView({
         {!readOnly && (filter === "strip" || filter === "original") && shown.length > 0 && (
           <a
             href={`/api/g/${token}/zip?kind=${filter}`}
-            className="flex h-9 items-center rounded-[10px] border-[1.5px] border-ink bg-sky px-3.5 text-[13px] font-bold no-underline"
+            className="flex h-11 items-center rounded-[10px] border-[1.5px] border-ink bg-sky px-3.5 text-[13px] font-bold no-underline"
           >
             ↓ Download Semua
           </a>
