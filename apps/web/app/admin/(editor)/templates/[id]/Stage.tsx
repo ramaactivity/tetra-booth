@@ -183,7 +183,8 @@ export function Stage({
       }
     });
     return () => cancelAnimationFrame(raf);
-  }, [layout, images, fontFamily, fontsVersion, W, H]);
+    // scale: ukuran <canvas> ikut zoom, dan mengubah width/height mengosongkan kanvas → gambar ulang.
+  }, [layout, images, fontFamily, fontsVersion, W, H, scale]);
 
   const toCanvas = (e: { clientX: number; clientY: number }) => {
     const r = page.current?.getBoundingClientRect();
