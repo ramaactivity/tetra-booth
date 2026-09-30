@@ -13,9 +13,9 @@ const DEFAULT_TRIGGER = "http://localhost:5513/?CMD=Capture";
 const CAMERAS = ["webcam", "canon", "hotfolder", "simulated"] as const;
 
 const choice = (on: boolean) =>
-  `pressable flex min-h-[72px] items-center justify-center rounded-[18px] border-[2.5px] border-ink px-4 text-center text-xl font-bold disabled:opacity-40 ${on ? "bg-mint-soft" : "bg-white"}`;
+  `pressable flex min-h-[72px] items-center justify-center rounded-[18px] border-[2.5px] border-ink px-6 py-2 text-center text-xl leading-tight font-bold disabled:opacity-40 ${on ? "bg-mint-soft" : "bg-white"}`;
 const input =
-  "h-14 w-full rounded-[14px] border-[2.5px] border-ink bg-white px-4 font-mono text-lg disabled:opacity-40";
+  "h-16 w-full rounded-[14px] border-[2.5px] border-ink bg-white px-4 font-mono text-lg disabled:opacity-40";
 const label = "text-lg font-bold text-text-2";
 
 /**
@@ -231,6 +231,7 @@ export function DeviceSheet({
       >
         {copy.crew.deviceSave}
       </Button>
+      {!changed && <p className="-mt-2 text-center text-lg text-text-2">{copy.crew.noChange}</p>}
     </Sheet>
   );
 }

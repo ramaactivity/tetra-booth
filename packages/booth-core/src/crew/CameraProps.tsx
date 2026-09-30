@@ -5,14 +5,22 @@ import { usePlatform } from "../PlatformContext";
 import type { CameraProp } from "../platform";
 
 const chip = (on: boolean) =>
-  `h-12 shrink-0 rounded-full border-2 border-ink px-4 font-mono text-lg ${on ? "bg-butter font-bold" : "bg-white"}`;
+  `min-h-14 rounded-full border-2 border-ink px-5 font-mono text-lg ${on ? "bg-butter font-bold" : "bg-white"}`;
 const label = "text-lg font-bold text-text-2";
 
-/** Chip nilai aktif di tengah baris geser (tanpa scrollIntoView yang ikut menggeser Stage). */
-const centerInRow = (el: HTMLButtonElement | null) => {
-  const row = el?.parentElement;
-  if (el && row) row.scrollLeft = el.offsetLeft - (row.clientWidth - el.clientWidth) / 2;
+/** Nama setelan & nilai kamera (bahasa Inggris dari kamera) dalam bahasa crew; nilai asli tetap dikirim ke kamera. */
+const HUMAN: Record<string, string> = {
+  "White balance": "Warna cahaya (WB)",
+  Aperture: "Bukaan lensa",
+  Auto: "Otomatis",
+  Daylight: "Siang",
+  Cloudy: "Mendung",
+  Shade: "Teduh",
+  Tungsten: "Lampu kuning",
+  Fluorescent: "Lampu neon",
+  Flash: "Flash",
 };
+const human = (s: string) => HUMAN[s] ?? s;
 
 /**
  * Setelan eksposur DSLR (ISO, shutter, aperture, WB, ISO/shutter jepret, kualitas) yang langsung dikirim ke kamera.
@@ -50,19 +58,18 @@ export function CameraProps({
       {props.map((x) => (
         <div key={x.name} className="flex flex-col gap-1.5" data-testid={`camera-prop-${x.name}`}>
           <span className={label}>
-            {x.label} · <span className="font-mono">{x.value || "—"}</span>
+            {human(x.label)} · <span className="font-mono">{x.value ? human(x.value) : "—"}</span>
           </span>
           {x.options.length > 0 && (
-            <div className="relative flex gap-2 overflow-x-auto pb-1">
+            <div className="flex flex-wrap gap-2.5">
               {x.options.map((o) => (
                 <button
                   key={o}
                   type="button"
                   className={chip(o === x.value)}
-                  ref={o === x.value ? centerInRow : undefined}
                   onClick={() => void setProp(x.name, o)}
                 >
-                  {o}
+                  {human(o)}
                 </button>
               ))}
             </div>

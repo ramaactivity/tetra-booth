@@ -76,6 +76,7 @@ test("canon (EDSDK palsu): setelan ISO dari kamera tampil & bisa diubah di mode 
     for (let i = 0; i < 5; i++) await w.getByTestId("crew-hotspot").click();
     await typePin(w, "2468");
     await typePin(w, "2468");
+    await w.getByRole("button", { name: /Pengaturan lain/ }).click();
     await w.getByRole("button", { name: "Kamera & Printer" }).click();
     await expect(w.getByText("ISO live view · ISO 100")).toBeVisible({ timeout: 10_000 });
     await expect(w.getByText("ISO jepret (flash) · Sama dengan live view")).toBeVisible();

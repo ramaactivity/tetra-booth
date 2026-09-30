@@ -134,8 +134,8 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
       )}
       <div className="absolute top-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-3">
         {p.crew.focus && (
-          <div className="flex items-center gap-2 rounded-[20px] border-[2.5px] border-ink bg-paper p-2">
-            <span className="px-3 text-xl font-bold">{copy.crew.focus}</span>
+          <div className="flex items-center gap-4 rounded-[22px] border-[2.5px] border-ink bg-paper px-5 py-3">
+            <span className="text-xl font-bold">{copy.crew.focus}</span>
             <span className="text-lg text-text-2">{copy.crew.focusNear}</span>
             {FOCUS_ROW.map(({ step, label }) => (
               <Button
@@ -147,7 +147,7 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
                 {label}
               </Button>
             ))}
-            <span className="pr-3 text-lg text-text-2">{copy.crew.focusFar}</span>
+            <span className="text-lg text-text-2">{copy.crew.focusFar}</span>
           </div>
         )}
         {p.crew.focusAt && (
