@@ -17,6 +17,7 @@ type View = "pin" | "create" | "menu" | "camera" | "change" | "pair" | "start";
 export function CrewMode({
   event,
   bundles,
+  guestBaseUrl,
   onSelectEvent,
   onReloadEvents,
   onClose,
@@ -25,6 +26,8 @@ export function CrewMode({
 }: {
   event: BoothEvent;
   bundles: EventBundle[];
+  /** Base URL halaman tamu (QR di desain saat render ulang sesi lama, #140). */
+  guestBaseUrl: string;
   onSelectEvent: (id: string) => void;
   onReloadEvents: () => Promise<void>;
   onClose: () => void;
@@ -105,6 +108,7 @@ export function CrewMode({
         <>
           <CrewMenu
             event={event}
+            guestBaseUrl={guestBaseUrl}
             startExit={openExit}
             onChangeEvent={() => setView("start")}
             onEditDesign={(id) =>

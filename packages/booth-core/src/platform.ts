@@ -117,6 +117,9 @@ export type FailedPrint = { id: string; copies: number; error: string | null; cr
 /** Peringatan kecil untuk crew di pojok layar (printer error, cetak gagal, kertas menipis). */
 export type PrinterAlert = { message: string } | null;
 
+/** Sesi lama tanpa potongan web 2× (#140): foto raw urut & potongan 1× tersimpan (null = tidak ada). */
+export type OldSession = { id: string; eventId: string; photos: string[]; piece: string | null };
+
 export type PrintUpdate = { jobId: string; ok: boolean; message?: string };
 
 /** Mode crew (FSD §1.3). Selain PIN, semua aksi ditolak shell kalau crew belum masuk. */
@@ -140,6 +143,10 @@ export interface BoothCrew {
   pair(code: string): Promise<CloudDevice>;
   /** Tarik bundle event yang ditugaskan dari cloud; kembalikan jumlah event yang diperbarui. */
   syncEvents(): Promise<number>;
+  /** Sesi selesai event cloud yang strip_web-nya masih 1× (belum ada out/piece@2x.jpg), urut per event (#140). */
+  oldSessions(): Promise<OldSession[]>;
+  /** Tandai aset sesi yang ditulis ulang (strip_web/thumb_strip) untuk diunggah lagi lewat antrean upload. */
+  reupload(sessionId: string, assets: SessionAsset[]): Promise<void>;
   /** Unggah antrean sekarang juga, lewati jeda backoff (FSD §1.3 "coba sekarang"). */
   retryUploads(): Promise<void>;
   device(): Promise<DeviceInfo>;

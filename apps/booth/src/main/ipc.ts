@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import {
@@ -256,6 +256,45 @@ export function registerIpc(
     crewOnly();
     await cloud.retryUploads();
   });
+  // "Tajamkan foto lama" (#140): sesi yang belum punya potongan web 2×, foto raw urut nomor.
+  ipcMain.handle("crewOldSessions", () => {
+    crewOnly();
+    return db.webSessions().flatMap(({ id, eventId }) => {
+      const dir = join(sessionsRoot(), id);
+      const out = (f: string) => join(dir, "out", f);
+      if (!existsSync(dir) || existsSync(out("piece@2x.jpg"))) return [];
+      const raw = existsSync(join(dir, "raw")) ? readdirSync(join(dir, "raw")) : [];
+      const photos = raw
+        .filter((f) => /^\d+\.jpg$/.test(f))
+        .sort((a, b) => Number.parseInt(a, 10) - Number.parseInt(b, 10))
+        .map((f) => join(dir, "raw", f));
+      const piece = [out("piece.jpg"), out("strip.jpg")].find((f) => existsSync(f)) ?? null;
+      return [{ id, eventId, photos, piece }];
+    });
+  });
+  const Reupload = z
+    .array(
+      z.object({
+        kind: z.enum(["strip_web", "thumb_strip"]),
+        idx: z.literal(0),
+        path: Path,
+        bytes: z.number().int().min(1),
+      }),
+    )
+    .min(1)
+    .max(2);
+  ipcMain.handle("crewReupload", (_e, id: unknown, assets: unknown) => {
+    crewOnly();
+    const sessionId = SessionId.parse(id);
+    const dir = join(sessionsRoot(), sessionId) + sep;
+    const list = Reupload.parse(assets).map((a) => {
+      const path = inSessions(a.path);
+      if (!path.startsWith(dir)) throw new Error("path di luar folder sesi");
+      return { ...a, path };
+    });
+    db.reupload(sessionId, list, new Date().toISOString());
+    cloud.kickUpload();
+  });
   ipcMain.handle("crewSyncEvents", async () => {
     crewOnly();
     try {
@@ -290,7 +329,7 @@ export function registerIpc(
     return x;
   };
   const getInstaller = (version: string) =>
-    (inflight ??= downloadInstaller(fresh, app.getPath("temp"), (p) => {
+    (inflight ??= downloadInstaller(fresh, join(app.getPath("userData"), "updates"), (p) => {
       // Progress ke layar crew paling sering tiap 500 ms.
       const now = Date.now();
       if (now - sent < 500 && p.received < p.total) return;

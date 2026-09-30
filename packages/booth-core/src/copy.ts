@@ -223,6 +223,23 @@ export const copy = {
       s === "ready" ? "Siap" : s === "unknown" ? "Belum terdeteksi" : "Bermasalah",
     connection: "Koneksi",
     retryUpload: "Kirim ulang sekarang",
+    sharpen: {
+      title: "Tajamkan foto lama",
+      body: "Foto strip sesi lama di galeri & halaman tamu masih resolusi rendah. Booth merender ulang strip web 2× dari foto asli di laptop ini lalu mengunggahnya lagi. Sesi yang desain atau filternya tidak bisa dipastikan sama dilewati. Tetap di Mode Crew sampai selesai.",
+      start: "Mulai tajamkan",
+      progress: (done: number, total: number, skipped: number) =>
+        `${done} / ${total} sesi · ${skipped} dilewati`,
+      summary: (x: {
+        total: number;
+        done: number;
+        updated: number;
+        mismatch: number;
+        skipped: number;
+      }) =>
+        x.total === 0
+          ? "Tidak ada sesi lama yang perlu ditajamkan."
+          : `${x.done < x.total ? `Dibatalkan di ${x.done} / ${x.total} sesi` : "Selesai"}: ${x.updated} diperbarui · ${x.mismatch} tidak cocok (desain berubah) · ${x.skipped} dilewati (foto atau event tidak ada di booth). Foto diperbarui terkirim lewat antrean upload.`,
+    },
     unsent: (n: number) => `${n} file belum terkirim`,
     allSent: "Semua foto sudah terkirim",
     duringEvent: "Saat event berlangsung",

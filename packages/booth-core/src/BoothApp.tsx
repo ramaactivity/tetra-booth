@@ -154,6 +154,7 @@ export function BoothApp({
         <CrewMode
           event={event}
           bundles={bundles}
+          guestBaseUrl={guestBaseUrl}
           onSelectEvent={(id) => {
             // Event dipilih lewat layar pilih mode di mode crew → layar awal selesai.
             setStart(false);

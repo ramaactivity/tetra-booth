@@ -45,6 +45,37 @@ describe("booth db", () => {
     ]);
   });
 
+  it("tajamkan foto lama (#140): strip_web terunggah masuk antrean lagi dengan ukuran baru, tanpa baris ganda", () => {
+    const db = openDb(":memory:");
+    db.sessionStarted(start);
+    db.sessionCompleted(done);
+    db.sessionStarted({ ...start, id: "lokalsesi1", eventId: "local" });
+    db.sessionCompleted({ ...done, id: "lokalsesi1" });
+    expect(db.webSessions()).toEqual([{ id: start.id, eventId: start.eventId }]);
+    const id = `${start.id}:strip_web:0`;
+    db.uploadDone(id, "k", "2026-09-24T10:02:00Z");
+    db.uploadFailed(`${start.id}:strip:0`, "x", "2026-09-24T10:03:00Z");
+    const assets = [
+      { kind: "strip_web" as const, idx: 0, path: "/s/out/strip_web.jpg", bytes: 50 },
+      { kind: "thumb_strip" as const, idx: 0, path: "/s/out/thumb_strip.jpg", bytes: 9 },
+    ];
+    db.reupload(start.id, assets, "2026-10-01T00:00:00Z");
+    db.reupload(start.id, assets, "2026-10-01T00:00:00Z");
+    expect(
+      db.query(
+        "select kind, bytes, r2_key from assets where session_id = ? and kind in ('strip_web', 'thumb_strip') order by kind",
+        start.id,
+      ),
+    ).toEqual([
+      { kind: "strip_web", bytes: 50, r2_key: null },
+      { kind: "thumb_strip", bytes: 9, r2_key: null },
+    ]);
+    expect(db.dueUploads("2026-10-01T00:00:00Z", 2).map((u) => u.kind)).toEqual([
+      "strip_web",
+      "thumb_strip",
+    ]);
+  });
+
   it("idempotent: dipanggil ulang tidak menggandakan aset/antrean", () => {
     const db = openDb(":memory:");
     db.sessionStarted(start);

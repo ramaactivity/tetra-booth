@@ -379,6 +379,43 @@ export function openDb(file: string) {
       db.prepare("update upload_queue set next_attempt_at = ?").run(now);
     },
 
+    /** Sesi selesai event cloud yang punya strip_web, urut per event ("Tajamkan foto lama", #140). */
+    webSessions(): { id: string; eventId: string }[] {
+      return (
+        db
+          .prepare(
+            `select s.id, s.event_id eventId from sessions s
+             where s.status = 'completed'
+               and exists (select 1 from assets a where a.session_id = s.id and a.kind = 'strip_web')
+             order by s.event_id, s.completed_at`,
+          )
+          .all() as { id: string; eventId: string }[]
+      ).filter((s) => UUID.test(s.eventId));
+    },
+    /**
+     * Aset yang ditulis ulang (#140): ukuran baru, belum terunggah, masuk antrean lagi. Kunci R2 & baris aset cloud
+     * sama (sesi/kind/idx), jadi unggahan ulang menimpa objek lama (idempotent).
+     */
+    reupload(
+      sessionId: string,
+      assets: { kind: AssetKind; idx: number; path: string; bytes: number }[],
+      now: string,
+    ) {
+      tx(() => {
+        for (const a of assets) {
+          const id = `${sessionId}:${a.kind}:${a.idx}`;
+          db.prepare(
+            `insert into assets (id, session_id, kind, idx, path, bytes) values (?, ?, ?, ?, ?, ?)
+             on conflict (id) do update set path = excluded.path, bytes = excluded.bytes, r2_key = null, uploaded_at = null`,
+          ).run(id, sessionId, a.kind, a.idx, a.path, a.bytes);
+          db.prepare(
+            `insert into upload_queue (asset_id, priority, next_attempt_at) values (?, ?, ?)
+             on conflict (asset_id) do update set attempts = 0, last_error = null, next_attempt_at = excluded.next_attempt_at`,
+          ).run(id, UPLOAD_PRIORITY[a.kind], now);
+        }
+      });
+    },
+
     /** Untuk test & mode crew nanti. */
     query<T>(sql: string, ...params: (string | number | null)[]): T[] {
       return db.prepare(sql).all(...params) as T[];

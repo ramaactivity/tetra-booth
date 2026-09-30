@@ -14,7 +14,14 @@ import {
   Settings,
   TriangleAlert,
 } from "lucide-react";
-import { type CSSProperties, type ReactNode, useCallback, useEffect, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { copy } from "../copy";
 import { guestCursor } from "../cursorPref";
 import { eventDesigns } from "../designEdit";
@@ -22,6 +29,7 @@ import { crewText, errText } from "../errors";
 import { type BoothEvent, DEFAULT_EVENT } from "../event";
 import { usePlatform } from "../PlatformContext";
 import type { CrewStatus, FailedPrint, UpdateCheck } from "../platform";
+import { type SharpenProgress, sharpenOldSessions } from "../rerender";
 import { sharpNotes } from "../sharpness";
 import { Logo } from "../ui";
 import { CameraProps } from "./CameraProps";
@@ -229,6 +237,7 @@ const sub = "mt-2 block text-lg font-semibold text-text-2";
  */
 export function CrewMenu({
   event,
+  guestBaseUrl,
   startExit = false,
   onChangeEvent,
   onEditDesign,
@@ -239,6 +248,7 @@ export function CrewMenu({
   onClose,
 }: {
   event: BoothEvent;
+  guestBaseUrl: string;
   /** Buka langsung konfirmasi Tutup Aplikasi (Ctrl+Shift+Q). */
   startExit?: boolean;
   /** Ganti event lewat layar pilih mode (DECISIONS #86). */
@@ -312,6 +322,22 @@ export function CrewMenu({
       off();
     };
   }, [p, refresh]);
+
+  // Tajamkan foto lama (#140): jalan selama menu crew terbuka; menutup menu = batal.
+  const [sharpen, setSharpen] = useState<(SharpenProgress & { running: boolean }) | null>(null);
+  const stopSharpen = useRef<AbortController | null>(null);
+  useEffect(() => () => stopSharpen.current?.abort(), []);
+  const startSharpen = () => {
+    const ac = new AbortController();
+    stopSharpen.current = ac;
+    setSharpen({ total: 0, done: 0, updated: 0, mismatch: 0, skipped: 0, running: true });
+    sharpenOldSessions(p, guestBaseUrl, (x) => setSharpen({ ...x, running: true }), ac.signal)
+      .then((x) => setSharpen({ ...x, running: false }))
+      .catch((e: unknown) => {
+        setSharpen(null);
+        setNote(crewText(e));
+      });
+  };
 
   const [dl, setDl] = useState<{ received: number; total: number; eta: string } | null>(null);
   const [updErr, setUpdErr] = useState<string | null>(null);
@@ -758,6 +784,38 @@ export function CrewMenu({
             <p className="rounded-[18px] border-2 border-dashed border-ink px-6 py-4 text-lg font-semibold text-text-2">
               {auto ? copy.crew.autoStartDev : "…"}
             </p>
+          )}
+        </Group>
+        <Group title={copy.crew.sharpen.title} column>
+          <p className="text-lg font-semibold text-text-2">{copy.crew.sharpen.body}</p>
+          {sharpen && (
+            <p data-testid="sharpen-status" className="text-2xl font-bold">
+              {sharpen.running
+                ? copy.crew.sharpen.progress(
+                    sharpen.done,
+                    sharpen.total,
+                    sharpen.mismatch + sharpen.skipped,
+                  )
+                : copy.crew.sharpen.summary(sharpen)}
+            </p>
+          )}
+          {sharpen?.running ? (
+            <Button
+              variant="plain"
+              className={`${action} self-start px-10`}
+              onClick={() => stopSharpen.current?.abort()}
+            >
+              {copy.crew.cancel}
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              className={`${action} self-start px-10`}
+              disabled={!status?.device}
+              onClick={startSharpen}
+            >
+              {copy.crew.sharpen.start}
+            </Button>
           )}
         </Group>
         <Group title={copy.crew.appTitle}>

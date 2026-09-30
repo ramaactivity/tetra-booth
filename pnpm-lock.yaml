@@ -358,6 +358,9 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
+      '@napi-rs/canvas':
+        specifier: ^1.0.9
+        version: 1.0.9
       '@types/node':
         specifier: ^26.6.2
         version: 26.6.2

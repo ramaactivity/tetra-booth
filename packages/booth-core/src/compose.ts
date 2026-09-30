@@ -111,7 +111,7 @@ export async function renderWebPiece(
   storage: BoothStorage,
   sessionId: string,
   event: BoothEvent,
-  photos: Photo[],
+  photos: Pick<Photo, "path">[],
   photoFilter = "none",
   qrUrl?: string,
 ): Promise<string | null> {

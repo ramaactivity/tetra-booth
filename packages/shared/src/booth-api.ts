@@ -75,9 +75,15 @@ export const BoothRelease = z.object({
   key: z.string().min(1),
   sha256: z.string().regex(/^[0-9a-f]{64}$/),
   size: z.number().int().positive(),
+  /** Blockmap installer (update diferensial, DECISIONS #139); tidak ada = booth mengunduh penuh. */
+  blockmapKey: z.string().min(1).optional(),
 });
 export type BoothRelease = z.infer<typeof BoothRelease>;
-export const BoothUpdateResponse = BoothRelease.extend({ url: z.url() });
+/** Booth lama mengabaikan `blockmapUrl` (z.object membuang kunci tak dikenal). */
+export const BoothUpdateResponse = BoothRelease.extend({
+  url: z.url(),
+  blockmapUrl: z.url().optional(),
+});
 
 /**
  * DLL Canon EDSDK untuk booth yang sudah dipasangkan (DECISIONS #112): disimpan privat di R2 (lisensi Canon,
