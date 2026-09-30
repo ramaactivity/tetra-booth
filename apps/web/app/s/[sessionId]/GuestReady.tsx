@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { PhotoViewer } from "@/components/PhotoViewer";
 import { copy } from "@/lib/copy";
 import type { GuestAsset } from "@/lib/guest";
 import { track } from "./track";
@@ -50,8 +51,12 @@ export function GuestReady({
 }) {
   const [tab, setTab] = useState<"strip" | "original" | "animation" | "video">("strip");
   const [busy, setBusy] = useState(false);
+  // Penampil layar penuh: set foto yang dibuka + posisi.
+  const [view, setView] = useState<{ list: GuestAsset[]; i: number } | null>(null);
   const strip = assets.find((a) => a.kind === "strip_web");
   const originals = assets.filter((a) => a.kind === "original");
+  const thumbOf = (a: GuestAsset) =>
+    assets.find((x) => x.kind === "thumb_original" && x.idx === a.idx)?.url ?? a.url;
   const gif = assets.find((a) => a.kind === "animation");
   // Video hitung mundur (#117).
   const video = assets.find((a) => a.kind === "video");
@@ -117,12 +122,19 @@ export function GuestReady({
 
       <div className="flex flex-1 flex-col items-center px-5 pt-5 pb-6">
         {tab === "strip" && strip && (
-          <img
-            src={strip.url}
-            alt=""
-            fetchPriority="high"
-            className="layered max-h-[62vh] max-w-[66%] rounded-lg border-[1.5px] border-ink bg-white [--lb:1.5px] [--lx:5px] [--under:#fff]"
-          />
+          <button
+            type="button"
+            aria-label={t.strip}
+            onClick={() => setView({ list: [strip], i: 0 })}
+            className="flex max-w-[66%] justify-center"
+          >
+            <img
+              src={strip.url}
+              alt=""
+              fetchPriority="high"
+              className="layered max-h-[62vh] max-w-full rounded-lg border-[1.5px] border-ink bg-white [--lb:1.5px] [--lx:5px] [--under:#fff]"
+            />
+          </button>
         )}
         {tab === "video" && video && (
           // biome-ignore lint/a11y/useMediaCaption: video momen booth tanpa suara/ucapan
@@ -137,24 +149,31 @@ export function GuestReady({
           />
         )}
         {tab === "animation" && gif && (
-          <img
-            src={gif.url}
-            alt=""
-            className="layered max-w-full rounded-lg border-[1.5px] border-ink bg-white [--lb:1.5px] [--lx:5px] [--under:#fff]"
-          />
+          <button
+            type="button"
+            aria-label={t.animation}
+            onClick={() => setView({ list: [gif], i: 0 })}
+            className="max-w-full"
+          >
+            <img
+              src={gif.url}
+              alt=""
+              className="layered max-w-full rounded-lg border-[1.5px] border-ink bg-white [--lb:1.5px] [--lx:5px] [--under:#fff]"
+            />
+          </button>
         )}
         {tab === "original" && (
           <div className="grid w-full grid-cols-2 gap-3">
-            {originals.map((o) => (
+            {originals.map((o, i) => (
               <button
                 key={o.idx}
                 type="button"
                 aria-label={`${t.original} ${o.idx}`}
-                onClick={run([o])}
+                onClick={() => setView({ list: originals, i })}
                 className="pressable overflow-hidden rounded-lg border-[1.5px] border-ink bg-white"
               >
                 <img
-                  src={o.url}
+                  src={thumbOf(o)}
                   alt=""
                   loading="lazy"
                   className="aspect-[3/2] w-full object-cover"
@@ -202,6 +221,27 @@ export function GuestReady({
           <span>{t.poweredBy}</span>
         </div>
       </footer>
+
+      {view && (
+        <PhotoViewer
+          items={view.list.map((a) => ({
+            src: a.url,
+            thumb: a.kind === "original" ? thumbOf(a) : a.url,
+          }))}
+          index={view.i}
+          onIndex={(i) => setView({ ...view, i })}
+          onClose={() => setView(null)}
+        >
+          <button
+            type="button"
+            disabled={busy}
+            onClick={run(view.list.slice(view.i, view.i + 1))}
+            className="pressable h-12 rounded-[14px] border-[1.5px] border-ink bg-butter px-3 text-[15px] font-extrabold disabled:opacity-40"
+          >
+            {busy ? t.saving : view.list[view.i]?.kind === "animation" ? t.saveGif : t.saveOne}
+          </button>
+        </PhotoViewer>
+      )}
     </>
   );
 }
