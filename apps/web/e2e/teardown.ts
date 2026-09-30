@@ -27,6 +27,7 @@ export default async function teardown() {
     await db.from("layout_versions").delete().eq("layout_id", l.id);
     await db.from("layouts").delete().eq("id", l.id);
   }
+  await db.from("layout_presets").delete().eq("organization_id", org).ilike("name", "e2e %");
   const { data: devices } = await db
     .from("devices")
     .select("id")

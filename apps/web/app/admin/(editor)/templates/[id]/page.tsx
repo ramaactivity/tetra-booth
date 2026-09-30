@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { StoredLayout } from "@/lib/layouts";
+import { SavedPreset, StoredLayout } from "@/lib/layouts";
 import { requireMember } from "@/lib/supabase/server";
 import { Editor } from "./Editor";
 
@@ -17,6 +17,15 @@ export default async function TemplatePage({ params }: { params: Promise<{ id: s
     .order("version", { ascending: false })
     .limit(1)
     .maybeSingle();
+  const { data: presetRows } = await db
+    .from("layout_presets")
+    .select("id, name, paper, width, height, slots")
+    .eq("organization_id", orgId)
+    .order("created_at", { ascending: false });
+  const presets = (presetRows ?? []).flatMap((r) => {
+    const p = SavedPreset.safeParse(r);
+    return p.success ? [p.data] : [];
+  });
   const spec = StoredLayout.safeParse(data?.spec);
   if (!data || !spec.success || data.layouts.archived_at) notFound();
   return (
@@ -26,6 +35,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ id: s
       version={data.version}
       savedAt={data.created_at}
       initial={spec.data.layout}
+      presets={presets}
       files={Object.fromEntries(Object.entries(spec.data.files).map(([k, f]) => [k, f.file]))}
     />
   );

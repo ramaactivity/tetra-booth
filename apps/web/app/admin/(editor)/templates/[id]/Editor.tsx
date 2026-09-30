@@ -39,7 +39,7 @@ import {
 } from "@/lib/editor/geometry";
 import { useHistory } from "@/lib/editor/history";
 import { type FontPack, LIB_FONTS } from "@/lib/fonts";
-import { type AssetId, FONT_IDS, SAFE_MARGIN_PX } from "@/lib/layouts";
+import { type AssetId, FONT_IDS, SAFE_MARGIN_PX, type SavedPreset } from "@/lib/layouts";
 import { Panels, type Tab } from "./Panels";
 import { PrinterSettingsButton, TestPrintButton } from "./PrintButtons";
 import { type Box, GEIST, Stage } from "./Stage";
@@ -69,7 +69,9 @@ function useEditorApi(p: {
   initial: LayoutSpec;
   files: Record<string, string>;
   version: number;
+  presets: SavedPreset[];
 }) {
+  const [presets, setPresets] = useState(p.presets);
   const h = useHistory<LayoutSpec>(withIds(p.initial));
   const layout = h.value;
   const [sel, setSel] = useState<Key[]>([]);
@@ -292,11 +294,13 @@ function useEditorApi(p: {
   const patchQr = (patch: Partial<NonNullable<LayoutSpec["qr"]>>, tag?: string) =>
     commit((l) => (l.qr ? { ...l, qr: { ...l.qr, ...patch } } : l), tag);
 
-  const applyPreset = (preset: keyof typeof LAYOUT_PRESETS) => {
-    const p0 = LAYOUT_PRESETS[preset].layout;
-    commit((l) => ({ ...l, slots: p0.slots.map((s) => ({ ...s, id: `s${uid()}` })) }));
+  /** Tata letak cepat (bawaan atau tersimpan): ganti semua slot, bisa di-urungkan. */
+  const applySlots = (slots: LayoutSlot[]) => {
+    commit((l) => ({ ...l, slots: slots.map((s) => ({ ...s, id: `s${uid()}` })) }));
     setSel([]);
   };
+  const applyPreset = (preset: keyof typeof LAYOUT_PRESETS) =>
+    applySlots(LAYOUT_PRESETS[preset].layout.slots);
 
   const shiftOverlay = (l: LayoutSpec, dx: number, dy: number) => {
     const r = overlayRect(l);
@@ -471,6 +475,9 @@ function useEditorApi(p: {
     addQr,
     patchQr,
     applyPreset,
+    applySlots,
+    presets,
+    setPresets,
     moveBy,
     align,
     alignTo,
@@ -508,6 +515,7 @@ export function Editor({
   savedAt,
   initial,
   files,
+  presets,
 }: {
   id: string;
   name: string;
@@ -515,8 +523,9 @@ export function Editor({
   savedAt: string;
   initial: LayoutSpec;
   files: Record<string, string>;
+  presets: SavedPreset[];
 }) {
-  const ed = useEditorApi({ id, initial, files, version: initialVersion });
+  const ed = useEditorApi({ id, initial, files, version: initialVersion, presets });
   const [name, setName] = useState(initialName);
   const [tab, setTab] = useState<Tab | null>("elemen");
   const [zoom, setZoom] = useState(1);

@@ -3,12 +3,12 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Json } from "@tetra/db";
-import { LAYOUT_PRESETS, LayoutSpecSchema } from "@tetra/shared";
+import { canvasFits, LAYOUT_PRESETS, LayoutSpecSchema } from "@tetra/shared";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { libFont } from "@/lib/fonts";
-import { ASSET_IDS, type AssetId, copyLayout, StoredLayout } from "@/lib/layouts";
+import { ASSET_IDS, type AssetId, copyLayout, SavedPreset, StoredLayout } from "@/lib/layouts";
 import { putObject } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 
@@ -187,4 +187,47 @@ export async function archiveTemplate(id: string) {
     .eq("id", id)
     .eq("organization_id", orgId);
   revalidatePath("/admin/templates");
+}
+
+const NewPreset = SavedPreset.omit({ id: true })
+  .extend({ name: z.string().trim().min(1).max(60) })
+  .refine((p) => canvasFits(p.paper, p), "ukuran kanvas tidak sesuai format");
+
+export type SavePresetResult = { ok: true; preset: SavedPreset } | { ok: false; message: string };
+
+/** "Simpan tata letak ini": posisi slot foto kanvas sekarang jadi tata letak cepat organisasi. */
+export async function savePreset(input: {
+  name: string;
+  paper: string;
+  canvas: { width: number; height: number };
+  slots: unknown[];
+}): Promise<SavePresetResult> {
+  const { db, orgId, user } = await requireMember(["owner", "admin"]);
+  const p = NewPreset.safeParse({ ...input, ...input.canvas });
+  if (!p.success) return { ok: false, message: "Periksa lagi nama dan slot" };
+  const { data, error } = await db
+    .from("layout_presets")
+    .insert({
+      organization_id: orgId,
+      name: p.data.name,
+      paper: p.data.paper,
+      width: p.data.width,
+      height: p.data.height,
+      slots: p.data.slots,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { ok: false, message: "Gagal menyimpan tata letak, coba lagi" };
+  return { ok: true, preset: { ...p.data, id: data.id } };
+}
+
+export async function deletePreset(id: string): Promise<boolean> {
+  const { db, orgId } = await requireMember(["owner", "admin"]);
+  const { error } = await db
+    .from("layout_presets")
+    .delete()
+    .eq("id", id)
+    .eq("organization_id", orgId);
+  return !error;
 }

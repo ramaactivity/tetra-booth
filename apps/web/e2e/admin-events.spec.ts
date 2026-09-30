@@ -37,21 +37,54 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page.getByLabel("Tanggal event").fill("2026-10-12");
     await page.getByRole("button", { name: "Buat", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Pengaturan" })).toBeVisible();
-    // Navigasi cepat antarbagian (audit UX 30 Sep).
+    // Kepala = kesiapan event; navigasi kiri per kelompok (#128).
     await expect(page.getByRole("navigation", { name: "Bagian pengaturan" })).toBeVisible();
-    await page.screenshot({ path: "test-results/admin-settings-top.png" });
+    await expect(page.getByRole("region", { name: "Siap dipakai di booth" })).toContainText(
+      "Strip Klasik",
+    );
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.screenshot({ path: "test-results/settings-top.png" });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.screenshot({ path: "test-results/settings-top-1440.png" });
+    await page.setViewportSize({ width: 1280, height: 800 });
 
     await page.getByLabel(/Teks kecil di layar booth/).fill("The Wedding of");
-    // Desain frame: 1–3 desain dengan kertas sama. Event baru = Strip Klasik (2R), jadi 4R terkunci dulu.
+    await expect(page.getByText("Ada perubahan belum disimpan")).toBeVisible();
+    // Desain frame: hanya desain terpilih yang tampil. Event baru = Strip Klasik (2R), jadi pemilih
+    // hanya menampilkan desain 2R (4R disembunyikan, bukan dinonaktifkan).
     const frames = page.getByRole("group", { name: "Desain frame" });
-    const grid = frames.getByRole("checkbox", { name: /^4R Grid/ });
-    await expect(grid).toBeDisabled();
-    await expect(frames).toContainText("Ukuran harus sama: 2R 2x6");
-    await frames.getByRole("checkbox", { name: /^Strip Klasik/ }).uncheck({ force: true });
-    await grid.check({ force: true });
-    await frames.getByRole("checkbox", { name: /^4R Single/ }).check({ force: true });
-    await expect(frames.getByRole("checkbox", { name: /^Strip Klasik/ })).toBeDisabled();
+    const add = frames.getByRole("button", { name: /Tambah desain/ });
+    const picker = page.getByRole("dialog", { name: "Tambah desain frame" });
+    await add.click();
+    await expect(picker).toContainText("Hanya desain 2R 2x6");
+    await expect(picker.getByRole("button", { name: /^Strip 4/ })).toBeVisible();
+    await expect(picker.getByRole("button", { name: /^4R Grid/ })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(picker).toBeHidden();
+    await frames.getByRole("button", { name: "Lepas Strip Klasik" }).click();
+    await expect(page.getByRole("region", { name: "Siap dipakai di booth" })).toContainText(
+      "Pilih minimal satu desain",
+    );
+    await add.click();
+    await picker.getByRole("textbox", { name: "Cari nama desain" }).fill("4R");
+    await expect(picker.locator("img").first()).toBeVisible({ timeout: 15_000 });
+    await page.screenshot({ path: "test-results/settings-design-picker.png" });
+    await picker.getByRole("button", { name: /^4R Grid/ }).click();
+    await expect(picker.getByRole("img", { name: "Pratinjau 4R Grid", exact: true })).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.screenshot({ path: "test-results/settings-design-picker-detail.png" });
+    await picker.getByRole("button", { name: "Pakai desain ini" }).click();
+    await add.click();
+    await picker.getByRole("button", { name: /^4R Single/ }).click();
+    await picker.getByRole("button", { name: "Pakai desain ini" }).click();
     await expect(frames.getByText("Utama", { exact: true })).toBeVisible();
+    for (const n of ["4R Grid", "4R Single"])
+      await expect(frames.getByRole("img", { name: `Pratinjau ${n}`, exact: true })).toBeVisible({
+        timeout: 15_000,
+      });
+    await page.locator("#template").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "test-results/settings-designs.png" });
     await page.locator("#template").screenshot({ path: "test-results/admin-design-frame.png" });
     await page
       .locator('input[name="overlay"]')
@@ -155,6 +188,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
 
     // Fase 5 L1: lead capture butuh teks persetujuan; versi = hash teks.
     await page.getByLabel(/Minta data tamu/).check();
+    await expect(page.getByLabel(/Teks persetujuan/)).toBeVisible();
     await page.getByRole("button", { name: "Simpan" }).click();
     await expect(page.getByRole("status")).toContainText("isi teks persetujuan", {
       timeout: 30_000,
