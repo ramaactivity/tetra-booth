@@ -69,8 +69,9 @@ export function CrewMode({
           bundles={bundles}
           activeId={event.id}
           onPick={(id) => {
+            // Kembali ke checklist crew (langkah berikutnya: cek kamera & printer), bukan langsung ke tamu.
             onSelectEvent(id);
-            close();
+            setView("menu");
           }}
           onSync={async () => {
             const n = await crew.syncEvents();

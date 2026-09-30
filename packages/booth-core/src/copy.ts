@@ -3,7 +3,9 @@ export const copy = {
   attract: {
     cta: "Sentuh untuk Mulai",
     // Hanya tampil sebelum PIN crew dibuat (setup pertama), supaya tamu tidak melihatnya saat event.
-    crewHint: "Pengaturan crew: tahan logo 2 detik, ketuk pojok kanan atas 5×, atau Ctrl+Shift+M",
+    crewHint:
+      "Booth belum disiapkan. Nanti Mode Crew dibuka dengan menahan logo 2 detik, ketuk pojok kanan atas 5×, atau Ctrl+Shift+M.",
+    setup: "Siapkan Booth",
   },
   /** Kalimat bawaan di sela foto (#103); yang terakhir = foto terakhir. Bisa diganti per event di admin. */
   prompts: {
@@ -161,7 +163,6 @@ export const copy = {
     updating: "Mengunduh update… booth akan tertutup lalu terbuka lagi",
     updateProgress: (mb: number, total: number, pct: number, eta: string) =>
       `Mengunduh update ${mb} / ${total} MB (${pct}%)${eta} · booth tertutup lalu terbuka lagi setelah selesai`,
-    toGuest: "Keluar ke Mode Tamu",
     activeEvent: "Event aktif",
     changeEvent: "Ganti Event",
     back: "Kembali",
@@ -178,7 +179,7 @@ export const copy = {
     offline: "Offline",
     defaultEvent: "Event default",
     camera: "Kamera",
-    cameraService: "Camera Service",
+    cameraService: "Layanan kamera",
     connected: "Terhubung",
     ready: "Siap",
     autoRefresh: "Diperbarui otomatis",
@@ -279,6 +280,30 @@ export const copy = {
     pair: "Pasangkan",
     paired: (name: string, code: string) => `${name} · ${code}`,
     unpaired: "Belum dipasangkan",
+    /** Checklist persiapan di atas menu crew: urutan kerja crew sebelum tamu datang. */
+    setup: {
+      title: "Siapkan booth",
+      sub: "Ikuti urutan ini sebelum tamu datang. Hijau = siap.",
+      pair: "Hubungkan ke cloud",
+      pairTodo: "Masukkan kode 6 digit dari admin",
+      pairAction: "Pasangkan",
+      event: "Pilih event",
+      eventTodo: "Belum ada event dipilih",
+      eventAction: "Pilih Event",
+      eventChange: "Ganti",
+      camera: "Cek kamera",
+      cameraOk: "Kamera tersambung",
+      cameraTodo: "Kamera belum tersambung",
+      cameraAction: "Tes Jepret",
+      pickDevice: "Pilih Perangkat",
+      printer: "Cek printer",
+      printerOk: "Printer siap",
+      printerTodo: "Printer belum siap (boleh dilewati kalau tidak mencetak)",
+      printerAction: "Tes Cetak",
+      open: "Buka untuk Tamu",
+      openHint: "Layar tamu tampil. Masuk lagi ke sini: tahan logo 2 detik.",
+      more: "Lainnya",
+    },
     syncEvents: "Sync dari Cloud",
     syncing: "Mengunduh event dari cloud…",
     synced: (n: number) => (n ? `${n} event diperbarui` : "Event sudah terbaru"),
