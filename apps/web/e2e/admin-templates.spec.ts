@@ -176,6 +176,7 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
     const frames = page.getByRole("group", { name: "Desain frame" });
     await frames.getByRole("checkbox", { name: /^Strip Klasik/ }).uncheck({ force: true });
     await frames.getByRole("checkbox", { name: new RegExp(`^${tplName}`) }).check({ force: true });
+    await page.getByLabel(/Pilih booth/).check();
     await page.getByLabel(dev?.name ?? "").check();
     await page.getByRole("button", { name: "Simpan" }).click();
     await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v2", {

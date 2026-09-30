@@ -31,6 +31,27 @@ export async function authDevice(req: Request): Promise<Device | null> {
   return data ? { id: data.id, organizationId: data.organization_id } : null;
 }
 
+/**
+ * Event yang boleh dipakai device ini (DECISIONS #127): satu organisasi, tidak diarsip, dan `all_devices`
+ * (bawaan) atau device ditugaskan di event_devices. `eventId` kosong = semua event yang boleh.
+ */
+export async function deviceEvents(device: Device, eventId?: string) {
+  const db = createServiceClient();
+  let q = db
+    .from("events")
+    .select(
+      "id, name, mode, settings, bundle_version, bundle, all_devices, event_devices(device_id)",
+    )
+    .eq("organization_id", device.organizationId)
+    .neq("status", "archived");
+  if (eventId) q = q.eq("id", eventId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data.filter(
+    (e) => e.all_devices || e.event_devices.some((d) => d.device_id === device.id),
+  );
+}
+
 /** IP klien untuk rate limit (Vercel mengisi x-forwarded-for). */
 export const clientIp = (req: Request) =>
   req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";

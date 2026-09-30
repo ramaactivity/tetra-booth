@@ -334,6 +334,10 @@ export async function saveEvent(
   } catch {
     return { ok: false, message: "Template tidak valid" };
   }
+  // Booth: semua booth organisasi (bawaan) atau hanya yang dicentang (#127).
+  const allDevices = form.get("deviceScope") !== "pick";
+  if (!allDevices && !form.getAll("devices").length)
+    return { ok: false, message: "Centang minimal satu booth, atau pilih Semua booth." };
   const start = new Date(`${f.event_date}T00:00:00+07:00`).getTime();
   const guest = new Date(start + f.guest_days * DAY).toISOString();
   const client = new Date(start + f.client_days * DAY).toISOString();
@@ -359,12 +363,14 @@ export async function saveEvent(
       purge_at: guest > client ? guest : client,
       bundle,
       bundle_version: ev.bundle_version + 1,
+      all_devices: allDevices,
     })
     .eq("id", eventId)
     .eq("organization_id", orgId);
   if (error) return { ok: false, message: "Gagal menyimpan, coba lagi" };
 
-  // Penugasan device: centang = ditugaskan (hanya device organisasi ini, RLS).
+  // Penugasan device: centang = ditugaskan (hanya device organisasi ini, RLS). Dipakai saat "Pilih booth";
+  // disimpan juga saat "Semua booth" supaya pilihan lama kembali kalau diganti lagi.
   const want = form.getAll("devices").map(String);
   await db
     .from("event_devices")

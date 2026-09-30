@@ -1,5 +1,5 @@
 import { SessionUpsert } from "@tetra/shared";
-import { apiError, authDevice, parseBody } from "@/lib/booth";
+import { apiError, authDevice, deviceEvents, parseBody } from "@/lib/booth";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /** Upsert metadata sesi (TSD §4.2 langkah 3). Idempotent; hanya untuk event yang ditugaskan ke device ini. */
@@ -9,14 +9,8 @@ export async function POST(req: Request) {
   const s = await parseBody(req, SessionUpsert);
   if (!s) return apiError("bad_request", 400);
   const db = createServiceClient();
-  const { data: assigned } = await db
-    .from("event_devices")
-    .select("event_id")
-    .eq("event_id", s.eventId)
-    .eq("device_id", device.id)
-    .eq("organization_id", device.organizationId)
-    .maybeSingle();
-  if (!assigned) return apiError("not_found", 404);
+  if (!(await deviceEvents(device, s.eventId).catch(() => [])).length)
+    return apiError("not_found", 404);
   // ID sesi dibuat booth: ID yang sudah dipakai device/organisasi lain ditolak, bukan ditimpa.
   const { data: other } = await db
     .from("sessions")

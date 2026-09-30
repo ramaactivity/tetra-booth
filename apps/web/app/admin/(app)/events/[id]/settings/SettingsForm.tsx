@@ -57,6 +57,7 @@ export type SettingsValues = {
   guest_days: number;
   client_days: number;
   devices: { id: string; name: string; assigned: boolean }[];
+  allDevices: boolean;
 };
 
 /** Label momen suara (#104). */
@@ -148,6 +149,7 @@ const input = "h-[42px] w-full rounded-[11px] border-[1.5px] border-ink bg-white
 
 /** Anchor tiap bagian untuk navigasi cepat di atas form (halaman pengaturan panjang, audit UX 30 Sep). */
 const NAV = [
+  ["device", "Tampil di booth"],
   ["informasi", "Informasi"],
   ["mode", "Mode"],
   ["template", "Desain frame"],
@@ -158,7 +160,6 @@ const NAV = [
   ["halaman-tamu", "Halaman tamu"],
   ["lead", "Lead"],
   ["masa-simpan", "Masa simpan"],
-  ["device", "Device"],
 ] as const;
 
 /** Pilih file dengan tombol berbahasa Indonesia (bukan "Choose File" bawaan browser, DECISIONS #77). */
@@ -216,6 +217,7 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
   const [background, setBackground] = useState(v.background);
   const [guestColor, setGuestColor] = useState(v.guestColor);
   const [attractBg, setAttractBg] = useState(v.attract.background);
+  const [allDevices, setAllDevices] = useState(v.allDevices);
   const [r, action, pending] = useActionState<SaveResult, FormData>(
     saveEvent.bind(null, eventId),
     null,
@@ -257,6 +259,53 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
             </a>
           ))}
         </nav>
+        {/* Booth paling atas (#127): event tanpa booth tidak muncul di booth mana pun. */}
+        <Section id="device" title="Tampil di booth">
+          <div className="col-span-full grid grid-cols-1 gap-3 md:grid-cols-2">
+            {(
+              [
+                ["all", "Semua booth", "Termasuk booth yang baru dipasangkan nanti."],
+                ["pick", "Pilih booth", "Hanya booth yang dicentang di bawah."],
+              ] as const
+            ).map(([val, title, hint]) => (
+              <label
+                key={val}
+                className="flex cursor-pointer items-start gap-3 rounded-[14px] border-[1.5px] border-dashed border-ink p-3.5 has-checked:border-solid has-checked:bg-mint-soft"
+              >
+                <input
+                  type="radio"
+                  name="deviceScope"
+                  value={val}
+                  checked={(val === "all") === allDevices}
+                  onChange={() => setAllDevices(val === "all")}
+                  className="mt-1"
+                />
+                <span>
+                  <span className="block text-sm font-bold">{title}</span>
+                  <span className="block text-xs text-text-2">{hint}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          {!allDevices &&
+            (v.devices.length ? (
+              v.devices.map((d) => (
+                <label
+                  key={d.id}
+                  className="flex items-center gap-2.5 rounded-[11px] border-[1.5px] border-ink px-3.5 py-2.5 text-sm font-semibold"
+                >
+                  <input type="checkbox" name="devices" value={d.id} defaultChecked={d.assigned} />
+                  {d.name}
+                </label>
+              ))
+            ) : (
+              <p className="text-sm text-text-2">Belum ada booth. Daftarkan di menu Device.</p>
+            ))}
+          {allDevices &&
+            v.devices
+              .filter((d) => d.assigned)
+              .map((d) => <input key={d.id} type="hidden" name="devices" value={d.id} />)}
+        </Section>
         <Section id="informasi" title="Informasi">
           <Field label="Nama event">
             <input name="name" required defaultValue={v.name} className={input} />
@@ -580,22 +629,6 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           <Field label="Galeri klien" unit="hari setelah event">
             {num("client_days", 1, 365)}
           </Field>
-        </Section>
-
-        <Section id="device" title="Device">
-          {v.devices.length ? (
-            v.devices.map((d) => (
-              <label
-                key={d.id}
-                className="flex items-center gap-2.5 rounded-[11px] border-[1.5px] border-ink px-3 py-2.5 text-sm font-semibold"
-              >
-                <input type="checkbox" name="devices" value={d.id} defaultChecked={d.assigned} />
-                {d.name}
-              </label>
-            ))
-          ) : (
-            <p className="text-sm text-text-2">Belum ada booth. Daftarkan di menu Device.</p>
-          )}
         </Section>
       </div>
 
