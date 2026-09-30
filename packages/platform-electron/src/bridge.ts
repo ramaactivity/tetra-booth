@@ -71,6 +71,9 @@ export type TetraBridge = {
   crewFocusAt: NonNullable<BoothCrew["focusAt"]>;
   crewEventSettings: BoothCrew["eventSettings"];
   crewSetEventSettings: BoothCrew["setEventSettings"];
+  crewDesigns: BoothCrew["designs"];
+  crewSaveDesign: BoothCrew["saveDesign"];
+  crewResetDesign: BoothCrew["resetDesign"];
   crewInstallUpdate: BoothCrew["installUpdate"];
   onUpdateProgress: BoothCrew["onUpdateProgress"];
   updateResult: BoothCrew["updateResult"];

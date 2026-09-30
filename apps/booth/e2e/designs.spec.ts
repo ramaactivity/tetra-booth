@@ -39,6 +39,11 @@ const grid = layout("4r-grid-e2e", "4R", 1200, [
 ]);
 // Latar video loop (#115): pakai bumper.mp4 yang sudah ada di renderer.
 const MP4 = readFileSync(join(__dirname, "../src/renderer/public/bumper.mp4"));
+/** Overlay 1×1 px untuk editor desain booth. */
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+  "base64",
+);
 const CONFIG = {
   id: EVENT,
   name: "Rina & Dimas",
@@ -149,6 +154,25 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     await w.getByRole("button", { name: /Mode Event/ }).click();
     await w.getByRole("button", { name: "Ambil event terbaru" }).click();
     await w.getByRole("button", { name: /Rina & Dimas/ }).click();
+
+    // Editor desain di booth (#131): unggah overlay → simpan lokal → badge. Sesi di bawah memakai layout lokal
+    // (overlay dibaca dari folder local/, bukan bundle).
+    await w.getByTestId("crew-nav-event").click();
+    const row = w.getByTestId("design-row").filter({ hasText: "Bingkai Emas" });
+    await expect(row).toContainText("Sama dengan cloud");
+    await row.getByRole("button", { name: "Edit desain" }).click();
+    const ed = w.getByTestId("design-editor");
+    await expect(ed.getByText("Foto 1", { exact: true })).toBeVisible();
+    await ed.getByRole("button", { name: "Unggahan" }).click();
+    await ed
+      .getByLabel("Overlay", { exact: true })
+      .setInputFiles({ name: "ov.png", mimeType: "image/png", buffer: PNG });
+    await ed.getByRole("button", { name: "Simpan", exact: true }).click();
+    await expect(ed.getByText(/Tersimpan di booth ini/)).toBeVisible();
+    await w.screenshot({ path: "test-results/designs-editor.png" });
+    await ed.getByRole("button").first().click();
+    await expect(ed).toHaveCount(0);
+    await expect(row).toContainText("Diubah di booth");
     await w.getByTestId("to-guest").click();
     await w.waitForTimeout(1000);
 

@@ -1,12 +1,14 @@
 import type { EventBundle } from "@tetra/shared";
 import { useEffect, useState } from "react";
 import { copy } from "../copy";
+import { eventDesigns } from "../designEdit";
 import type { BoothEvent } from "../event";
 import { usePlatform } from "../PlatformContext";
 import { slotAspect } from "../screens/LiveView";
 import { StartScreen } from "../screens/StartScreen";
 import { CameraCheck } from "./CameraCheck";
 import { CrewMenu } from "./CrewMenu";
+import { DesignEditor } from "./DesignEditor";
 import { PairPad } from "./PairPad";
 import { PinPad } from "./PinPad";
 
@@ -30,6 +32,10 @@ export function CrewMode({
 }) {
   const { crew } = usePlatform();
   const [view, setView] = useState<View | null>(null);
+  // Editor desain di booth (#131): layout.id yang sedang diedit + waktu simpan terakhirnya.
+  const [editing, setEditing] = useState<{ id: string; savedAt?: string } | null>(null);
+  const bundle = bundles.find((b) => b.id === event.id);
+  const design = editing && eventDesigns(event).find((d) => d.id === editing.id);
 
   useEffect(() => {
     crew
@@ -93,15 +99,35 @@ export function CrewMode({
       );
     case "menu":
       return (
-        <CrewMenu
-          event={event}
-          onChangeEvent={() => setView("start")}
-          onReloadEvents={onReloadEvents}
-          onCameraCheck={() => setView("camera")}
-          onChangePin={() => setView("change")}
-          onPair={() => setView("pair")}
-          onClose={close}
-        />
+        <>
+          <CrewMenu
+            event={event}
+            onChangeEvent={() => setView("start")}
+            onEditDesign={(id) =>
+              crew.designs(event.id).then(
+                (m) => setEditing({ id, ...(m[id] && { savedAt: m[id] }) }),
+                () => setEditing({ id }),
+              )
+            }
+            onReloadEvents={onReloadEvents}
+            onCameraCheck={() => setView("camera")}
+            onChangePin={() => setView("change")}
+            onPair={() => setView("pair")}
+            onClose={close}
+          />
+          {bundle && design && (
+            <DesignEditor
+              key={design.id}
+              bundle={bundle}
+              design={design}
+              savedAt={editing?.savedAt}
+              onBack={(saved) => {
+                setEditing(null);
+                if (saved) void onReloadEvents();
+              }}
+            />
+          )}
+        </>
       );
   }
 }

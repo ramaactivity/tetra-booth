@@ -17,6 +17,7 @@ import {
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useState } from "react";
 import { copy } from "../copy";
 import { guestCursor } from "../cursorPref";
+import { eventDesigns } from "../designEdit";
 import { crewText, errText } from "../errors";
 import { type BoothEvent, DEFAULT_EVENT } from "../event";
 import { usePlatform } from "../PlatformContext";
@@ -229,6 +230,7 @@ const sub = "mt-2 block text-lg font-semibold text-text-2";
 export function CrewMenu({
   event,
   onChangeEvent,
+  onEditDesign,
   onReloadEvents,
   onCameraCheck,
   onChangePin,
@@ -238,6 +240,8 @@ export function CrewMenu({
   event: BoothEvent;
   /** Ganti event lewat layar pilih mode (DECISIONS #86). */
   onChangeEvent: () => void;
+  /** Buka editor desain di booth untuk satu layout.id (DECISIONS #131). */
+  onEditDesign: (layoutId: string) => void;
   /** Muat ulang event aktif (setelah pengaturan event diubah di booth, #100). */
   onReloadEvents: () => Promise<void>;
   onCameraCheck: () => void;
@@ -261,6 +265,14 @@ export function CrewMenu({
       () => {},
     );
   }, [p, event, hasEvent]);
+  // Desain yang diedit di booth: layout.id → waktu simpan (#131).
+  const [localDesigns, setLocalDesigns] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (!hasEvent) return;
+    p.crew.designs(event.id).then(setLocalDesigns, () => {});
+  }, [p, event, hasEvent]);
+  const hhmm = (iso: string) =>
+    new Date(iso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [blurWarn, setBlurWarn] = useState(() => sharpNotes.crewWarning());
   const [cursorOn, setCursorOn] = useState(guestCursor.shown);
@@ -634,6 +646,50 @@ export function CrewMenu({
           </Button>
         </Group>
         <Group title={copy.crew.designTitle} column>
+          {hasEvent &&
+            eventDesigns(event).map((d) => {
+              const at = localDesigns[d.id];
+              return (
+                <div
+                  key={d.id}
+                  data-testid="design-row"
+                  className="flex items-center gap-5 rounded-[20px] border-2 border-ink px-6 py-4"
+                >
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="truncate text-2xl font-bold">{d.name}</span>
+                    <span
+                      className={`w-fit rounded-full border-2 border-ink px-3 text-lg font-semibold ${at ? "bg-peach" : "bg-paper text-text-2"}`}
+                    >
+                      {d.info ? `${d.info} · ` : ""}
+                      {at ? copy.crew.designLocal(hhmm(at)) : copy.crew.designCloud}
+                    </span>
+                  </div>
+                  {at && (
+                    <Button
+                      variant="plain"
+                      className="h-[76px] rounded-[18px] px-6 text-xl"
+                      onClick={() =>
+                        p.crew
+                          .resetDesign(event.id, d.id)
+                          .then(async () => {
+                            setNote(copy.crew.designReset(d.name));
+                            await onReloadEvents();
+                          })
+                          .catch((e: unknown) => setNote(crewText(e)))
+                      }
+                    >
+                      {copy.crew.resetToCloud}
+                    </Button>
+                  )}
+                  <Button
+                    className="h-[76px] rounded-[18px] px-8 text-xl"
+                    onClick={() => onEditDesign(d.id)}
+                  >
+                    {copy.crew.editDesign}
+                  </Button>
+                </div>
+              );
+            })}
           <p className="text-xl font-medium text-text-2">{copy.crew.designNote}</p>
           <Button
             variant="plain"

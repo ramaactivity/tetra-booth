@@ -18,6 +18,7 @@
   "dependencies": {
     "@sentry/electron": "^7.20.0",
     "@tetra/booth-core": "workspace:*",
+    "@tetra/editor": "workspace:*",
     "@tetra/platform-electron": "workspace:*",
     "@tetra/shared": "workspace:*",
     "@tetra/template-engine": "workspace:*",

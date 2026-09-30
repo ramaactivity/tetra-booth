@@ -1,8 +1,10 @@
 import { execFile } from "node:child_process";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import {
   AssetKindSchema,
+  LayoutSpecSchema,
   newerVersion,
   PairRequest,
   PaperSchema,
@@ -27,6 +29,15 @@ import {
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
 import type { BoothDb } from "./db";
 import { CAMERA_PROPS, dcc, dccBase, dccProp } from "./dcc";
+import {
+  applyDesignOverride,
+  assetRefs,
+  designKey,
+  layoutIds,
+  parseDesignOverride,
+  resetDesign,
+  saveDesign,
+} from "./design-override";
 import { FOCUS_STEPS, focus, liveViewFrame, liveViewStart, liveViewStop } from "./digicam";
 import {
   applyOverride,
@@ -540,9 +551,84 @@ export function registerIpc(
 
   // Event lokal dari bundle (M6); Fase 2 mengisi folder yang sama lewat sync.
   const overrideOf = (id: string) => parseOverride(db.kv.get(overrideKey(id)));
+  // Font pustaka editor ada di aset renderer (`public/fonts` → `out/renderer/fonts`, di dalam asar saat terpasang).
+  const libFontPath = (name: string) =>
+    [
+      join(__dirname, "../renderer/fonts", `${name}.woff2`),
+      join(app.getAppPath(), "src/renderer/public/fonts", `${name}.woff2`),
+    ].find((f) => existsSync(f));
+  const designOf = (id: string) => parseDesignOverride(db.kv.get(designKey(id)));
+  const localDir = (id: string) => join(eventsDir(), id, "local");
   ipcMain.handle("eventsList", () =>
-    reloadBundles().map(({ dir: _dir, ...b }) => applyOverride(b, overrideOf(b.id))),
+    reloadBundles().map(({ dir: _dir, ...b }) =>
+      applyDesignOverride(applyOverride(b, overrideOf(b.id)), designOf(b.id)),
+    ),
   );
+  // Desain diedit di booth (DECISIONS #128/#131): layout.id → waktu simpan, hanya layout yang masih ada di bundle.
+  ipcMain.handle("crewDesigns", (_e, id: unknown) => {
+    crewOnly();
+    const b = bundles.find((x) => x.id === z.string().parse(id));
+    if (!b) throw new Error("event tidak ditemukan");
+    const ids = layoutIds(b);
+    return Object.fromEntries(Object.entries(designOf(b.id).savedAt).filter(([k]) => ids.has(k)));
+  });
+  const DesignFile = z.object({
+    assetId: z.string().regex(/^[\w][\w.-]{0,80}$/),
+    ext: z.enum(["png", "jpg", "jpeg", "ttf", "otf", "woff", "woff2"]),
+    bytes: z.instanceof(Uint8Array),
+  });
+  ipcMain.handle("crewSaveDesign", async (_e, id: unknown, layout: unknown, files: unknown) => {
+    crewOnly();
+    const b = bundles.find((x) => x.id === z.string().parse(id));
+    if (!b) throw new Error("event tidak ditemukan");
+    const l = LayoutSpecSchema.parse(layout);
+    if (!layoutIds(b).has(l.id)) throw new Error("desain tidak ada di event ini");
+    const add: { assetId: string; ext: string; bytes: Uint8Array }[] = z
+      .array(DesignFile)
+      .max(12)
+      .parse(files);
+    // Setiap aset yang dirujuk harus ada: di bundle, di override lama, atau ikut disimpan sekarang.
+    const cur = designOf(b.id);
+    const known = new Set([
+      ...Object.keys(b.assets),
+      ...Object.keys(cur.assets),
+      ...add.map((f) => f.assetId),
+      "geist",
+    ]);
+    // Font pustaka yang baru dipilih di editor: salin dari font renderer (offline, sama dengan admin).
+    for (const a of assetRefs(l)) {
+      if (known.has(a) || !/^lib-[a-z0-9-]+$/.test(a)) continue;
+      const src = libFontPath(a.slice(4));
+      if (!src) continue;
+      add.push({ assetId: a, ext: "woff2", bytes: new Uint8Array(await readFile(src)) });
+      known.add(a);
+    }
+    const missing = assetRefs(l).filter((a) => !known.has(a));
+    if (missing.length) throw new Error(`aset tidak ada: ${missing.join(", ")}`);
+    const dir = localDir(b.id);
+    await mkdir(dir, { recursive: true });
+    const written: Record<string, string> = {};
+    for (const f of add) {
+      const name = `${f.assetId}.${f.ext}`;
+      await writeFile(join(dir, name), f.bytes);
+      written[f.assetId] = name;
+    }
+    const { next, unused } = saveDesign(cur, l, written, new Date().toISOString());
+    db.kv.set(designKey(b.id), JSON.stringify(next));
+    for (const f of unused) await rm(join(dir, f), { force: true });
+    console.info(
+      `[event] desain ${l.id} di ${b.id} diedit di booth (${Object.keys(written).length} aset baru)`,
+    );
+    return next.savedAt[l.id];
+  });
+  ipcMain.handle("crewResetDesign", async (_e, id: unknown, layoutId: unknown) => {
+    crewOnly();
+    const eid = z.string().parse(id);
+    const { next, unused } = resetDesign(designOf(eid), z.string().nullable().parse(layoutId));
+    db.kv.set(designKey(eid), Object.keys(next.layouts).length ? JSON.stringify(next) : "");
+    for (const f of unused) await rm(join(localDir(eid), f), { force: true });
+    console.info(`[event] desain ${layoutId ?? "semua"} di ${eid} dikembalikan ke cloud`);
+  });
   // Override pengaturan event di booth (DECISIONS #100): nilai cloud + override lokal; null = kembalikan ke cloud.
   ipcMain.handle("crewEventSettings", (_e, id: unknown) => {
     crewOnly();
@@ -569,7 +655,10 @@ export function registerIpc(
   ipcMain.handle("eventAsset", async (_e, eventId: unknown, assetId: unknown) => {
     const b = bundles.find((x) => x.id === z.string().parse(eventId));
     if (!b) throw new Error("event tidak ditemukan");
-    return new Uint8Array(await readFile(assetPath(b, z.string().parse(assetId))));
+    const a = z.string().parse(assetId);
+    // Aset desain yang diedit di booth ada di folder local/, bukan di bundle.
+    const local = designOf(b.id).assets[a];
+    return new Uint8Array(await readFile(local ? join(localDir(b.id), local) : assetPath(b, a)));
   });
 
   ipcMain.handle("sessionStarted", (_e, x: unknown) => db.sessionStarted(SessionStarted.parse(x)));
