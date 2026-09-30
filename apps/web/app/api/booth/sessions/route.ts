@@ -9,7 +9,10 @@ export async function POST(req: Request) {
   const s = await parseBody(req, SessionUpsert);
   if (!s) return apiError("bad_request", 400);
   const db = createServiceClient();
-  if (!(await deviceEvents(device, s.eventId).catch(() => [])).length)
+  if (
+    !(await deviceEvents(device, { eventId: s.eventId, includeArchived: true }).catch(() => []))
+      .length
+  )
     return apiError("not_found", 404);
   // ID sesi dibuat booth: ID yang sudah dipakai device/organisasi lain ditolak, bukan ditimpa.
   const { data: other } = await db

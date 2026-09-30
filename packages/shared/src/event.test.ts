@@ -35,7 +35,7 @@ describe("EventBundleSchema", () => {
       false,
     );
   });
-  it("designs (#99): 2–3 desain, aset tiap desain harus ada", () => {
+  it("designs (#99): 2–5 desain (bundle lama tetap diterima), aset tiap desain harus ada", () => {
     const base = { id: "e1", name: "x", date: "x", layout, assets: { ov: "overlay.png" } };
     const d = (id: string, assetId = "ov") => ({
       id,
@@ -46,9 +46,13 @@ describe("EventBundleSchema", () => {
     expect(EventBundleSchema.safeParse({ ...base, designs: [d("a"), d("b")] }).success).toBe(true);
     expect(EventBundleSchema.safeParse({ ...base, designs: [d("a")] }).success).toBe(false);
     expect(
+      EventBundleSchema.safeParse({ ...base, designs: ["a", "b", "c", "d"].map((i) => d(i)) })
+        .success,
+    ).toBe(true);
+    expect(
       EventBundleSchema.safeParse({
         ...base,
-        designs: ["a", "b", "c", "d"].map((i) => d(i)),
+        designs: ["a", "b", "c", "d", "e", "f"].map((i) => d(i)),
       }).success,
     ).toBe(false);
     expect(

@@ -81,8 +81,7 @@ export async function composeStrip(
     photos.map(async (p) => createImageBitmap(new Blob([await storage.readFile(p.path)]))),
   );
   try {
-    // Web/HP (strip_web, pratinjau layar) dirender 2×: potongan 2R cuma 600 px lebar, buram di layar rapat.
-    const { sheet, web } = await renderEvent(event, bitmaps, photoFilter, qrUrl, WEB_SCALE);
+    const { piece, sheet } = await renderEvent(event, bitmaps, photoFilter, qrUrl);
     const dir = `${await storage.sessionDir(sessionId)}/out`;
     const write = async (c: OffscreenCanvas, name: string) => {
       // Lembar cetak DNP (juga diunggah sebagai aset `strip`): 0.95, detail foto DSLR tidak lembek di cetakan.
@@ -90,13 +89,43 @@ export async function composeStrip(
       await storage.writeFile(`${dir}/${name}`, new Uint8Array(await blob.arrayBuffer()));
       return blob;
     };
-    await write(sheet, "strip.jpg");
-    const pieceBlob = await write(web, "piece.jpg");
+    const sheetBlob = await write(sheet, "strip.jpg");
+    // 4R portrait: potong = lembar, tidak perlu file kedua.
+    const same = piece === sheet;
+    const pieceBlob = same ? sheetBlob : await write(piece, "piece.jpg");
     return {
       path: `${dir}/strip.jpg`,
-      piecePath: `${dir}/piece.jpg`,
+      piecePath: `${dir}/${same ? "strip" : "piece"}.jpg`,
       url: URL.createObjectURL(pieceBlob),
     };
+  } finally {
+    for (const b of bitmaps) b.close();
+  }
+}
+
+/**
+ * Potongan web 2× (strip_web & thumbnail HP/galeri, #133) di latar belakang SETELAH tamu melihat hasilnya:
+ * potongan 2R cuma 600 px lebar, buram di layar rapat. Menulis out/piece@2x.jpg; null = gagal (pakai potongan 1×).
+ */
+export async function renderWebPiece(
+  storage: BoothStorage,
+  sessionId: string,
+  event: BoothEvent,
+  photos: Photo[],
+  photoFilter = "none",
+  qrUrl?: string,
+): Promise<string | null> {
+  const bitmaps = await Promise.all(
+    photos.map(async (p) => createImageBitmap(new Blob([await storage.readFile(p.path)]))),
+  );
+  try {
+    const { web } = await renderEvent(event, bitmaps, photoFilter, qrUrl, WEB_SCALE);
+    const blob = await web.convertToBlob({ type: "image/jpeg", quality: 0.92 });
+    const path = `${await storage.sessionDir(sessionId)}/out/piece@2x.jpg`;
+    await storage.writeFile(path, new Uint8Array(await blob.arrayBuffer()));
+    return path;
+  } catch {
+    return null;
   } finally {
     for (const b of bitmaps) b.close();
   }

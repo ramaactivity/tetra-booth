@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const r = await parseBody(req, PaymentCreateRequest);
   if (!r) return apiError("bad_request", 400);
   const db = createServiceClient();
-  const ev = (await deviceEvents(device, r.eventId).catch(() => []))[0];
+  const ev = (await deviceEvents(device, { eventId: r.eventId }).catch(() => []))[0];
   if (!ev || ev.mode !== "photobox") return apiError("not_found", 404);
   const amount = priceFor(
     ev.settings as { photobox?: PhotoboxSettings; maxPrints?: number },

@@ -117,17 +117,15 @@ export async function saveEvent(
   let overlay = prev.success
     ? (prev.data.files.find((x) => x.file === "overlay.png") ?? null)
     : null;
-  // Unggahan ke R2 berjalan paralel (dulu berurutan, ±0,8 dtk per file); validasi tetap sebelum mulai.
-  const uploads: Promise<unknown>[] = [];
+  // Unggahan ke R2 berjalan paralel (dulu berurutan, ±0,8 dtk per file), dimulai SETELAH semua validasi lulus.
+  const uploads: (() => Promise<unknown>)[] = [];
   const file = form.get("overlay");
   if (file instanceof File && file.size > 0) {
     if (file.type !== "image/png") return { ok: false, message: "Overlay harus PNG transparan" };
     if (file.size > MAX_OVERLAY) return { ok: false, message: "Overlay maksimal 4 MB" };
-    uploads.push(
-      file.arrayBuffer().then(async (b) => {
-        overlay = await storeOverlay(orgId, eventId, new Uint8Array(b));
-      }),
-    );
+    uploads.push(async () => {
+      overlay = await storeOverlay(orgId, eventId, new Uint8Array(await file.arrayBuffer()));
+    });
   } else if (form.get("remove_overlay") === "on") overlay = null;
 
   // Gambar latar layar awal (#102): JPG/PNG ≤ 4 MB, file bundle attract.<ext>.
@@ -141,17 +139,10 @@ export async function saveEvent(
     // ponytail: batas request Vercel 4,5 MB; video lebih besar butuh unggah langsung ke R2 (URL bertanda tangan).
     if (bgFile.size > MAX_OVERLAY)
       return { ok: false, message: "Latar layar awal maksimal 4 MB (kompres video ±10 dtk 720p)" };
-    uploads.push(
-      bgFile.arrayBuffer().then(async (b) => {
-        attractImage = await storeBundleFile(
-          orgId,
-          eventId,
-          new Uint8Array(b),
-          `attract.${ext}`,
-          bgFile.type,
-        );
-      }),
-    );
+    uploads.push(async () => {
+      const b = new Uint8Array(await bgFile.arrayBuffer());
+      attractImage = await storeBundleFile(orgId, eventId, b, `attract.${ext}`, bgFile.type);
+    });
   } else if (form.get("remove_attract_image") === "on") attractImage = null;
   // Suara per event (#104): mati, atau file pengganti WAV/MP3 ≤ 1 MB (file bundle snd-<cue>.<ext>).
   const sounds: Partial<Record<SoundCue, SoundSetting>> = {};
@@ -170,21 +161,10 @@ export async function saveEvent(
       const ext = /wav/.test(up.type) ? "wav" : /mpeg|mp3/.test(up.type) ? "mp3" : null;
       if (!ext) return { ok: false, message: `Suara "${cue}" harus WAV atau MP3` };
       if (up.size > MAX_LOGO) return { ok: false, message: `Suara "${cue}" maksimal 1 MB` };
-      uploads.push(
-        up
-          .arrayBuffer()
-          .then(async (b) =>
-            setSound(
-              await storeBundleFile(
-                orgId,
-                eventId,
-                new Uint8Array(b),
-                `snd-${cue}.${ext}`,
-                up.type,
-              ),
-            ),
-          ),
-      );
+      uploads.push(async () => {
+        const b = new Uint8Array(await up.arrayBuffer());
+        setSound(await storeBundleFile(orgId, eventId, b, `snd-${cue}.${ext}`, up.type));
+      });
     } else setSound(keep);
   }
   const attract: AttractSettings = {
@@ -203,13 +183,9 @@ export async function saveEvent(
     if (logo.size > MAX_LOGO) return { ok: false, message: "Logo maksimal 1 MB" };
     const bytes = new Uint8Array(await logo.arrayBuffer());
     logoKey = `${orgId}/${eventId}/branding/${createHash("sha256").update(bytes).digest("hex")}.${ext}`;
-    uploads.push(putObject(logoKey, bytes, logo.type));
+    const key = logoKey;
+    uploads.push(() => putObject(key, bytes, logo.type));
   } else if (form.get("remove_logo") === "on") logoKey = undefined;
-  try {
-    await Promise.all(uploads);
-  } catch {
-    return { ok: false, message: "Gagal mengunggah file, coba lagi" };
-  }
 
   // Photobox (E3, DECISIONS #70/#108): tiap preset / template editor yang dicentang dijual dengan harganya sendiri.
   const layouts: PhotoboxLayoutSetting[] = [...form.keys()]
@@ -317,6 +293,15 @@ export async function saveEvent(
       ok: false,
       message: `Ukuran desain frame harus sama: ${paperLabel(resolved[0]?.paper as LayoutPaper)}`,
     };
+  // Pilihan booth divalidasi sebelum unggah & sebelum "Salin & sesuaikan" (tidak ada salinan yatim).
+  const allDevices = form.get("deviceScope") !== "pick";
+  if (!allDevices && !form.getAll("devices").length)
+    return { ok: false, message: "Centang minimal satu booth, atau pilih Semua booth." };
+  try {
+    await Promise.all(uploads.map((u) => u()));
+  } catch {
+    return { ok: false, message: "Gagal mengunggah file, coba lagi" };
+  }
   // "Salin & sesuaikan": salinan template/preset khusus event ini menggantikan sumbernya, lalu editor dibuka.
   let copied: string | null = null;
   if (copy.success) {
@@ -325,6 +310,12 @@ export async function saveEvent(
     if (!r) return { ok: false, message: "Gagal menyalin desain, coba lagi" };
     resolved[values.indexOf(copy.data)] = r;
   }
+  /** Salinan "Salin & sesuaikan" dibuang kalau simpan gagal setelahnya (tidak menumpuk template yatim). */
+  const dropCopy = async () => {
+    if (!copied) return;
+    await db.from("layout_versions").delete().eq("layout_id", copied).eq("organization_id", orgId);
+    await db.from("layouts").delete().eq("id", copied).eq("organization_id", orgId);
+  };
   const [main, ...rest] = resolved as [Resolved, ...Resolved[]];
   const custom = main.lv?.custom ?? null;
   const customName = main.lv?.name;
@@ -367,12 +358,9 @@ export async function saveEvent(
       sounds,
     });
   } catch {
+    await dropCopy();
     return { ok: false, message: "Template tidak valid" };
   }
-  // Booth: semua booth organisasi (bawaan) atau hanya yang dicentang (#127).
-  const allDevices = form.get("deviceScope") !== "pick";
-  if (!allDevices && !form.getAll("devices").length)
-    return { ok: false, message: "Centang minimal satu booth, atau pilih Semua booth." };
   const start = new Date(`${f.event_date}T00:00:00+07:00`).getTime();
   const guest = new Date(start + f.guest_days * DAY).toISOString();
   const client = new Date(start + f.client_days * DAY).toISOString();
@@ -402,7 +390,10 @@ export async function saveEvent(
     })
     .eq("id", eventId)
     .eq("organization_id", orgId);
-  if (error) return { ok: false, message: "Gagal menyimpan, coba lagi" };
+  if (error) {
+    await dropCopy();
+    return { ok: false, message: "Gagal menyimpan, coba lagi" };
+  }
 
   // Penugasan device: centang = ditugaskan (hanya device organisasi ini, RLS). Dipakai saat "Pilih booth";
   // disimpan juga saat "Semua booth" supaya pilihan lama kembali kalau diganti lagi.

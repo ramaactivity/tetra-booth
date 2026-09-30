@@ -79,7 +79,7 @@ export function GalleryView({
   const grid = filter === "original" || filter === "animation" ? GRID.photo : GRID.strip;
   // Slideshow (C1 "Putar Slideshow"): viewer maju sendiri tiap 4 dtk, berulang.
   useEffect(() => {
-    if (!playing || open === null) return;
+    if (!playing || open === null || !shown.length) return;
     const t = setTimeout(() => setOpen((open + 1) % shown.length), 4000);
     return () => clearTimeout(t);
   }, [playing, open, shown.length]);
@@ -88,6 +88,17 @@ export function GalleryView({
     window.addEventListener("scroll", on, { passive: true });
     return () => window.removeEventListener("scroll", on);
   }, []);
+  // Daftar menyusut saat viewer terbuka (mis. batal favorit di filter Favorit): pindah ke foto terakhir, atau
+  // tutup lewat history.back() supaya entri history viewer ikut hilang.
+  useEffect(() => {
+    if (open === null || open < shown.length) return;
+    if (shown.length) setOpen(shown.length - 1);
+    else {
+      history.back();
+      setOpen(null);
+      setPlaying(false);
+    }
+  }, [open, shown.length]);
   const cur = open !== null ? shown[open] : undefined;
   const act =
     "flex h-12 min-w-0 flex-1 flex-col items-center justify-center leading-tight md:flex-row md:gap-1.5";

@@ -5,15 +5,13 @@ import { apiError, authDevice, deviceEvents } from "@/lib/booth";
 export async function GET(req: Request) {
   const device = await authDevice(req);
   if (!device) return apiError("unauthorized", 401);
-  const events = await deviceEvents(device).catch(() => null);
+  const events = await deviceEvents(device, { bundled: true }).catch(() => null);
   if (!events) return apiError("server_error", 500);
   return Response.json({
-    events: events
-      .filter((e) => e.bundle !== null)
-      .map((e) => ({
-        id: e.id,
-        name: e.name,
-        bundleVersion: e.bundle_version,
-      })),
+    events: events.map((e) => ({
+      id: e.id,
+      name: e.name,
+      bundleVersion: e.bundle_version,
+    })),
   } satisfies BoothEventsResponse);
 }

@@ -201,8 +201,10 @@ export function CameraCheck({
   const applySettings = async (t: TestShot) => {
     try {
       const set = (n: string, v?: string) => (v ? p.crew.setCameraProp(n, v) : Promise.resolve());
-      await set("iso_capture", t.s.iso);
-      await set("shutter_capture", t.s.shutter);
+      // ISO/shutter jepret hanya ada di Canon EDSDK; digiCamControl memakai setelan kamera langsung.
+      const names = new Set((await p.crew.cameraProps()).map((x) => x.name));
+      await set(names.has("iso_capture") ? "iso_capture" : "iso", t.s.iso);
+      await set(names.has("shutter_capture") ? "shutter_capture" : "shutterspeed", t.s.shutter);
       await set("aperture", t.s.aperture);
       await set("whitebalance", t.s.wb);
       setPropsRun((n) => n + 1);

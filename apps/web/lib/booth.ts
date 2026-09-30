@@ -35,16 +35,25 @@ export async function authDevice(req: Request): Promise<Device | null> {
  * Event yang boleh dipakai device ini (DECISIONS #127): satu organisasi, tidak diarsip, dan `all_devices`
  * (bawaan) atau device ditugaskan di event_devices. `eventId` kosong = semua event yang boleh.
  */
-export async function deviceEvents(device: Device, eventId?: string) {
+export async function deviceEvents(
+  device: Device,
+  opts: {
+    eventId?: string;
+    /** Sesi yang dipotret offline tetap boleh terkirim walau event diarsip setelahnya (sync idempotent). */
+    includeArchived?: boolean;
+    /** Hanya event yang sudah punya bundle (daftar event booth). */
+    bundled?: boolean;
+  } = {},
+) {
   const db = createServiceClient();
+  // Kolom ringan saja (bundle JSON diambil terpisah oleh route bundle), dipakai tiap polling booth.
   let q = db
     .from("events")
-    .select(
-      "id, name, mode, settings, bundle_version, bundle, all_devices, event_devices(device_id)",
-    )
-    .eq("organization_id", device.organizationId)
-    .neq("status", "archived");
-  if (eventId) q = q.eq("id", eventId);
+    .select("id, name, mode, settings, bundle_version, all_devices, event_devices(device_id)")
+    .eq("organization_id", device.organizationId);
+  if (!opts.includeArchived) q = q.neq("status", "archived");
+  if (opts.bundled) q = q.not("bundle", "is", null);
+  if (opts.eventId) q = q.eq("id", opts.eventId);
   const { data, error } = await q;
   if (error) throw error;
   return data.filter(

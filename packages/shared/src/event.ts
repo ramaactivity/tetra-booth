@@ -110,8 +110,11 @@ export const EventBundleSchema = z
     layout: LayoutSpecSchema,
     mode: z.enum(["event", "photobox"]).default("event"),
     photobox: PhotoboxSchema.optional(),
-    /** Mode event: 2–3 desain dipilih tamu sebelum foto; yang pertama = `layout`. Tanpa ini = satu desain. */
-    designs: z.array(EventDesignSchema).min(2).max(3).optional(),
+    /**
+     * Mode event: desain dipilih tamu sebelum foto; yang pertama = `layout`. Admin kini membatasi 3 (#125), tapi
+     * booth tetap menerima sampai 5 supaya bundle lama (≤ 5, #99) tidak ditolak setelah booth update.
+     */
+    designs: z.array(EventDesignSchema).min(2).max(5).optional(),
     attract: AttractSchema.optional(),
     /** Per suara (#104): "off" = dimatikan, selain itu assetId file pengganti; tidak ada = suara bawaan booth. */
     sounds: z.partialRecord(z.enum(SOUND_CUES), z.string().min(1).max(64)).optional(),

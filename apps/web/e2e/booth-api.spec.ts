@@ -144,6 +144,13 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
       expect(
         (await request.post("/api/booth/sessions", { headers: auth, data: session })).status(),
       ).toBe(200);
+    // Event diarsip setelah sesi dipotret offline: sesi tetap diterima (sync idempotent), event hilang dari daftar.
+    await db.from("events").update({ status: "archived" }).eq("id", eventId);
+    expect(
+      (await request.post("/api/booth/sessions", { headers: auth, data: session })).status(),
+    ).toBe(200);
+    expect(await listed()).toEqual([]);
+    await db.from("events").update({ status: "draft" }).eq("id", eventId);
     expect(
       (
         await request.post("/api/booth/sessions", {
