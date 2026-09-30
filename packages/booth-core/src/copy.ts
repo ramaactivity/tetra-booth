@@ -124,7 +124,7 @@ export const copy = {
     admin: "Dashboard Admin",
     edit: "Edit",
     editHint:
-      "Edit membuka pengaturan event di admin (browser). Setelah disimpan, tekan Sync dari Cloud.",
+      "Edit membuka pengaturan event di admin (browser). Setelah disimpan, tekan Ambil event terbaru.",
     sub: "Tentukan mode dulu, lalu pilih event.",
     mode: { event: "Mode Event", photobox: "Mode Photobox" },
     modeSub: {
@@ -135,7 +135,7 @@ export const copy = {
     back: "Ganti mode",
     pickEvent: "pilih event",
     empty:
-      "Belum ada event untuk mode ini di booth. Buat event di admin (booth.tetraphoto.com/admin), tugaskan ke booth ini, lalu Sync dari Cloud.",
+      "Belum ada event untuk mode ini di booth. Buat event di admin (booth.tetraphoto.com/admin), tugaskan ke booth ini, lalu Ambil event terbaru.",
     crew: "Mode Crew",
     backToCrew: "Kembali ke Mode Crew",
   },
@@ -147,7 +147,7 @@ export const copy = {
       event: "Event & Desain",
       system: "Sistem",
     },
-    toGuest: "Keluar ke Mode Tamu",
+    toGuest: "Buka untuk Tamu",
     camera: "Kamera",
     cameraService: "Layanan kamera",
     connected: "Terhubung",
@@ -160,7 +160,7 @@ export const copy = {
     designTitle: "Desain frame & layar awal",
     designAdmin: "Buka di admin",
     designNote:
-      "Editor desain langsung di booth sedang disiapkan. Sementara ini dibuka di admin (browser, butuh internet & login), lalu tekan Sync dari Cloud.",
+      "Editor desain langsung di booth sedang disiapkan. Sementara ini dibuka di admin (browser, butuh internet & login), lalu tekan Ambil event terbaru.",
     cloudTitle: "Cloud & perangkat",
     appTitle: "Aplikasi",
     title: "Mode Crew",
@@ -263,7 +263,7 @@ export const copy = {
     changedHereBadge: "Pengaturan diubah di booth",
     resetToCloud: "Kembalikan ke cloud",
     eventSettingsNote:
-      "Hanya berlaku di booth ini. Sync dari Cloud tidak menimpanya. Template & harga diatur di admin.",
+      "Hanya berlaku di booth ini. Ambil event terbaru tidak menimpanya. Template & harga diatur di admin.",
     eventSettingsSaved: "Pengaturan event disimpan di booth",
     eventSettingsReset: "Pengaturan event kembali ke cloud",
     deviceCamera: "Kamera",
@@ -345,7 +345,7 @@ export const copy = {
       openHint: "Layar tamu tampil. Masuk lagi ke sini: tahan logo 2 detik.",
       more: "Lainnya",
     },
-    syncEvents: "Sync dari Cloud",
+    syncEvents: "Ambil event terbaru",
     syncing: "Mengunduh event dari cloud…",
     synced: (n: number) => (n ? `${n} event diperbarui` : "Event sudah terbaru"),
   },

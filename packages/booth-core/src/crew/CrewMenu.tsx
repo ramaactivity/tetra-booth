@@ -524,9 +524,14 @@ export function CrewMenu({
             onOpen={() => setSection("printer")}
           >
             <div className={big}>±{status?.paper.remaining ?? "…"}</div>
-            <div className={`${sub} truncate ${paperLow ? "text-coral-strong" : ""}`}>
+            <div className={`${sub} truncate`}>
               {status ? copy.crew.paper(status.paper.remaining, status.paper.capacity) : "…"}
             </div>
+            {paperLow && (
+              <span className="mt-2 inline-block">
+                <Pill tone="peach">{copy.crew.paperLow}</Pill>
+              </span>
+            )}
           </Tile>
           <Tile
             icon={ArrowUpDown}
@@ -577,9 +582,9 @@ export function CrewMenu({
     printer: (
       <>
         <Group title={copy.crew.printerTitle} pill={printerPill}>
-          <p className={`col-span-full text-2xl font-bold ${paperLow ? "text-coral-strong" : ""}`}>
+          <p className="col-span-full flex flex-wrap items-center gap-3 text-2xl font-bold">
             {status ? copy.crew.paper(status.paper.remaining, status.paper.capacity) : "…"}
-            {paperLow && ` · ${copy.crew.paperLow}`}
+            {paperLow && <Pill tone="peach">{copy.crew.paperLow}</Pill>}
             {status?.printer.message && ` · ${status.printer.message}`}
           </p>
           <Button variant="plain" className={action} onClick={doTestPrint}>
@@ -739,6 +744,7 @@ export function CrewMenu({
         ))}
         <Button
           className="mt-auto h-[92px] gap-2 rounded-[20px] px-4 text-xl [--lx:7px] [--under:#fff] portrait:mt-0"
+          data-testid="to-guest"
           onClick={onClose}
         >
           {copy.crew.toGuest} <ArrowRight size={24} strokeWidth={2.5} />

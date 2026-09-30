@@ -34,7 +34,7 @@ export function StartScreen({
   bundles: EventBundle[];
   activeId: string;
   onPick: (id: string) => void;
-  /** Ada = booth sudah dipasangkan & crew sudah masuk: tombol Sync dari Cloud. */
+  /** Ada = booth sudah dipasangkan & crew sudah masuk: tombol Ambil event terbaru. */
   onSync?: () => Promise<number>;
   /** Buka mode crew (PIN) dari layar awal. */
   onCrew: () => void;

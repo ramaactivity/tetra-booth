@@ -83,13 +83,14 @@ export function DigitPad({
                 (masked ? <span className="size-5 rounded-full bg-ink" /> : value[i])}
             </span>
           ))}
-          <p
-            className="absolute inset-x-[-200px] top-full mt-2 text-center text-xl font-semibold text-text-2"
-            role="status"
-          >
-            {status}
-          </p>
         </div>
+        {/* Di bawah kotak digit, bukan absolute: pesan terkunci 2 baris dulu menimpa baris keypad (audit #12). */}
+        <p
+          className="-mt-4 min-h-[56px] max-w-[560px] text-center text-xl font-semibold text-text-2"
+          role="status"
+        >
+          {status}
+        </p>
         <div className="grid grid-cols-[repeat(3,140px)] gap-[18px]">
           {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map(digit)}
           <button type="button" className={`${key} bg-paper! text-2xl!`} onClick={onCancel}>
