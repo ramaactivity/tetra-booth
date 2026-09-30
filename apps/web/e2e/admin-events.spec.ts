@@ -67,6 +67,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
       buffer: Buffer.from("RIFF0000WAVEfmt "),
     });
     await page.getByLabel("Maks. cetak per sesi").fill("3");
+    await page.getByLabel(/Pilih booth/).check();
     await page.getByLabel(dev?.name ?? "").check();
     await page.getByRole("button", { name: "Simpan" }).click();
     await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v2", {

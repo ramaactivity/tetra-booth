@@ -47,7 +47,9 @@ export default async function EventsPage({
   const { db, orgId } = await requireMember();
   const { data } = await db
     .from("events")
-    .select("id, name, event_date, mode, purge_at, event_devices(devices(name)), sessions(count)")
+    .select(
+      "id, name, event_date, mode, purge_at, all_devices, event_devices(devices(name)), sessions(count)",
+    )
     .eq("organization_id", orgId)
     .neq("status", "archived")
     .order("event_date", { ascending: false });
@@ -103,7 +105,9 @@ export default async function EventsPage({
                 </span>
               </span>
               <span className="truncate text-text-3">
-                {e.event_devices.map((d) => d.devices.name).join(", ") || "—"}
+                {e.all_devices
+                  ? "Semua booth"
+                  : e.event_devices.map((d) => d.devices.name).join(", ") || "—"}
               </span>
               <span className="font-mono text-[13px]">{e.sessions[0]?.count ?? 0}</span>
               <span>

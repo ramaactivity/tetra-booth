@@ -300,6 +300,7 @@ export type Database = {
       }
       events: {
         Row: {
+          all_devices: boolean
           branding: NonNullable<Json>
           bundle: Json | null
           bundle_version: number
@@ -325,6 +326,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          all_devices?: boolean
           branding?: NonNullable<Json>
           bundle?: Json | null
           bundle_version?: number
@@ -350,6 +352,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          all_devices?: boolean
           branding?: NonNullable<Json>
           bundle?: Json | null
           bundle_version?: number

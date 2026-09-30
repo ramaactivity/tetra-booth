@@ -75,7 +75,7 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
     expect(row).toMatchObject({ app_version: "0.0.1-e2e", status: { printer: "ok" } });
     expect(row?.last_seen_at).toBeTruthy();
 
-    // N3: event bertanda bundle yang ditugaskan → daftar + manifest; event lain → 404.
+    // N3: event "pilih booth" hanya untuk device yang ditugaskan; "semua booth" (#127) untuk semua device.
     const { data: ev } = await db
       .from("events")
       .insert({
@@ -83,6 +83,7 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
         name: "e2e event",
         mode: "event",
         event_date: "2026-10-12",
+        all_devices: false,
         bundle_version: 2,
         bundle: {
           config: { name: "e2e event" },
@@ -92,15 +93,23 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
       .select("id")
       .single();
     eventId = ev?.id ?? "";
+    const listed = async () =>
+      (
+        (await (await request.get("/api/booth/events", { headers: auth })).json()).events as {
+          id: string;
+        }[]
+      ).filter((e) => e.id === eventId);
+    expect(await listed()).toEqual([]);
     expect(
-      (await (await request.get("/api/booth/events", { headers: auth })).json()).events,
-    ).toEqual([]);
+      (await request.get(`/api/booth/events/${eventId}/bundle`, { headers: auth })).status(),
+    ).toBe(404);
+    await db.from("events").update({ all_devices: true }).eq("id", eventId);
+    expect(await listed()).toHaveLength(1);
+    await db.from("events").update({ all_devices: false }).eq("id", eventId);
     await db
       .from("event_devices")
       .insert({ organization_id: org?.id ?? "", event_id: eventId, device_id: deviceId });
-    expect(
-      (await (await request.get("/api/booth/events", { headers: auth })).json()).events,
-    ).toEqual([{ id: eventId, name: "e2e event", bundleVersion: 2 }]);
+    expect(await listed()).toEqual([{ id: eventId, name: "e2e event", bundleVersion: 2 }]);
     const m = await (
       await request.get(`/api/booth/events/${eventId}/bundle`, { headers: auth })
     ).json();

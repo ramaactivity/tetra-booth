@@ -33,7 +33,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, event_devices(device_id)",
+      "id, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, all_devices, event_devices(device_id)",
     )
     .eq("id", id)
     .eq("organization_id", orgId)
@@ -178,6 +178,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           guest_days: raw.guestDays ?? 30,
           client_days: raw.clientDays ?? 90,
           devices: (devices ?? []).map((d) => ({ ...d, assigned: assigned.has(d.id) })),
+          allDevices: ev.all_devices,
         }}
       />
       <LinksPanel
