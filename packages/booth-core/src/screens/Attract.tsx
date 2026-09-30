@@ -1,6 +1,6 @@
 import { Button } from "@tetra/ui";
 import { ArrowRight } from "lucide-react";
-import { type CSSProperties, useEffect, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { createTapDetector } from "../crew/taps";
 import type { BoothEvent } from "../event";
@@ -11,11 +11,42 @@ export const START_GUARD_MS = 800;
 /** Tahan logo selama ini untuk membuka mode crew. */
 export const LOGO_HOLD_MS = 2000;
 
-/** Ukuran judul menurut panjang nama event, supaya kolom kiri muat di bawah logo (maks ±3 baris). */
+/** Ukuran awal judul menurut panjang nama event, supaya kolom kiri muat di bawah logo (maks ±3 baris). */
 function titleSize(name: string) {
-  if (name.length <= 11) return "text-[176px]";
-  if (name.length <= 18) return "text-[132px]";
-  return "text-[100px]";
+  if (name.length <= 11) return 176;
+  if (name.length <= 18) return 132;
+  return 100;
+}
+const TITLE_MIN = 56;
+const TITLE_LINES = 3;
+
+/**
+ * Kecilkan judul sampai setiap kata muat utuh dan paling banyak 3 baris. Kata tidak pernah dipotong di
+ * tengah (Rama 2026-09-30: "Captain barbersho/p"); ukuran dihitung ulang setelah font termuat.
+ */
+function useFitTitle(name: string) {
+  const ref = useRef<HTMLHeadingElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      let px = titleSize(name);
+      const fits = () =>
+        el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= px * 0.92 * TITLE_LINES + 2;
+      for (;;) {
+        el.style.fontSize = `${px}px`;
+        if (px <= TITLE_MIN || fits()) break;
+        px = Math.max(TITLE_MIN, px - 6);
+      }
+    };
+    fit();
+    let live = true;
+    document.fonts?.ready.then(() => live && fit());
+    return () => {
+      live = false;
+    };
+  }, [name]);
+  return ref;
 }
 
 // Kolom strip contoh di kanan: offset vertikal & warna lapisan belakang per strip (A1).
@@ -70,7 +101,7 @@ export function Attract({
     const t = setTimeout(() => setReady(true), START_GUARD_MS);
     return () => clearTimeout(t);
   }, []);
-  const size = titleSize(eventName);
+  const titleRef = useFitTitle(eventName);
 
   // Jalan lain ke mode crew selain 5 ketukan pojok (UX, masukan Rama): tahan logo 2 detik, atau Ctrl+Shift+M
   // di keyboard laptop. Hanya di layar ini, jadi sesi tamu tidak pernah terpotong.
@@ -220,8 +251,9 @@ export function Attract({
           </span>
         )}
         <h1
+          ref={titleRef}
           style={rise(150)}
-          className={`${size} max-w-[680px] leading-[0.92] font-extrabold tracking-[-0.05em] break-words`}
+          className="max-w-[680px] overflow-hidden leading-[0.92] font-extrabold tracking-[-0.05em] [overflow-wrap:normal]"
         >
           {eventName}
         </h1>

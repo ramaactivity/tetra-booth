@@ -219,8 +219,6 @@ function Step({
   );
 }
 
-const link = "pressable flex min-h-12 items-center gap-2 font-bold";
-
 const big = "block text-[44px] leading-none font-extrabold tracking-[-0.03em]";
 const sub = "mt-2 block text-lg font-semibold text-text-2";
 

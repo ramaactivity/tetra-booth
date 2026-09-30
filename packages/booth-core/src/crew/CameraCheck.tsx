@@ -234,7 +234,6 @@ export function CameraCheck({
           overlay={guides ? { grid: true, safe: SAFE } : undefined}
         />
         {p.crew.focusAt && (
-          // biome-ignore lint/a11y/noStaticElementInteractions: area ketuk live view (crew, layar sentuh)
           <div
             data-testid="tap-focus"
             className="absolute inset-0"
