@@ -16,6 +16,7 @@ public static class CanonProps
         bool Virtual = false);
 
     public const uint IsoProp = 0x00000402;
+    public const uint ShutterProp = 0x00000406;
     /// <summary>"ISO jepret" = ISO live view (tanpa penukaran).</summary>
     public const uint SameAsLive = 0xFFFFFFFE;
     public const string SameAsLiveLabel = "Sama dengan live view";
@@ -235,4 +236,17 @@ public static class CanonProps
         IsoProp,
         new Dictionary<uint, string>(All[0].Values) { [SameAsLive] = SameAsLiveLabel },
         Virtual: true);
+
+    /// <summary>
+    /// Shutter jepret (usul Rama, W-034): live view boleh lambat supaya layar terang, foto tetap cepat supaya tidak blur.
+    /// </summary>
+    public static readonly Def ShutterCapture = new(
+        "shutter_capture",
+        "Shutter jepret",
+        ShutterProp,
+        new Dictionary<uint, string>(All.First(d => d.PropId == ShutterProp).Values) { [SameAsLive] = SameAsLiveLabel },
+        Virtual: true);
+
+    /// <summary>Setelan virtual yang hanya dipasang selama rana (ISO jepret, shutter jepret).</summary>
+    public static readonly Def[] CaptureOverrides = [IsoCapture, ShutterCapture];
 }

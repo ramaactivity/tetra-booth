@@ -448,10 +448,10 @@ export function registerIpc(
     const base = dccBase();
     // Canon punya setelan tambahan: ISO jepret (flash) & kualitas JPEG (#113).
     const n = z
-      .enum([...CAMERA_PROPS.map(([k]) => k), ...(canonOn ? ["iso_capture", "quality"] : [])] as [
-        string,
-        ...string[],
-      ])
+      .enum([
+        ...CAMERA_PROPS.map(([k]) => k),
+        ...(canonOn ? ["iso_capture", "shutter_capture", "quality"] : []),
+      ] as [string, ...string[]])
       .parse(name);
     const v = z.string().min(1).max(64).parse(value);
     if (canonOn) {

@@ -48,6 +48,7 @@ public sealed class FakeCanonDriver : ICanonDriver
         if (!IsOpen) throw new CameraFailure("camera_disconnected", "kamera terputus saat jepret");
         Captures++;
         IsoAtCapture.Add(Props[0x402]);
+        ShutterAtCapture.Add(Props[0x406]);
         return Jpeg;
     }
 
@@ -61,6 +62,7 @@ public sealed class FakeCanonDriver : ICanonDriver
         new() { [0x402] = 0x48, [0x406] = 0x70, [0x405] = 0x30, [0x106] = 0, [0x100] = 0x0013FF0F, [Edsdk.PropBatteryLevel] = 80 };
     /// <summary>ISO yang terpasang tepat saat tiap jepret (uji ISO jepret #113).</summary>
     public List<uint> IsoAtCapture { get; } = [];
+    public List<uint> ShutterAtCapture { get; } = [];
     private static readonly Dictionary<uint, uint[]> Options = new()
     {
         [0x402] = [0x48, 0x50, 0x58, 0x60, 0x68],

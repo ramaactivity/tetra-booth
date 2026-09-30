@@ -28,8 +28,8 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     private volatile bool _live, _stop;
     private volatile byte[]? _frame;
     private (string Model, string Serial)? _info;
-    /// <summary>ISO jepret (#113); null = sama dengan live view.</summary>
-    private volatile string? _isoCapture;
+    /// <summary>ISO jepret (#113) & shutter jepret: nama setelan → label; tidak ada = sama dengan live view.</summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _atCapture = new();
     /// <summary>File setelan crew (nama → label); dipasang ulang tiap kamera tersambung (#113).</summary>
     private readonly string? _settingsPath;
     private readonly Dictionary<string, string> _saved;
@@ -45,7 +45,8 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     {
         _settingsPath = settingsPath;
         _saved = Load(settingsPath);
-        if (_saved.TryGetValue(CanonProps.IsoCapture.Name, out var ic)) _isoCapture = ic;
+        foreach (var o in CanonProps.CaptureOverrides)
+            if (_saved.TryGetValue(o.Name, out var v) && v != CanonProps.SameAsLiveLabel) _atCapture[o.Name] = v;
         _driver = driver;
         _reconnect = reconnect ?? TimeSpan.FromSeconds(2);
         _frameEvery = frameEvery ?? TimeSpan.FromMilliseconds(33);
@@ -151,18 +152,30 @@ public sealed class CanonCamera : ICameraSource, IDisposable
         return new CaptureResult(dst, dims.Width, dims.Height);
     }
 
-    /// <summary>Jepret; kalau ISO jepret beda dari ISO live view, tukar sebentar lalu kembalikan (flash, #113).</summary>
+    /// <summary>
+    /// Jepret; ISO/shutter jepret yang beda dari live view ditukar sebentar lalu dikembalikan (flash #113, shutter W-034).
+    /// </summary>
     private byte[] CaptureWithIso()
     {
-        var label = _isoCapture;
-        uint? want = label is null
-            ? null
-            : CanonProps.IsoCapture.Values.Where(kv => kv.Value == label).Select(kv => (uint?)kv.Key).FirstOrDefault();
-        uint live = 0;
-        var swap = want is { } w && w != CanonProps.SameAsLive && (live = _driver.GetProp(CanonProps.IsoProp)) != w;
-        if (swap) _driver.SetProp(CanonProps.IsoProp, want!.Value);
-        try { return _driver.Capture(CaptureTimeout); }
-        finally { if (swap) _driver.SetProp(CanonProps.IsoProp, live); }
+        var restore = new List<(uint Prop, uint Live)>();
+        try
+        {
+            foreach (var o in CanonProps.CaptureOverrides)
+            {
+                if (!_atCapture.TryGetValue(o.Name, out var label)) continue;
+                var want = o.Values.Where(kv => kv.Value == label).Select(kv => (uint?)kv.Key).FirstOrDefault();
+                if (want is not { } w || w == CanonProps.SameAsLive) continue;
+                var live = _driver.GetProp(o.PropId);
+                if (live == w) continue;
+                _driver.SetProp(o.PropId, w);
+                restore.Add((o.PropId, live));
+            }
+            return _driver.Capture(CaptureTimeout);
+        }
+        finally
+        {
+            for (var i = restore.Count - 1; i >= 0; i--) _driver.SetProp(restore[i].Prop, restore[i].Live);
+        }
     }
 
     public async Task<bool> StartLiveViewAsync()
@@ -199,11 +212,6 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     public async Task<IReadOnlyList<CameraProp>> PropsAsync()
     {
         if (!Connected) return [];
-        var capture = new CameraProp(
-            CanonProps.IsoCapture.Name,
-            CanonProps.IsoCapture.Label,
-            _isoCapture ?? CanonProps.SameAsLiveLabel,
-            []);
         var list = await Run(() => CanonProps.All.Select(d =>
         {
             try
@@ -214,9 +222,17 @@ public sealed class CanonCamera : ICameraSource, IDisposable
             }
             catch (CameraFailure) { return null; }
         }).OfType<CameraProp>().ToList());
-        // ISO jepret memakai pilihan ISO yang sama dengan kamera, ditambah "Sama dengan live view".
-        if (list.FirstOrDefault(p => p.Name == "iso") is { } iso)
-            list.Insert(1, capture with { Options = [CanonProps.SameAsLiveLabel, .. iso.Options] });
+        // ISO/shutter jepret memakai pilihan kamera yang sama, ditambah "Sama dengan live view", tepat di bawahnya.
+        foreach (var o in CanonProps.CaptureOverrides)
+        {
+            var i = list.FindIndex(p => p.Name == CanonProps.All.First(d => d.PropId == o.PropId).Name);
+            if (i < 0) continue;
+            list.Insert(i + 1, new CameraProp(
+                o.Name,
+                o.Label,
+                _atCapture.GetValueOrDefault(o.Name, CanonProps.SameAsLiveLabel),
+                [CanonProps.SameAsLiveLabel, .. list[i].Options]));
+        }
         // Baterai: hanya dibaca (tanpa pilihan), terbaca tiap sheet crew dibuka. 0xFFFFFFFF = adaptor AC.
         try
         {
@@ -229,12 +245,13 @@ public sealed class CanonCamera : ICameraSource, IDisposable
 
     public async Task SetPropAsync(string name, string value)
     {
-        // ISO jepret tidak dikirim ke kamera saat diubah: boleh diset kapan saja.
-        if (name == CanonProps.IsoCapture.Name)
+        // ISO/shutter jepret tidak dikirim ke kamera saat diubah: boleh diset kapan saja.
+        if (CanonProps.CaptureOverrides.FirstOrDefault(o => o.Name == name) is { } ov)
         {
-            if (!CanonProps.IsoCapture.Values.Values.Contains(value))
-                throw new CameraFailure("bad_prop", $"nilai '{value}' tidak dikenal untuk ISO jepret");
-            _isoCapture = value == CanonProps.SameAsLiveLabel ? null : value;
+            if (!ov.Values.Values.Contains(value))
+                throw new CameraFailure("bad_prop", $"nilai '{value}' tidak dikenal untuk {ov.Label}");
+            if (value == CanonProps.SameAsLiveLabel) _atCapture.TryRemove(name, out _);
+            else _atCapture[name] = value;
             Save(name, value);
             return;
         }
@@ -246,7 +263,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     /// <summary>Pasang satu setelan ke kamera (thread SDK). Label tak dikenal = CameraFailure.</summary>
     private void ApplyProp(string name, string value)
     {
-        if (name == CanonProps.IsoCapture.Name) return; // virtual, dipakai saat jepret
+        if (CanonProps.CaptureOverrides.Any(o => o.Name == name)) return; // virtual, dipakai saat jepret
         var d = CanonProps.All.FirstOrDefault(x => x.Name == name)
             ?? throw new CameraFailure("bad_prop", $"setelan '{name}' tidak dikenal");
         var code = d.Values.Where(kv => kv.Value == value).Select(kv => (uint?)kv.Key).FirstOrDefault()

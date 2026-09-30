@@ -92,17 +92,18 @@ public class CanonCameraTests
         using var cam = Make(d);
         await Until(() => cam.Connected);
         var props = await cam.PropsAsync();
-        Assert.Equal(["iso", "iso_capture", "shutterspeed", "aperture", "whitebalance", "quality", "battery"], props.Select(p => p.Name));
+        Assert.Equal(["iso", "iso_capture", "shutterspeed", "shutter_capture", "aperture", "whitebalance", "quality", "battery"], props.Select(p => p.Name));
         var iso = props[0];
         Assert.Equal("ISO 100", iso.Value);
         Assert.Equal(["ISO 100", "ISO 200", "ISO 400", "ISO 800", "ISO 1600"], iso.Options);
         Assert.Equal("Sama dengan live view", props[1].Value);
         Assert.Equal("1/125", props[2].Value);
-        Assert.Equal("f/5.6", props[3].Value);
-        Assert.Equal("Auto", props[4].Value);
-        Assert.Equal("JPEG L Fine", props[5].Value);
-        Assert.Equal("80%", props[6].Value);
-        Assert.Empty(props[6].Options);
+        Assert.Equal("Sama dengan live view", props[3].Value);
+        Assert.Equal("f/5.6", props[4].Value);
+        Assert.Equal("Auto", props[5].Value);
+        Assert.Equal("JPEG L Fine", props[6].Value);
+        Assert.Equal("80%", props[7].Value);
+        Assert.Empty(props[7].Options);
         await cam.SetPropAsync("quality", "JPEG S1 Fine");
         Assert.Equal(0x0E13FF0Fu, d.Props[0x100]);
         await cam.SetPropAsync("iso", "ISO 800");
@@ -129,6 +130,31 @@ public class CanonCameraTests
         await cam.SetPropAsync("iso_capture", "Sama dengan live view");
         await cam.CaptureAsync(dir, 1);
         Assert.Equal([0x50u, 0x60u], d.IsoAtCapture);
+    }
+
+    [Fact]
+    public async Task Shutter_jepret_dipasang_saat_rana_bersama_ISO_lalu_keduanya_dikembalikan()
+    {
+        var d = new FakeCanonDriver();
+        using var cam = Make(d);
+        await Until(() => cam.Connected);
+        await cam.SetPropAsync("shutterspeed", "1/30");
+        await cam.SetPropAsync("shutter_capture", "1/125");
+        await cam.SetPropAsync("iso", "ISO 800");
+        await cam.SetPropAsync("iso_capture", "ISO 200");
+        var dir = Path.Combine(Path.GetTempPath(), $"tc-sh-{Guid.NewGuid():N}");
+        await cam.CaptureAsync(dir, 0);
+        Assert.Equal([0x70u], d.ShutterAtCapture);
+        Assert.Equal([0x50u], d.IsoAtCapture);
+        Assert.Equal(0x60u, d.Props[0x406]); // kembali ke shutter live view
+        Assert.Equal(0x60u, d.Props[0x402]);
+        var sh = (await cam.PropsAsync()).Single(p => p.Name == "shutter_capture");
+        Assert.Equal("1/125", sh.Value);
+        Assert.Equal("Sama dengan live view", sh.Options[0]);
+        await cam.SetPropAsync("shutter_capture", "Sama dengan live view");
+        await cam.CaptureAsync(dir, 1);
+        Assert.Equal([0x70u, 0x60u], d.ShutterAtCapture);
+        await Assert.ThrowsAsync<CameraFailure>(() => cam.SetPropAsync("shutter_capture", "1/7"));
     }
 
     [Fact]
