@@ -3,6 +3,7 @@ import { Minus, Plus, Sparkle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { rupiah } from "../format";
+import { PhotoboxSteps } from "./LayoutSelect";
 
 /** Tamu pergi tanpa memilih (M-019): tanpa sentuhan selama ini → event: QR tanpa cetak; photobox: cetak 1 yang sudah dibayar. */
 export const PRINT_SELECT_IDLE_MS = 30_000;
@@ -44,14 +45,18 @@ export function PrintSelect({
         />
       </section>
       <section
-        className={`flex flex-col justify-center px-[110px] portrait:px-16 portrait:py-10 ${photobox ? "gap-7 py-12" : "gap-10 py-20"}`}
+        className={`flex flex-col justify-center px-[110px] portrait:px-16 portrait:py-10 ${photobox ? "gap-6 pt-[150px] pb-12" : "gap-10 py-20"}`}
       >
-        <span
-          className={`self-start rounded-full border-2 border-ink px-[18px] py-2 text-xl font-bold ${photobox ? "bg-lavender" : "bg-mint-soft"}`}
+        {photobox ? (
+          <PhotoboxSteps current={3} />
+        ) : (
+          <span className="self-start rounded-full border-2 border-ink bg-mint-soft px-[18px] py-2 text-xl font-bold">
+            {copy.print.mode}
+          </span>
+        )}
+        <h1
+          className={`leading-none font-extrabold tracking-[-0.04em] ${photobox ? "text-[68px]" : "max-w-[9ch] text-[80px]"}`}
         >
-          {photobox ? copy.photobox.mode : copy.print.mode}
-        </span>
-        <h1 className="max-w-[9ch] text-[80px] leading-none font-extrabold tracking-[-0.04em]">
           {copy.print.title}
         </h1>
         <div className="layered flex items-center self-start rounded-[32px] border-[2.5px] border-ink bg-white">
@@ -95,20 +100,22 @@ export function PrintSelect({
                 <span data-testid="extra-total">{rupiah((n - 1) * extraPrice)}</span>
               </div>
             </div>
+            {/* Satu aksi utama: 1 lembar (sudah dibayar) = cetak langsung; tambah lembar = bayar tambahan. */}
             <div className="flex gap-6">
-              <Button
-                variant="secondary"
-                className="h-[116px] flex-1 rounded-[26px] text-[32px]"
-                onClick={() => onSelect(1)}
-              >
-                {copy.photobox.printOne}
-              </Button>
+              {n > 1 && (
+                <Button
+                  variant="secondary"
+                  className="h-[116px] flex-1 rounded-[26px] text-[30px]"
+                  onClick={() => onSelect(1)}
+                >
+                  {copy.photobox.printOne}
+                </Button>
+              )}
               <Button
                 className="h-[116px] flex-[1.4] rounded-[26px] text-[34px]"
-                disabled={n <= 1}
                 onClick={() => onSelect(n)}
               >
-                {copy.photobox.payPrint}
+                {n > 1 ? copy.photobox.payPrint : copy.photobox.printPaid}
               </Button>
             </div>
           </>

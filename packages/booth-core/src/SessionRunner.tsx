@@ -401,7 +401,7 @@ export function SessionRunner({
       {s.deadline !== null && TIMED.has(s.phase) && (
         <span
           data-testid="time-left"
-          className="absolute top-[52px] right-[72px] z-10 rounded-full bg-ink px-8 py-4 font-mono text-[30px] font-bold text-white"
+          className={`absolute top-[52px] right-[72px] z-10 rounded-full border-[2.5px] border-ink px-8 py-4 font-mono text-[30px] font-bold ${s.deadline - now <= 60_000 ? "bg-peach" : "bg-white"}`}
         >
           {copy.photobox.timeLeft} {mmss(s.deadline - now)}
         </span>
@@ -529,6 +529,7 @@ export function SessionRunner({
             photoUrl={s.photos.find((x) => x)?.url ?? ""}
             filters={cfg.filters}
             onChoose={(filter) => dispatch({ type: "FILTER_CHOSEN", filter })}
+            onBack={() => dispatch({ type: "BACK" })}
           />
         );
       case "review":

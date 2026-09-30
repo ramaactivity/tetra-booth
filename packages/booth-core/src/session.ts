@@ -161,6 +161,8 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
         ? { ...s, phase: "payment", layoutId: e.layoutId, paying: { for: "package" } }
         : s;
     case "BACK":
+      // Pilih layout → layar awal; pilih filter → kembali ke cek foto (masih bisa ulang foto).
+      if (s.phase === "filter") return { ...s, phase: "review" };
       return s.phase === "layout_select" ? initialSession : s;
     case "PAID":
       if (s.phase !== "payment" || !s.paying) return s;

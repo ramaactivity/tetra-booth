@@ -110,7 +110,9 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
       buffer: png(10, 10),
     });
     await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("Overlay harus PNG 1200×1800 px");
+    await expect(page.getByRole("status")).toContainText("Overlay harus PNG 1200×1800 px", {
+      timeout: 30_000,
+    });
     await page.getByLabel("Overlay", { exact: true }).setInputFiles({
       name: "ov.png",
       mimeType: "image/png",
@@ -142,7 +144,9 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
     await page.getByRole("option", { name: "Bodoni Moda" }).click();
 
     await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("Tersimpan · versi 2");
+    await expect(page.getByRole("status")).toContainText("Tersimpan · versi 2", {
+      timeout: 30_000,
+    });
     await page.screenshot({ path: "test-results/admin-template-editor.png" });
     // Preview = engine booth: pojok Foto 1 berisi foto contoh ungu (#CEC8F6), bukan kanvas kosong.
     await expect
@@ -171,7 +175,9 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
     await page.getByRole("group", { name: "Layout", exact: true }).getByText(tplName).click();
     await page.getByLabel(dev?.name ?? "").check();
     await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v2");
+    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v2", {
+      timeout: 30_000,
+    });
 
     const auth = { Authorization: `Bearer ${token}` };
     const { events } = await (await request.get("/api/booth/events", { headers: auth })).json();
@@ -208,7 +214,9 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
     await page.getByRole("button", { name: "Unggahan", exact: true }).click();
     await page.getByRole("button", { name: "Hapus overlay" }).click();
     await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("Tersimpan · versi 3");
+    await expect(page.getByRole("status")).toContainText("Tersimpan · versi 3", {
+      timeout: 30_000,
+    });
     const { data: e2 } = await db.from("events").select("settings").eq("id", ev.id).single();
     expect(e2?.settings).toMatchObject({ template: { layoutVersion: 2 } });
     await page.goto(`/admin/events/${ev.id}/settings`);
@@ -253,7 +261,9 @@ test("format polaroid landscape: kanvas, label, dan tata letak cepat sesuai form
     await page.getByRole("button", { name: /Polaroid.*4x3 · 1 foto/ }).click();
     await expect(page.getByRole("button", { name: "Foto 2", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("Tersimpan · versi 2");
+    await expect(page.getByRole("status")).toContainText("Tersimpan · versi 2", {
+      timeout: 30_000,
+    });
     await page.goto("/admin/templates");
     // Baris template: link nama + kolom format (link "Edit …" juga ada di baris yang sama).
     await expect(

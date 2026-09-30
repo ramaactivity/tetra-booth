@@ -86,7 +86,7 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await expect(w.getByRole("heading", { name: "Andi & Sari" })).toBeVisible();
   await openCrew(w);
   await typePin(w, "2468");
-  // Menu samping crew (W-034): tiap tombol ada di bagiannya.
+  // Menu samping crew: tiap tombol ada di bagiannya.
   await w.getByTestId("crew-nav-printer").click();
   await w.getByRole("button", { name: /ganti roll/i }).click();
   await w.getByRole("textbox").fill("25");
@@ -97,9 +97,9 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   // Kamera & Printer (DECISIONS #85): kamera dipaksa baris perintah → terkunci; pengingat 2inch cut tampil.
   await w.getByTestId("crew-nav-camera").click();
   await w.getByRole("button", { name: "Kamera & Printer" }).click();
-  await expect(w.getByText(/Kamera · diatur lewat baris perintah/)).toBeVisible();
-  await expect(w.getByRole("button", { name: "Simulasi" })).toBeDisabled();
-  await expect(w.getByText(/2inch cut harus (Enable|Disable)/)).toBeVisible();
+  await expect(w.getByText(/Kamera · dikunci teknisi/)).toBeVisible();
+  await expect(w.getByRole("button", { name: "Latihan tanpa kamera" })).toBeDisabled();
+  await expect(w.getByText(/2inch cut: (Enable|Disable)/)).toBeVisible();
   await expect(w.getByRole("button", { name: "Simpan & Mulai Ulang" })).toBeDisabled();
   // Cermin: bawaan live view nyala, hasil foto mati (DECISIONS #35); ubah → bisa disimpan.
   await expect(w.getByRole("button", { name: "Live view · Nyala" })).toHaveAttribute(

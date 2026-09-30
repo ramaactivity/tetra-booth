@@ -7,6 +7,7 @@ import { errText } from "../errors";
 import { mmss, rupiah } from "../format";
 import { usePlatform } from "../PlatformContext";
 import { QrCode } from "../ui";
+import { PhotoboxSteps } from "./LayoutSelect";
 
 export const POLL_MS = 2000;
 const t = copy.payment;
@@ -37,6 +38,13 @@ export function Payment({
   const p = usePlatform();
   const [st, setSt] = useState<State>({ s: "creating" });
   const [now, setNow] = useState(Date.now());
+  // Batalkan dua langkah (audit UX): tamu yang sudah transfer tidak membatalkan tanpa sengaja.
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  useEffect(() => {
+    if (!confirmCancel) return;
+    const id = setTimeout(() => setConfirmCancel(false), 6000);
+    return () => clearTimeout(id);
+  }, [confirmCancel]);
   const req = useRef(request);
   const paid = useRef(onPaid);
   paid.current = onPaid;
@@ -130,12 +138,13 @@ export function Payment({
               </div>
             )}
           </div>
-          <p className="text-center font-mono text-[26px]">
+          <p className="text-center font-mono text-[30px] font-bold">
             {bill ? `${t.validFor} ${mmss(left)}` : " "}
           </p>
         </div>
       </section>
-      <section className="flex flex-col justify-center gap-10 px-[110px] portrait:px-16">
+      <section className="flex flex-col justify-center gap-8 px-[110px] portrait:px-16">
+        <PhotoboxSteps current={request.extraPrints ? 3 : 1} />
         <div className="overflow-hidden rounded-[28px] border-[2.5px] border-ink bg-white text-[30px]">
           {lines.map((l, i) => (
             <div
@@ -163,8 +172,8 @@ export function Payment({
             </li>
           ))}
         </ol>
-        <div className="flex gap-8">
-          <div className="flex flex-1 items-center gap-5 rounded-[26px] border-[2.5px] border-ink bg-white px-8 py-6 text-[30px] font-bold">
+        <div className="flex items-center gap-8">
+          <div className="flex flex-1 items-center gap-5 text-[30px] font-bold" role="status">
             <span className="flex gap-2">
               {[0, 1, 2].map((i) => (
                 <span
@@ -177,13 +186,16 @@ export function Payment({
             {t.waiting}
           </div>
           <Button
-            variant="secondary"
-            className="h-[104px] rounded-[26px] px-14 text-[32px]"
-            onClick={onCancel}
+            variant={confirmCancel ? "destructive" : "secondary"}
+            className="h-[104px] rounded-[26px] px-12 text-[30px]"
+            onClick={() => (confirmCancel ? onCancel() : setConfirmCancel(true))}
           >
-            {t.cancel}
+            {confirmCancel ? t.cancelSure : t.cancel}
           </Button>
         </div>
+        <p className="rounded-[20px] border-2 border-dashed border-ink bg-sky px-7 py-5 text-[24px] font-semibold">
+          {confirmCancel ? t.cancelWarn : t.paidHelp}
+        </p>
       </section>
     </main>
   );

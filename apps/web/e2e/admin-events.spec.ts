@@ -15,6 +15,8 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
   page,
   request,
 }) => {
+  // Simpan pengaturan menulis bundle + aset ke R2: bisa > 5 dtk per simpan di jaringan lambat.
+  test.setTimeout(120_000);
   const u = await makeUser("owner");
   const token = randomBytes(40).toString("base64url");
   const name = `e2e event ${Date.now()}`;
@@ -35,6 +37,9 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page.getByLabel("Tanggal event").fill("2026-10-12");
     await page.getByRole("button", { name: "Buat", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Pengaturan" })).toBeVisible();
+    // Navigasi cepat antarbagian (audit UX 30 Sep).
+    await expect(page.getByRole("navigation", { name: "Bagian pengaturan" })).toBeVisible();
+    await page.screenshot({ path: "test-results/admin-settings-top.png" });
 
     await page.getByLabel(/Teks kecil di layar booth/).fill("The Wedding of");
     await page.getByRole("group", { name: "Layout", exact: true }).getByText("4R Grid").click();
@@ -58,7 +63,9 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page.getByLabel("Maks. cetak per sesi").fill("3");
     await page.getByLabel(dev?.name ?? "").check();
     await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v2");
+    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v2", {
+      timeout: 30_000,
+    });
     await page.waitForLoadState("networkidle"); // refresh RSC setelah simpan selesai dulu
     await page.screenshot({ path: "test-results/admin-settings.png", fullPage: true });
 
@@ -97,7 +104,9 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     // Fase 4: mode photobox butuh minimal satu layout dijual; bundle memuat layout + harga.
     await page.getByText("Mode Photobox", { exact: true }).click();
     await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("centang minimal satu layout");
+    await expect(page.getByRole("status")).toContainText("centang minimal satu layout", {
+      timeout: 30_000,
+    });
     const sold = page.getByRole("group", { name: /Layout yang dijual/ });
     await sold.getByRole("checkbox", { name: /4R Grid/ }).check();
     await page.getByLabel("Harga 4R Grid").fill("35000");
@@ -105,7 +114,9 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page.getByLabel("Harga Strip Klasik").fill("25000");
     await page.getByLabel("Harga lembar tambahan").fill("10000");
     await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v3");
+    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v3", {
+      timeout: 30_000,
+    });
     await page.waitForLoadState("networkidle"); // refresh RSC setelah simpan selesai dulu
     const pb = await (
       await request.get(`/api/booth/events/${ev.id}/bundle`, { headers: auth })
@@ -122,11 +133,15 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     // Fase 5 L1: lead capture butuh teks persetujuan; versi = hash teks.
     await page.getByLabel(/Minta data tamu/).check();
     await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("isi teks persetujuan");
+    await expect(page.getByRole("status")).toContainText("isi teks persetujuan", {
+      timeout: 30_000,
+    });
     await page.getByLabel(/Teks persetujuan/).fill("Saya setuju data saya dipakai untuk promo.");
     await page.getByLabel("Wajib: foto tampil setelah form diisi").check();
     await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v4");
+    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v4", {
+      timeout: 30_000,
+    });
     await page.waitForLoadState("networkidle"); // refresh RSC setelah simpan selesai dulu
     const { data: lc } = await db.from("events").select("lead_capture").eq("id", ev.id).single();
     expect(lc?.lead_capture).toMatchObject({

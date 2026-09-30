@@ -1,6 +1,6 @@
 import { PHOTO_FILTERS } from "@tetra/shared";
 import { Button } from "@tetra/ui";
-import { ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { copy } from "../copy";
 import { Done, Logo } from "../ui";
@@ -13,10 +13,12 @@ export function FilterSelect({
   photoUrl,
   filters,
   onChoose,
+  onBack,
 }: {
   photoUrl: string;
   filters: readonly string[];
   onChoose: (id: string) => void;
+  onBack: () => void;
 }) {
   const options = PHOTO_FILTERS.filter((f) => f.id === "normal" || filters.includes(f.id));
   const [picked, setPicked] = useState("normal");
@@ -51,12 +53,21 @@ export function FilterSelect({
           );
         })}
       </div>
-      <Button
-        className="h-[104px] self-end rounded-[26px] px-16 text-[34px]"
-        onClick={() => onChoose(picked)}
-      >
-        {copy.filter.next} <ArrowRight size={34} strokeWidth={2.5} />
-      </Button>
+      <div className="flex items-center justify-between gap-8">
+        <Button
+          variant="secondary"
+          className="h-[104px] rounded-[26px] px-12 text-[30px]"
+          onClick={onBack}
+        >
+          <ArrowLeft size={30} strokeWidth={2.5} /> {copy.filter.back}
+        </Button>
+        <Button
+          className="h-[104px] rounded-[26px] px-16 text-[34px]"
+          onClick={() => onChoose(picked)}
+        >
+          {copy.filter.next} <ArrowRight size={34} strokeWidth={2.5} />
+        </Button>
+      </div>
     </main>
   );
 }

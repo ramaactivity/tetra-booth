@@ -56,6 +56,40 @@ function Pill({ tone, children }: { tone: Tone; children: ReactNode }) {
   );
 }
 
+/** Sakelar berlabel: nama setelan di kiri, keadaan di kanan (bukan teks "Kursor: sembunyi" di tombol). */
+function Toggle({
+  label,
+  on,
+  onLabel,
+  offLabel,
+  onClick,
+  testId,
+}: {
+  label: string;
+  on: boolean;
+  onLabel: string;
+  offLabel: string;
+  onClick: () => void;
+  testId?: string;
+}) {
+  return (
+    <button
+      type="button"
+      data-testid={testId}
+      aria-pressed={on}
+      onClick={onClick}
+      className="pressable flex min-h-[80px] items-center justify-between gap-6 rounded-[20px] border-[2.5px] border-ink bg-paper px-6 text-left text-2xl font-bold"
+    >
+      {label}
+      <span
+        className={`rounded-full border-2 border-ink px-4 py-1.5 text-xl ${on ? "bg-mint" : "bg-white"}`}
+      >
+        {on ? onLabel : offLabel}
+      </span>
+    </button>
+  );
+}
+
 type Section = "home" | "camera" | "printer" | "event" | "system";
 const SECTIONS: { id: Section; icon: LucideIcon }[] = [
   { id: "home", icon: LayoutGrid },
@@ -141,9 +175,11 @@ function Step({
   action,
   onAction,
   testId,
+  optional = false,
 }: {
   n: number;
   done: boolean;
+  optional?: boolean;
   title: string;
   detail: string;
   action: string;
@@ -162,12 +198,16 @@ function Step({
         >
           {done ? <Check size={22} strokeWidth={3} /> : n}
         </span>
-        <h3 className="truncate text-2xl font-bold">{title}</h3>
+        <h3 className="text-[22px] leading-tight font-bold">{title}</h3>
       </div>
-      <p className="line-clamp-2 min-h-[56px] text-lg font-semibold text-text-2">{detail}</p>
+      <p className="text-lg font-semibold text-text-2">
+        {done && <strong className="text-ink">{copy.crew.setup.ready} · </strong>}
+        {detail}
+        {optional && !done && <span className="block">{copy.crew.setup.optional}</span>}
+      </p>
       <Button
         variant={done ? "plain" : "secondary"}
-        className="mt-auto h-16 rounded-2xl text-xl"
+        className="mt-auto min-h-[72px] rounded-[18px] px-5 py-2 text-xl"
         onClick={onAction}
       >
         {action}
@@ -175,6 +215,8 @@ function Step({
     </li>
   );
 }
+
+const link = "pressable flex min-h-12 items-center gap-2 font-bold";
 
 const big = "block text-[44px] leading-none font-extrabold tracking-[-0.03em]";
 const sub = "mt-2 block text-lg font-semibold text-text-2";
@@ -396,6 +438,7 @@ export function CrewMenu({
           <ol className="grid grid-cols-5 gap-5 portrait:grid-cols-2">
             <Step
               n={1}
+              optional
               testId="step-pair"
               done={!!status?.device}
               title={copy.crew.setup.pair}
@@ -429,6 +472,7 @@ export function CrewMenu({
             />
             <Step
               n={4}
+              optional
               testId="step-printer"
               done={status?.printer.status === "ready"}
               title={copy.crew.setup.printer}
@@ -491,7 +535,9 @@ export function CrewMenu({
             pill={onlinePill}
             onOpen={() => setSection("system")}
           >
-            <div className={big}>{copy.crew.files(status?.uploadPending ?? 0)}</div>
+            <div className={big}>
+              {status?.uploadPending ? copy.crew.unsent(status.uploadPending) : copy.crew.allSent}
+            </div>
             <div className={`${sub} truncate`} data-testid="cloud-device">
               {status?.device
                 ? copy.crew.paired(status.device.name, status.device.shortCode)
@@ -607,8 +653,11 @@ export function CrewMenu({
               : copy.crew.unpaired}
             <span className="text-text-2">
               {" "}
-              · {copy.crew.files(status?.uploadPending ?? 0)} ·{" "}
-              {status?.uploadError ?? copy.crew.uploadQueue}
+              ·{" "}
+              {status?.uploadError ??
+                (status?.uploadPending
+                  ? copy.crew.unsent(status.uploadPending)
+                  : copy.crew.allSent)}
             </span>
           </p>
           <Button variant="plain" className={action} onClick={onPair}>
@@ -620,36 +669,38 @@ export function CrewMenu({
             </Button>
           )}
         </Group>
+        <Group title={copy.crew.systemTitle} column>
+          <Toggle
+            testId="guest-cursor"
+            label={copy.crew.cursor}
+            on={cursorOn}
+            onLabel={copy.crew.cursorOn}
+            offLabel={copy.crew.cursorOff}
+            onClick={() => {
+              guestCursor.set(!cursorOn);
+              setCursorOn(!cursorOn);
+            }}
+          />
+          {auto?.supported ? (
+            <Toggle
+              label={copy.crew.autoStart}
+              on={auto.enabled}
+              onLabel={copy.crew.on}
+              offLabel={copy.crew.off}
+              onClick={act(async () => setAuto(await p.crew.setAutoStart(!auto.enabled)))}
+            />
+          ) : (
+            <p className="rounded-[18px] border-2 border-dashed border-ink px-6 py-4 text-lg font-semibold text-text-2">
+              {auto ? copy.crew.autoStartDev : "…"}
+            </p>
+          )}
+        </Group>
         <Group title={copy.crew.appTitle}>
           <Button variant="plain" className={action} onClick={openUpdate}>
             {copy.crew.update}
           </Button>
           <Button variant="plain" className={action} onClick={onChangePin}>
             {copy.crew.changePin}
-          </Button>
-          {auto?.supported ? (
-            <Button
-              variant="plain"
-              className={action}
-              onClick={act(async () => setAuto(await p.crew.setAutoStart(!auto.enabled)))}
-            >
-              {auto.enabled ? copy.crew.autoStartOn : copy.crew.autoStartOff}
-            </Button>
-          ) : (
-            <p className="flex h-[92px] items-center justify-center rounded-[20px] border-[2.5px] border-dashed border-ink px-4 text-center text-lg font-semibold text-text-2">
-              {auto ? copy.crew.autoStartDev : "…"}
-            </p>
-          )}
-          <Button
-            variant="plain"
-            className={action}
-            data-testid="guest-cursor"
-            onClick={() => {
-              guestCursor.set(!cursorOn);
-              setCursorOn(!cursorOn);
-            }}
-          >
-            {cursorOn ? copy.crew.cursorShown : copy.crew.cursorHidden}
           </Button>
           <Button variant="destructive" className={action} onClick={() => setSheet("exit")}>
             {copy.crew.exit}

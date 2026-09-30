@@ -27,7 +27,7 @@ export function GallerySettings({
       <button
         type="button"
         onClick={() => ref.current?.showModal()}
-        className="h-9 self-start rounded-[10px] border-[1.5px] border-ink bg-white px-3.5 text-[13px] font-bold"
+        className="h-11 self-start rounded-[10px] border-[1.5px] border-ink bg-white px-3.5 text-[13px] font-bold"
       >
         ⚙ Pengaturan
       </button>
@@ -43,7 +43,7 @@ export function GallerySettings({
               type="button"
               aria-label="Tutup"
               onClick={() => ref.current?.close()}
-              className="flex size-9 items-center justify-center rounded-full border-[1.5px] border-ink"
+              className="flex size-11 items-center justify-center rounded-full border-[1.5px] border-ink"
             >
               ✕
             </button>
@@ -76,7 +76,7 @@ export function GallerySettings({
                 onClick={() =>
                   navigator.clipboard.writeText(window.location.href).then(() => setCopied(true))
                 }
-                className="h-10 rounded-lg border-[1.5px] border-ink bg-butter px-3 text-[13px] font-bold"
+                className="h-11 rounded-lg border-[1.5px] border-ink bg-butter px-4 text-[13px] font-bold"
               >
                 {copied ? "Tersalin" : "Salin Link"}
               </button>
