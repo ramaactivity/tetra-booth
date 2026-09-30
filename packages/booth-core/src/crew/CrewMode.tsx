@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { copy } from "../copy";
 import type { BoothEvent } from "../event";
 import { usePlatform } from "../PlatformContext";
+import { slotAspect } from "../screens/LiveView";
 import { StartScreen } from "../screens/StartScreen";
 import { CameraCheck } from "./CameraCheck";
 import { CrewMenu } from "./CrewMenu";
@@ -62,7 +63,13 @@ export function CrewMode({
     case "pair":
       return <PairPad onDone={() => setView("menu")} onCancel={() => setView("menu")} />;
     case "camera":
-      return <CameraCheck eventId={event.id} onBack={() => setView("menu")} />;
+      return (
+        <CameraCheck
+          eventId={event.id}
+          slot={slotAspect(event.layout.slots[0])}
+          onBack={() => setView("menu")}
+        />
+      );
     case "start":
       return (
         <StartScreen

@@ -17,6 +17,9 @@ const FOCUS_FINE: { step: FocusStep; label: string }[] = [
   { step: "far2", label: "▶▶" },
 ];
 const METER_MS = 300;
+const GUIDES_KEY = "tb.testShot.guides";
+/** Margin aman: 5% sisi pendek area slot, jauhkan wajah & tangan dari tepi potongan. */
+const SAFE = 0.05;
 
 /**
  * Tap to focus (#114): titik ketuk di layar → titik 0–1 di frame kamera. Live view digambar cover ke layar
@@ -76,8 +79,33 @@ const settingsLine = (s: ShotSettings) =>
  * berisi fokus, hasil tes terakhir, dan setelan kamera berkelompok, dengan Tes Jepret / Kembali selalu di bawah.
  * Meter ketajaman = skor pengingat foto buram (#88); tes jepret = patokan event ini.
  */
-export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () => void }) {
+export function CameraCheck({
+  eventId,
+  slot,
+  onBack,
+}: {
+  eventId: string;
+  /** Rasio slot foto pertama event aktif: area yang masuk cetakan (#107). */
+  slot?: number | undefined;
+  onBack: () => void;
+}) {
   const p = usePlatform();
+  const [guides, setGuides] = useState(() => {
+    try {
+      return localStorage.getItem(GUIDES_KEY) !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const toggleGuides = () =>
+    setGuides((on) => {
+      try {
+        localStorage.setItem(GUIDES_KEY, on ? "0" : "1");
+      } catch {
+        // penyimpanan ditolak: pilihan hanya berlaku sampai layar ditutup
+      }
+      return !on;
+    });
   // Riwayat Tes Jepret (terbaru di depan): diklik = tampil besar, bisa dibandingkan & dipakai setelannya (Rama).
   const [shots, setShots] = useState<TestShot[]>([]);
   const [viewer, setViewer] = useState<{ mode: "one"; i: number } | { mode: "compare" } | null>(
@@ -198,7 +226,13 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
   return (
     <div className="relative flex h-full w-full">
       <section className="relative min-w-0 flex-1 bg-ink">
-        <LiveView key={liveRun} onFrame={onFrame} />
+        <LiveView
+          key={liveRun}
+          onFrame={onFrame}
+          fit="contain"
+          guide={guides ? slot : undefined}
+          overlay={guides ? { grid: true, safe: SAFE } : undefined}
+        />
         {p.crew.focusAt && (
           // biome-ignore lint/a11y/noStaticElementInteractions: area ketuk live view (crew, layar sentuh)
           <div
@@ -214,6 +248,20 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
             )}
           </div>
         )}
+        <button
+          type="button"
+          data-testid="toggle-guides"
+          aria-pressed={guides}
+          onClick={toggleGuides}
+          className="pressable absolute top-6 right-6 z-10 flex min-h-14 items-center gap-3 rounded-full border-[2.5px] border-ink bg-white px-5 text-xl font-bold"
+        >
+          {copy.crew.guides}
+          <span
+            className={`rounded-full border-2 border-ink px-3 py-0.5 text-lg ${guides ? "bg-mint" : "bg-paper"}`}
+          >
+            {guides ? copy.crew.on : copy.crew.off}
+          </span>
+        </button>
         {p.crew.focusAt && (
           <p className="pointer-events-none absolute top-6 left-6 rounded-full border-2 border-ink bg-white/90 px-5 py-2 text-lg font-semibold">
             {copy.crew.tapToFocus}

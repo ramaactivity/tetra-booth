@@ -96,6 +96,12 @@ test("canon (EDSDK palsu): setelan ISO dari kamera tampil & bisa diubah di mode 
       .first()
       .click();
     await expect(w.getByText("Ketuk subjek di live view untuk fokus")).toBeVisible();
+    // Garis bantu (sepertiga + margin aman + slot) bawaan nyala, bisa dimatikan (W-034).
+    const guides = w.getByTestId("toggle-guides");
+    await expect(guides).toHaveAttribute("aria-pressed", "true");
+    await guides.click();
+    await expect(guides).toHaveAttribute("aria-pressed", "false");
+    await guides.click();
     await w.getByTestId("tap-focus").click({ position: { x: 500, y: 400 } });
     await expect.poll(() => logs.join("")).toMatch(/\[camera\] fokus di 0\.\d\d,0\.\d\d/);
     await w.screenshot({ path: "test-results/canon-tapfocus.png" });

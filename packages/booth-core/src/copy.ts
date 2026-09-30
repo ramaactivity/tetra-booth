@@ -243,6 +243,7 @@ export const copy = {
     shotNo: (n: number) => `Tes #${n}`,
     shotHint: "Klik foto untuk memperbesar, membandingkan, dan memakai setelannya.",
     compare: "Bandingkan",
+    guides: "Garis bantu",
     older: "Sebelumnya",
     newer: "Sesudahnya",
     close: "Tutup",

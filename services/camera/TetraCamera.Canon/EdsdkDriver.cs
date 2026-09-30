@@ -74,11 +74,38 @@ public sealed class EdsdkDriver : ICanonDriver
             Check(err, "buka sesi");
         }
         _cam = cam;
-        var host = SaveToHost;
-        Check(EdsSetPropertyData(_cam, PropSaveTo, 0, sizeof(uint), ref host), "SaveTo host");
-        // Kamera perlu tahu "sisa ruang" di host sebelum mau mengirim file (SaveTo_Host).
-        Check(EdsSetCapacity(_cam, new Capacity { NumberOfFreeClusters = 0x7FFFFFFF, BytesPerSector = 0x1000, Reset = 1 }), "kapasitas");
+        try
+        {
+            // 60D sering menjawab DEVICE_BUSY (0x81) sesaat setelah sesi dibuka (uji 2026-09-30): coba ulang sebentar.
+            var host = SaveToHost;
+            RetryBusy(() => EdsSetPropertyData(_cam, PropSaveTo, 0, sizeof(uint), ref host), "SaveTo host");
+            // Kamera perlu tahu "sisa ruang" di host sebelum mau mengirim file (SaveTo_Host).
+            RetryBusy(
+                () => EdsSetCapacity(_cam, new Capacity { NumberOfFreeClusters = 0x7FFFFFFF, BytesPerSector = 0x1000, Reset = 1 }),
+                "kapasitas");
+        }
+        catch
+        {
+            // Jangan tinggalkan sesi setengah terbuka: IsOpen true tanpa info = live view jalan tapi jepret ditolak
+            // "belum tersambung" dan loop tidak pernah menyambung ulang (60D, 0.5.33).
+            Close();
+            throw;
+        }
         return (info.DeviceDescription, info.PortName);
+    }
+
+    private const uint ErrDeviceBusy = 0x00000081;
+
+    private static void RetryBusy(Func<uint> call, string what)
+    {
+        var err = call();
+        for (var i = 0; err == ErrDeviceBusy && i < 10; i++)
+        {
+            Thread.Sleep(200);
+            EdsGetEvent();
+            err = call();
+        }
+        Check(err, what);
     }
 
     public void Close()

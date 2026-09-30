@@ -23,7 +23,7 @@ import { Capturing } from "./screens/Capturing";
 import { Countdown } from "./screens/Countdown";
 import { FilterSelect } from "./screens/FilterSelect";
 import { LayoutSelect } from "./screens/LayoutSelect";
-import { LiveView } from "./screens/LiveView";
+import { LiveView, slotAspect } from "./screens/LiveView";
 import { CameraError, Message } from "./screens/Message";
 import { Paid, Payment } from "./screens/Payment";
 import { PhotoPreview } from "./screens/PhotoPreview";
@@ -51,11 +51,6 @@ const DEMO_TAP_MS = 1500;
 const FAST_TAP_MS = 150;
 
 /** Rasio lebar/tinggi slot foto (rotasi ±90° = tukar sisi), untuk panduan bingkai live view (#107). */
-const slotAspect = (slot: BoothEvent["layout"]["slots"][number] | undefined) => {
-  if (!slot) return undefined;
-  const turned = Math.abs(Math.round((slot.rotation ?? 0) / 90)) % 2 === 1;
-  return turned ? slot.h / slot.w : slot.w / slot.h;
-};
 
 const startEvent = (
   event: BoothEvent,
