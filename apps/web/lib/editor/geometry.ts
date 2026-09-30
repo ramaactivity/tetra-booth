@@ -2,8 +2,10 @@ import type { LayoutSlot, LayoutSpec, LayoutText } from "@tetra/shared";
 
 /** Geometri editor template (DECISIONS #77): murni, tanpa DOM, supaya bisa diuji. Satuan = px kanvas. */
 export type Rect = { x: number; y: number; w: number; h: number };
-export type Key = `s:${string}` | `t:${string}` | typeof OVERLAY;
+export type Key = `s:${string}` | `t:${string}` | typeof OVERLAY | typeof QR;
 export const OVERLAY = "overlay" as const;
+/** QR unduh foto: satu per desain, selalu paling atas (engine menggambarnya terakhir), bukan bagian `layerStack`. */
+export const QR = "qr" as const;
 type Z = LayoutSlot["z"];
 
 export const slotKey = (s: LayoutSlot): Key => `s:${s.id}`;

@@ -12,9 +12,11 @@
   },
   "devDependencies": {
     "@napi-rs/canvas": "^1.0.9",
-    "@types/node": "^26.6.2"
+    "@types/node": "^26.6.2",
+    "@types/qrcode": "^1.5.6"
   },
   "dependencies": {
-    "@tetra/shared": "workspace:*"
+    "@tetra/shared": "workspace:*",
+    "qrcode": "^1.5.4"
   }
 }

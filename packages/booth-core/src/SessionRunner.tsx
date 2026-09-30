@@ -334,6 +334,8 @@ export function SessionRunner({
       ev,
       s.photos.filter((x): x is Photo => x !== null),
       filterCss(s.filter),
+      // QR di desain = link halaman tamu sesi ini (sama dengan QR di layar; ID dibuat booth, jalan offline).
+      `${guestBaseUrl}/s/${s.sessionId}`,
     )
       .then((strip) => {
         urls.current.push(strip.url);
@@ -347,7 +349,7 @@ export function SessionRunner({
     return () => {
       live = false;
     };
-  }, [p, s.phase, s.sessionId, s.photos, s.filter, ev]);
+  }, [p, s.phase, s.sessionId, s.photos, s.filter, ev, guestBaseUrl]);
 
   // Cetak: gagal tidak menghentikan sesi, QR tetap muncul (FSD §1.10).
   useEffect(() => {

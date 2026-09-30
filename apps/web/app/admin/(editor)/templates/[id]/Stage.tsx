@@ -7,6 +7,7 @@ import {
   type Key,
   OVERLAY,
   overlayRect,
+  QR,
   type Rect,
   resizeRect,
   rotatedBounds,
@@ -43,6 +44,22 @@ const CURSOR: Record<string, string> = {
   "-1,0": "ew-resize",
   "1,0": "ew-resize",
 };
+
+/** Sisi QR minimum (px kanvas, ±1 cm @300 dpi) supaya masih bisa dipindai. */
+export const QR_MIN = 120;
+/** Ubah posisi/ukuran QR (dibulatkan); tanpa QR = tidak berubah. */
+const setQr = (l: LayoutSpec, p: { x: number; y: number; size?: number }): LayoutSpec =>
+  l.qr
+    ? {
+        ...l,
+        qr: {
+          ...l.qr,
+          x: Math.round(p.x),
+          y: Math.round(p.y),
+          size: Math.round(p.size ?? l.qr.size),
+        },
+      }
+    : l;
 
 const samples = new Map<string, ImageLike>();
 /** Foto contoh per slot: pastel + nomor foto (urutan pengambilan). */
@@ -183,21 +200,24 @@ export function Stage({
   const setPos = (l: LayoutSpec, k: Key, x: number, y: number): LayoutSpec =>
     k === OVERLAY
       ? setOverlayRect(l, { ...overlayRect(l), x, y })
-      : k.startsWith("s:")
-        ? {
-            ...l,
-            slots: l.slots.map((s) =>
-              `s:${s.id}` === k ? { ...s, x: Math.round(x), y: Math.round(y) } : s,
-            ),
-          }
-        : {
-            ...l,
-            texts: l.texts.map((t) =>
-              `t:${t.id}` === k ? { ...t, x: Math.round(x), y: Math.round(y) } : t,
-            ),
-          };
+      : k === QR
+        ? setQr(l, { x, y })
+        : k.startsWith("s:")
+          ? {
+              ...l,
+              slots: l.slots.map((s) =>
+                `s:${s.id}` === k ? { ...s, x: Math.round(x), y: Math.round(y) } : s,
+              ),
+            }
+          : {
+              ...l,
+              texts: l.texts.map((t) =>
+                `t:${t.id}` === k ? { ...t, x: Math.round(x), y: Math.round(y) } : t,
+              ),
+            };
   const posOf = (k: Key) => {
     if (k === OVERLAY) return overlayRect(layout);
+    if (k === QR) return layout.qr ?? { x: 0, y: 0 };
     const it = k.startsWith("s:")
       ? layout.slots.find((s) => `s:${s.id}` === k)
       : layout.texts.find((t) => `t:${t.id}` === k);
@@ -239,7 +259,8 @@ export function Stage({
       });
     } else if (d.kind === "resize") {
       const isText = d.key.startsWith("t:");
-      const keep = isText ? true : lockRatio || e.shiftKey;
+      const isQr = d.key === QR;
+      const keep = isText || isQr ? true : lockRatio || e.shiftKey;
       let r = resizeRect(
         d.box,
         d.box.rot,
@@ -248,7 +269,7 @@ export function Stage({
         p.x - d.start.x,
         p.y - d.start.y,
         keep,
-        isText ? 40 : 40,
+        isQr ? QR_MIN : 40,
       );
       const g: Guides = { x: [], y: [] };
       if (!d.box.rot && threshold && !(keep && d.hx && d.hy)) {
@@ -274,37 +295,39 @@ export function Stage({
       preview((l) =>
         d.key === OVERLAY
           ? setOverlayRect(l, r)
-          : isText
-            ? {
-                ...l,
-                texts: l.texts.map((t) => {
-                  if (`t:${t.id}` !== d.key) return t;
-                  const f = r.w / d.box.w;
-                  const size = d.hy ? Math.max(8, Math.round((d.size ?? t.size) * f)) : t.size;
-                  const topOffset = (d.box.y - (d.textY ?? t.y)) * (d.hy ? f : 1);
-                  return {
-                    ...t,
-                    x: Math.round(r.x),
-                    w: Math.round(r.w),
-                    size,
-                    y: Math.round(r.y - topOffset),
-                  };
-                }),
-              }
-            : {
-                ...l,
-                slots: l.slots.map((s) =>
-                  `s:${s.id}` === d.key
-                    ? {
-                        ...s,
-                        x: Math.round(r.x),
-                        y: Math.round(r.y),
-                        w: Math.round(r.w),
-                        h: Math.round(r.h),
-                      }
-                    : s,
-                ),
-              },
+          : isQr
+            ? setQr(l, { x: r.x, y: r.y, size: r.w })
+            : isText
+              ? {
+                  ...l,
+                  texts: l.texts.map((t) => {
+                    if (`t:${t.id}` !== d.key) return t;
+                    const f = r.w / d.box.w;
+                    const size = d.hy ? Math.max(8, Math.round((d.size ?? t.size) * f)) : t.size;
+                    const topOffset = (d.box.y - (d.textY ?? t.y)) * (d.hy ? f : 1);
+                    return {
+                      ...t,
+                      x: Math.round(r.x),
+                      w: Math.round(r.w),
+                      size,
+                      y: Math.round(r.y - topOffset),
+                    };
+                  }),
+                }
+              : {
+                  ...l,
+                  slots: l.slots.map((s) =>
+                    `s:${s.id}` === d.key
+                      ? {
+                          ...s,
+                          x: Math.round(r.x),
+                          y: Math.round(r.y),
+                          w: Math.round(r.w),
+                          h: Math.round(r.h),
+                        }
+                      : s,
+                  ),
+                },
       );
     } else if (d.kind === "rotate") {
       const deg = rotationAt(d.box.x + d.box.w / 2, d.box.y + d.box.h / 2, p.x, p.y);
@@ -463,9 +486,11 @@ export function Stage({
                 aria-label={
                   k === OVERLAY
                     ? "Elemen overlay"
-                    : slot
-                      ? `Foto ${photoNo(k)}`
-                      : `Teks ${layout.texts.find((t) => `t:${t.id}` === k)?.value ?? ""}`
+                    : k === QR
+                      ? "QR unduh foto"
+                      : slot
+                        ? `Foto ${photoNo(k)}`
+                        : `Teks ${layout.texts.find((t) => `t:${t.id}` === k)?.value ?? ""}`
                 }
                 aria-pressed={on}
                 onPointerDown={(e) => startItem(e, k)}
@@ -516,8 +541,11 @@ export function Stage({
           >
             {HANDLES.filter(
               // Teks: sudut (skala font) + sisi kiri/kanan (lebar); sisi disembunyikan di kotak pendek.
+              // QR: sudut saja (tetap persegi).
               ([hx, hy]) =>
-                !single.startsWith("t:") || (hx !== 0 && (hy !== 0 || px(singleBox.h) >= 24)),
+                single === QR
+                  ? hx !== 0 && hy !== 0
+                  : !single.startsWith("t:") || (hx !== 0 && (hy !== 0 || px(singleBox.h) >= 24)),
             ).map(([hx, hy]) => (
               <span
                 key={`${hx},${hy}`}

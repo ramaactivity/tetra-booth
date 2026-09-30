@@ -37,6 +37,8 @@ export type RenderInputs = {
   vars: { event_name?: string; date?: string; custom?: string };
   /** CSS filter pilihan tamu untuk foto di slot (#116); kosong/"none" = tanpa filter. Overlay & teks tidak kena. */
   photoFilter?: string;
+  /** Link halaman tamu untuk elemen QR (`spec.qr`); kosong = URL contoh (editor, pratinjau). */
+  qrUrl?: string | undefined;
 };
 
 export type RenderContext = {

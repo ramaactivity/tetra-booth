@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { libFont } from "@/lib/fonts";
-import { ASSET_IDS, type AssetId, StoredLayout } from "@/lib/layouts";
+import { ASSET_IDS, type AssetId, copyLayout, StoredLayout } from "@/lib/layouts";
 import { putObject } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 
@@ -23,24 +23,18 @@ export async function createTemplate(_prev: string | null, form: FormData): Prom
   const { db, orgId } = await requireMember(["owner", "admin"]);
   const p = NewTemplate.safeParse(Object.fromEntries(form));
   if (!p.success) return "Isi nama template";
-  const base = LAYOUT_PRESETS[p.data.preset].layout;
-  const { data: l } = await db
-    .from("layouts")
-    .insert({ organization_id: orgId, name: p.data.name, paper: base.paper })
-    .select("id")
-    .single();
-  if (!l) return "Gagal membuat template, coba lagi";
-  const spec: StoredLayout = {
-    layout: { id: l.id, version: 1, ...base, background: { color: "#ffffff" } },
-    files: {},
-  };
-  await db.from("layout_versions").insert({
-    organization_id: orgId,
-    layout_id: l.id,
-    version: 1,
-    spec: spec as unknown as NonNullable<Json>,
-  });
-  redirect(`/admin/templates/${l.id}`);
+  const id = await copyLayout(db, orgId, p.data.preset, () => p.data.name);
+  if (!id) return "Gagal membuat template, coba lagi";
+  redirect(`/admin/templates/${id}`);
+}
+
+/** Duplikat: versi terbaru jadi template baru "<nama> (salinan)" versi 1, lalu buka editornya. */
+export async function duplicateTemplate(id: string) {
+  const { db, orgId } = await requireMember(["owner", "admin"]);
+  const copy = await copyLayout(db, orgId, `tpl:${id}`, (n) => `${n} (salinan)`);
+  if (!copy) return;
+  revalidatePath("/admin/templates");
+  redirect(`/admin/templates/${copy}`);
 }
 
 export type SaveTemplateResult = { ok: boolean; message: string; version?: number } | null;

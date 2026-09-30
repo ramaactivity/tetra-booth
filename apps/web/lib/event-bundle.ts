@@ -26,8 +26,10 @@ export type EventTemplate = {
   background: string;
   layoutId?: string;
   layoutVersion?: number;
-  /** Mode event (DECISIONS #99): desain tambahan pilihan tamu, `<preset>` atau `tpl:<layoutId>`; maks. 4. */
+  /** Mode event (DECISIONS #99): desain tambahan pilihan tamu, `<preset>` atau `tpl:<layoutId>`; maks. 2 (total 3). */
   extras?: string[];
+  /** Versi terkunci tiap template editor yang dipakai (utama + tambahan), layoutId → versi. */
+  versions?: Record<string, number>;
 };
 /** Pengaturan satu suara: mati, file pengganti, atau mati dengan file pengganti tetap disimpan (#104). */
 export type SoundSetting =

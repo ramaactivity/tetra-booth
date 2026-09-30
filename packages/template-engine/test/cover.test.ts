@@ -142,3 +142,31 @@ describe("cover & urutan gambar", () => {
     );
   });
 });
+
+describe("QR link sesi (spec.qr)", () => {
+  it("digambar paling akhir: kotak putih seukuran size lalu modul di dalam tepi 2 modul", () => {
+    const { calls, rc } = recorder();
+    const photo = { width: 1000, height: 500 };
+    render(
+      { ...spec, overlay: undefined, qr: { x: 900, y: 1500, size: 250 } },
+      {
+        photos: [photo, photo],
+        assets: {},
+        vars: {},
+        qrUrl: "https://booth.tetraphoto.com/s/AbCdEfGhIj",
+      },
+      rc,
+    );
+    const box = calls.indexOf("fillRect 900 1500 250 250");
+    expect(box).toBeGreaterThan(calls.lastIndexOf('text "" 600 1700'));
+    const modules = calls.slice(box + 1).filter((c) => c.startsWith("fillRect"));
+    expect(modules.length).toBeGreaterThan(100);
+    // Semua modul di dalam kotak QR, tidak menyentuh tepi putih (2 modul).
+    for (const m of modules) {
+      const [x, y] = m.split(" ").slice(1, 3).map(Number) as [number, number];
+      expect(x).toBeGreaterThan(900 + 10);
+      expect(y).toBeGreaterThan(1500 + 10);
+      expect(x).toBeLessThan(900 + 250);
+    }
+  });
+});

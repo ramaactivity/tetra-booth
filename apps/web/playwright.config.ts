@@ -7,6 +7,8 @@ export default defineConfig({
   timeout: 30_000,
   forbidOnly: CI,
   reporter: "list",
+  // Data uji "e2e …" di organisasi Tetra (dev = prod) dihapus setelah run, termasuk sisa tes yang gagal.
+  globalTeardown: "./e2e/teardown.ts",
   use: { baseURL: "http://localhost:3000" },
   webServer: {
     // Biner `next` dipanggil langsung: lewat `pnpm start` sinyal terminate tidak sampai ke next-server

@@ -15,6 +15,8 @@ export async function renderEvent(
   photos: ImageBitmap[] | OffscreenCanvas[],
   /** CSS filter pilihan tamu (#116). */
   photoFilter = "none",
+  /** Link halaman tamu sesi untuk elemen QR di desain; kosong = URL contoh (tes cetak, pratinjau). */
+  qrUrl?: string,
 ): Promise<{ piece: OffscreenCanvas; sheet: OffscreenCanvas }> {
   const fonts = event.render?.fonts ?? {};
   if (event.layout.texts.some((t) => !fonts[t.fontAssetId]))
@@ -27,6 +29,7 @@ export async function renderEvent(
       assets: event.render?.images ?? {},
       vars: { event_name: event.name, date: event.date },
       photoFilter,
+      qrUrl,
     },
     ctx,
   );
@@ -69,12 +72,13 @@ export async function composeStrip(
   event: BoothEvent,
   photos: Photo[],
   photoFilter = "none",
+  qrUrl?: string,
 ): Promise<Strip> {
   const bitmaps = await Promise.all(
     photos.map(async (p) => createImageBitmap(new Blob([await storage.readFile(p.path)]))),
   );
   try {
-    const { piece, sheet } = await renderEvent(event, bitmaps, photoFilter);
+    const { piece, sheet } = await renderEvent(event, bitmaps, photoFilter, qrUrl);
     const dir = `${await storage.sessionDir(sessionId)}/out`;
     const write = async (c: OffscreenCanvas, name: string) => {
       // Lembar cetak DNP (juga diunggah sebagai aset `strip`): 0.95, detail foto DSLR tidak lembek di cetakan.

@@ -1,8 +1,9 @@
 import { paperLabel } from "@tetra/shared";
-import { Pencil } from "lucide-react";
+import { Copy, Pencil } from "lucide-react";
 import Link from "next/link";
 import { StoredLayout } from "@/lib/layouts";
 import { requireMember } from "@/lib/supabase/server";
+import { duplicateTemplate } from "./actions";
 import { DeleteTemplateButton } from "./DeleteTemplateButton";
 import { NewTemplateForm } from "./NewTemplateForm";
 
@@ -57,7 +58,7 @@ export default async function TemplatesPage() {
         <NewTemplateForm />
       </div>
       <div className="overflow-hidden rounded-2xl border-[1.5px] border-ink bg-white">
-        <div className="grid h-[46px] grid-cols-[2.4fr_1fr_.8fr_.8fr_1.2fr_88px] items-center border-b-[1.5px] border-ink bg-paper px-5 text-xs font-bold text-text-2">
+        <div className="grid h-[46px] grid-cols-[2.4fr_1fr_.8fr_.8fr_1.2fr_130px] items-center border-b-[1.5px] border-ink bg-paper px-5 text-xs font-bold text-text-2">
           <span>Nama template</span>
           <span>Format</span>
           <span>Slot</span>
@@ -68,7 +69,7 @@ export default async function TemplatesPage() {
         {rows.map((l) => (
           <div
             key={l.id}
-            className="grid h-[62px] grid-cols-[2.4fr_1fr_.8fr_.8fr_1.2fr_88px] items-center border-b-[1.5px] border-dashed border-line-soft px-5 text-sm no-underline last:border-b-0 hover:bg-paper"
+            className="grid h-[62px] grid-cols-[2.4fr_1fr_.8fr_.8fr_1.2fr_130px] items-center border-b-[1.5px] border-dashed border-line-soft px-5 text-sm no-underline last:border-b-0 hover:bg-paper"
           >
             <Link
               href={`/admin/templates/${l.id}`}
@@ -95,6 +96,16 @@ export default async function TemplatesPage() {
               >
                 <Pencil className="size-4" />
               </Link>
+              <form action={duplicateTemplate.bind(null, l.id)}>
+                <button
+                  type="submit"
+                  aria-label={`Duplikat ${l.name}`}
+                  title="Duplikat"
+                  className={`${iconBtn} hover:bg-mint-soft`}
+                >
+                  <Copy className="size-4" />
+                </button>
+              </form>
               <DeleteTemplateButton
                 id={l.id}
                 name={l.name}

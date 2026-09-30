@@ -3,13 +3,16 @@ import { createHash } from "node:crypto";
 import {
   EVENT_PRESETS,
   LAYOUT_PRESETS,
+  type LayoutPaper,
   PHOTO_FILTERS,
   type PresetId,
+  paperLabel,
   SOUND_CUES,
   type SoundCue,
   StoredBundle,
 } from "@tetra/shared";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
   type AttractSettings,
@@ -21,7 +24,7 @@ import {
   storeBundleFile,
   storeOverlay,
 } from "@/lib/event-bundle";
-import { StoredLayout } from "@/lib/layouts";
+import { copyLayout, StoredLayout } from "@/lib/layouts";
 import { consentVersion, LEAD_FIELDS } from "@/lib/leads";
 import type { PhotoboxLayoutSetting, PhotoboxSettings } from "@/lib/payments";
 import { putObject } from "@/lib/r2";
@@ -51,8 +54,8 @@ const int = (min: number, max: number) => z.coerce.number().int().min(min).max(m
 const MIN_PRICE = 1500;
 
 const Design = z.union([z.enum(EVENT_PRESETS), z.string().regex(/^tpl:[0-9a-f-]{36}$/)]);
-/** Mode event: maks. 4 desain tambahan → total 5 pilihan untuk tamu (DECISIONS #99). */
-const MAX_EXTRAS = 4;
+/** Desain frame event: 1–3, ukuran kertas sama; lebih dari satu = tamu memilih (DECISIONS #99). */
+const MAX_DESIGNS = 3;
 
 const Form = z.object({
   name: z.string().trim().min(1).max(120),
@@ -60,8 +63,6 @@ const Form = z.object({
   location: z.string().trim().max(120),
   tagline: z.string().trim().max(40),
   client_name: z.string().trim().max(120),
-  /** Preset, atau `tpl:<layoutId>` = template editor (versi terbaru dikunci saat simpan). */
-  preset: Design,
   background: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   guest_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   attract_bg: z.string().regex(/^#[0-9a-fA-F]{6}$/),
@@ -243,25 +244,6 @@ export async function saveEvent(
       ? { version: lv.version, name: lv.layouts.name, custom: parsed.data }
       : null;
   };
-  let custom: StoredLayout | null = null;
-  let customName: string | undefined;
-  const extraValues = [...new Set(form.getAll("extra").map(String))].filter((x) => x !== f.preset);
-  const extrasParsed = z.array(Design).max(MAX_EXTRAS).safeParse(extraValues);
-  if (!extrasParsed.success)
-    return { ok: false, message: `Desain tambahan maksimal ${MAX_EXTRAS}` };
-  let template: EventTemplate = {
-    preset: f.preset in LAYOUT_PRESETS ? (f.preset as PresetId) : "strip-3",
-    background: f.background,
-    ...(extrasParsed.data.length && { extras: extrasParsed.data }),
-  };
-  if (f.preset.startsWith("tpl:")) {
-    const layoutId = f.preset.slice(4);
-    const lv = await latest(layoutId);
-    if (!lv) return { ok: false, message: "Template tidak ditemukan" };
-    custom = lv.custom;
-    customName = lv.name;
-    template = { ...template, layoutId, layoutVersion: lv.version };
-  }
   // Template editor yang dijual photobox: versi terbaru dikunci saat simpan (#108).
   const pbTemplates: Record<string, { name: string; custom: StoredLayout }> = {};
   for (const l of layouts) {
@@ -270,15 +252,59 @@ export async function saveEvent(
     if (!lv) return { ok: false, message: "Template photobox tidak ditemukan" };
     pbTemplates[l.template] = { name: lv.name, custom: lv.custom };
   }
-  const extras: ExtraDesign[] = [];
-  for (const x of extrasParsed.data) {
-    if (!x.startsWith("tpl:")) extras.push({ preset: x as PresetId });
-    else {
-      const lv = await latest(x.slice(4));
-      if (!lv) return { ok: false, message: "Template desain tambahan tidak ditemukan" };
-      extras.push({ name: lv.name, custom: lv.custom });
-    }
+  // Desain frame (utama dulu): preset, atau `tpl:<layoutId>` = template editor (versi terbaru dikunci saat simpan).
+  const copy = Design.safeParse(form.get("copy"));
+  const values = [...new Set(form.getAll("design").map(String))];
+  if (copy.success && !values.includes(copy.data)) values.push(copy.data);
+  const picked = z.array(Design).min(1).max(MAX_DESIGNS).safeParse(values);
+  if (!picked.success)
+    return {
+      ok: false,
+      message: values.length
+        ? `Desain frame maksimal ${MAX_DESIGNS}`
+        : "Pilih minimal satu desain frame",
+    };
+  type Resolved = { value: string; paper: string; lv: Awaited<ReturnType<typeof latest>> };
+  const resolve = async (value: string): Promise<Resolved | null> => {
+    if (!value.startsWith("tpl:"))
+      return { value, paper: LAYOUT_PRESETS[value as PresetId].layout.paper, lv: null };
+    const lv = await latest(value.slice(4));
+    return lv && { value, paper: lv.custom.layout.paper, lv };
+  };
+  const resolved: Resolved[] = [];
+  for (const v of picked.data) {
+    const r = await resolve(v);
+    if (!r) return { ok: false, message: "Template desain frame tidak ditemukan" };
+    resolved.push(r);
   }
+  if (new Set(resolved.map((r) => r.paper)).size > 1)
+    return {
+      ok: false,
+      message: `Ukuran desain frame harus sama: ${paperLabel(resolved[0]?.paper as LayoutPaper)}`,
+    };
+  // "Salin & sesuaikan": salinan template/preset khusus event ini menggantikan sumbernya, lalu editor dibuka.
+  let copied: string | null = null;
+  if (copy.success) {
+    copied = await copyLayout(db, orgId, copy.data, (n) => `${f.name} · ${n}`);
+    const r = copied && (await resolve(`tpl:${copied}`));
+    if (!r) return { ok: false, message: "Gagal menyalin desain, coba lagi" };
+    resolved[values.indexOf(copy.data)] = r;
+  }
+  const [main, ...rest] = resolved as [Resolved, ...Resolved[]];
+  const custom = main.lv?.custom ?? null;
+  const customName = main.lv?.name;
+  const template: EventTemplate = {
+    preset: main.lv ? "strip-3" : (main.value as PresetId),
+    background: f.background,
+    ...(main.lv && { layoutId: main.value.slice(4), layoutVersion: main.lv.version }),
+    ...(rest.length && { extras: rest.map((r) => r.value) }),
+    versions: Object.fromEntries(
+      resolved.flatMap((r) => (r.lv ? [[r.value.slice(4), r.lv.version]] : [])),
+    ),
+  };
+  const extras: ExtraDesign[] = rest.map((r) =>
+    r.lv ? { name: r.lv.name, custom: r.lv.custom } : { preset: r.value as PresetId },
+  );
   const branding = {
     ...(f.tagline ? { tagline: f.tagline } : {}),
     ...(f.client_name ? { clientName: f.client_name } : {}),
@@ -353,6 +379,7 @@ export async function saveEvent(
 
   revalidatePath(`/admin/events/${eventId}/settings`);
   revalidatePath("/admin");
+  if (copied) redirect(`/admin/templates/${copied}`);
   return {
     ok: true,
     message: `Tersimpan · bundle v${ev.bundle_version + 1}. Booth menerima pengaturan baru saat online.`,

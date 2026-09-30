@@ -1,5 +1,7 @@
+import { LAYOUT_PRESETS, type LayoutPaper, type PresetId, paperLabel } from "@tetra/shared";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DEFAULT_TEMPLATE, type EventTemplate } from "@/lib/event-bundle";
 import { presignGet } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 import { SessionTile } from "./SessionTile";
@@ -30,7 +32,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   const { db, orgId, role } = await requireMember();
   const { data: ev } = await db
     .from("events")
-    .select("id, name, event_date, location, mode, client_token, live_token")
+    .select("id, name, event_date, location, mode, settings, client_token, live_token")
     .eq("id", id)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -56,6 +58,29 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
       .eq("event_id", id)
       .eq("organization_id", orgId),
   ]);
+  // Desain frame event (utama dulu): nama + ukuran; template editor bisa langsung diedit.
+  const tpl = (ev.settings as { template?: EventTemplate } | null)?.template ?? DEFAULT_TEMPLATE;
+  const picked = [tpl.layoutId ? `tpl:${tpl.layoutId}` : tpl.preset, ...(tpl.extras ?? [])];
+  const tplIds = picked.filter((d) => d.startsWith("tpl:")).map((d) => d.slice(4));
+  const { data: tplRows } = tplIds.length
+    ? await db
+        .from("layouts")
+        .select("id, name, paper")
+        .eq("organization_id", orgId)
+        .in("id", tplIds)
+    : { data: [] };
+  const designs = picked.flatMap(
+    (d): { key: string; name: string; paper: string; id: string | null }[] => {
+      if (!d.startsWith("tpl:")) {
+        const p = LAYOUT_PRESETS[d as PresetId];
+        return p ? [{ key: d, name: p.name, paper: paperLabel(p.layout.paper), id: null }] : [];
+      }
+      const t = (tplRows ?? []).find((r) => r.id === d.slice(4));
+      return t
+        ? [{ key: d, name: t.name, paper: paperLabel(t.paper as LayoutPaper), id: t.id }]
+        : [];
+    },
+  );
   const list = sessions ?? [];
   const opened = new Set((hits ?? []).filter((h) => h.type === "qr_open").map((h) => h.session_id));
   const saved = new Set((hits ?? []).filter((h) => h.type !== "qr_open").map((h) => h.session_id));
@@ -164,6 +189,42 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
           </Link>
         </div>
       </div>
+
+      <section
+        aria-label="Desain frame"
+        className="flex flex-wrap items-center gap-3 rounded-2xl border-[1.5px] border-ink bg-white px-5 py-4"
+      >
+        <span className="text-[15px] font-extrabold">Desain frame</span>
+        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          {designs.map((d, i) => (
+            <span
+              key={d.key}
+              className="flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-sky py-1 pr-1.5 pl-3 text-[13px] font-bold"
+            >
+              {d.name}
+              <span className="font-mono text-[11px] font-semibold text-text-2">{d.paper}</span>
+              {i === 0 && designs.length > 1 && (
+                <span className="rounded-full bg-butter px-2 text-[11px]">Utama</span>
+              )}
+              {d.id && role !== "crew" && (
+                <Link
+                  href={`/admin/templates/${d.id}`}
+                  aria-label={`Edit desain ${d.name}`}
+                  className="rounded-full border-[1.5px] border-ink bg-white px-2.5 py-0.5 text-[11px] no-underline hover:bg-butter"
+                >
+                  Edit desain
+                </Link>
+              )}
+            </span>
+          ))}
+          {!designs.length && <span className="text-sm text-text-2">Belum ada desain</span>}
+        </span>
+        {role !== "crew" && (
+          <Link href={`/admin/events/${ev.id}/settings#template`} className={`${btn} bg-white`}>
+            Ganti desain
+          </Link>
+        )}
+      </section>
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {stats.map((s) => (

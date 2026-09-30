@@ -172,7 +172,10 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
     await page.getByPlaceholder(/Nama event/).fill(evName);
     await page.getByLabel("Tanggal event").fill("2026-10-12");
     await page.getByRole("button", { name: "Buat", exact: true }).click();
-    await page.getByRole("group", { name: "Layout", exact: true }).getByText(tplName).click();
+    // Desain frame (#125): event baru = Strip Klasik; ganti ke template ini.
+    const frames = page.getByRole("group", { name: "Desain frame" });
+    await frames.getByRole("checkbox", { name: /^Strip Klasik/ }).uncheck({ force: true });
+    await frames.getByRole("checkbox", { name: new RegExp(`^${tplName}`) }).check({ force: true });
     await page.getByLabel(dev?.name ?? "").check();
     await page.getByRole("button", { name: "Simpan" }).click();
     await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v2", {

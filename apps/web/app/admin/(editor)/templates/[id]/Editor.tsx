@@ -29,6 +29,7 @@ import {
   moveLayer,
   OVERLAY,
   overlayRect,
+  QR,
   type Rect,
   rotatedBounds,
   setOverlayRect,
@@ -144,12 +145,19 @@ function useEditorApi(p: {
   }, [fonts]);
 
   const keys = useMemo(
-    () => layerStack(layout).filter((k) => k !== OVERLAY || !!layout.overlay),
+    () => [
+      ...layerStack(layout).filter((k) => k !== OVERLAY || !!layout.overlay),
+      ...(layout.qr ? [QR] : []),
+    ],
     [layout],
   );
   const boxOf = useCallback(
     (k: Key): Box | null => {
       if (k === OVERLAY) return layout.overlay ? { ...overlayRect(layout), rot: 0 } : null;
+      if (k === QR) {
+        const q = layout.qr;
+        return q ? { x: q.x, y: q.y, w: q.size, h: q.size, rot: 0 } : null;
+      }
       if (k.startsWith("s:")) {
         const s = layout.slots.find((x) => slotKey(x) === k);
         return s ? { x: s.x, y: s.y, w: s.w, h: s.h, rot: s.rotation ?? 0 } : null;
@@ -270,6 +278,20 @@ function useEditorApi(p: {
     }));
   };
 
+  /** Satu QR per desain: kalau sudah ada, cukup dipilih. Bawaan = kanan bawah di dalam margin aman. */
+  const addQr = () => {
+    if (!layout.qr) {
+      const size = Math.round(Math.min(W, H) * 0.22);
+      commit((l) => ({
+        ...l,
+        qr: { x: W - SAFE_MARGIN_PX - size, y: H - SAFE_MARGIN_PX - size, size },
+      }));
+    }
+    setSel([QR]);
+  };
+  const patchQr = (patch: Partial<NonNullable<LayoutSpec["qr"]>>, tag?: string) =>
+    commit((l) => (l.qr ? { ...l, qr: { ...l.qr, ...patch } } : l), tag);
+
   const applyPreset = (preset: keyof typeof LAYOUT_PRESETS) => {
     const p0 = LAYOUT_PRESETS[preset].layout;
     commit((l) => ({ ...l, slots: p0.slots.map((s) => ({ ...s, id: `s${uid()}` })) }));
@@ -280,20 +302,25 @@ function useEditorApi(p: {
     const r = overlayRect(l);
     return setOverlayRect(l, { ...r, x: r.x + dx, y: r.y + dy });
   };
+  const shiftQr = (l: LayoutSpec, dx: number, dy: number): LayoutSpec =>
+    l.qr ? { ...l, qr: { ...l.qr, x: Math.round(l.qr.x + dx), y: Math.round(l.qr.y + dy) } } : l;
   const moveBy = (keysToMove: Key[], dx: number, dy: number) =>
-    commit((l) => ({
-      ...(keysToMove.includes(OVERLAY) ? shiftOverlay(l, dx, dy) : l),
-      slots: l.slots.map((s) =>
-        keysToMove.includes(slotKey(s))
-          ? { ...s, x: Math.round(s.x + dx), y: Math.round(s.y + dy) }
-          : s,
-      ),
-      texts: l.texts.map((t) =>
-        keysToMove.includes(textKey(t))
-          ? { ...t, x: Math.round(t.x + dx), y: Math.round(t.y + dy) }
-          : t,
-      ),
-    }));
+    commit((l0) => {
+      const l = keysToMove.includes(QR) ? shiftQr(l0, dx, dy) : l0;
+      return {
+        ...(keysToMove.includes(OVERLAY) ? shiftOverlay(l, dx, dy) : l),
+        slots: l.slots.map((s) =>
+          keysToMove.includes(slotKey(s))
+            ? { ...s, x: Math.round(s.x + dx), y: Math.round(s.y + dy) }
+            : s,
+        ),
+        texts: l.texts.map((t) =>
+          keysToMove.includes(textKey(t))
+            ? { ...t, x: Math.round(t.x + dx), y: Math.round(t.y + dy) }
+            : t,
+        ),
+      };
+    });
 
   const bounds = (k: Key) => {
     const b = boxOf(k);
@@ -313,8 +340,8 @@ function useEditorApi(p: {
         const b = bounds(k);
         if (!b) continue;
         const { dx, dy } = alignDelta(b, t, mode);
-        if (k === OVERLAY) {
-          next = shiftOverlay(next, dx, dy);
+        if (k === OVERLAY || k === QR) {
+          next = (k === QR ? shiftQr : shiftOverlay)(next, dx, dy);
           continue;
         }
         next = {
@@ -336,9 +363,10 @@ function useEditorApi(p: {
   const remove = () => {
     if (!sel.length) return;
     const keepOne = layout.slots.length - selSlots.length < 1;
-    commit(({ overlay, ...l }) => ({
+    commit(({ overlay, qr, ...l }) => ({
       ...l,
       ...(overlay && !sel.includes(OVERLAY) ? { overlay } : {}),
+      ...(qr && !sel.includes(QR) ? { qr } : {}),
       slots: keepOne ? l.slots : l.slots.filter((s) => !sel.includes(slotKey(s))),
       texts: l.texts.filter((t) => !sel.includes(textKey(t))),
     }));
@@ -440,6 +468,8 @@ function useEditorApi(p: {
     addText,
     addPack,
     applyPack,
+    addQr,
+    patchQr,
     applyPreset,
     moveBy,
     align,
