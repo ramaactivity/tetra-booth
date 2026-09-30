@@ -42,7 +42,7 @@ export default async function GalleryPage({ params }: { params: Promise<{ token:
     : null;
   const count = g.photos.length.toLocaleString("id-ID");
   return (
-    <main className="mx-auto flex min-h-dvh max-w-[1440px] flex-col gap-5 bg-paper px-3.5 pt-6 pb-16 md:px-12">
+    <main className="mx-auto flex min-h-dvh max-w-[1440px] flex-col gap-4 bg-paper px-3.5 pt-4 pb-16 md:gap-5 md:px-12 md:pt-6">
       <header className="hidden items-center justify-between md:flex">
         <div className="flex items-center gap-2.5">
           <span className="flex size-[34px] items-center justify-center rounded-[9px] border-[1.5px] border-ink bg-mint text-[15px] font-extrabold">
@@ -54,57 +54,66 @@ export default async function GalleryPage({ params }: { params: Promise<{ token:
           Galeri privat · hanya dengan link
         </span>
       </header>
-      <section className="relative h-[420px] overflow-hidden rounded-[26px] border-[1.5px] border-ink bg-neutral stripes md:h-[560px] md:rounded-[28px]">
-        {cover && (
-          <img
-            src={cover.full}
-            alt=""
-            fetchPriority="high"
-            className="absolute inset-0 size-full object-cover"
-          />
-        )}
-        <div className="layered absolute right-3 bottom-3 left-3 rounded-[18px] border-[1.5px] border-ink bg-white p-4 [--lb:1.5px] [--lx:6px] [--under:#fff] md:right-auto md:bottom-7 md:left-7 md:w-[560px] md:rounded-[22px] md:p-7">
+      {/* Kartu judul ringkas: cover kecil + info, tidak mendominasi layar (Rama 30 Sep: galeri kepotong). */}
+      <section className="layered grid grid-cols-[auto_1fr] items-center gap-3.5 rounded-[22px] border-[1.5px] border-ink bg-white p-3 [--lb:1.5px] [--lx:6px] [--under:#fff] md:grid-cols-[auto_1fr_auto] md:gap-7 md:p-4">
+        <div className="relative size-24 flex-none overflow-hidden rounded-[14px] border-[1.5px] border-ink bg-neutral stripes md:h-[200px] md:w-[300px]">
+          {cover && (
+            <img
+              src={cover.thumb}
+              srcSet={`${cover.thumb} 480w, ${cover.full} 2400w`}
+              sizes="(min-width:768px) 300px, 96px"
+              alt=""
+              fetchPriority="high"
+              className="absolute inset-0 size-full object-cover"
+            />
+          )}
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col items-start gap-2 md:gap-3">
           {g.tagline && (
-            <span className="rounded-full border-[1.5px] border-ink bg-lavender px-3 py-[5px] text-xs font-bold whitespace-nowrap">
+            <span className="rounded-full border-[1.5px] border-ink bg-lavender px-2.5 py-1 text-[11px] font-bold whitespace-nowrap md:px-3 md:text-xs">
               {g.tagline}
             </span>
           )}
-          <h1 className="mt-4 text-[30px] leading-none font-extrabold tracking-[-0.04em] md:text-[72px] md:leading-[0.95]">
+          <h1 className="text-[26px] leading-none font-extrabold tracking-[-0.04em] break-words md:text-[52px] md:leading-[0.95]">
             {g.name}
           </h1>
-          <div className="mt-3 flex justify-between border-t-[1.5px] border-dashed border-ink pt-2.5 text-xs font-semibold md:mt-5 md:grid md:grid-cols-3 md:pt-3.5 md:text-[13px]">
+          <p className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs font-semibold text-text-2 md:text-sm">
             <span>
               {fmt(g.date)}
-              {g.location ? <span className="md:hidden"> · {g.location}</span> : null}
+              {g.location && ` · ${g.location}`}
             </span>
-            <span className="hidden md:block">{g.location ?? "—"}</span>
-            <span className="font-mono" data-testid="photo-count">
+            <span className="font-mono text-ink" data-testid="photo-count">
               {count} foto
             </span>
-          </div>
+          </p>
+        </div>
+        <div className="col-span-2 flex items-center gap-2 md:col-span-1 md:w-[300px] md:flex-col md:items-stretch md:self-stretch md:justify-center">
+          {left !== null && g.daysTotal && (
+            <div className="flex min-w-0 flex-1 flex-col gap-2 rounded-[14px] border-[1.5px] border-dashed border-ink bg-peach px-3.5 py-2.5 md:flex-none">
+              <div className="flex justify-between text-xs font-bold">
+                <span>Tersedia {left} hari lagi</span>
+                {/* Event belum lewat: sisa hari > masa simpan, pecahan "60/49" membingungkan. */}
+                {left <= g.daysTotal && (
+                  <span className="font-mono font-normal">
+                    {left}/{g.daysTotal}
+                  </span>
+                )}
+              </div>
+              <div className="h-2 overflow-hidden rounded border-[1.5px] border-ink bg-white">
+                <div
+                  className="h-full bg-ink"
+                  style={{ width: `${Math.min(100, (left / g.daysTotal) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+          <GallerySettings
+            token={token}
+            enabled={g.publicGallery}
+            deleteOn={g.expiresAt ? shortDate(g.expiresAt) : null}
+          />
         </div>
       </section>
-      {left !== null && g.daysTotal && (
-        <div className="flex flex-col gap-2 rounded-[14px] border-[1.5px] border-dashed border-ink bg-peach px-3.5 py-3 md:max-w-sm">
-          <div className="flex justify-between text-xs font-bold">
-            <span>Galeri tersedia {left} hari lagi</span>
-            <span className="font-mono font-normal">
-              {left}/{g.daysTotal}
-            </span>
-          </div>
-          <div className="h-2 overflow-hidden rounded border-[1.5px] border-ink bg-white">
-            <div
-              className="h-full bg-ink"
-              style={{ width: `${Math.min(100, (left / g.daysTotal) * 100)}%` }}
-            />
-          </div>
-        </div>
-      )}
-      <GallerySettings
-        token={token}
-        enabled={g.publicGallery}
-        deleteOn={g.expiresAt ? shortDate(g.expiresAt) : null}
-      />
       <GalleryView token={token} photos={g.photos} />
     </main>
   );

@@ -27,7 +27,7 @@ export function GallerySettings({
       <button
         type="button"
         onClick={() => ref.current?.showModal()}
-        className="h-11 self-start rounded-[10px] border-[1.5px] border-ink bg-white px-3.5 text-[13px] font-bold"
+        className="pressable h-11 flex-none rounded-[10px] border-[1.5px] border-ink bg-white px-3.5 text-[13px] font-bold"
       >
         ⚙ Pengaturan
       </button>
