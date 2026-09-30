@@ -48,7 +48,10 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
 
     const hb = await request.post("/api/booth/heartbeat", {
       headers: auth,
-      data: { appVersion: "0.0.1-e2e", status: { printer: "ok" } },
+      data: {
+        appVersion: "0.0.1-e2e",
+        status: { printer: { name: null, status: "ready", message: null }, junk: 1 },
+      },
     });
     expect(hb.status()).toBe(200);
 
@@ -72,7 +75,9 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
         .eq("id", deviceId)
         .single()
     ).data;
-    expect(row).toMatchObject({ app_version: "0.0.1-e2e", status: { printer: "ok" } });
+    // Status divalidasi BoothStatus: field asing dibuang.
+    expect(row).toMatchObject({ app_version: "0.0.1-e2e" });
+    expect(row?.status).toEqual({ printer: { name: null, status: "ready", message: null } });
     expect(row?.last_seen_at).toBeTruthy();
 
     // N3: event "pilih booth" hanya untuk device yang ditugaskan; "semua booth" (#127) untuk semua device.

@@ -14,11 +14,44 @@ export const PairResponse = z.object({
 });
 export type PairResponse = z.infer<typeof PairResponse>;
 
+/**
+ * Ringkasan kondisi booth di heartbeat, disimpan di devices.status untuk pemantauan dari admin.
+ * Setiap field opsional dan ditoleransi (`catch`): field lama/rusak (mis. booth ≤ 0.5.39 mengirim printer
+ * sebagai teks) dibuang saja, heartbeat tetap diterima supaya booth tidak tampak offline.
+ */
+const tolerant = <T extends z.ZodType>(s: T) => s.optional().catch(undefined);
+const count = z.number().int().nonnegative();
+export const BoothStatus = z.object({
+  /** Id event aktif (UUID cloud atau id bundle lokal). */
+  activeEvent: tolerant(z.string().max(64)),
+  activeEventName: tolerant(z.string().max(120)),
+  camera: tolerant(
+    z.object({
+      kind: z.enum(["webcam", "simulated", "hotfolder", "canon"]),
+      /** null = tidak dipantau main (webcam dikelola renderer). */
+      connected: z.boolean().nullable(),
+      model: z.string().max(80).nullable(),
+    }),
+  ),
+  printer: tolerant(
+    z.object({
+      name: z.string().max(120).nullable(),
+      status: z.string().max(40),
+      message: z.string().max(200).nullable(),
+    }),
+  ),
+  paper: tolerant(z.object({ remaining: count, capacity: count })),
+  failedPrints: tolerant(count),
+  uploadPending: tolerant(count),
+  lastError: tolerant(z.string().max(300).nullable()),
+  diskFreeGb: tolerant(z.number().nonnegative()),
+});
+export type BoothStatus = z.infer<typeof BoothStatus>;
+
 export const HeartbeatRequest = z.object({
   appVersion: z.string().max(40),
   screen: z.object({ width: z.number().int(), height: z.number().int() }).optional(),
-  /** Status bebas (event aktif, kamera, printer, kertas, antrean, error terakhir); disimpan apa adanya. */
-  status: z.record(z.string(), z.unknown()).default({}),
+  status: BoothStatus.catch({}).default({}),
 });
 export type HeartbeatRequest = z.infer<typeof HeartbeatRequest>;
 

@@ -12,6 +12,17 @@ export const slotAspect = (slot: BoothEvent["layout"]["slots"][number] | undefin
   return turned ? slot.h / slot.w : slot.w / slot.h;
 };
 
+/** Batas tunggu frame live view pertama sebelum hitung mundur tetap jalan (DSLR dingin ±1,6 s). */
+export const LIVE_WAIT_MS = 2500;
+// Per kamera: true = pernah mengirim frame, false = batas tunggu habis tanpa frame (hot folder tanpa live view).
+const liveKnown = new WeakMap<object, boolean>();
+export const liveSeen = (camera: object) => liveKnown.set(camera, true);
+export const liveMissed = (camera: object) => {
+  if (!liveKnown.get(camera)) liveKnown.set(camera, false);
+};
+/** Tunggu frame pertama kecuali kamera ini sudah terbukti tanpa live view (cukup sekali menunggu). */
+export const waitsForLive = (camera: object) => liveKnown.get(camera) !== false;
+
 /** Garis bantu Tes Jepret (masukan Rama W-034): sepertiga + margin aman di dalam area slot/foto. */
 export type LiveOverlay = { grid?: boolean; safe?: number };
 
@@ -73,6 +84,7 @@ export function LiveView({
       .startLiveView((frame) => {
         const { source, width, height } = frame;
         setHasFrame(true);
+        liveSeen(camera);
         frameCb.current?.(frame);
         const dpr = window.devicePixelRatio || 1;
         const cw = Math.round(canvas.clientWidth * dpr);

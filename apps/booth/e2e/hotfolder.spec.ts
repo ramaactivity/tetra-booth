@@ -51,6 +51,8 @@ test("hot folder: 3 JPEG yang masuk folder jadi 3 foto sesi", async () => {
   for (let i = 1; i <= 3; i++) {
     await expect(w.getByText(`Foto ${i} dari 3`)).toBeVisible();
     await expect(w.getByText("Lihat ke kamera")).toBeVisible();
+    // Foto 1: countdown menunggu frame live view maks. 2,5 dtk (hot folder tanpa live view: sekali saja).
+    await expect(w.getByText("Menyiapkan kamera…")).toBeHidden({ timeout: 5000 });
     // Masuk jendela toleransi 2 detik sebelum capture diminta (countdown 3 detik).
     await w.waitForTimeout(1800);
     writeFileSync(join(hot, `IMG_000${i}.JPG`), await jpeg(i));

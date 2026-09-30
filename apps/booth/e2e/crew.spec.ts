@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { _electron as electron, expect, type Page, test } from "@playwright/test";
+import { HeartbeatRequest } from "@tetra/shared";
 
 /** Mode crew (M6) end-to-end: hotspot → PIN → event bundle → kertas → peringatan → kunci PIN. */
 
@@ -223,6 +224,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   const { createServer } = await import("node:http");
   const TOKEN = "t".repeat(54);
   const beats: string[] = [];
+  const beatBodies: HeartbeatRequest[] = [];
   const sessions: { eventId: string; assetCount: number }[] = [];
   const puts: string[] = [];
   const recorded: string[] = [];
@@ -299,6 +301,8 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
         res.end(PNG);
       } else {
         beats.push(req.headers.authorization ?? "");
+        if (req.url === "/api/booth/heartbeat")
+          beatBodies.push(HeartbeatRequest.parse(JSON.parse(body)));
         res.end(JSON.stringify({ ok: true }));
       }
     });
@@ -334,6 +338,14 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await typePin(w, "123456");
   await expect(w.getByTestId("cloud-device")).toHaveText("Booth Uji · B07");
   await expect.poll(() => beats).toContain(`Bearer ${TOKEN}`);
+  // Snapshot status untuk pantauan admin (kontrak BoothStatus, field hasil zod tidak dibuang).
+  const st = beatBodies[0]?.status;
+  expect(st?.camera?.kind).toBeTruthy();
+  expect(st?.printer?.status).toBeTruthy();
+  expect(st?.paper?.capacity).toBeGreaterThan(0);
+  expect(st?.failedPrints).toBeGreaterThanOrEqual(0);
+  expect(st?.uploadPending).toBeGreaterThanOrEqual(0);
+  expect(st?.diskFreeGb).toBeGreaterThan(0);
 
   // Bundle sudah ditarik otomatis setelah pairing; tombol sync tetap aman dipanggil ulang.
   await w.getByTestId("step-event").getByRole("button").click();

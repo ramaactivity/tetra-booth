@@ -137,6 +137,13 @@ export function SessionRunner({
     } else recorder.current?.pause();
   }, [s.phase, s.sessionId, cfg.countdownVideo, demo, p]);
 
+  // Frame live view sudah tampil di layar jepret ini; countdown menunggunya (EVF DSLR dingin, lihat Countdown).
+  const [live, setLive] = useState(false);
+  const shooting = s.phase === "countdown" || s.phase === "capture";
+  useEffect(() => {
+    if (!shooting) setLive(false);
+  }, [shooting]);
+
   // Foto 1 (W-034): EVF DSLR dinyalakan saat tamu memilih desain / selesai bayar, bukan baru saat hitung mundur.
   useEffect(() => {
     if (s.phase === "layout_select" || s.phase === "paid") p.camera.warm?.();
@@ -389,13 +396,15 @@ export function SessionRunner({
     });
   }, [p, s.sessionId]);
 
-  const shooting = s.phase === "countdown" || s.phase === "capture";
   return (
     <div className="relative h-full w-full overflow-hidden bg-paper">
       {shooting && (
         <LiveView
           guide={slotAspect(ev.layout.slots[s.index])}
-          onFrame={(f) => recorder.current?.draw(f.source, f.width, f.height)}
+          onFrame={(f) => {
+            recorder.current?.draw(f.source, f.width, f.height);
+            setLive(true);
+          }}
         />
       )}
       {/* printing → qr satu layar (A8): jangan animasi masuk dua kali. */}
@@ -439,6 +448,8 @@ export function SessionRunner({
             onStart={() => {
               // Sapaan hanya kalau ada layar pilih dulu; kalau langsung foto, "gaya pertama" sudah menyapa.
               if (cfg.countdownSound && (event.photobox || event.designs)) void play("mulai");
+              // Langsung foto 1: nyalakan EVF DSLR sekarang (W-034); layar pilih menyalakannya sendiri.
+              if (!event.photobox && !event.designs) p.camera.warm?.();
               dispatch(
                 event.photobox
                   ? { type: "PHOTOBOX_START", draftId: newSessionId() }
@@ -520,6 +531,7 @@ export function SessionRunner({
             sound={cfg.countdownSound}
             prompt={beforeText(s.index, s.slots, before)}
             cue={cfg.promptsBefore.length ? null : beforeCue(s.index, s.slots)}
+            live={live}
           />
         );
       case "capture":

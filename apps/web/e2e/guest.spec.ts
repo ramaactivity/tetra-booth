@@ -145,8 +145,17 @@ test("ready: strip, tab original, simpan, masa berlaku", async ({ page }) => {
   await expect(viewer.getByRole("img", { name: "Foto 2 dari 3" })).toBeVisible();
   await expect(viewer.getByRole("button", { name: "Simpan foto ini" })).toBeEnabled();
   await page.screenshot({ path: "test-results/guest-viewer.png", animations: "disabled" });
+  // Zoom: klik dua kali → foto membesar; ganti foto → foto berikutnya 1×.
+  const scale = (name: string) =>
+    viewer.getByRole("img", { name }).evaluate((el) => {
+      const t = getComputedStyle(el).transform;
+      return t === "none" ? 1 : new DOMMatrix(t).a;
+    });
+  await viewer.getByRole("img", { name: "Foto 2 dari 3" }).dblclick();
+  await expect.poll(() => scale("Foto 2 dari 3")).toBeGreaterThan(1);
   await page.keyboard.press("ArrowRight");
   await expect(viewer.getByText("3 / 3")).toBeVisible();
+  expect(await scale("Foto 3 dari 3")).toBe(1);
   // Geser ke kanan (swipe) → foto sebelumnya.
   await page.mouse.move(80, 422);
   await page.mouse.down();

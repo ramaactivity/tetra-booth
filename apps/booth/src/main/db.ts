@@ -271,6 +271,14 @@ export function openDb(file: string) {
       kv.set("paper_remaining", String(capacity));
     },
 
+    /** Jumlah cetak gagal yang belum dicetak ulang (heartbeat). */
+    failedPrintCount(): number {
+      return (
+        db.prepare("select count(*) n from print_jobs where status = 'failed'").get() as {
+          n: number;
+        }
+      ).n;
+    },
     /** Cetak gagal yang belum dicetak ulang, terbaru dulu. */
     failedPrints(): PrintJobInfo[] {
       return db
