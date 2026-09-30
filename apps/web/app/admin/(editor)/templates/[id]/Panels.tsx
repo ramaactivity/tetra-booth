@@ -17,12 +17,13 @@ import {
   Layers,
   LayoutGrid,
   Move,
+  QrCode,
   SendToBack,
   Type,
   Upload,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
-import { type AlignMode, type Key, layerStack, OVERLAY } from "@/lib/editor/geometry";
+import { type AlignMode, type Key, layerStack, OVERLAY, QR } from "@/lib/editor/geometry";
 import { FONT_PACKS } from "@/lib/fonts";
 import { FONT_IDS } from "@/lib/layouts";
 import type { EditorApi } from "./Editor";
@@ -274,6 +275,7 @@ export function Panels({
   const single = ed.sel.length === 1 ? ed.boxOf(ed.sel[0] as Key) : null;
   const selSlot = ed.selSlots.length === 1 && ed.sel.length === 1 ? ed.selSlots[0] : undefined;
   const selText = ed.selTexts.length === 1 && ed.sel.length === 1 ? ed.selTexts[0] : undefined;
+  const selQr = ed.sel.length === 1 && ed.sel[0] === QR ? ed.layout.qr : undefined;
 
   return (
     <div className="flex flex-none">
@@ -332,6 +334,20 @@ export function Panels({
                   </button>
                 ))}
                 <p className={small}>Mengganti semua slot (bisa di-urungkan dengan ⌘Z).</p>
+              </Section>
+              <Section title="Tautan tamu">
+                <button type="button" className={card} onClick={ed.addQr}>
+                  <span className="flex size-10 flex-none items-center justify-center rounded-[10px] border-[1.5px] border-ink bg-lavender">
+                    <QrCode className="size-5" />
+                  </span>
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    QR unduh foto
+                    <span className="text-xs font-medium text-text-2">
+                      Tamu scan untuk unduh foto &amp; video
+                    </span>
+                  </span>
+                </button>
+                <p className={small}>Satu QR per desain, selalu di lapisan paling atas.</p>
               </Section>
             </>
           )}
@@ -492,7 +508,7 @@ export function Panels({
                 <AlignButtons ed={ed} />
                 {!ed.sel.length && <p className={small}>Pilih elemen dulu.</p>}
               </Section>
-              {single && (selSlot || selText) && (
+              {single && (selSlot || selText || selQr) && (
                 <Section title="Ukuran & posisi">
                   <div className="grid grid-cols-2 gap-2">
                     {selSlot && (
@@ -545,6 +561,17 @@ export function Panels({
                         />
                       </>
                     )}
+                    {selQr && (
+                      <>
+                        <Num label="X" value={selQr.x} onChange={(x) => ed.patchQr({ x }, "x")} />
+                        <Num label="Y" value={selQr.y} onChange={(y) => ed.patchQr({ y }, "y")} />
+                        <Num
+                          label="Ukuran"
+                          value={selQr.size}
+                          onChange={(size) => size > 0 && ed.patchQr({ size }, "size")}
+                        />
+                      </>
+                    )}
                   </div>
                 </Section>
               )}
@@ -553,6 +580,14 @@ export function Panels({
 
           {tab === "layer" && (
             <Section title="Layer" aside={<span className={small}>atas = depan</span>}>
+              {ed.layout.qr && (
+                <LayerRow
+                  label="QR unduh foto"
+                  sub="selalu paling atas"
+                  on={ed.sel.includes(QR)}
+                  onClick={() => ed.setSel([QR])}
+                />
+              )}
               {[...stack].reverse().map((k) =>
                 k === OVERLAY && !ed.layout.overlay ? (
                   <LayerRow

@@ -27,7 +27,7 @@ export type BoothEvent = {
     | undefined;
   /** Suara per event (#104): "off" atau object URL file pengganti. */
   sounds?: Partial<Record<SoundCue, string>> | undefined;
-  /** Mode event: 2–5 desain pilihan tamu (DECISIONS #99); tanpa ini = satu desain `layout`. */
+  /** Mode event: 2–3 desain pilihan tamu (DECISIONS #99); tanpa ini = satu desain `layout`. */
   designs?: EventDesign[] | undefined;
   /** Aset bundle yang sudah dimuat (overlay/background) + nama font terdaftar per assetId. */
   render?: { images: Record<string, ImageBitmap>; fonts: Record<string, string> };

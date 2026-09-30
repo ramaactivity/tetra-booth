@@ -4,13 +4,12 @@ import {
   LAYOUT_PRESETS,
   type LayoutPaper,
   PHOTO_FILTERS,
-  type PresetId,
   paperLabel,
 } from "@tetra/shared";
-import Link from "next/link";
 import { type ReactNode, startTransition, useActionState, useState } from "react";
 import { ColorPicker } from "@/components/ColorPicker";
 import { type SaveResult, saveEvent } from "./actions";
+import { type DesignOption, DesignPicker } from "./DesignPicker";
 
 export type SettingsValues = {
   name: string;
@@ -18,11 +17,9 @@ export type SettingsValues = {
   location: string;
   tagline: string;
   client_name: string;
-  /** Preset id, atau `tpl:<layoutId>` untuk template editor. */
-  preset: string;
-  pinnedVersion: number | null;
-  /** Desain tambahan pilihan tamu (mode event, DECISIONS #99): nilai sama dengan `preset`. */
-  extras: string[];
+  /** Desain frame terpilih, berurutan (pertama = utama): preset id atau `tpl:<layoutId>`. */
+  designs: string[];
+  designOptions: DesignOption[];
   templates: { id: string; name: string; paper: string; version: number }[];
   background: string;
   hasOverlay: boolean;
@@ -143,7 +140,7 @@ function SoundRow({ cue, on, custom }: { cue: string; on: boolean; custom: strin
 }
 
 const MODES = [
-  { v: "event", i: "♥", t: "Mode Event", d: "Klien bayar paket, 1 layout, cetak gratis" },
+  { v: "event", i: "♥", t: "Mode Event", d: "Klien bayar paket, 1–3 desain, cetak gratis" },
   { v: "photobox", i: "▣", t: "Mode Photobox", d: "Tamu bayar per sesi via QRIS" },
 ] as const;
 
@@ -153,7 +150,7 @@ const input = "h-[42px] w-full rounded-[11px] border-[1.5px] border-ink bg-white
 const NAV = [
   ["informasi", "Informasi"],
   ["mode", "Mode"],
-  ["template", "Template"],
+  ["template", "Desain frame"],
   ["layar-awal", "Layar awal"],
   ["suara", "Suara"],
   ["photobox", "Photobox"],
@@ -239,7 +236,8 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
       // onSubmit, bukan action=: React me-reset form setelah action, isian hilang kalau simpan ditolak.
       onSubmit={(e) => {
         e.preventDefault();
-        const data = new FormData(e.currentTarget);
+        // submitter: tombol "Salin & sesuaikan" (name=copy) ikut terkirim.
+        const data = new FormData(e.currentTarget, (e.nativeEvent as SubmitEvent).submitter);
         startTransition(() => action(data));
       }}
       className="grid grid-cols-1 items-start gap-7 xl:grid-cols-[1fr_280px]"
@@ -307,84 +305,8 @@ export function SettingsForm({ eventId, v }: { eventId: string; v: SettingsValue
           ))}
         </Section>
 
-        <Section id="template" title="Template">
-          <fieldset className="col-span-full grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <legend className="mb-1.5 text-xs font-bold">Layout</legend>
-            {EVENT_PRESETS.map((id) => [id, LAYOUT_PRESETS[id]] as const).map(([id, p]) => (
-              <label
-                key={id}
-                className="flex cursor-pointer flex-col gap-0.5 rounded-[14px] border-[1.5px] border-dashed border-ink bg-white p-3.5 has-checked:border-solid has-checked:bg-sky"
-              >
-                <input
-                  type="radio"
-                  name="preset"
-                  value={id}
-                  defaultChecked={v.preset === id}
-                  className="sr-only"
-                />
-                <span className="text-sm font-bold">{p.name}</span>
-                <span className="font-mono text-xs text-text-2">{p.info}</span>
-              </label>
-            ))}
-            {v.templates.map((t) => {
-              const value = `tpl:${t.id}`;
-              const pinned = v.preset === value ? v.pinnedVersion : null;
-              return (
-                <label
-                  key={t.id}
-                  className="flex cursor-pointer flex-col gap-0.5 rounded-[14px] border-[1.5px] border-dashed border-ink bg-white p-3.5 has-checked:border-solid has-checked:bg-sky"
-                >
-                  <input
-                    type="radio"
-                    name="preset"
-                    value={value}
-                    defaultChecked={v.preset === value}
-                    className="sr-only"
-                  />
-                  <span className="text-sm font-bold">{t.name}</span>
-                  <span className="font-mono text-xs text-text-2">
-                    {paperLabel(t.paper as LayoutPaper)} · template v{t.version}
-                  </span>
-                  {pinned !== null && pinned < t.version && (
-                    <span className="text-[11px] font-semibold text-text-2">
-                      Event memakai v{pinned}. Simpan untuk memakai v{t.version}.
-                    </span>
-                  )}
-                </label>
-              );
-            })}
-            <Link href="/admin/templates" className="self-center text-xs font-bold underline">
-              + Buat / edit template
-            </Link>
-          </fieldset>
-          <fieldset className="col-span-full flex flex-col gap-2">
-            <legend className="mb-1.5 text-xs font-bold">
-              Desain lain untuk tamu (Mode Event, opsional, maks. 4) · tamu memilih sebelum foto
-            </legend>
-            <div className="flex flex-wrap gap-2">
-              {[
-                ...EVENT_PRESETS.map((id) => ({ value: id, name: LAYOUT_PRESETS[id].name })),
-                ...v.templates.map((t) => ({
-                  value: `tpl:${t.id}`,
-                  name: `${t.name} · ${paperLabel(t.paper as LayoutPaper)}`,
-                })),
-              ].map((d) => (
-                <label
-                  key={d.value}
-                  className="flex cursor-pointer items-center gap-2 rounded-full border-[1.5px] border-dashed border-ink bg-white px-3 py-1.5 text-xs font-bold has-checked:border-solid has-checked:bg-lavender"
-                >
-                  <input
-                    type="checkbox"
-                    name="extra"
-                    value={d.value}
-                    defaultChecked={v.extras.includes(d.value)}
-                    className="sr-only"
-                  />
-                  {d.name}
-                </label>
-              ))}
-            </div>
-          </fieldset>
+        <Section id="template" title="Desain frame">
+          <DesignPicker options={v.designOptions} initial={v.designs} />
           <Field label="Overlay (PNG transparan, ukuran kanvas layout; hanya untuk layout preset)">
             <FilePick name="overlay" accept="image/png" />
           </Field>

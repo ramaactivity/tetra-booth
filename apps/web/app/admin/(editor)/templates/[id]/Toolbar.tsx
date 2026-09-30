@@ -14,10 +14,11 @@ import {
 import type { ReactNode, RefObject } from "react";
 import { ColorPicker } from "@/components/ColorPicker";
 import { Select } from "@/components/Select";
-import { OVERLAY, setOverlayRect } from "@/lib/editor/geometry";
+import { OVERLAY, QR, setOverlayRect } from "@/lib/editor/geometry";
 import type { EditorApi } from "./Editor";
 import type { Tab } from "./Panels";
 import { AlignButtons } from "./Panels";
+import { QR_MIN } from "./Stage";
 
 const btn =
   "flex h-9 items-center gap-1.5 rounded-[10px] border-[1.5px] border-transparent px-2 text-[13px] font-bold hover:border-ink hover:bg-white aria-pressed:border-ink aria-pressed:bg-lavender";
@@ -48,6 +49,7 @@ export function Toolbar({
   const text = ed.selTexts.length === 1 && ed.sel.length === 1 ? ed.selTexts[0] : undefined;
   const slot = ed.selSlots.length === 1 && ed.sel.length === 1 ? ed.selSlots[0] : undefined;
   const allTexts = ed.sel.length > 0 && ed.selTexts.length === ed.sel.length;
+  const qr = ed.sel.length === 1 && ed.sel[0] === QR ? ed.layout.qr : undefined;
   const common = (
     <>
       <div className="flex-1" />
@@ -191,6 +193,52 @@ export function Toolbar({
           </>
         )}
         {common}
+      </>
+    );
+  } else if (qr) {
+    body = (
+      <>
+        <span className="text-[13px] font-bold whitespace-nowrap">QR unduh foto</span>
+        <label className="flex items-center gap-1.5 text-[13px] font-bold">
+          Ukuran
+          <input
+            aria-label="Ukuran QR"
+            type="number"
+            min={QR_MIN}
+            value={Math.round(qr.size)}
+            onChange={(e) =>
+              Number(e.target.value) > 0 && ed.patchQr({ size: Number(e.target.value) }, "size")
+            }
+            className="h-9 w-20 rounded-[10px] border-[1.5px] border-ink text-center font-mono text-[13px]"
+          />
+          px
+        </label>
+        <ColorPicker
+          label="Warna QR"
+          value={qr.color ?? "#1d1d1b"}
+          docColors={ed.docColors}
+          onChange={(c) => ed.patchQr({ color: c }, "color")}
+        />
+        <Sep />
+        <span
+          className="text-[13px] whitespace-nowrap text-text-2"
+          title={`Kotak QR berlatar putih. Pakai warna gelap dan ukuran minimal ${QR_MIN} px.`}
+        >
+          Perlu latar terang agar bisa dipindai
+        </span>
+        <div className="flex-1" />
+        <button type="button" className={btn} onClick={() => openTab("posisi")}>
+          <Move className="size-4" /> Posisi
+        </button>
+        <button
+          type="button"
+          aria-label="Hapus elemen"
+          title="Hapus (Delete)"
+          className={btn}
+          onClick={ed.remove}
+        >
+          <Trash2 className="size-4" />
+        </button>
       </>
     );
   } else if (slot) {
