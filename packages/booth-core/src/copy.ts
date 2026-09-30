@@ -111,6 +111,8 @@ export const copy = {
     photos: (n: number) => `${n} foto`,
     back: "Kembali",
     toPayment: "Lanjut ke Pembayaran",
+    pickHint: "Sentuh desain yang kamu suka",
+    pickedHint: "Pilihan bagus! Sentuh tombol di bawah untuk lanjut",
     timeLeft: "Sisa waktu",
     mode: "Mode Photobox",
     includedLine: "1 lembar termasuk paket",
