@@ -33,6 +33,19 @@ export const TextSchema = z.object({
   order: z.number().optional(),
 });
 
+/**
+ * QR link halaman tamu (unduh softfile) di desain, selalu paling atas. Diisi booth dengan URL sesi saat compose;
+ * editor & pratinjau memakai URL contoh. `size` = sisi persegi termasuk tepi putih.
+ */
+export const QrSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  size: z.number().positive(),
+  color: hexColor.optional(),
+  /** Latar kotak QR; kosong = putih (QR butuh kontras untuk dipindai). */
+  background: hexColor.optional(),
+});
+
 export const LayoutSpecSchema = z
   .object({
     id: z.string().min(1),
@@ -58,6 +71,7 @@ export const LayoutSpecSchema = z
       })
       .optional(),
     texts: z.array(TextSchema),
+    qr: QrSchema.optional(),
   })
   .refine((s) => canvasFits(s.paper, s.canvas), {
     message: "ukuran canvas tidak sesuai preset kertas",
@@ -67,3 +81,4 @@ export const LayoutSpecSchema = z
 export type LayoutSpec = z.infer<typeof LayoutSpecSchema>;
 export type LayoutSlot = z.infer<typeof SlotSchema>;
 export type LayoutText = z.infer<typeof TextSchema>;
+export type LayoutQr = z.infer<typeof QrSchema>;

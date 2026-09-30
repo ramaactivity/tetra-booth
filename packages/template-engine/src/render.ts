@@ -5,7 +5,28 @@ import {
   type LayoutText,
   PRINT_CANVAS,
 } from "@tetra/shared";
+import QRCode from "qrcode";
 import type { CanvasLike, Ctx2D, ImageLike, RenderContext, RenderInputs } from "./types";
+
+/** URL contoh untuk QR di editor & pratinjau (panjang sama dengan link sesi asli, jadi kerapatan QR sama). */
+export const SAMPLE_QR_URL = "https://booth.tetraphoto.com/s/AbCdEfGhIj";
+
+/** QR sebagai kotak-kotak `fillRect` (tanpa gambar), tepi putih 2 modul, sisi total = `qr.size`. */
+const drawQr = (c: Ctx2D, qr: NonNullable<LayoutSpec["qr"]>, url: string): void => {
+  const m = QRCode.create(url, { errorCorrectionLevel: "M" }).modules;
+  const n = m.size + 4;
+  const cell = qr.size / n;
+  c.save();
+  c.fillStyle = qr.background ?? "#ffffff";
+  c.fillRect(qr.x, qr.y, qr.size, qr.size);
+  c.fillStyle = qr.color ?? "#1d1d1b";
+  for (let y = 0; y < m.size; y++)
+    for (let x = 0; x < m.size; x++)
+      // +0.5 px menutup celah antialias di antara kotak.
+      if (m.get(y, x))
+        c.fillRect(qr.x + (x + 2) * cell, qr.y + (y + 2) * cell, cell + 0.5, cell + 0.5);
+  c.restore();
+};
 
 const get2d = (c: CanvasLike): Ctx2D => {
   const ctx = c.getContext("2d");
@@ -99,6 +120,7 @@ const renderLayout = (spec: LayoutSpec, inputs: RenderInputs, ctx: RenderContext
   if (ov && overlay)
     c.drawImage(overlay, ov.x ?? 0, ov.y ?? 0, ov.w ?? canvas.width, ov.h ?? canvas.height);
   draw("above_overlay");
+  if (spec.qr) drawQr(c, spec.qr, inputs.qrUrl ?? SAMPLE_QR_URL);
   return canvas;
 };
 
