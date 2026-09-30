@@ -147,9 +147,9 @@ test("photobox: layout → QRIS → foto dengan timer → tambah lembar → QRIS
     // Ganti Event = layar pilih mode (DECISIONS #86) → Photobox → event → checklist crew → Buka untuk Tamu.
     await w.getByTestId("step-event").getByRole("button").click();
     await w.getByRole("button", { name: /Mode Photobox/ }).click();
-    await w.getByRole("button", { name: "Sync dari Cloud" }).click();
+    await w.getByRole("button", { name: "Ambil event terbaru" }).click();
     await w.getByRole("button", { name: /Photobox Mall/ }).click();
-    await w.getByRole("button", { name: /Buka untuk Tamu/ }).click();
+    await w.getByTestId("to-guest").click();
     await w.waitForTimeout(1000);
 
     await w.getByRole("button", { name: /sentuh untuk mulai/i }).click();

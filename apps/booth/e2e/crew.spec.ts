@@ -81,7 +81,7 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await w.getByRole("button", { name: /Mode Event/ }).click();
   await w.screenshot({ path: "test-results/start-events.png" });
   await w.getByRole("button", { name: /Andi & Sari/ }).click();
-  await w.getByRole("button", { name: /Buka untuk Tamu/ }).click();
+  await w.getByTestId("to-guest").click();
   // Memilih event kembali ke checklist crew; Buka untuk Tamu → layar tamu event itu.
   await expect(w.getByRole("heading", { name: "Andi & Sari" })).toBeVisible();
   await openCrew(w);
@@ -133,8 +133,8 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await expect(countdown).not.toContainText("diubah di booth");
   await w.getByRole("button", { name: "Batal" }).click();
   await expect(w.getByTestId("settings-local")).toHaveCount(0);
-  // Tombol sidebar "Keluar ke Mode Tamu" selalu terlihat (di bagian mana pun).
-  await w.getByRole("button", { name: /keluar ke mode tamu/i }).click();
+  // Tombol sidebar "Buka untuk Tamu" selalu terlihat (di bagian mana pun).
+  await w.getByTestId("to-guest").click();
 
   await expect(w.getByRole("heading", { name: "Andi & Sari" })).toBeVisible();
   await expect(w.getByText("The Wedding of")).toBeVisible();
@@ -340,9 +340,9 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   // Bundle sudah ditarik otomatis setelah pairing; tombol sync tetap aman dipanggil ulang.
   await w.getByTestId("step-event").getByRole("button").click();
   await w.getByRole("button", { name: /Mode Event/ }).click();
-  await w.getByRole("button", { name: "Sync dari Cloud" }).click();
+  await w.getByRole("button", { name: "Ambil event terbaru" }).click();
   await w.getByRole("button", { name: /Rina & Dimas/ }).click();
-  await w.getByRole("button", { name: /Buka untuk Tamu/ }).click();
+  await w.getByTestId("to-guest").click();
   await expect(w.getByRole("heading", { name: "Rina & Dimas" })).toBeVisible();
 
   // Satu sesi (--fast) untuk event cloud → semua file masuk R2 palsu dan tercatat (N4).

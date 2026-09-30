@@ -22,7 +22,7 @@ const stepBtn =
 
 /**
  * Pengaturan event di booth (DECISIONS #100): override lokal per booth untuk field yang aman diubah di lokasi.
- * Sync dari Cloud tidak menimpanya; "Kembalikan ke cloud" menghapusnya. Template & harga tetap dari admin.
+ * "Ambil event terbaru" tidak menimpanya; "Kembalikan ke cloud" menghapusnya. Template & harga tetap dari admin.
  */
 export function EventSettingsSheet({
   event,

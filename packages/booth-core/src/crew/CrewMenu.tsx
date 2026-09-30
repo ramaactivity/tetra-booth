@@ -182,7 +182,8 @@ function Step({
   optional?: boolean;
   title: string;
   detail: string;
-  action: string;
+  /** Kosong = langkah beres tanpa aksi lanjutan (tidak menampilkan tombol yang terlihat seperti tugas). */
+  action?: string | undefined;
   onAction: () => void;
   testId: string;
 }) {
@@ -205,13 +206,15 @@ function Step({
         {detail}
         {optional && !done && <span className="block">{copy.crew.setup.optional}</span>}
       </p>
-      <Button
-        variant={done ? "plain" : "secondary"}
-        className="mt-auto min-h-[72px] rounded-[18px] px-5 py-2 text-xl"
-        onClick={onAction}
-      >
-        {action}
-      </Button>
+      {action && (
+        <Button
+          variant={done ? "plain" : "secondary"}
+          className="mt-auto min-h-[72px] rounded-[18px] px-5 py-2 text-xl"
+          onClick={onAction}
+        >
+          {action}
+        </Button>
+      )}
     </li>
   );
 }
@@ -447,7 +450,7 @@ export function CrewMenu({
                   ? copy.crew.paired(status.device.name, status.device.shortCode)
                   : copy.crew.setup.pairTodo
               }
-              action={copy.crew.setup.pairAction}
+              action={status?.device ? undefined : copy.crew.setup.pairAction}
               onAction={onPair}
             />
             <Step
@@ -524,9 +527,14 @@ export function CrewMenu({
             onOpen={() => setSection("printer")}
           >
             <div className={big}>±{status?.paper.remaining ?? "…"}</div>
-            <div className={`${sub} truncate ${paperLow ? "text-coral-strong" : ""}`}>
+            <div className={`${sub} truncate`}>
               {status ? copy.crew.paper(status.paper.remaining, status.paper.capacity) : "…"}
             </div>
+            {paperLow && (
+              <span className="mt-2 inline-block">
+                <Pill tone="peach">{copy.crew.paperLow}</Pill>
+              </span>
+            )}
           </Tile>
           <Tile
             icon={ArrowUpDown}
@@ -535,7 +543,7 @@ export function CrewMenu({
             pill={onlinePill}
             onOpen={() => setSection("system")}
           >
-            <div className={big}>
+            <div className={`${big} text-[30px] leading-tight`}>
               {status?.uploadPending ? copy.crew.unsent(status.uploadPending) : copy.crew.allSent}
             </div>
             <div className={`${sub} truncate`} data-testid="cloud-device">
@@ -577,9 +585,9 @@ export function CrewMenu({
     printer: (
       <>
         <Group title={copy.crew.printerTitle} pill={printerPill}>
-          <p className={`col-span-full text-2xl font-bold ${paperLow ? "text-coral-strong" : ""}`}>
+          <p className="col-span-full flex flex-wrap items-center gap-3 text-2xl font-bold">
             {status ? copy.crew.paper(status.paper.remaining, status.paper.capacity) : "…"}
-            {paperLow && ` · ${copy.crew.paperLow}`}
+            {paperLow && <Pill tone="peach">{copy.crew.paperLow}</Pill>}
             {status?.printer.message && ` · ${status.printer.message}`}
           </p>
           <Button variant="plain" className={action} onClick={doTestPrint}>
@@ -661,7 +669,7 @@ export function CrewMenu({
             </span>
           </p>
           <Button variant="plain" className={action} onClick={onPair}>
-            {copy.crew.pair}
+            {status?.device ? copy.crew.pairAgain : copy.crew.pair}
           </Button>
           {!!status?.uploadPending && status.device && (
             <Button variant="plain" className={action} onClick={act(() => p.crew.retryUploads())}>
@@ -739,6 +747,7 @@ export function CrewMenu({
         ))}
         <Button
           className="mt-auto h-[92px] gap-2 rounded-[20px] px-4 text-xl [--lx:7px] [--under:#fff] portrait:mt-0"
+          data-testid="to-guest"
           onClick={onClose}
         >
           {copy.crew.toGuest} <ArrowRight size={24} strokeWidth={2.5} />

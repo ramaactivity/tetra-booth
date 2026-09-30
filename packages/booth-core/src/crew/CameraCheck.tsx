@@ -5,7 +5,7 @@ import { copy } from "../copy";
 import { errText } from "../errors";
 import { previewUrl } from "../finalize";
 import { usePlatform } from "../PlatformContext";
-import type { FocusStep, LiveFrame } from "../platform";
+import type { CameraProp, FocusStep, LiveFrame } from "../platform";
 import { LiveView } from "../screens/LiveView";
 import { sharpNotes, sharpnessOf } from "../sharpness";
 import { CameraProps } from "./CameraProps";
@@ -35,6 +35,42 @@ export function tapToFrame(
   return { x: clamp(mirror ? 1 - fx : fx), y: clamp(fy) };
 }
 
+/** Setelan yang dipakai saat jepret (label kamera apa adanya, supaya bisa dipasang ulang persis). */
+type ShotSettings = {
+  iso?: string | undefined;
+  shutter?: string | undefined;
+  aperture?: string | undefined;
+  wb?: string | undefined;
+};
+type TestShot = {
+  n: number;
+  url: string;
+  w: number;
+  h: number;
+  ms: number;
+  score: number;
+  s: ShotSettings;
+};
+const HISTORY_MAX = 6;
+const SAME = "Sama dengan live view";
+
+/** ISO/shutter efektif saat jepret: nilai "jepret" kalau diisi, kalau tidak ikut live view (#113, W-034). */
+function effectiveSettings(props: CameraProp[]): ShotSettings {
+  const v = (n: string) => props.find((x) => x.name === n)?.value || undefined;
+  const cap = (a: string, live: string) => {
+    const c = v(a);
+    return c && c !== SAME ? c : v(live);
+  };
+  return {
+    iso: cap("iso_capture", "iso"),
+    shutter: cap("shutter_capture", "shutterspeed"),
+    aperture: v("aperture"),
+    wb: v("whitebalance"),
+  };
+}
+const settingsLine = (s: ShotSettings) =>
+  [s.iso, s.shutter, s.aperture].filter(Boolean).join(" · ") || "—";
+
 /**
  * Tes Jepret (FSD §1.3), dirombak dari masukan Rama (W-034): live view di kiri tanpa tumpukan tombol; kolom kanan
  * berisi fokus, hasil tes terakhir, dan setelan kamera berkelompok, dengan Tes Jepret / Kembali selalu di bawah.
@@ -42,12 +78,17 @@ export function tapToFrame(
  */
 export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () => void }) {
   const p = usePlatform();
-  const [shot, setShot] = useState<string>();
+  // Riwayat Tes Jepret (terbaru di depan): diklik = tampil besar, bisa dibandingkan & dipakai setelannya (Rama).
+  const [shots, setShots] = useState<TestShot[]>([]);
+  const [viewer, setViewer] = useState<{ mode: "one"; i: number } | { mode: "compare" } | null>(
+    null,
+  );
+  const [propsRun, setPropsRun] = useState(0);
+  const [note, setNote] = useState<string>();
   // Capture DSLR mematikan live view (700D macet kalau jepret saat live view jalan); di sesi tamu countdown
   // menyalakannya lagi. Di sini LiveView dipasang ulang setelah tiap Tes Jepret, kalau tidak gambar membeku
   // dan tombol fokus tidak berpengaruh (uji 60D, 2026-09-26).
   const [liveRun, setLiveRun] = useState(0);
-  const [result, setResult] = useState<{ w: number; h: number; ms: number; score: number }>();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [meter, setMeter] = useState<{ now: number; peak: number }>();
@@ -95,18 +136,33 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
     setBusy(true);
     setError(undefined);
     try {
+      // Setelan dibaca sebelum jepret: itulah yang dipakai kamera untuk foto ini.
+      const snap = p.crew.focus
+        ? effectiveSettings(await p.crew.cameraProps().catch(() => []))
+        : {};
       const t0 = performance.now();
       const r = await p.camera.capture({ sessionId: newSessionId(), index: 0 });
       const bytes = await p.storage.readFile(r.path);
       // Tes Jepret setelah fokus benar = patokan ketajaman event ini (#88). Lewat preview 1600 px yang sama
       // dengan foto tamu: skor dari raw penuh ±25% lebih rendah (60D/700D, W-031), patokan jadi terlalu longgar.
       const { url, sharp } = await previewUrl(bytes, r.width, r.height);
-      if (shot) URL.revokeObjectURL(shot);
-      setShot(url);
       const score = Math.round(sharp);
       sharpNotes.setBaseline(eventId, score);
       sharpNotes.dismissWarning();
-      setResult({ w: r.width, h: r.height, ms: performance.now() - t0, score });
+      const ms = performance.now() - t0;
+      setShots((prev) => {
+        const next: TestShot = {
+          n: (prev[0]?.n ?? 0) + 1,
+          url,
+          w: r.width,
+          h: r.height,
+          ms,
+          score,
+          s: snap,
+        };
+        for (const old of prev.slice(HISTORY_MAX - 1)) URL.revokeObjectURL(old.url);
+        return [next, ...prev.slice(0, HISTORY_MAX - 1)];
+      });
     } catch (e) {
       setError(errText(e));
     } finally {
@@ -114,9 +170,33 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
       setLiveRun((n) => n + 1);
     }
   };
+  const applySettings = async (t: TestShot) => {
+    try {
+      const set = (n: string, v?: string) => (v ? p.crew.setCameraProp(n, v) : Promise.resolve());
+      await set("iso_capture", t.s.iso);
+      await set("shutter_capture", t.s.shutter);
+      await set("aperture", t.s.aperture);
+      await set("whitebalance", t.s.wb);
+      setPropsRun((n) => n + 1);
+      setViewer(null);
+      setNote(copy.crew.settingsApplied(t.n, settingsLine(t.s)));
+    } catch (e) {
+      setError(errText(e));
+    }
+  };
   const card = "flex flex-col gap-4 rounded-[22px] border-[2.5px] border-ink bg-white p-5";
+  const shotCaption = (t: TestShot) => (
+    <div className="flex flex-col gap-0.5 text-lg font-semibold">
+      <span>{copy.crew.shotNo(t.n)}</span>
+      <span className="font-mono">{settingsLine(t.s)}</span>
+      <span className="text-text-2">
+        {t.s.wb ? `${t.s.wb} · ` : ""}
+        {copy.crew.sharpBase(t.score)}
+      </span>
+    </div>
+  );
   return (
-    <div className="flex h-full w-full">
+    <div className="relative flex h-full w-full">
       <section className="relative min-w-0 flex-1 bg-ink">
         <LiveView key={liveRun} onFrame={onFrame} />
         {p.crew.focusAt && (
@@ -187,17 +267,55 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
           )}
 
           <section className={card} data-testid="last-shot">
-            <h3 className="text-2xl font-extrabold">{copy.crew.lastShot}</h3>
-            {shot && result ? (
-              <div className="flex items-center gap-4">
-                <img src={shot} alt="" className="w-[220px] rounded-[14px] border-2 border-ink" />
-                <div className="flex flex-col gap-1 text-lg font-semibold">
-                  <span className="font-mono">
-                    {copy.crew.shotInfo(result.w, result.h, (result.ms / 1000).toFixed(1))}
-                  </span>
-                  <span className="text-text-2">{copy.crew.sharpBase(result.score)}</span>
-                </div>
-              </div>
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-2xl font-extrabold">{copy.crew.lastShot}</h3>
+              {shots.length >= 2 && (
+                <Button
+                  variant="secondary"
+                  className="h-12 rounded-[14px] px-4 text-lg"
+                  onClick={() => setViewer({ mode: "compare" })}
+                >
+                  {copy.crew.compare}
+                </Button>
+              )}
+            </div>
+            {shots[0] ? (
+              <>
+                <button
+                  type="button"
+                  className="pressable flex items-center gap-4 text-left"
+                  onClick={() => setViewer({ mode: "one", i: 0 })}
+                >
+                  <img
+                    src={shots[0].url}
+                    alt=""
+                    className="w-[220px] shrink-0 rounded-[14px] border-2 border-ink"
+                  />
+                  <div className="flex flex-col gap-1">
+                    {shotCaption(shots[0])}
+                    <span className="font-mono text-base text-text-2">
+                      {copy.crew.shotInfo(shots[0].w, shots[0].h, (shots[0].ms / 1000).toFixed(1))}
+                    </span>
+                  </div>
+                </button>
+                {shots.length > 1 && (
+                  <div className="flex gap-2">
+                    {shots.slice(1).map((t, k) => (
+                      <button
+                        key={t.n}
+                        type="button"
+                        aria-label={copy.crew.shotNo(t.n)}
+                        className="pressable w-[84px] shrink-0"
+                        onClick={() => setViewer({ mode: "one", i: k + 1 })}
+                      >
+                        <img src={t.url} alt="" className="rounded-[10px] border-2 border-ink" />
+                        <span className="text-sm font-semibold">#{t.n}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <p className="text-base text-text-2">{copy.crew.shotHint}</p>
+              </>
             ) : (
               <p className="text-lg text-text-2">{copy.crew.noShot}</p>
             )}
@@ -205,11 +323,19 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
 
           {p.crew.focus && (
             <div data-testid="camera-settings" className="flex flex-col gap-5">
-              <CameraProps onNote={setError} grouped />
+              <CameraProps key={propsRun} onNote={setError} grouped />
             </div>
           )}
         </div>
 
+        {note && !error && (
+          <p
+            role="status"
+            className="mx-6 mb-3 rounded-[16px] border-2 border-ink bg-mint-soft px-4 py-3 text-lg font-semibold"
+          >
+            {note}
+          </p>
+        )}
         {error && (
           <p
             role="alert"
@@ -231,6 +357,82 @@ export function CameraCheck({ eventId, onBack }: { eventId: string; onBack: () =
           </Button>
         </div>
       </aside>
+      {viewer && (
+        <div
+          data-testid="shot-viewer"
+          className="absolute inset-0 z-20 flex flex-col gap-5 bg-ink/95 p-8 text-white"
+        >
+          <div className="flex min-h-0 flex-1 gap-5">
+            {(viewer.mode === "one"
+              ? shots.slice(viewer.i, viewer.i + 1)
+              : shots.slice(0, 3).reverse()
+            ).map((t) => (
+              <figure
+                key={t.n}
+                className="flex min-w-0 flex-1 flex-col gap-3 rounded-[22px] border-[2.5px] border-white/40 bg-ink p-4"
+              >
+                <img src={t.url} alt="" className="min-h-0 flex-1 rounded-[14px] object-contain" />
+                <figcaption className="flex items-end justify-between gap-4">
+                  <div className="flex flex-col gap-0.5 text-xl font-semibold">
+                    <span>{copy.crew.shotNo(t.n)}</span>
+                    <span className="font-mono text-2xl">{settingsLine(t.s)}</span>
+                    <span className="text-white/70">
+                      {t.s.wb ? `${t.s.wb} · ` : ""}
+                      {copy.crew.sharpBase(t.score)} ·{" "}
+                      {copy.crew.shotInfo(t.w, t.h, (t.ms / 1000).toFixed(1))}
+                    </span>
+                  </div>
+                  {p.crew.focus && (t.s.iso || t.s.shutter) && (
+                    <Button
+                      className="h-16 shrink-0 rounded-[16px] px-5 text-xl"
+                      onClick={() => void applySettings(t)}
+                    >
+                      {copy.crew.useSettings}
+                    </Button>
+                  )}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+          <div className="flex justify-center gap-4">
+            {viewer.mode === "one" && (
+              <>
+                <Button
+                  variant="secondary"
+                  className="h-[76px] rounded-[18px] px-8 text-2xl"
+                  disabled={viewer.i >= shots.length - 1}
+                  onClick={() => setViewer({ mode: "one", i: viewer.i + 1 })}
+                >
+                  ◀ {copy.crew.older}
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="h-[76px] rounded-[18px] px-8 text-2xl"
+                  disabled={viewer.i <= 0}
+                  onClick={() => setViewer({ mode: "one", i: viewer.i - 1 })}
+                >
+                  {copy.crew.newer} ▶
+                </Button>
+              </>
+            )}
+            {viewer.mode === "one" && shots.length >= 2 && (
+              <Button
+                variant="secondary"
+                className="h-[76px] rounded-[18px] px-8 text-2xl"
+                onClick={() => setViewer({ mode: "compare" })}
+              >
+                {copy.crew.compare}
+              </Button>
+            )}
+            <Button
+              className="h-[76px] rounded-[18px] px-10 text-2xl"
+              onClick={() => setViewer(null)}
+            >
+              {copy.crew.close}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

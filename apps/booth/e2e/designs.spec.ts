@@ -147,9 +147,9 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     await expect(w.getByTestId("cloud-device")).toHaveText("Booth Uji · B08");
     await w.getByTestId("step-event").getByRole("button").click();
     await w.getByRole("button", { name: /Mode Event/ }).click();
-    await w.getByRole("button", { name: "Sync dari Cloud" }).click();
+    await w.getByRole("button", { name: "Ambil event terbaru" }).click();
     await w.getByRole("button", { name: /Rina & Dimas/ }).click();
-    await w.getByRole("button", { name: /Buka untuk Tamu/ }).click();
+    await w.getByTestId("to-guest").click();
     await w.waitForTimeout(1000);
 
     // Layar awal per event: gambar latar, teks tombol sendiri, strip contoh disembunyikan.
