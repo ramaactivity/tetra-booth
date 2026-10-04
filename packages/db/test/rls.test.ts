@@ -107,6 +107,32 @@ describe("migrasi & RLS", () => {
     expect(upd.updated_at > ev.updated_at).toBe(true);
   });
 
+  it("slug event: nama + tanggal, aksen dibuang, unik per organisasi, ikut nama", async () => {
+    await c.query("reset role");
+    const add = async (name: string) =>
+      (
+        await c.query(
+          "insert into events(organization_id, name, mode, event_date) values ($1,$2,'event','2026-10-04') returning id, slug",
+          [org, name],
+        )
+      ).rows[0] as { id: string; slug: string };
+    const evs = [
+      await add("Employee Day — DSO"),
+      await add("employee day dso"),
+      await add("Café Ñandú!"),
+    ];
+    expect(evs.map((e) => e.slug)).toEqual([
+      "employee-day-dso-2026-10-04",
+      "employee-day-dso-2026-10-04-2",
+      "cafe-nandu-2026-10-04",
+    ]);
+    const upd = await c.query("update events set name = 'Gala' where id = $1 returning slug", [
+      evs[1]?.id,
+    ]);
+    expect(upd.rows[0].slug).toBe("gala-2026-10-04");
+    await c.query("delete from events where id = any($1)", [evs.map((e) => e.id)]);
+  });
+
   it("bukan anggota: tidak lihat event organisasi lain, insert ditolak", async () => {
     await as(other);
     expect(await count("events")).toBe(0);

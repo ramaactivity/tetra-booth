@@ -1,3 +1,4 @@
+import { eventKey } from "@/lib/events";
 import { requireMember } from "@/lib/supabase/server";
 
 const cell = (v: unknown) => {
@@ -11,15 +12,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { db, orgId, user } = await requireMember(["owner", "admin"]);
   const { data: ev } = await db
     .from("events")
-    .select("id, name")
-    .eq("id", id)
+    .select("id, slug")
+    .eq(eventKey(id), id)
     .eq("organization_id", orgId)
     .maybeSingle();
   if (!ev) return new Response("not found", { status: 404 });
   const { data } = await db
     .from("leads")
     .select("created_at, session_id, data, consent_version, consent_at")
-    .eq("event_id", id)
+    .eq("event_id", ev.id)
     .eq("organization_id", orgId)
     .order("created_at");
   const rows = data ?? [];
@@ -27,7 +28,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     organization_id: orgId,
     actor_user_id: user.id,
     action: "lead.export",
-    target: id,
+    target: ev.id,
     meta: { count: rows.length },
   });
   const head = ["waktu", "sesi", "nama", "whatsapp", "email", "versi_persetujuan", "setuju_pada"];
@@ -45,11 +46,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       .map(cell)
       .join(",");
   });
-  const slug = ev.name.replace(/[^\w-]+/g, "-").toLowerCase();
   return new Response(`${[head.join(","), ...lines].join("\n")}\n`, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="lead-${slug}.csv"`,
+      "Content-Disposition": `attachment; filename="lead-${ev.slug}.csv"`,
       "Cache-Control": "no-store",
     },
   });

@@ -1,13 +1,14 @@
 import { EventSettingsSchema, LAYOUT_PRESETS, SOUND_CUES, StoredBundle } from "@tetra/shared";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   type AttractSettings,
   DEFAULT_TEMPLATE,
   type EventBranding,
   type EventTemplate,
 } from "@/lib/event-bundle";
+import { eventKey } from "@/lib/events";
 import type { PhotoboxSettings } from "@/lib/payments";
 import { photoboxKey } from "@/lib/payments";
 import { presignGet } from "@/lib/r2";
@@ -25,12 +26,13 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, all_devices, event_devices(device_id)",
+      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, all_devices, event_devices(device_id)",
     )
-    .eq("id", id)
+    .eq(eventKey(id), id)
     .eq("organization_id", orgId)
     .maybeSingle();
   if (!ev) notFound();
+  if (id !== ev.slug) redirect(`/admin/events/${ev.slug}/settings`);
   const { data: devices } = await db
     .from("devices")
     .select("id, name")
@@ -60,7 +62,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
     <>
       <div>
         <Link
-          href={`/admin/events/${ev.id}`}
+          href={`/admin/events/${ev.slug}`}
           className="text-[13px] font-semibold text-text-2 no-underline"
         >
           {ev.name} ›
@@ -69,6 +71,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
       </div>
       <SettingsForm
         eventId={ev.id}
+        slug={ev.slug}
         v={{
           name: ev.name,
           event_date: ev.event_date,

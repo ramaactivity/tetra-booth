@@ -742,7 +742,7 @@ export function EventWizard({
                       .join(", ")
               }
               edit={done ? undefined : go}
-              eventId={done?.id}
+              slug={done?.slug}
               copied={done?.copied}
             />
           )}
@@ -877,7 +877,7 @@ function Summary({
   extraPrice,
   booth,
   edit,
-  eventId,
+  slug,
   copied,
 }: {
   name: string;
@@ -892,7 +892,7 @@ function Summary({
   extraPrice: number;
   booth: string;
   edit: ((step: number) => void) | undefined;
-  eventId: string | undefined;
+  slug: string | undefined;
   copied: string | undefined;
 }) {
   const at = (n: number) => (edit ? () => edit(n) : undefined);
@@ -906,7 +906,7 @@ function Summary({
   ];
   return (
     <div className="flex flex-col gap-6">
-      {eventId && (
+      {slug && (
         <div className="flex flex-wrap items-center gap-x-5 gap-y-4 rounded-2xl border-[1.5px] border-ink bg-mint-soft px-5 py-4">
           <div role="status" className="flex min-w-[280px] flex-1 items-center gap-3">
             <span className="flex size-8 flex-none items-center justify-center rounded-full bg-green text-white">
@@ -923,10 +923,10 @@ function Summary({
                 Edit desain
               </Link>
             )}
-            <Link href={`/admin/events/${eventId}`} className={copied ? secondary : primary}>
+            <Link href={`/admin/events/${slug}`} className={copied ? secondary : primary}>
               Buka event
             </Link>
-            <Link href={`/admin/events/${eventId}/settings`} className={secondary}>
+            <Link href={`/admin/events/${slug}/settings`} className={secondary}>
               Pengaturan lanjutan
             </Link>
           </div>

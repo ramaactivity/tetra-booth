@@ -43,5 +43,5 @@ export async function moderate(
     target: sessionId,
     meta: { eventId },
   });
-  revalidatePath(`/admin/events/${eventId}`);
+  revalidatePath("/admin/(app)/events/[id]", "layout");
 }

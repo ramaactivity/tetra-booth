@@ -322,6 +322,7 @@ export type Database = {
           purge_at: string | null
           purged_at: string | null
           settings: NonNullable<Json>
+          slug: string
           status: string
           updated_at: string
         }
@@ -348,6 +349,7 @@ export type Database = {
           purge_at?: string | null
           purged_at?: string | null
           settings?: NonNullable<Json>
+          slug?: string
           status?: string
           updated_at?: string
         }
@@ -374,6 +376,7 @@ export type Database = {
           purge_at?: string | null
           purged_at?: string | null
           settings?: NonNullable<Json>
+          slug?: string
           status?: string
           updated_at?: string
         }
@@ -876,6 +879,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      event_slug_base: { Args: { d: string; name: string }; Returns: string }
       is_member: { Args: { org: string; roles?: string[] }; Returns: boolean }
       rate_hit: {
         Args: { k: string; max_hits: number; window_s: number }

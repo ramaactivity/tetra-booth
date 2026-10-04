@@ -47,7 +47,7 @@ export default async function EventsPage({
   const { data } = await db
     .from("events")
     .select(
-      "id, name, event_date, mode, purge_at, all_devices, event_devices(devices(name)), sessions(count)",
+      "id, slug, name, event_date, mode, purge_at, all_devices, event_devices(devices(name)), sessions(count)",
     )
     .eq("organization_id", orgId)
     .neq("status", "archived")
@@ -91,7 +91,7 @@ export default async function EventsPage({
           return (
             <Link
               key={e.id}
-              href={`/admin/events/${e.id}`}
+              href={`/admin/events/${e.slug}`}
               className="grid h-[62px] grid-cols-[2.2fr_1.2fr_1fr_1.4fr_.7fr_1.2fr_1fr] items-center border-b-[1.5px] border-dashed border-line-soft px-5 text-sm no-underline last:border-b-0 hover:bg-paper"
             >
               <span className="flex items-center gap-2.5 font-bold">

@@ -396,7 +396,7 @@ test("wizard buat event: validasi per langkah, isian tetap saat kembali, bundle 
     await expect(page.getByRole("link", { name: "Pengaturan lanjutan" })).toBeVisible();
     await shot(5);
 
-    const id = (await page.getByRole("link", { name: "Buka event" }).getAttribute("href"))
+    const slug = (await page.getByRole("link", { name: "Buka event" }).getAttribute("href"))
       ?.split("/")
       .pop();
     const copyId = (await page.getByRole("link", { name: "Edit desain" }).getAttribute("href"))
@@ -405,7 +405,8 @@ test("wizard buat event: validasi per langkah, isian tetap saat kembali, bundle 
     const { data: ev } = await db
       .from("events")
       .select("name, location, mode, all_devices, bundle, bundle_version, settings")
-      .eq("id", id ?? "")
+      .eq("organization_id", u.org)
+      .eq("slug", slug ?? "")
       .single();
     expect(ev).toMatchObject({
       name,
@@ -432,6 +433,44 @@ test("wizard buat event: validasi per langkah, isian tetap saat kembali, bundle 
       await db.from("layout_versions").delete().eq("layout_id", c.id);
       await db.from("layouts").delete().eq("id", c.id);
     }
+    await u.cleanup();
+  }
+});
+
+test("URL event = slug nama + tanggal; UUID lama dialihkan; nama + tanggal sama → slug beda", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const u = await makeUser("owner");
+  const stamp = Date.now();
+  const name = `E2E Slug Café ${stamp}`;
+  const slug = `e2e-slug-cafe-${stamp}-2026-10-12`;
+  try {
+    await login(page, u);
+    expect(
+      await createEventViaWizard(page, { name, paper: /Strip 2R/, designs: ["Strip Klasik"] }),
+    ).toBe(slug);
+    await page.getByRole("link", { name: "Buka event" }).click();
+    await expect(page).toHaveURL(new RegExp(`/admin/events/${slug}$`));
+    await expect(page.getByRole("heading", { name })).toBeVisible();
+
+    // Link/bookmark lama berbasis UUID tetap jalan: dialihkan ke URL slug.
+    const { data: ev } = await db.from("events").select("id").eq("slug", slug).single();
+    await page.goto(`/admin/events/${ev?.id}/settings`);
+    await expect(page).toHaveURL(new RegExp(`/admin/events/${slug}/settings$`));
+    await expect(page.getByRole("heading", { name: "Pengaturan" })).toBeVisible();
+
+    // Nama + tanggal sama dalam satu organisasi → akhiran -2.
+    const { data: twin } = await db
+      .from("events")
+      .insert({ organization_id: u.org, name, mode: "event", event_date: "2026-10-12" })
+      .select("slug")
+      .single();
+    expect(twin?.slug).toBe(`${slug}-2`);
+    await page.goto("/admin");
+    await expect(page.locator(`a[href="/admin/events/${slug}-2"]`)).toBeVisible();
+  } finally {
+    await db.from("events").delete().eq("name", name);
     await u.cleanup();
   }
 });

@@ -354,10 +354,13 @@ const MODES = [
 
 export function SettingsForm({
   eventId,
+  slug,
   v,
   links,
 }: {
   eventId: string;
+  /** Segmen URL saat ini; simpan yang mengganti slug membuka URL barunya. */
+  slug: string;
   v: SettingsValues;
   /** Panel link klien (di luar data form, aksi sendiri). */
   links: ReactNode;
@@ -379,7 +382,7 @@ export function SettingsForm({
   const [dirty, setDirty] = useState(false);
   const [active, setActive] = useState("informasi");
   const [r, action, pending] = useActionState<SaveResult, FormData>(
-    saveEvent.bind(null, eventId),
+    saveEvent.bind(null, eventId, slug),
     null,
   );
   useEffect(() => {

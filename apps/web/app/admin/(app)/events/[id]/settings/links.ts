@@ -18,6 +18,5 @@ export async function setLink(eventId: string, kind: "client" | "live", action: 
     action: `link.${kind}.${action}`,
     target: eventId,
   });
-  revalidatePath(`/admin/events/${eventId}/settings`);
-  revalidatePath(`/admin/events/${eventId}`);
+  revalidatePath("/admin/(app)/events/[id]", "layout");
 }

@@ -94,16 +94,19 @@ const lines = (v: FormDataEntryValue | null) =>
     .slice(0, 10);
 
 /** `copied` = id template salinan "Salin & sesuaikan" (editor dibuka setelah simpan). */
-export type SaveResult = { ok: boolean; message: string; copied?: string } | null;
+export type SaveResult = { ok: boolean; message: string; copied?: string; slug?: string } | null;
 
 /** Simpan dari halaman Pengaturan; "Salin & sesuaikan" langsung membuka editor salinannya. */
 export async function saveEvent(
   eventId: string,
+  slug: string,
   _prev: SaveResult,
   form: FormData,
 ): Promise<SaveResult> {
   const r = await applySettings(eventId, form);
   if (r.copied) redirect(`/admin/templates/${r.copied}`);
+  // Nama/tanggal berubah → slug baru (trigger DB); URL lama tidak berlaku lagi.
+  if (r.slug && r.slug !== slug) redirect(`/admin/events/${r.slug}/settings`);
   return r;
 }
 
@@ -383,7 +386,7 @@ export async function applySettings(
   const start = new Date(`${f.event_date}T00:00:00+07:00`).getTime();
   const guest = new Date(start + f.guest_days * DAY).toISOString();
   const client = new Date(start + f.client_days * DAY).toISOString();
-  const { error } = await db
+  const { data: saved, error } = await db
     .from("events")
     .update({
       name: f.name,
@@ -408,8 +411,10 @@ export async function applySettings(
       all_devices: allDevices,
     })
     .eq("id", eventId)
-    .eq("organization_id", orgId);
-  if (error) {
+    .eq("organization_id", orgId)
+    .select("slug")
+    .single();
+  if (error || !saved) {
     await dropCopy();
     return { ok: false, message: "Gagal menyimpan, coba lagi" };
   }
@@ -428,11 +433,12 @@ export async function applySettings(
       .from("event_devices")
       .upsert(want.map((device_id) => ({ organization_id: orgId, event_id: eventId, device_id })));
 
-  revalidatePath(`/admin/events/${eventId}/settings`);
+  revalidatePath("/admin/(app)/events/[id]", "layout");
   revalidatePath("/admin");
   return {
     ok: true,
     message: `Tersimpan · bundle v${ev.bundle_version + 1}. Booth menerima pengaturan baru saat online.`,
+    slug: saved.slug,
     ...(copied && { copied }),
   };
 }

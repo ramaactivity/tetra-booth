@@ -44,7 +44,7 @@ const DEFAULTS: Record<string, string> = {
 
 export type CreateResult =
   | { ok: false; message: string }
-  | { ok: true; id: string; copied?: string }
+  | { ok: true; slug: string; copied?: string }
   | null;
 
 /**
@@ -88,5 +88,5 @@ export async function createEventWizard(
     await db.from("events").delete().eq("id", ev.id).eq("organization_id", orgId);
     return { ok: false, message: r.message };
   }
-  return { ok: true, id: ev.id, ...(r.copied && { copied: r.copied }) };
+  return { ok: true, slug: r.slug ?? ev.id, ...(r.copied && { copied: r.copied }) };
 }

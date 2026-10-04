@@ -1,8 +1,9 @@
 import { LAYOUT_PRESETS, type LayoutPaper, type PresetId, paperLabel } from "@tetra/shared";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { DEFAULT_TEMPLATE, type EventTemplate } from "@/lib/event-bundle";
+import { eventKey } from "@/lib/events";
 import { presignDownload, presignGet } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 import { SessionTile } from "./SessionTile";
@@ -34,16 +35,17 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   const { db, orgId, role } = await requireMember();
   const { data: ev } = await db
     .from("events")
-    .select("id, name, event_date, location, mode, settings, client_token, live_token")
-    .eq("id", id)
+    .select("id, slug, name, event_date, location, mode, settings, client_token, live_token")
+    .eq(eventKey(id), id)
     .eq("organization_id", orgId)
     .maybeSingle();
   if (!ev) notFound();
+  if (id !== ev.slug) redirect(`/admin/events/${ev.slug}`);
   const [{ data: sessions }, { data: hits }, { count: leadCount }] = await Promise.all([
     db
       .from("sessions")
       .select("id, started_at, print_count, upload_status, hidden_at")
-      .eq("event_id", id)
+      .eq("event_id", ev.id)
       .eq("organization_id", orgId)
       .is("deleted_at", null)
       .order("started_at", { ascending: false })
@@ -51,13 +53,13 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     db
       .from("analytics_events")
       .select("session_id, type")
-      .eq("event_id", id)
+      .eq("event_id", ev.id)
       .eq("organization_id", orgId)
       .limit(50000),
     db
       .from("leads")
       .select("id", { count: "exact", head: true })
-      .eq("event_id", id)
+      .eq("event_id", ev.id)
       .eq("organization_id", orgId),
   ]);
   // Desain frame event (utama dulu): nama + ukuran; template editor bisa langsung diedit.
@@ -179,7 +181,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
         </div>
         <div className="flex gap-2">
           {!!leadCount && role !== "crew" && (
-            <a href={`/admin/events/${ev.id}/leads`} className={`${btn} bg-white`}>
+            <a href={`/admin/events/${ev.slug}/leads`} className={`${btn} bg-white`}>
               Export Lead ({leadCount})
             </a>
           )}
@@ -203,7 +205,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
               Buka Slideshow
             </a>
           )}
-          <Link href={`/admin/events/${ev.id}/settings`} className={`${btn} bg-ink text-white`}>
+          <Link href={`/admin/events/${ev.slug}/settings`} className={`${btn} bg-ink text-white`}>
             Pengaturan
           </Link>
         </div>
@@ -239,7 +241,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
           {!designs.length && <span className="text-sm text-text-2">Belum ada desain</span>}
         </span>
         {role !== "crew" && (
-          <Link href={`/admin/events/${ev.id}/settings#template`} className={`${btn} bg-white`}>
+          <Link href={`/admin/events/${ev.slug}/settings#template`} className={`${btn} bg-white`}>
             Ganti desain
           </Link>
         )}

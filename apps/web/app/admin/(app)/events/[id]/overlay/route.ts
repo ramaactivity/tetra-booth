@@ -1,4 +1,5 @@
 import { StoredBundle } from "@tetra/shared";
+import { eventKey } from "@/lib/events";
 import { getStream } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 
@@ -9,7 +10,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { data } = await db
     .from("events")
     .select("bundle")
-    .eq("id", id)
+    .eq(eventKey(id), id)
     .eq("organization_id", orgId)
     .maybeSingle();
   const bundle = StoredBundle.safeParse(data?.bundle);
