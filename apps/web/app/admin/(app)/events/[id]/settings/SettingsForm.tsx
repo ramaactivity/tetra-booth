@@ -1363,7 +1363,7 @@ export function SettingsForm({
             )}
             <p
               role="status"
-              className={`min-w-0 flex-1 text-[13px] leading-snug ${r && !r.ok ? "font-bold" : "text-text-2"}`}
+              className={`min-w-0 flex-1 text-[13px] leading-snug ${r && !r.ok ? "font-bold" : "text-text-2"} ${r ? "max-sm:order-last max-sm:basis-full" : "max-sm:hidden"}`}
             >
               {r && !r.ok && (
                 <span className="mr-2 rounded-md border-[1.5px] border-ink bg-coral px-1.5 py-px text-[11px] font-extrabold">
@@ -1376,7 +1376,7 @@ export function SettingsForm({
             <button
               type="submit"
               disabled={pending}
-              className="pressable layered h-11 flex-none rounded-xl border-[1.5px] border-ink bg-butter px-8 text-sm font-extrabold [--lb:1.5px] [--lx:4px] disabled:opacity-50"
+              className="pressable layered ml-auto h-11 flex-none rounded-xl border-[1.5px] border-ink bg-butter px-8 text-sm font-extrabold [--lb:1.5px] [--lx:4px] disabled:opacity-50"
             >
               {pending ? "Menyimpan…" : "Simpan"}
             </button>

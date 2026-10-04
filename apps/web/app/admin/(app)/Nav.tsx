@@ -18,7 +18,7 @@ const OPS = [
   { href: "/admin/photobox", t: copy.admin.nav.photobox, I: Store },
 ];
 const item = (on: boolean) =>
-  `flex h-[42px] items-center gap-3 rounded-[11px] border-[1.5px] px-3 text-sm no-underline ${on ? "border-ink bg-butter font-bold" : "border-transparent font-medium text-text-2 hover:bg-paper hover:text-ink"}`;
+  `flex h-11 items-center lg:h-[42px] gap-3 rounded-[11px] border-[1.5px] px-3 text-sm no-underline ${on ? "border-ink bg-butter font-bold" : "border-transparent font-medium text-text-2 hover:bg-paper hover:text-ink"}`;
 
 const items = [
   {
@@ -69,7 +69,7 @@ export function Nav({ role }: { role: string }) {
               key={n.href}
               href={n.href}
               aria-current={on ? "page" : undefined}
-              className={`${item(on)} ml-4 h-[38px]`}
+              className={`${item(on)} ml-4 lg:h-[38px]`}
             >
               <n.I aria-hidden className="size-[18px] flex-none" strokeWidth={2} />
               {n.t}

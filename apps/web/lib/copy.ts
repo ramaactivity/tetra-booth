@@ -71,6 +71,9 @@ export const copy = {
     signingIn: "Masuk…",
     noAccess: "Akun ini bukan anggota organisasi",
     signOut: "Keluar",
+    menu: "Menu",
+    menuOpen: "Buka menu",
+    menuClose: "Tutup menu",
     loginCards: [
       {
         t: "Booth online",
