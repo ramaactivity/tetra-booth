@@ -72,7 +72,7 @@ if (canon is not null)
 camera ??= hotFolder is null ? null : new TetraCamera.HotFolder.HotFolderCamera(hotFolder, trigger: hotFolderTrigger);
 var dispatcher = new Dispatcher(printer, camera);
 
-// Frame live view terbaru (Canon): diambil berulang oleh Electron main, sama seperti /liveview.jpg digiCamControl.
+// Frame live view terbaru (Canon): diambil berulang oleh Electron main.
 app.MapGet("/liveview.jpg", (HttpContext ctx) =>
 {
     var provided = Encoding.UTF8.GetBytes(ctx.Request.Query["token"].ToString());

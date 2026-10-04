@@ -13,8 +13,8 @@ export type { BoothConfig, TetraBridge } from "./bridge";
 
 /**
  * Kamera di Camera Service (hot folder M7, Canon EDSDK Fase 1b): capture lewat main → WebSocket.
- * Tanpa live view (hot folder biasa) layar countdown menampilkan ajakan melihat ke kamera. Dengan
- * `cfg.liveView` (digiCamControl) frame JPEG diambil berulang lewat main, satu permintaan pada satu waktu.
+ * Tanpa live view (hot folder) layar countdown menampilkan ajakan melihat ke kamera. Dengan `cfg.liveView`
+ * (Canon) frame JPEG diambil berulang lewat main, satu permintaan pada satu waktu.
  */
 const LIVE_VIEW_IDLE_MS = 60_000;
 

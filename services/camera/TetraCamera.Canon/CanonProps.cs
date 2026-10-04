@@ -2,8 +2,8 @@ namespace TetraCamera.Canon;
 
 /// <summary>
 /// Setelan eksposur Canon lewat EDSDK (DECISIONS #111): kode EDSDK → label, dari "EDSDK API Programming Reference"
-/// 13.20 §5.2.22/25/26/35 (Tv dari tabel standar Canon, dicocokkan dengan dokumen). Nama sama dengan setelan
-/// digiCamControl di mode crew (`iso`, `shutterspeed`, `aperture`, `whitebalance`).
+/// 13.20 §5.2.22/25/26/35 (Tv dari tabel standar Canon, dicocokkan dengan dokumen). Nama = setelan di mode crew
+/// (`iso`, `shutterspeed`, `aperture`, `whitebalance`).
 /// </summary>
 public static class CanonProps
 {

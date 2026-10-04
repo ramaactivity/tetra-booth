@@ -303,7 +303,6 @@ export const copy = {
     groupShotHint: 'Hanya dipakai saat memotret. "Sama dengan live view" = ikut setelan di atas.',
     groupOther: "Lainnya",
     autoFocus: "Fokus otomatis",
-    focusFine: "Geser fokus",
     sharpnessNow: "Ketajaman live view",
     sharpnessBest: "terbaik",
     lastShot: "Hasil tes terakhir",
@@ -351,7 +350,6 @@ export const copy = {
     cameraKind: {
       webcam: "Webcam",
       canon: "Kamera DSLR Canon",
-      hotfolder: "DSLR lain (digiCamControl)",
       simulated: "Latihan tanpa kamera",
     },
     canonNote:
@@ -365,7 +363,6 @@ export const copy = {
     mirrorNote: "Hasil foto dibalik: tulisan di baju & latar ikut terbalik di cetakan.",
     noPrinter: "Tidak ada printer terdeteksi. Pasang driver printer di Windows dulu.",
     hotFolder: "Folder hot folder",
-    hotFolderFromDcc: "Mengikuti folder sesi digiCamControl",
     hotFolderTrigger: "Alamat pemicu shutter",
     noExposure:
       "Setelan ISO dan shutter tampil setelah kamera tersambung. Bisa juga diatur langsung di kamera.",

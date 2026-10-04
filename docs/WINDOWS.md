@@ -16,7 +16,7 @@ Dibaca oleh Claude Code yang berjalan di laptop Windows.
 3. GitHub lewat login Rama sendiri (`gh auth login` yang dijalankan Rama). `gh` boleh dipakai untuk melihat CI (`gh run list --branch win`).
 4. **Cetak fisik DNP menghabiskan kertas & ribbon.** Setiap tugas menyebut jatah lembar; jangan lewati tanpa izin Rama. Catat jumlah lembar yang keluar di laporan.
 5. Stress test & uji panjang pakai **Microsoft Print to PDF**, bukan DNP.
-6. Canon EDSDK belum ada (menunggu pendaftaran developer Canon). Kamera 60D diuji lewat **EOS Utility → hot folder** (M7). DLL EDSDK nanti di `services\camera\TetraCamera.Canon\sdk\` (tidak di-commit).
+6. Kamera DSLR = **Canon EDSDK** (#111, bawaan #141). DLL tidak di-commit: booth mengunduhnya sendiri ke `%APPDATA%\TetraBooth\edsdk\` (#112). digiCamControl sudah dihapus dari booth (#168); hot folder (`--camera=hotfolder`) tersisa untuk teknisi/uji.
 7. Protokol git tetap §4 (Windows di `win`, Mac di `main`). Env: cukup `$env:ELECTRON_RUN_AS_NODE` dikosongkan sebelum menjalankan Electron; `env.ps1` dan prefix §3 hanya untuk profil B.
 8. Rama ada di depan laptop: aksi fisik (tekan shutter, ganti kertas, colok USB) boleh diminta langsung di chat, satu kalimat jelas per langkah.
 
@@ -127,7 +127,7 @@ Menjalankan sesi booth untuk uji (sejak M1):
 electron.exe apps\booth --camera=simulated --demo --data="$W\data" --shots="$W\shots\<nama-uji>" --enable-logging
 ```
 
-- `--camera=webcam|simulated|hotfolder` (hot folder butuh `--hot-folder <dir>`, M7), `--demo` (sesi jalan sendiri), `--size=WxH` (mis. `450x800` untuk portrait di layar 1280×800 logis).
+- `--camera=canon|webcam|simulated|hotfolder` (`canon` butuh DLL EDSDK, `--canon fake` = kamera palsu; hot folder butuh `--hot-folder <dir>`, opsional `--hot-folder-trigger <url>`, M7), `--demo` (sesi jalan sendiri), `--size=WxH` (mis. `450x800` untuk portrait di layar 1280×800 logis).
 - Kiosk (M5): mati di mode dev, **aktif otomatis di app hasil build** (`app\\booth\\Tetra Booth.exe`); `--kiosk` / `--no-kiosk` untuk memaksa. Di kiosk, keluar hanya lewat mode crew.
 - Camera Service di-spawn booth. `--no-spawn` = pakai Camera Service yang dijalankan manual (port 8765, token `dev`). Printer diteruskan: `--printer "Microsoft Print to PDF" --paper-2x6x2 A5 --print-to-file "$W\prints"` (tanpa `--print-to-file`, Print to PDF ditolak `output_file_required`).
 - `--data` **wajib** di laptop ini: foto & data sesi masuk `$W\data`, bukan `%APPDATA%`.

@@ -134,7 +134,7 @@ export type EventSettingsInfo = { cloud: EventSettings; override: EventOverride 
 export type DesignFile = { assetId: string; ext: string; bytes: Uint8Array<ArrayBuffer> };
 /** AF, atau geser fokus manual kecil/sedang/besar ke dekat / jauh. */
 export type FocusStep = "af" | "near3" | "near2" | "near1" | "far1" | "far2" | "far3";
-/** Setelan eksposur kamera DSLR (sementara lewat digiCamControl). */
+/** Setelan eksposur kamera DSLR (Canon EDSDK, #113). */
 export type CameraProp = { name: string; label: string; value: string; options: string[] };
 /** `ready` = installer versi terbaru sudah terunduh di latar belakang (tinggal dipasang). */
 export type UpdateCheck = {
@@ -202,7 +202,7 @@ export interface BoothCrew {
   device(): Promise<DeviceInfo>;
   /** Simpan pengaturan perangkat; booth dibuka ulang supaya kamera & printer baru dipakai. */
   saveDevice(s: DeviceSettings): Promise<void>;
-  /** Setelan eksposur DSLR yang tersedia (kosong = bukan DSLR / digiCamControl tidak menjawab). */
+  /** Setelan eksposur DSLR yang tersedia (kosong = bukan DSLR Canon / kamera belum tersambung). */
   cameraProps(): Promise<CameraProp[]>;
   setCameraProp(name: string, value: string): Promise<void>;
   /** Pengaturan event: nilai cloud + override lokal booth (DECISIONS #100). */
@@ -215,7 +215,7 @@ export interface BoothCrew {
   saveDesign(eventId: string, layout: LayoutSpec, files: DesignFile[]): Promise<string>;
   /** Kembalikan desain ke versi cloud: satu layout.id, atau semua (null). */
   resetDesign(eventId: string, layoutId: string | null): Promise<void>;
-  /** Fokus DSLR lewat live view (#88); tidak ada = kamera tanpa live view (webcam, hot folder biasa). */
+  /** Fokus DSLR lewat live view (#88); tidak ada = kamera tanpa live view (webcam, hot folder). */
   focus?(step: FocusStep): Promise<void>;
   /** Tap to focus (#114, Canon EDSDK): titik 0–1 di frame kamera (tanpa cermin). */
   focusAt?(x: number, y: number): Promise<void>;

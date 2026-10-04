@@ -22,7 +22,7 @@ const PRINTER_TEXT: Record<string, string> = {
 const CAMERA_KIND: Record<string, string> = {
   webcam: "Webcam",
   simulated: "Simulasi",
-  hotfolder: "Hot folder / DSLR",
+  hotfolder: "Hot folder",
   canon: "Canon",
 };
 

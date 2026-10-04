@@ -59,7 +59,7 @@ Pesan JSON teks: `{ "id": "uuid", "type": "...", "payload": {...} }`. Balasan me
 **Live view:** frame biner di WebSocket yang sama. Format: byte 0 = `0x01`, sisanya JPEG. Renderer menggambar ke `<canvas>` (mirror via transform). Target ≥ 20 fps.
 
 ### 2.1 Canon (EDSDK)
-- Pakai wrapper C# untuk EDSDK (pelajari pola dari source digiCamControl). Semua panggilan EDSDK dijalankan di satu thread khusus dengan antrean perintah (EDSDK tidak thread-safe).
+- Pakai wrapper C# untuk EDSDK. Semua panggilan EDSDK dijalankan di satu thread khusus dengan antrean perintah (EDSDK tidak thread-safe).
 - Simpan hasil ke host (`SaveTo_Host`), unduh langsung ke `outputDir`.
 - Saat connect: matikan auto power off kamera, set kualitas JPEG Large Fine.
 - Disconnect → loop reconnect tiap 2 detik, emit `camera.disconnected` / `camera.connected`.

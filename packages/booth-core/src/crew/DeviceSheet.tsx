@@ -7,7 +7,7 @@ import { usePlatform } from "../PlatformContext";
 import type { DeviceInfo, DeviceSettings } from "../platform";
 import { Sheet } from "./Sheet";
 
-/** digiCamControl dipensiunkan (#141): DSLR Canon = EDSDK; hot folder hanya lewat flag teknisi. */
+/** DSLR Canon = EDSDK (#141, #168); hot folder hanya lewat flag teknisi `--camera=hotfolder`. */
 const CAMERAS = ["canon", "webcam", "simulated"] as const;
 
 const choice = (on: boolean) =>
@@ -17,8 +17,8 @@ const input =
 const label = "text-lg font-bold text-text-2";
 
 /**
- * Kamera & printer dari mode crew (DECISIONS #85): sumber kamera, webcam, hot folder + pemicu digiCamControl,
- * setelan eksposur DSLR (langsung berlaku), printer + pengingat 2inch cut. Simpan = booth dibuka ulang.
+ * Kamera & printer dari mode crew (DECISIONS #85): sumber kamera, webcam, AF sebelum jepret (Canon), folder &
+ * pemicu hot folder (teknisi), printer + pengingat 2inch cut. Simpan = booth dibuka ulang.
  */
 export function DeviceSheet({
   paper,
@@ -55,21 +55,6 @@ export function DeviceSheet({
   const changed = info && JSON.stringify(draft) !== JSON.stringify(info.now);
   const camera = draft.camera ?? "webcam";
 
-  // DSLR (digiCamControl / Canon EDSDK): AF sebelum jepret. Setelan eksposur ada di halaman Kamera & Tes Jepret.
-  const dslr = (
-    <>
-      <button
-        type="button"
-        aria-pressed={!!draft.afBeforeCapture}
-        disabled={!info}
-        className={choice(!!draft.afBeforeCapture)}
-        onClick={() => set({ afBeforeCapture: !draft.afBeforeCapture })}
-      >
-        {copy.crew.afBeforeCapture} · {draft.afBeforeCapture ? copy.crew.on : copy.crew.off}
-      </button>
-    </>
-  );
-
   return (
     <Sheet title={copy.crew.device} onClose={onClose}>
       <div className="flex min-h-0 flex-col gap-6 overflow-y-auto pr-1">
@@ -95,7 +80,16 @@ export function DeviceSheet({
           {camera === "canon" && (
             <div className="flex flex-col gap-3">
               <p className="text-lg text-text-2">{copy.crew.canonNote}</p>
-              {dslr}
+              {/* AF sebelum jepret; setelan eksposur ada di halaman Kamera & Tes Jepret. */}
+              <button
+                type="button"
+                aria-pressed={!!draft.afBeforeCapture}
+                disabled={!info}
+                className={choice(!!draft.afBeforeCapture)}
+                onClick={() => set({ afBeforeCapture: !draft.afBeforeCapture })}
+              >
+                {copy.crew.afBeforeCapture} · {draft.afBeforeCapture ? copy.crew.on : copy.crew.off}
+              </button>
             </div>
           )}
 
@@ -123,7 +117,6 @@ export function DeviceSheet({
                   className={input}
                   disabled={locked("hot-folder")}
                   value={draft.hotFolder ?? ""}
-                  placeholder={copy.crew.hotFolderFromDcc}
                   onChange={(e) => set({ hotFolder: e.target.value })}
                 />
               </label>
@@ -136,7 +129,6 @@ export function DeviceSheet({
                   onChange={(e) => set({ hotFolderTrigger: e.target.value })}
                 />
               </label>
-              {dslr}
             </div>
           )}
         </section>

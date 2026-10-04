@@ -30,7 +30,6 @@ import {
 } from "./config";
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
 import type { BoothDb } from "./db";
-import { CAMERA_PROPS, dcc, dccBase, dccProp } from "./dcc";
 import {
   applyDesignOverride,
   assetRefs,
@@ -40,7 +39,6 @@ import {
   resetDesign,
   saveDesign,
 } from "./design-override";
-import { FOCUS_STEPS, focus, liveViewFrame, liveViewStart, liveViewStop } from "./digicam";
 import { buildEventFolder, eventFolderSize, folderName, removableDrives } from "./event-folder";
 import {
   applyOverride,
@@ -146,7 +144,7 @@ export function registerIpc(
     async (_e, path: unknown) => new Uint8Array(await readFile(inSessions(Path.parse(path)))),
   );
 
-  // Kamera lewat Camera Service (hot folder M7; nanti Canon EDSDK): foto ditulis service ke raw/ sesi.
+  // Kamera lewat Camera Service (Canon EDSDK, hot folder teknisi): foto ditulis service ke raw/ sesi.
   const CAPTURE_TIMEOUT_MS = 15_000;
   ipcMain.handle("cameraCapture", async (_e, req: unknown) => {
     const { sessionId, index } = z
@@ -161,44 +159,31 @@ export function registerIpc(
     return { ...r, path: inSessions(r.path) };
   });
   ipcMain.handle("cameraStatus", () => request({ id: crypto.randomUUID(), type: "camera.status" }));
-  // Live view DSLR lewat digiCamControl (--digicam). Diambil di main supaya CSP renderer tetap 'self'.
   // Canon EDSDK (#111): live view & fokus lewat Camera Service; frame JPEG terbaru dari /liveview.jpg.
+  // Diambil di main supaya CSP renderer tetap 'self'.
   const canonOn = config.camera === "canon";
   ipcMain.handle("liveViewStart", async () => {
-    if (!config.liveView) return;
-    if (canonOn) {
-      await request({ id: crypto.randomUUID(), type: "liveview.start" }, 5000);
-      if (deviceNow.afBeforeCapture)
-        void request(
-          { id: crypto.randomUUID(), type: "camera.focus", payload: { step: "af" } },
-          5000,
-        )
-          .then(() => console.info("[camera] AF sebelum jepret"))
-          .catch((e: unknown) => console.warn(`[camera] AF sebelum jepret gagal: ${String(e)}`));
-      return;
-    }
-    await liveViewStart(!!deviceNow.afBeforeCapture);
-    if (deviceNow.afBeforeCapture) console.info("[camera] AF sebelum jepret");
+    if (!canonOn) return;
+    await request({ id: crypto.randomUUID(), type: "liveview.start" }, 5000);
+    if (deviceNow.afBeforeCapture)
+      void request({ id: crypto.randomUUID(), type: "camera.focus", payload: { step: "af" } }, 5000)
+        .then(() => console.info("[camera] AF sebelum jepret"))
+        .catch((e: unknown) => console.warn(`[camera] AF sebelum jepret gagal: ${String(e)}`));
   });
   let lastCanonFrame: Buffer | undefined;
   ipcMain.handle("liveViewFrame", async () => {
-    if (!config.liveView) throw new Error("live view tidak aktif");
-    if (canonOn) {
-      const r = await fetch(liveViewUrl(), { signal: AbortSignal.timeout(3000) });
-      if (r.status !== 200) return new Uint8Array(0);
-      // Camera Service selalu mengirim frame terakhir; renderer meminta lebih cepat dari 60D (±18 fps) sehingga tiap
-      // frame di-decode ±4×. Frame yang sama = kosong, renderer menunggu 40 ms (sama seperti digiCamControl).
-      const b = Buffer.from(await r.arrayBuffer());
-      if (lastCanonFrame?.equals(b)) return new Uint8Array(0);
-      lastCanonFrame = b;
-      return new Uint8Array(b);
-    }
-    return liveViewFrame();
+    if (!canonOn) throw new Error("live view tidak aktif");
+    const r = await fetch(liveViewUrl(), { signal: AbortSignal.timeout(3000) });
+    if (r.status !== 200) return new Uint8Array(0);
+    // Camera Service selalu mengirim frame terakhir; renderer meminta lebih cepat dari 60D (±18 fps) sehingga tiap
+    // frame di-decode ±4×. Frame yang sama = kosong, renderer menunggu 40 ms.
+    const b = Buffer.from(await r.arrayBuffer());
+    if (lastCanonFrame?.equals(b)) return new Uint8Array(0);
+    lastCanonFrame = b;
+    return new Uint8Array(b);
   });
   ipcMain.handle("liveViewStop", async () => {
-    if (!config.liveView) return;
     if (canonOn) await request({ id: crypto.randomUUID(), type: "liveview.stop" }, 5000);
-    else await liveViewStop();
   });
 
   /** Jalur cetak sesi & galeri: write-ahead, Camera Service mati = tetap queued (dikirim ulang begitu pulih). */
@@ -567,12 +552,7 @@ export function registerIpc(
   });
   ipcMain.handle("crewCameraProps", async () => {
     crewOnly();
-    if (canonOn) return request({ id: crypto.randomUUID(), type: "camera.props" }, 8000);
-    const base = dccBase();
-    if (!base) return [];
-    return (
-      await Promise.all(CAMERA_PROPS.map(([name, label]) => dccProp(base, name, label)))
-    ).filter((p) => p !== null);
+    return canonOn ? request({ id: crypto.randomUUID(), type: "camera.props" }, 8000) : [];
   });
   ipcMain.handle("crewFocusAt", async (_e, x: unknown, y: unknown) => {
     crewOnly();
@@ -583,42 +563,31 @@ export function registerIpc(
   });
   ipcMain.handle("crewFocus", async (_e, step: unknown) => {
     crewOnly();
-    if (!config.liveView) throw new Error("Kontrol fokus hanya untuk DSLR dengan live view");
-    const s = z.enum(FOCUS_STEPS).parse(step);
-    if (canonOn) {
-      await request({ id: crypto.randomUUID(), type: "camera.focus", payload: { step: s } }, 5000);
-      console.info(`[camera] fokus ${s}`);
-      return;
-    }
-    await focus(s).catch(() => {
-      throw new Error(
-        "digiCamControl tidak menjawab. Kamera Canon? Pilih Kamera DSLR Canon di Kamera & Printer. Kalau tetap digiCamControl: buka aplikasinya, nyalakan kamera, aktifkan live view.",
-      );
-    });
+    if (!canonOn) throw new Error("Kontrol fokus hanya untuk DSLR Canon (EDSDK)");
+    const s = z.enum(["af", "near3", "near2", "near1", "far1", "far2", "far3"]).parse(step);
+    await request({ id: crypto.randomUUID(), type: "camera.focus", payload: { step: s } }, 5000);
     console.info(`[camera] fokus ${s}`);
   });
   ipcMain.handle("crewSetCameraProp", async (_e, name: unknown, value: unknown) => {
     crewOnly();
-    const base = dccBase();
-    // Canon punya setelan tambahan: ISO jepret (flash) & kualitas JPEG (#113).
+    if (!canonOn) throw new Error("Setelan kamera hanya untuk DSLR Canon (EDSDK)");
+    // Canon (#113): eksposur live view + ISO/shutter jepret (flash) & kualitas JPEG.
     const n = z
       .enum([
-        ...CAMERA_PROPS.map(([k]) => k),
-        ...(canonOn ? ["iso_capture", "shutter_capture", "quality"] : []),
-      ] as [string, ...string[]])
+        "iso",
+        "shutterspeed",
+        "aperture",
+        "whitebalance",
+        "iso_capture",
+        "shutter_capture",
+        "quality",
+      ])
       .parse(name);
     const v = z.string().min(1).max(64).parse(value);
-    if (canonOn) {
-      await request(
-        { id: crypto.randomUUID(), type: "camera.setProp", payload: { name: n, value: v } },
-        8000,
-      );
-      console.info(`[camera] ${n} = ${v}`);
-      return;
-    }
-    if (!base) throw new Error("Kamera DSLR (digiCamControl) belum dipakai");
-    const res = await dcc(base, { slc: "set", param1: n, param2: v }).catch(() => null);
-    if (!res?.ok) throw new Error("digiCamControl menolak setelan. Cek kamera menyala & dial di M");
+    await request(
+      { id: crypto.randomUUID(), type: "camera.setProp", payload: { name: n, value: v } },
+      8000,
+    );
     console.info(`[camera] ${n} = ${v}`);
   });
 

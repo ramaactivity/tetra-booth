@@ -10,12 +10,6 @@ import { LiveView } from "../screens/LiveView";
 import { sharpNotes, sharpnessOf } from "../sharpness";
 import { CameraProps } from "./CameraProps";
 
-const FOCUS_FINE: { step: FocusStep; label: string }[] = [
-  { step: "near2", label: "◀◀" },
-  { step: "near1", label: "◀" },
-  { step: "far1", label: "▶" },
-  { step: "far2", label: "▶▶" },
-];
 const METER_MS = 300;
 const GUIDES_KEY = "tb.testShot.guides";
 /** Margin aman: 5% sisi pendek area slot, jauhkan wajah & tangan dari tepi potongan. */
@@ -201,7 +195,7 @@ export function CameraCheck({
   const applySettings = async (t: TestShot) => {
     try {
       const set = (n: string, v?: string) => (v ? p.crew.setCameraProp(n, v) : Promise.resolve());
-      // ISO/shutter jepret hanya ada di Canon EDSDK; digiCamControl memakai setelan kamera langsung.
+      // ISO/shutter jepret (#113) kalau kamera menyediakannya, selain itu setelan live view.
       const names = new Set((await p.crew.cameraProps()).map((x) => x.name));
       await set(names.has("iso_capture") ? "iso_capture" : "iso", t.s.iso);
       await set(names.has("shutter_capture") ? "shutter_capture" : "shutterspeed", t.s.shutter);
@@ -278,22 +272,6 @@ export function CameraCheck({
               <Button className="h-[76px] rounded-[18px] text-2xl" onClick={() => void focus("af")}>
                 {copy.crew.autoFocus}
               </Button>
-              {/* Geser fokus manual hanya berguna untuk digiCamControl; Canon EDSDK selalu AF saat jepret. */}
-              {!p.crew.focusAt && (
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-semibold text-text-2">{copy.crew.focusFine}</span>
-                  {FOCUS_FINE.map(({ step, label }) => (
-                    <Button
-                      key={step}
-                      variant="secondary"
-                      className="h-14 min-w-14 flex-1 rounded-[14px] px-2 text-xl"
-                      onClick={() => void focus(step)}
-                    >
-                      {label}
-                    </Button>
-                  ))}
-                </div>
-              )}
               {meter && (
                 <div data-testid="focus-meter" className="flex flex-col gap-2">
                   <div className="flex justify-between text-lg font-semibold text-text-2">

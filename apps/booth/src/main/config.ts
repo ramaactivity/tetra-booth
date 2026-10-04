@@ -3,7 +3,6 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { BoothConfig } from "@tetra/platform-electron";
 import { z } from "zod";
-import { DIGICAM_TRIGGER, isDigiCamTrigger } from "./digicam";
 
 /** Flag yang butuh nilai. Diterima `--nama=nilai` maupun `--nama nilai` (M-008). */
 export const VALUE_FLAGS = [
@@ -22,7 +21,6 @@ export const VALUE_FLAGS = [
   "hot-folder-trigger",
   "print-offset",
   "printer-2x6x2",
-  "digicam-exe",
   "canon",
 ] as const;
 type ValueFlag = (typeof VALUE_FLAGS)[number];
@@ -120,11 +118,23 @@ export const lockedByArgv = (name: string) => argvFlags.has(name);
  *   electron apps/booth --camera=simulated --demo --size 1080x1920 --printer "Microsoft Print to PDF" --data C:/tmp/data
  */
 const flags = parseFlags([...fileArgs, ...deviceArgs, ...process.argv]);
+/**
+ * digiCamControl dihapus (DECISIONS #141, #168). Migrasi booth lama: `--digicam`, atau hot folder yang dipicu web
+ * server digiCamControl (port 5513, dulu mode crew "DSLR (digiCamControl)") → Canon EDSDK; folder & pemicunya diabaikan.
+ */
+export const isLegacyDigicam = (f: Pick<ReturnType<typeof parseFlags>, "has" | "value">) =>
+  f.has("digicam") ||
+  (f.value("camera") === "hotfolder" && /:5513([/?]|$)/.test(f.value("hot-folder-trigger") ?? ""));
+const legacyDigicam = isLegacyDigicam(flags);
+
 /** Dicatat di index setelah log file aktif. */
 export const flagWarnings = [
   ...(fileArgs.length ? [`[config] flag dari ${flagsFile}: ${fileArgs.join(" ")}`] : []),
   ...(deviceArgs.length ? [`[config] mode crew (${deviceFile}): ${deviceArgs.join(" ")}`] : []),
   ...flags.missing.map((m) => `[config] --${m} butuh nilai, diabaikan`),
+  ...(legacyDigicam
+    ? ["[config] digiCamControl sudah dihapus (#168): kamera pindah ke Canon EDSDK"]
+    : []),
 ];
 
 /** Tanda "booth membuka ulang sendiri" di kv: layar awal dilewati sekali (DECISIONS #86). */
@@ -147,15 +157,6 @@ export const bumperFlag = (isPackaged: boolean) =>
 export const kioskFlag = (isPackaged: boolean) =>
   flags.has("kiosk") || (isPackaged && !flags.has("no-kiosk"));
 
-/**
- * digiCamControl dipensiunkan (DECISIONS #141): DSLR Canon selalu lewat EDSDK. Booth lama yang memakai `--digicam`
- * atau mode crew "DSLR (digiCamControl)" (hot folder + pemicu port 5513) otomatis pindah ke Canon EDSDK.
- * ponytail: kode digicam.ts/dcc.ts dibiarkan mati sampai EDSDK terbukti di beberapa event, lalu dihapus.
- */
-export const digicam: { exe?: string } | undefined = undefined;
-const legacyDigicam =
-  flags.has("digicam") ||
-  (flags.value("camera") === "hotfolder" && isDigiCamTrigger(flags.value("hot-folder-trigger")));
 /** Booth terpasang (installer) di Windows tanpa pilihan kamera: bawaan Canon EDSDK, bukan webcam. */
 const packagedWindows = process.platform === "win32" && !process.defaultApp;
 
@@ -195,7 +196,8 @@ export const shotsDir = flags.value("shots");
  * Diteruskan apa adanya sampai config device ada: --printer, --printer-2x6x2 (antrean potong 2 inci, #52),
  * --paper-4r, --paper-2x6x2, --paper-fit,
  * --print-offset (kalibrasi DNP, M-021), --print-to-file (khusus uji/stress, printer ber-port PORTPROMPT: seperti
- * Print to PDF), --hot-folder (M7), --hot-folder-trigger (pemicu shutter, mis. digiCamControl).
+ * Print to PDF). Khusus `--camera=hotfolder` (teknisi, #168): --hot-folder (M7), --hot-folder-trigger (URL pemicu
+ * shutter, GET per jepret).
  */
 export const cameraServiceFlags = {
   spawn: !flags.has("no-spawn"),
@@ -209,12 +211,10 @@ export const cameraServiceFlags = {
       "paper-fit",
       "print-offset",
       "print-to-file",
-      "hot-folder",
-      "hot-folder-trigger",
+      ...(config.camera === "hotfolder" ? (["hot-folder", "hot-folder-trigger"] as const) : []),
     ] as const
   ).flatMap((k) => {
-    const v =
-      flags.value(k) ?? (k === "hot-folder-trigger" && digicam ? DIGICAM_TRIGGER : undefined);
+    const v = flags.value(k);
     return v ? [`--${k}`, v] : [];
   }),
 };
@@ -230,9 +230,11 @@ export const deviceNow: DeviceSettings = {
   mirrorLiveView: config.mirrorLiveView ?? true,
   mirrorPhoto: config.mirrorPhoto ?? false,
   afBeforeCapture: !!device.afBeforeCapture,
-  ...(flags.value("hot-folder") ? { hotFolder: flags.value("hot-folder") } : {}),
-  ...(flags.value("hot-folder-trigger") || digicam
-    ? { hotFolderTrigger: flags.value("hot-folder-trigger") ?? DIGICAM_TRIGGER }
+  ...(config.camera === "hotfolder" && flags.value("hot-folder")
+    ? { hotFolder: flags.value("hot-folder") }
+    : {}),
+  ...(config.camera === "hotfolder" && flags.value("hot-folder-trigger")
+    ? { hotFolderTrigger: flags.value("hot-folder-trigger") }
     : {}),
   ...(printerName ? { printer: printerName } : {}),
 };

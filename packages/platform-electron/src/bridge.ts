@@ -16,7 +16,7 @@ export type BoothConfig = {
   fast?: boolean;
   /** Base URL halaman tamu untuk QR, mis. https://booth.tetraphoto.com. */
   guestUrl: string;
-  /** Kamera Camera Service punya live view (digiCamControl, `--digicam`). */
+  /** Kamera Camera Service punya live view (Canon EDSDK). */
   liveView?: boolean;
   /** Mode kiosk aktif (M5): kursor disembunyikan di luar mode crew. */
   kiosk?: boolean;

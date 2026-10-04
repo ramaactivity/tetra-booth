@@ -29,7 +29,7 @@ public sealed class HotFolderCamera : ICameraSource
 
     /// <param name="trigger">
     /// Opsional: URL yang dipanggil (GET) setiap capture untuk memicu shutter di software tether
-    /// (mis. web server digiCamControl), supaya tidak perlu menekan shutter manual (W-023).
+    /// (web server/remote software tether apa pun), supaya tidak perlu menekan shutter manual (W-023).
     /// </param>
     public HotFolderCamera(string folder, TimeSpan? timeout = null, Uri? trigger = null)
     {

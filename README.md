@@ -87,4 +87,4 @@ Script Windows di R2 diperbarui tiap `pnpm dist:dev`, atau tanpa build: `pnpm di
 
 ## Struktur
 
-Lihat [`docs/05-ARCHITECTURE.md`](docs/05-ARCHITECTURE.md) §2. Proyek yang belum dibuat (Sony, HotFolder, Cups, booth-mobile, workers/zip) menyusul di fasenya.
+Lihat [`docs/05-ARCHITECTURE.md`](docs/05-ARCHITECTURE.md) §2. Proyek yang belum dibuat (Sony, Cups, booth-mobile, workers/zip) menyusul di fasenya.
