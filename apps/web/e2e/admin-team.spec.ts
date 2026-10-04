@@ -10,7 +10,7 @@ test("undang anggota, buat sandi dari link, ubah role, nonaktifkan", async ({ pa
   try {
     await login(page, owner);
     await page.getByRole("link", { name: "Tim" }).click();
-    await page.getByRole("button", { name: "+ Undang Anggota" }).click();
+    await page.getByRole("button", { name: "Undang Anggota" }).click();
     await page.getByRole("dialog").getByLabel("Email").fill(email);
     await page.getByText("Kelola event").click();
     await page.getByRole("button", { name: "Kirim Undangan" }).click();

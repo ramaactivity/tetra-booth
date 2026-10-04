@@ -1,6 +1,6 @@
 "use client";
 import { type LayoutPaper, type LayoutSpec, paperLabel } from "@tetra/shared";
-import { ArrowLeft, Plus, Search, X } from "lucide-react";
+import { ArrowLeft, Check, Plus, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { DesignPreview, type PreviewTemplate, type PreviewVars } from "./DesignPreview";
@@ -147,7 +147,14 @@ export function DesignPicker({
                       onClick={() => copy.onChange(copy.value === o.value ? null : o.value)}
                       className={`${pill} aria-pressed:bg-mint disabled:cursor-default`}
                     >
-                      {copy.value === o.value ? "✓ Akan disalin" : "Salin & sesuaikan"}
+                      {copy.value === o.value ? (
+                        <>
+                          <Check aria-hidden className="mr-1 size-4" strokeWidth={2} />
+                          Akan disalin
+                        </>
+                      ) : (
+                        "Salin & sesuaikan"
+                      )}
                     </button>
                   ) : (
                     <button
@@ -181,7 +188,7 @@ export function DesignPicker({
             className="flex min-h-[300px] flex-col items-center justify-center gap-3 rounded-2xl border-[1.5px] border-dashed border-ink bg-white p-6 text-center hover:bg-mint-soft"
           >
             <span className="flex size-11 items-center justify-center rounded-full border-[1.5px] border-ink bg-butter">
-              <Plus className="size-5" strokeWidth={2.5} />
+              <Plus className="size-5" strokeWidth={2} />
             </span>
             <span className="text-sm font-extrabold">Tambah desain</span>
             <span className="max-w-[200px] text-xs leading-snug text-text-2">

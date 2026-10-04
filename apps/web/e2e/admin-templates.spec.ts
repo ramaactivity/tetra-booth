@@ -63,7 +63,7 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
   try {
     await login(page, u);
     await page.getByRole("link", { name: "Template" }).click();
-    await page.getByRole("button", { name: "+ Buat Template" }).click();
+    await page.getByRole("button", { name: "Buat Template" }).click();
     await page.getByPlaceholder(/Nama template/).fill(tplName);
     // Bawaan: 4R portrait, 4R Grid.
     await expect(page.getByRole("combobox", { name: "Tata letak" })).toHaveText(/4R Grid/);
@@ -239,7 +239,7 @@ test("format polaroid landscape: kanvas, label, dan tata letak cepat sesuai form
   try {
     await login(page, u);
     await page.goto("/admin/templates");
-    await page.getByRole("button", { name: "+ Buat Template" }).click();
+    await page.getByRole("button", { name: "Buat Template" }).click();
     await page.getByPlaceholder(/Nama template/).fill(tplName);
     await page.getByRole("combobox", { name: "Format" }).click();
     await page.getByRole("option", { name: "Polaroid" }).click();

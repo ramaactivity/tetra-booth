@@ -1,4 +1,5 @@
 import { BoothStatus, newerVersion } from "@tetra/shared";
+import { Laptop, TriangleAlert } from "lucide-react";
 import { copy } from "@/lib/copy";
 import { ago, isOnline } from "@/lib/format";
 import { latestBoothRelease } from "@/lib/r2";
@@ -185,10 +186,10 @@ export default async function DevicesPage() {
               <div className="flex items-start justify-between gap-2.5 px-[18px] py-4">
                 <div className="flex min-w-0 items-center gap-3">
                   <span
-                    className="flex size-[42px] flex-none items-center justify-center rounded-[11px] border-[1.5px] border-dashed border-ink"
+                    className="flex size-[42px] flex-none items-center justify-center rounded-[11px] border-[1.5px] border-ink"
                     style={{ background: under }}
                   >
-                    ▭
+                    <Laptop aria-hidden className="size-5" strokeWidth={2} />
                   </span>
                   <div className="min-w-0">
                     <div className="text-[15px] font-extrabold">
@@ -204,10 +205,11 @@ export default async function DevicesPage() {
                   </div>
                 </div>
                 <span
-                  className={`rounded-full border-[1.5px] border-ink px-[9px] py-[3px] text-[11px] font-bold whitespace-nowrap ${online ? "bg-mint-soft" : issues.length ? "bg-coral" : "bg-neutral"}`}
+                  className={`inline-flex items-center gap-1 rounded-full border-[1.5px] border-ink px-[9px] py-[3px] text-[11px] font-bold whitespace-nowrap ${online ? "bg-mint-soft" : issues.length ? "bg-coral" : "bg-neutral"}`}
                 >
+                  {online && <span aria-hidden className="size-1.5 rounded-full bg-ink" />}
                   {online
-                    ? "● Online"
+                    ? "Online"
                     : paired
                       ? `Offline · ${ago(d.last_seen_at, now)}`
                       : t.notConnected}
@@ -267,8 +269,13 @@ export default async function DevicesPage() {
                   className="mx-[18px] mb-3 flex flex-col gap-1 rounded-[11px] border-[1.5px] border-ink bg-peach px-3 py-[9px] text-xs font-bold"
                 >
                   {issues.map((t) => (
-                    <li key={t} className="break-words">
-                      ! {t}
+                    <li key={t} className="flex items-start gap-1.5 break-words">
+                      <TriangleAlert
+                        aria-hidden
+                        className="mt-px size-3.5 flex-none"
+                        strokeWidth={2}
+                      />
+                      {t}
                     </li>
                   ))}
                 </ul>

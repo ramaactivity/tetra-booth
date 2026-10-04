@@ -77,7 +77,7 @@ export default async function TemplatesPage() {
             >
               <span className="flex size-8 flex-none items-center justify-center">
                 <span
-                  className="rounded-[6px] border-[1.5px] border-dashed border-ink bg-sky"
+                  className="rounded-[5px] border-[1.5px] border-ink bg-sky"
                   style={{ width: l.icon.w, height: l.icon.h }}
                 />
               </span>

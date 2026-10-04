@@ -75,21 +75,18 @@ export const copy = {
       {
         t: "Booth online",
         d: "Status kamera, printer & kertas tiap menit",
-        i: "▭",
         bg: "bg-mint-soft",
         ml: "ml-0",
       },
       {
         t: "Foto sampai ke tamu",
         d: "Halaman tamu & galeri klien otomatis",
-        i: "▦",
         bg: "bg-lavender",
         ml: "ml-12",
       },
       {
         t: "Satu admin untuk semua event",
         d: "Template, device, dan link klien",
-        i: "◷",
         bg: "bg-butter",
         ml: "ml-4",
       },
@@ -159,7 +156,7 @@ export const copy = {
     passwordLinkBad: "Link sudah tidak berlaku atau sudah dipakai. Minta link baru.",
     team: {
       title: "Tim",
-      invite: "+ Undang Anggota",
+      invite: "Undang Anggota",
       inviteTitle: "Undang Anggota",
       send: "Kirim Undangan",
       sending: "Mengirim…",
@@ -201,7 +198,7 @@ export const copy = {
     roles: { owner: "Owner", admin: "Admin", crew: "Crew" } as Record<string, string>,
     /** Menyambungkan laptop booth ke akun (desain E5, alur bertahap). Hindari kata "pairing" di layar. */
     devices: {
-      add: "+ Tambah booth",
+      add: "Tambah booth",
       addTitle: "Tambah booth",
       repairTitle: (n: string) => `Sambungkan ulang ${n}`,
       repairWhy:

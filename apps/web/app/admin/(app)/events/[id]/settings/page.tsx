@@ -1,4 +1,5 @@
 import { EventSettingsSchema, LAYOUT_PRESETS, SOUND_CUES, StoredBundle } from "@tetra/shared";
+import { ChevronLeft } from "lucide-react";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -63,9 +64,10 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
       <div>
         <Link
           href={`/admin/events/${ev.slug}`}
-          className="text-[13px] font-semibold text-text-2 no-underline"
+          className="-ml-1 inline-flex items-center gap-0.5 text-[13px] font-semibold text-text-2 no-underline hover:text-ink"
         >
-          {ev.name} ›
+          <ChevronLeft aria-hidden className="size-4" strokeWidth={2} />
+          {ev.name}
         </Link>
         <h1 className="mt-1 text-[28px] font-extrabold tracking-[-0.03em]">Pengaturan</h1>
       </div>

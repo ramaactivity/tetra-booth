@@ -170,7 +170,7 @@ export function RunPanel({
                     onClick={() => act("start")}
                     className={secondary}
                   >
-                    <Play aria-hidden className="size-4" strokeWidth={2.5} /> {t.reopen}
+                    <Play aria-hidden className="size-4" strokeWidth={2} /> {t.reopen}
                   </button>
                 ) : state === "running" ? (
                   <button
@@ -179,7 +179,7 @@ export function RunPanel({
                     onClick={() => act("pause")}
                     className={secondary}
                   >
-                    <Pause aria-hidden className="size-4" strokeWidth={2.5} /> {t.pause}
+                    <Pause aria-hidden className="size-4" strokeWidth={2} /> {t.pause}
                   </button>
                 ) : (
                   <button
@@ -188,7 +188,7 @@ export function RunPanel({
                     onClick={() => act("start")}
                     className={primary}
                   >
-                    <Play aria-hidden className="size-4" strokeWidth={2.5} />
+                    <Play aria-hidden className="size-4" strokeWidth={2} />
                     {state === "idle" ? t.start : t.resume}
                   </button>
                 )}
@@ -199,7 +199,7 @@ export function RunPanel({
                     onClick={() => setConfirm(true)}
                     className={secondary}
                   >
-                    <Flag aria-hidden className="size-4" strokeWidth={2.5} /> {t.finish}
+                    <Flag aria-hidden className="size-4" strokeWidth={2} /> {t.finish}
                   </button>
                 )}
                 <button
@@ -208,7 +208,7 @@ export function RunPanel({
                   aria-expanded={edit}
                   className={secondary}
                 >
-                  <Pencil aria-hidden className="size-4" strokeWidth={2.5} /> {t.edit}
+                  <Pencil aria-hidden className="size-4" strokeWidth={2} /> {t.edit}
                 </button>
               </>
             )}

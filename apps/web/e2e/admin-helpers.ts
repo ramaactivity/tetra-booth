@@ -60,7 +60,7 @@ export async function createEventViaWizard(
   },
 ) {
   await page.goto("/admin");
-  await page.getByRole("link", { name: "+ Buat Event" }).click();
+  await page.getByRole("link", { name: "Buat Event" }).click();
   await page.getByLabel("Nama event").fill(o.name);
   await page.getByLabel("Tanggal event").fill(o.date ?? "2026-10-12");
   if (o.pkg) {

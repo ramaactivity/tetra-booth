@@ -83,7 +83,7 @@ export function RecapDialog({ data, slug }: { data: RecapData; slug: string }) {
         }}
         className="flex h-10 items-center gap-2 rounded-[11px] border-[1.5px] border-ink bg-butter px-3.5 text-[13px] font-bold"
       >
-        <ClipboardList aria-hidden className="size-4" strokeWidth={2.25} /> {t.open}
+        <ClipboardList aria-hidden className="size-4" strokeWidth={2} /> {t.open}
       </button>
       <dialog
         ref={ref}
@@ -111,14 +111,14 @@ export function RecapDialog({ data, slug }: { data: RecapData; slug: string }) {
                 className={secondary}
               >
                 {copied ? (
-                  <Check aria-hidden className="size-4" strokeWidth={2.5} />
+                  <Check aria-hidden className="size-4" strokeWidth={2} />
                 ) : (
-                  <Copy aria-hidden className="size-4" strokeWidth={2.25} />
+                  <Copy aria-hidden className="size-4" strokeWidth={2} />
                 )}
                 {copied ? t.copied : t.copyText}
               </button>
               <button type="button" onClick={download} className={primary}>
-                <Download aria-hidden className="size-4" strokeWidth={2.25} /> {t.download}
+                <Download aria-hidden className="size-4" strokeWidth={2} /> {t.download}
               </button>
             </div>
           </div>
@@ -164,7 +164,7 @@ function RecapCard({ data, v }: { data: RecapData; v: RecapView }) {
       >
         <div className="flex items-start gap-3">
           <span className="flex size-10 flex-none items-center justify-center rounded-full border-[1.5px] border-ink bg-white">
-            <Icon aria-hidden className="size-5" strokeWidth={2.25} />
+            <Icon aria-hidden className="size-5" strokeWidth={2} />
           </span>
           <div className="min-w-0">
             <p className="text-[22px] leading-tight font-extrabold tracking-[-0.02em]">

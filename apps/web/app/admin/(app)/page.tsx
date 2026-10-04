@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { requireMember } from "@/lib/supabase/server";
 
@@ -21,14 +22,22 @@ const STATUS: Record<Exclude<Tab, "semua">, [string, string]> = {
   mendatang: ["Mendatang", "bg-lavender"],
   selesai: ["Selesai", "bg-neutral"],
 };
-const ICON = ["bg-peach", "bg-sky", "bg-lavender", "bg-mint-soft"];
-const shortDate = (d: string) =>
-  new Intl.DateTimeFormat("id-ID", {
+/** Blok tanggal per baris: warna mengikuti fase, event selesai meredup. */
+const DATE_BG: Record<Exclude<Tab, "semua">, string> = {
+  berlangsung: "bg-mint-soft",
+  mendatang: "bg-lavender",
+  selesai: "bg-paper text-text-2",
+};
+const dateParts = (d: string) => {
+  const p = new Intl.DateTimeFormat("id-ID", {
     day: "numeric",
     month: "short",
     year: "numeric",
     timeZone: "UTC",
-  }).format(new Date(`${d}T00:00:00Z`));
+  }).formatToParts(new Date(`${d}T00:00:00Z`));
+  const v = (t: string) => p.find((x) => x.type === t)?.value ?? "";
+  return { day: v("day"), month: v("month"), year: v("year") };
+};
 const daysLeft = (ts: string | null) => {
   if (!ts) return "—";
   const d = Math.ceil((new Date(ts).getTime() - Date.now()) / 86_400_000);
@@ -60,9 +69,10 @@ export default async function EventsPage({
         <h1 className="text-[30px] font-extrabold tracking-[-0.03em]">Event</h1>
         <Link
           href="/admin/events/new"
-          className="pressable layered inline-flex h-11 items-center rounded-xl border-[1.5px] border-ink bg-butter px-[18px] text-sm font-extrabold no-underline [--lb:1.5px] [--lx:4px]"
+          className="pressable layered inline-flex h-11 items-center gap-2 rounded-xl border-[1.5px] border-ink bg-butter px-[18px] text-sm font-extrabold no-underline [--lb:1.5px] [--lx:4px]"
         >
-          + Buat Event
+          <Plus aria-hidden className="size-4" strokeWidth={2} />
+          Buat Event
         </Link>
       </div>
       <nav className="flex self-start overflow-hidden rounded-xl border-[1.5px] border-ink bg-white">
@@ -77,30 +87,37 @@ export default async function EventsPage({
         ))}
       </nav>
       <div className="overflow-hidden rounded-2xl border-[1.5px] border-ink bg-white">
-        <div className="grid h-[46px] grid-cols-[2.2fr_1.2fr_1fr_1.4fr_.7fr_1.2fr_1fr] items-center border-b-[1.5px] border-ink bg-paper px-5 text-xs font-bold text-text-2">
-          <span>Nama event</span>
-          <span>Tanggal</span>
+        <div className="grid h-[46px] grid-cols-[3fr_1fr_1.4fr_.7fr_1.2fr_1fr] items-center border-b-[1.5px] border-ink bg-paper px-5 text-xs font-bold text-text-2">
+          <span>Event</span>
           <span>Mode</span>
           <span>Device</span>
           <span>Sesi</span>
           <span>Status</span>
           <span>Retensi</span>
         </div>
-        {events.map((e, i) => {
-          const [label, bg] = STATUS[phase(e.event_date)];
+        {events.map((e) => {
+          const ph = phase(e.event_date);
+          const [label, bg] = STATUS[ph];
+          const dt = dateParts(e.event_date);
+          const thisYear = dt.year === today().slice(0, 4);
           return (
             <Link
               key={e.id}
               href={`/admin/events/${e.slug}`}
-              className="grid h-[62px] grid-cols-[2.2fr_1.2fr_1fr_1.4fr_.7fr_1.2fr_1fr] items-center border-b-[1.5px] border-dashed border-line-soft px-5 text-sm no-underline last:border-b-0 hover:bg-paper"
+              className="grid h-[62px] grid-cols-[3fr_1fr_1.4fr_.7fr_1.2fr_1fr] items-center border-b-[1.5px] border-dashed border-line-soft px-5 text-sm no-underline last:border-b-0 hover:bg-paper"
             >
-              <span className="flex items-center gap-2.5 font-bold">
-                <span
-                  className={`size-8 flex-none rounded-[9px] border-[1.5px] border-dashed border-ink ${ICON[i % ICON.length]}`}
-                />
-                {e.name}
+              <span className="flex min-w-0 items-center gap-3 font-bold">
+                <time
+                  dateTime={e.event_date}
+                  className={`flex w-11 flex-none flex-col items-center rounded-[9px] border-[1.5px] border-ink py-1 leading-none ${DATE_BG[ph]}`}
+                >
+                  <span className="text-[15px] font-extrabold tracking-[-0.02em]">{dt.day}</span>
+                  <span className="mt-0.5 text-[10px] font-bold uppercase">
+                    {thisYear ? dt.month : `${dt.month} ${dt.year.slice(2)}`}
+                  </span>
+                </time>
+                <span className="truncate">{e.name}</span>
               </span>
-              <span className="text-text-3">{shortDate(e.event_date)}</span>
               <span>
                 <span
                   className={`rounded-lg border-[1.5px] border-ink px-2.5 py-1 text-xs font-bold ${e.mode === "photobox" ? "bg-lavender" : "bg-sky"}`}

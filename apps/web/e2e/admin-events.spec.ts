@@ -54,7 +54,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
       asked = d.message();
       void d.dismiss();
     });
-    await page.getByRole("link", { name: /› ?$/ }).first().click();
+    await page.getByRole("main").getByRole("link", { name, exact: true }).first().click();
     await page.waitForTimeout(500);
     expect(asked).toContain("belum disimpan");
     await expect(page).toHaveURL(/\/settings$/);
@@ -316,7 +316,7 @@ test("wizard buat event: validasi per langkah, isian tetap saat kembali, bundle 
   };
   try {
     await login(page, u);
-    await page.getByRole("link", { name: "+ Buat Event" }).click();
+    await page.getByRole("link", { name: "Buat Event" }).click();
     await expect(page).toHaveURL(/\/admin\/events\/new$/);
     await expect(page.getByText("Langkah 1 dari 5")).toBeVisible();
     // Langkah 1: nama & tanggal wajib.

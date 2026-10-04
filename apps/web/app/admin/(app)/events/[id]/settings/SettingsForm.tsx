@@ -7,7 +7,7 @@ import {
   paperLabel,
 } from "@tetra/shared";
 import { ColorPicker } from "@tetra/ui";
-import { Check, Play } from "lucide-react";
+import { ArrowRight, Check, Play } from "lucide-react";
 import Link from "next/link";
 import {
   type InputHTMLAttributes,
@@ -562,7 +562,13 @@ export function SettingsForm({
                   <span className={`min-w-0 text-sm leading-snug ${c.ok ? "font-semibold" : ""}`}>
                     {c.ok && <span className="sr-only">Sudah: </span>}
                     {c.text}
-                    {!c.ok && <span className="font-bold"> →</span>}
+                    {!c.ok && (
+                      <ArrowRight
+                        aria-hidden
+                        className="ml-1 inline size-3.5 align-[-2px]"
+                        strokeWidth={2}
+                      />
+                    )}
                   </span>
                 </span>
               </a>

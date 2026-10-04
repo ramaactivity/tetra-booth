@@ -6,7 +6,7 @@ test.skip(!hasDb, "butuh Supabase dev (apps/web/.env.local) + migrasi 0009_layou
 
 async function newTemplate(page: Page, name: string) {
   await page.goto("/admin/templates");
-  await page.getByRole("button", { name: "+ Buat Template" }).click();
+  await page.getByRole("button", { name: "Buat Template" }).click();
   await page.getByPlaceholder(/Nama template/).fill(name);
   await page.getByRole("button", { name: "Buat", exact: true }).click();
   await expect(page.getByLabel("Nama template")).toHaveValue(name);

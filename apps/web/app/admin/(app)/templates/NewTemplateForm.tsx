@@ -1,6 +1,7 @@
 "use client";
 import { LAYOUT_PRESETS, type PresetId } from "@tetra/shared";
 import { Select } from "@tetra/ui";
+import { Plus } from "lucide-react";
 import { useActionState, useState } from "react";
 import { createTemplate } from "./actions";
 
@@ -17,7 +18,7 @@ const layoutsOf = (format: string, orient: string) =>
 
 const input = "h-11 rounded-xl border-[1.5px] border-ink bg-white px-3.5 text-sm";
 const primary =
-  "pressable layered h-11 rounded-xl border-[1.5px] border-ink bg-butter px-[18px] text-sm font-extrabold [--lb:1.5px] [--lx:4px]";
+  "pressable layered inline-flex h-11 items-center justify-center gap-2 rounded-xl border-[1.5px] border-ink bg-butter px-[18px] text-sm font-extrabold [--lb:1.5px] [--lx:4px]";
 
 export function NewTemplateForm() {
   const [open, setOpen] = useState(false);
@@ -35,7 +36,8 @@ export function NewTemplateForm() {
   if (!open)
     return (
       <button type="button" className={primary} onClick={() => setOpen(true)}>
-        + Buat Template
+        <Plus aria-hidden className="size-4" strokeWidth={2} />
+        Buat Template
       </button>
     );
   return (

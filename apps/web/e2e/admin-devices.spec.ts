@@ -25,7 +25,7 @@ test("tambah booth bertahap, tersambung, status online, sambung ulang, nonaktifk
   try {
     await login(page, u);
     await page.locator(`a[href="/admin/devices"]`).first().click();
-    await page.getByRole("button", { name: "+ Tambah booth" }).click();
+    await page.getByRole("button", { name: "Tambah booth" }).click();
     const dialog = page.getByRole("dialog", { name: "Tambah booth" });
     await expect(dialog.getByTestId("pair-step-name")).toHaveAttribute("data-state", "active");
     await page.screenshot({ path: "test-results/admin-pair-1-name.png" });
@@ -69,7 +69,7 @@ test("tambah booth bertahap, tersambung, status online, sambung ulang, nonaktifk
     expect(beat.status()).toBe(200);
     // Pantauan otomatis (tiap 20 dtk) tanpa reload manual.
     const card = page.getByTestId("device-card").filter({ hasText: name });
-    await expect(card).toContainText("● Online", { timeout: 30_000 });
+    await expect(card).toContainText("Online", { timeout: 30_000 });
     await expect(card).toContainText("v9.9.9");
     await expect(card).toContainText("Andi & Sari");
     await expect(card).toContainText("Canon EOS 1500DTidak terhubung");

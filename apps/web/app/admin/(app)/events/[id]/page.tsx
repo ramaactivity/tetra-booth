@@ -5,7 +5,16 @@ import {
   paperLabel,
   parseRun,
 } from "@tetra/shared";
-import { CloudUpload, Images, Printer, QrCode } from "lucide-react";
+import {
+  ChevronLeft,
+  CloudUpload,
+  Download,
+  ExternalLink,
+  Images,
+  Printer,
+  QrCode,
+  Settings,
+} from "lucide-react";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -170,7 +179,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     ),
   );
   const btn =
-    "flex h-10 items-center rounded-[11px] border-[1.5px] border-ink px-3.5 text-[13px] font-bold no-underline";
+    "flex h-10 items-center gap-2 rounded-[11px] border-[1.5px] border-ink px-3.5 text-[13px] font-bold no-underline";
 
   // Rekap event (#148): booth yang memotret sesi event ini, sesi pertama/terakhir.
   const deviceIds = [...new Set(list.map((s) => s.device_id))];
@@ -203,8 +212,12 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     <>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Link href="/admin" className="text-[13px] font-semibold text-text-2 no-underline">
-            Event ›
+          <Link
+            href="/admin"
+            className="-ml-1 inline-flex items-center gap-0.5 text-[13px] font-semibold text-text-2 no-underline hover:text-ink"
+          >
+            <ChevronLeft aria-hidden className="size-4" strokeWidth={2} />
+            Event
           </Link>
           <h1 className="mt-1 text-[28px] font-extrabold tracking-[-0.03em]">{ev.name}</h1>
           <p className="mt-2.5 flex items-center gap-2 text-[13px] text-text-3">
@@ -224,6 +237,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
           <RecapDialog data={recap} slug={ev.slug} />
           {!!leadCount && role !== "crew" && (
             <a href={`/admin/events/${ev.slug}/leads`} className={`${btn} bg-white`}>
+              <Download aria-hidden className="size-4" strokeWidth={2} />
               Export Lead ({leadCount})
             </a>
           )}
@@ -235,6 +249,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
               className={`${btn} bg-white`}
             >
               Buka Galeri Klien
+              <ExternalLink aria-hidden className="size-4 text-text-2" strokeWidth={2} />
             </a>
           )}
           {ev.live_token && (
@@ -245,9 +260,11 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
               className={`${btn} bg-white`}
             >
               Buka Slideshow
+              <ExternalLink aria-hidden className="size-4 text-text-2" strokeWidth={2} />
             </a>
           )}
           <Link href={`/admin/events/${ev.slug}/settings`} className={`${btn} bg-ink text-white`}>
+            <Settings aria-hidden className="size-4" strokeWidth={2} />
             Pengaturan
           </Link>
         </div>
@@ -323,16 +340,13 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
           <div
             key={s.l}
             style={{ ["--under" as string]: s.bg }}
-            className="layered flex items-center gap-3.5 rounded-2xl border-[1.5px] border-ink bg-white px-[18px] py-4 [--lb:1.5px] [--lx:5px]"
+            className="layered rounded-2xl border-[1.5px] border-ink bg-white px-[18px] py-4 [--lb:1.5px] [--lx:5px]"
           >
-            <span
-              className="flex size-11 flex-none items-center justify-center rounded-xl border-[1.5px] border-dashed border-ink"
-              style={{ background: s.bg }}
-            >
-              <s.I aria-hidden className="size-5" strokeWidth={2} />
-            </span>
             <div>
-              <div className="text-xs font-semibold text-text-2">{s.l}</div>
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-text-2">
+                <s.I aria-hidden className="size-4 flex-none" strokeWidth={2} />
+                {s.l}
+              </div>
               <div
                 className="mt-0.5 text-[26px] font-extrabold tracking-[-0.03em]"
                 data-testid={`stat-${s.l}`}

@@ -1,11 +1,12 @@
 "use client";
+import { Ellipsis, Plus, X } from "lucide-react";
 import { useActionState, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
 import { invite, updateMember } from "./actions";
 
 const t = copy.admin.team;
 const button =
-  "pressable layered rounded-xl border-[1.5px] border-ink bg-butter text-sm font-extrabold [--lb:1.5px] [--lx:4px]";
+  "pressable layered inline-flex items-center justify-center gap-2 rounded-xl border-[1.5px] border-ink bg-butter text-sm font-extrabold [--lb:1.5px] [--lx:4px]";
 
 function Result({ r }: { r: Awaited<ReturnType<typeof invite>> }) {
   const [copied, setCopied] = useState(false);
@@ -49,6 +50,7 @@ export function InviteButton() {
         className={`${button} h-11 px-[18px]`}
         onClick={() => ref.current?.showModal()}
       >
+        <Plus aria-hidden className="size-4" strokeWidth={2} />
         {t.invite}
       </button>
       <dialog
@@ -62,9 +64,9 @@ export function InviteButton() {
               type="button"
               aria-label={t.close}
               onClick={() => ref.current?.close()}
-              className="flex size-9 items-center justify-center rounded-full border-[1.5px] border-ink"
+              className="flex size-9 items-center justify-center rounded-full border-[1.5px] border-ink hover:bg-paper"
             >
-              ×
+              <X aria-hidden className="size-4" strokeWidth={2} />
             </button>
           </div>
           <label className="flex flex-col gap-1.5 text-xs font-bold">
@@ -135,9 +137,9 @@ export function MemberMenu({
     <details ref={ref} className="relative inline-block">
       <summary
         aria-label={`Aksi ${email}`}
-        className="cursor-pointer list-none px-2 text-lg leading-none"
+        className="flex size-8 cursor-pointer list-none items-center justify-center rounded-lg hover:bg-paper [&::-webkit-details-marker]:hidden"
       >
-        ⋯
+        <Ellipsis aria-hidden className="size-5" strokeWidth={2} />
       </summary>
       <div className="absolute right-0 z-10 mt-1 w-48 overflow-hidden rounded-xl border-[1.5px] border-ink bg-white py-1 text-left">
         {(["owner", "admin", "crew"] as const)

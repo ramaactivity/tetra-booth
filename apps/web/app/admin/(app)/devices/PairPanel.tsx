@@ -1,5 +1,5 @@
 "use client";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
@@ -52,9 +52,9 @@ function Header({ title, onClose }: { title: string; onClose: () => void }) {
         type="button"
         aria-label={t.close}
         onClick={onClose}
-        className="flex size-11 flex-none items-center justify-center rounded-full border-[1.5px] border-ink text-xl"
+        className="flex size-11 flex-none items-center justify-center rounded-full border-[1.5px] border-ink hover:bg-paper"
       >
-        ×
+        <X aria-hidden className="size-5" strokeWidth={2} />
       </button>
     </div>
   );
@@ -267,7 +267,7 @@ function PairGuide({
                         )
                       }
                     >
-                      {copied ? <Check size={16} strokeWidth={2.5} /> : <Copy size={16} />}
+                      {copied ? <Check size={16} strokeWidth={2} /> : <Copy size={16} />}
                       {copied ? t.copied : t.copyCode}
                     </button>
                   </div>
@@ -358,6 +358,7 @@ export function AddDevice() {
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={primary}>
+        <Plus aria-hidden className="size-4" strokeWidth={2} />
         {t.add}
       </button>
       <Modal open={open} onClose={() => setOpen(false)} label={t.addTitle}>

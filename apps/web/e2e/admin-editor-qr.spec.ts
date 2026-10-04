@@ -11,7 +11,7 @@ test("editor template: QR unduh foto tersimpan di layout", async ({ page }) => {
   try {
     await login(page, u);
     await page.goto("/admin/templates");
-    await page.getByRole("button", { name: "+ Buat Template" }).click();
+    await page.getByRole("button", { name: "Buat Template" }).click();
     await page.getByPlaceholder(/Nama template/).fill(tplName);
     await page.getByRole("button", { name: "Buat", exact: true }).click();
     await expect(page.getByLabel("Nama template")).toHaveValue(tplName);

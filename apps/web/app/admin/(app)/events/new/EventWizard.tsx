@@ -1,7 +1,15 @@
 "use client";
 import { type LayoutPaper, paperLabel } from "@tetra/shared";
 import { Select } from "@tetra/ui";
-import { ArrowLeft, ArrowRight, Check, CloudDownload, ExternalLink, Search } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ChevronLeft,
+  CloudDownload,
+  ExternalLink,
+  Search,
+} from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, startTransition, useActionState, useEffect, useState } from "react";
 import type { OpsBooking } from "@/lib/tetra-ops";
@@ -323,8 +331,12 @@ export function EventWizard({
     >
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Link href="/admin" className="text-[13px] font-semibold text-text-2 no-underline">
-            Event ›
+          <Link
+            href="/admin"
+            className="-ml-1 inline-flex items-center gap-0.5 text-[13px] font-semibold text-text-2 no-underline hover:text-ink"
+          >
+            <ChevronLeft aria-hidden className="size-4" strokeWidth={2} />
+            Event
           </Link>
           <h1 className="mt-1 text-[28px] font-extrabold tracking-[-0.03em]">Buat event</h1>
         </div>
@@ -1217,7 +1229,7 @@ function OpsPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-[60ch]">
           <h3 id="ops-title" className="flex items-center gap-2 text-[15px] font-extrabold">
-            <CloudDownload aria-hidden className="size-[18px]" strokeWidth={2.25} />
+            <CloudDownload aria-hidden className="size-[18px]" strokeWidth={2} />
             Ambil dari Tetra Ops
           </h3>
           <p className="mt-1 text-[13px] leading-snug">
