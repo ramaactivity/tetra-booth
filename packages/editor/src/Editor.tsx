@@ -14,6 +14,7 @@ import {
 import type { ImageLike } from "@tetra/template-engine";
 import { ChevronLeft, Eye, EyeOff, Minus, Plus, Redo2, Undo2 } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { detectSlots } from "./detect";
 import { type FontPack, LIB_FONTS, type LibFont } from "./fonts";
 import {
   type AlignMode,
@@ -334,6 +335,18 @@ function useEditorApi(p: TemplateEditorProps) {
     commit((l) => ({ ...l, slots: slots.map((s) => ({ ...s, id: `s${uid()}` })) }));
     setSel([]);
   };
+  /** Slot dari area transparan overlay (#161), menggantikan slot lama (bisa diurungkan). Hasil: jumlah slot. */
+  const detectFromOverlay = () => {
+    const img = images.ov;
+    const g = new OffscreenCanvas(W, H).getContext("2d");
+    if (!img || !layout.overlay || !g) return 0;
+    const r = overlayRect(layout);
+    g.drawImage(img as CanvasImageSource, r.x, r.y, r.w, r.h);
+    const rects = detectSlots(g.getImageData(0, 0, W, H).data, W, H);
+    if (rects.length)
+      applySlots(rects.map((x) => ({ id: "", ...x, fit: "cover", z: "below_overlay" })));
+    return rects.length;
+  };
   const applyPreset = (preset: keyof typeof LAYOUT_PRESETS) =>
     applySlots(LAYOUT_PRESETS[preset].layout.slots);
 
@@ -511,6 +524,7 @@ function useEditorApi(p: TemplateEditorProps) {
     patchQr,
     applyPreset,
     applySlots,
+    detectFromOverlay,
     presets,
     setPresets,
     savePreset: p.onSavePreset,

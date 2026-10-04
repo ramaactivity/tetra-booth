@@ -1,5 +1,14 @@
 "use client";
-import { clockId, hhmm, type LayoutPaper, paperLabel } from "@tetra/shared";
+import {
+  clockId,
+  EVENT_PRESETS,
+  hhmm,
+  LAYOUT_PRESETS,
+  type LayoutPaper,
+  PAPER_CANVAS,
+  type PresetId,
+  paperLabel,
+} from "@tetra/shared";
 import { Select } from "@tetra/ui";
 import {
   ArrowLeft,
@@ -13,11 +22,13 @@ import {
 import Link from "next/link";
 import { type ReactNode, startTransition, useActionState, useEffect, useState } from "react";
 import type { OpsBooking } from "@/lib/tetra-ops";
+import { type Design, UploadDesign } from "../../templates/UploadDesign";
 import { type DesignOption, DesignPicker, forMode } from "../[id]/settings/DesignPicker";
 import { DesignPreview } from "../[id]/settings/DesignPreview";
 import { Box, longDate } from "../[id]/settings/SettingsForm";
 import { useLeaveGuard } from "../[id]/settings/useLeaveGuard";
 import { type CreateResult, createEventWizard, loadOps, type OpsList } from "../actions";
+import { OPS_PAPER, OpsPaperWarning } from "../OpsPaperWarning";
 
 type Device = { id: string; name: string; status: "online" | "offline" | "unpaired" };
 type Mode = "event" | "photobox";
@@ -118,8 +129,17 @@ const STATUS: Record<Device["status"], [string, string]> = {
   unpaired: ["Belum tersambung", "bg-peach"],
 };
 
-/** Ukuran frame Tetra Ops → kertas booth ('none' / tidak dikenal = tidak diubah). */
-const OPS_PAPER: Record<string, LayoutPaper> = { "2R": "2x6x2", "4R": "4R", polaroid: "3x4x2" };
+/** Tata letak awal "Lewati, buat template otomatis" (#162): preset event portrait kertas ini, atau preset portrait pertama. */
+const autoPreset = (paper: LayoutPaper): PresetId => {
+  const ids = (Object.keys(LAYOUT_PRESETS) as PresetId[]).filter((id) => {
+    const l = LAYOUT_PRESETS[id].layout;
+    return l.paper === paper && l.canvas.width < l.canvas.height;
+  });
+  return (
+    ids.find((id) => (EVENT_PRESETS as readonly string[]).includes(id)) ?? (ids[0] as PresetId)
+  );
+};
+type DesignSrc = "pick" | "upload" | "auto";
 const opsDate = (ymd: string) =>
   new Intl.DateTimeFormat("id-ID", {
     weekday: "short",
@@ -192,6 +212,9 @@ export function EventWizard({
   const [paper, setPaper] = useState<LayoutPaper | null>(null);
   const [designs, setDesigns] = useState<string[]>([]);
   const [copy, setCopy] = useState<string | null>(null);
+  const [designSrc, setDesignSrc] = useState<DesignSrc>("pick");
+  const [upload, setUpload] = useState<Design | null>(null);
+  const [upOrient, setUpOrient] = useState<"portrait" | "landscape">("portrait");
   const [sold, setSold] = useState<Record<string, number>>({});
   const [extraPrice, setExtraPrice] = useState(10000);
   const [allDevices, setAllDevices] = useState(true);
@@ -212,6 +235,20 @@ export function EventWizard({
   const eventOptions = forMode(designOptions, "event", () => false);
   const sellable = forMode(designOptions, "photobox", () => false).filter((o) => !o.copyOnly);
   const soldKeys = Object.keys(sold);
+  const opsPaper = opsPicked?.frame_size ? OPS_PAPER[opsPicked.frame_size] : undefined;
+  const pc = paper ? PAPER_CANVAS[paper] : undefined;
+  const [upW, upH] = !pc
+    ? [0, 0]
+    : upOrient === "landscape"
+      ? [pc.height, pc.width]
+      : [pc.width, pc.height];
+  const upOut = upload?.out?.W === upW && upload.out.H === upH ? upload.out : undefined;
+  const auto = paper ? autoPreset(paper) : null;
+  // Paket terpilih di Select = paket Ops bernama sama dengan isian; nama lain (mis. dari booking) = opsi "booking".
+  const pkgIdx = ops?.ok
+    ? ops.packages.findIndex((k) => k.name.trim().toLowerCase() === pkgName.trim().toLowerCase())
+    : -1;
+  const pkgValue = pkgIdx >= 0 ? String(pkgIdx) : pkgName.trim() ? "booking" : "";
   const vars = { event_name: name.trim() || "Nama Event", date: longDate(date) };
 
   const check = (s: number): Record<string, string> => {
@@ -226,7 +263,10 @@ export function EventWizard({
       if (!mode) e.mode = "Pilih salah satu mode.";
     } else if (s === 3 && mode === "event") {
       if (!paper) e.paper = "Pilih ukuran kertas dulu.";
-      else if (!designs.length) e.designs = "Tambah minimal satu desain frame.";
+      else if (designSrc === "upload") {
+        if (!upOut) e.designs = "Unggah desain PNG dulu, atau pilih cara lain.";
+      } else if (designSrc === "auto") {
+      } else if (!designs.length) e.designs = "Tambah minimal satu desain frame.";
       else if (basics.length > 1)
         e.designs =
           "Bentuk dasar hanya bisa satu per event (disalin jadi template). Lepas salah satu.";
@@ -266,6 +306,7 @@ export function EventWizard({
     fd.set("scheduled_end", schedEnd);
     if (clientName.trim()) fd.set("client_name", clientName.trim());
     if (opsPicked) fd.set("ops_project_id", opsPicked.project_id);
+    if (opsPaper && opsPicked?.frame_size) fd.set("ops_frame_size", opsPicked.frame_size);
     fd.set("mode", mode ?? "event");
     fd.set("deviceScope", allDevices ? "all" : "pick");
     for (const id of picked) fd.append("devices", id);
@@ -281,6 +322,15 @@ export function EventWizard({
         fd.set(`price_${k}`, String(sold[k]));
       }
       fd.set("extraPrintPrice", String(extraPrice));
+    } else if (designSrc === "upload" && upOut && paper) {
+      fd.set("design_mode", "upload");
+      fd.set("paper", paper);
+      fd.set("orient", upOrient);
+      fd.set("slots", JSON.stringify(upOut.slots));
+      fd.set("ov", upOut.file);
+    } else if (designSrc === "auto" && auto) {
+      fd.set("design_mode", "auto");
+      fd.set("auto_preset", auto);
     } else {
       for (const d of designs) fd.append("design", d);
       if (copyValue) fd.set("copy", copyValue);
@@ -530,23 +580,35 @@ export function EventWizard({
                     label="Pilih paket Tetra Ops"
                     placeholder="Pilih dari daftar paket Tetra Ops…"
                     searchable
-                    value=""
+                    value={pkgValue}
                     onChange={(v) => {
                       const k = ops.packages[Number(v)];
                       if (!k) return;
                       setPkgName(k.name);
                       setPkgHours(k.duration_hours ? String(k.duration_hours) : "");
                     }}
-                    options={ops.packages.map((k, i) => ({
-                      value: String(i),
-                      label: k.name,
-                      hint: [
-                        k.frame_size !== "none" && k.frame_size,
-                        k.duration_hours && `${k.duration_hours} jam`,
-                      ]
-                        .filter(Boolean)
-                        .join(" · "),
-                    }))}
+                    options={[
+                      // Nama paket dari booking yang tidak ada di daftar paket tetap tampil terpilih (#162).
+                      ...(pkgValue === "booking"
+                        ? [
+                            {
+                              value: "booking",
+                              label: pkgName.trim(),
+                              hint: opsPicked ? "dari booking" : "isian sendiri",
+                            },
+                          ]
+                        : []),
+                      ...ops.packages.map((k, i) => ({
+                        value: String(i),
+                        label: k.name,
+                        hint: [
+                          k.frame_size !== "none" && k.frame_size,
+                          k.duration_hours && `${k.duration_hours} jam`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · "),
+                      })),
+                    ]}
                   />
                 )}
                 <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_130px_150px_150px]">
@@ -707,6 +769,9 @@ export function EventWizard({
                   })}
                 </div>
                 {err("paper")}
+                {opsPaper && paper && paper !== opsPaper && (
+                  <OpsPaperWarning ops={opsPaper} paper={paper} />
+                )}
               </fieldset>
 
               {paper && (
@@ -715,25 +780,106 @@ export function EventWizard({
                     <h3 id="designs-title" className="text-[15px] font-extrabold">
                       2. Desain frame
                     </h3>
-                    <p className="mt-1 max-w-[70ch] text-[13px] leading-normal text-text-2">
+                  </div>
+                  <div className="flex w-fit flex-wrap overflow-hidden rounded-[11px] border-[1.5px] border-ink bg-white text-[13px] font-bold">
+                    {(
+                      [
+                        ["pick", "Pilih desain yang ada"],
+                        ["upload", "Upload desain PNG"],
+                        ["auto", "Lewati, buat template otomatis"],
+                      ] as const
+                    ).map(([v, l], i) => (
+                      <button
+                        key={v}
+                        type="button"
+                        aria-pressed={designSrc === v}
+                        onClick={() => {
+                          setDesignSrc(v);
+                          setErrors({});
+                        }}
+                        className={`h-10 px-4 ${i ? "border-l-[1.5px] border-ink" : ""} ${designSrc === v ? "bg-lavender" : "hover:bg-paper"}`}
+                      >
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                  {designSrc === "upload" && (
+                    <UploadDesign
+                      W={upW}
+                      H={upH}
+                      paperText={`${PAPERS.find((x) => x.id === paper)?.title} ${upOrient}`}
+                      design={upload}
+                      setDesign={setUpload}
+                      onPick={() => setErrors({})}
+                      match={(w, h) => {
+                        for (const x of PAPERS)
+                          for (const o of ["portrait", "landscape"] as const) {
+                            const c = PAPER_CANVAS[x.id];
+                            const r = o === "landscape" ? c.height / c.width : c.width / c.height;
+                            if (
+                              Math.abs(w / h / r - 1) < 0.01 &&
+                              (x.id !== paper || o !== upOrient)
+                            )
+                              return {
+                                label: `${x.title} ${o}`,
+                                apply: () => {
+                                  choosePaper(x.id);
+                                  setUpOrient(o);
+                                },
+                              };
+                          }
+                      }}
+                    />
+                  )}
+                  {designSrc === "upload" && (
+                    <p className="text-xs text-text-2">
+                      Jadi template baru bernama “{name.trim()}” dan dipasang sebagai desain utama.
+                    </p>
+                  )}
+                  {designSrc === "auto" && auto && (
+                    <div className="flex flex-wrap items-center gap-5 rounded-2xl border-[1.5px] border-dashed border-ink p-4">
+                      <div className="flex h-[200px] w-[150px] items-center justify-center">
+                        <DesignPreview
+                          layout={{
+                            id: auto,
+                            version: 1,
+                            ...LAYOUT_PRESETS[auto].layout,
+                            background: { color: BG },
+                          }}
+                          vars={vars}
+                          alt={`Pratinjau ${LAYOUT_PRESETS[auto].name}`}
+                        />
+                      </div>
+                      <p className="max-w-[52ch] flex-1 text-sm leading-normal">
+                        Template baru <b>“{name.trim()}”</b> dibuat dari tata letak{" "}
+                        <b>{LAYOUT_PRESETS[auto].name}</b> dan langsung dipasang ke event ini.
+                        Setelah event dibuat, tekan <b>Edit desain sekarang</b> untuk mengganti
+                        latar, overlay, dan teks.
+                      </p>
+                    </div>
+                  )}
+                  {designSrc === "pick" && (
+                    <p className="max-w-[70ch] text-[13px] leading-normal text-text-2">
                       Pakai desain yang ada apa adanya, atau tekan <b>Salin & sesuaikan</b> untuk
                       membuat salinan khusus event ini (editor dibuka setelah event dibuat). Bentuk
                       dasar selalu disalin jadi template baru.
                     </p>
-                  </div>
-                  <DesignPicker
-                    options={eventOptions.filter((o) => o.paper === paper)}
-                    value={designs}
-                    onChange={(d) => {
-                      setDesigns(d);
-                      if (copy && !d.includes(copy)) setCopy(null);
-                      setErrors({});
-                    }}
-                    vars={vars}
-                    background={BG}
-                    paper={paper}
-                    copy={{ value: copyValue, onChange: (v) => !basics.length && setCopy(v) }}
-                  />
+                  )}
+                  {designSrc === "pick" && (
+                    <DesignPicker
+                      options={eventOptions.filter((o) => o.paper === paper)}
+                      value={designs}
+                      onChange={(d) => {
+                        setDesigns(d);
+                        if (copy && !d.includes(copy)) setCopy(null);
+                        setErrors({});
+                      }}
+                      vars={vars}
+                      background={BG}
+                      paper={paper}
+                      copy={{ value: copyValue, onChange: (v) => !basics.length && setCopy(v) }}
+                    />
+                  )}
                   {err("designs")}
                 </section>
               )}
@@ -944,8 +1090,15 @@ export function EventWizard({
               tagline={tagline.trim()}
               mode={mode ?? "event"}
               paper={paper}
-              designs={chosen}
-              copy={copyValue}
+              designs={designSrc === "pick" ? chosen : []}
+              copy={designSrc === "pick" ? copyValue : null}
+              designNote={
+                designSrc === "upload" && upOut
+                  ? `Desain unggahan ${upload?.file.name ?? ""} · ${upOut.slots.length} foto · jadi template “${name.trim()}”`
+                  : designSrc === "auto" && auto
+                    ? `Template baru “${name.trim()}” dari tata letak ${LAYOUT_PRESETS[auto].name}`
+                    : undefined
+              }
               sold={sellable
                 .filter((o) => pbKey(o.value) in sold)
                 .map((o) => [o.name, sold[pbKey(o.value)] ?? 0])}
@@ -1094,6 +1247,7 @@ function Summary({
   paper,
   designs,
   copy,
+  designNote,
   sold,
   extraPrice,
   booth,
@@ -1101,6 +1255,8 @@ function Summary({
   slug,
   copied,
 }: {
+  /** Desain frame baru (#162: unggahan / otomatis), menggantikan daftar desain. */
+  designNote?: string | undefined;
   name: string;
   pkg: string;
   ops: string | null;
@@ -1137,13 +1293,16 @@ function Summary({
             </span>
             <p className="text-sm leading-snug">
               <b>{name}</b> sudah dibuat. Booth menerimanya saat online.
-              {copied && " Salinan desain siap disesuaikan di editor."}
+              {copied &&
+                (designNote
+                  ? " Template desainnya siap disesuaikan di editor."
+                  : " Salinan desain siap disesuaikan di editor.")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2.5">
             {copied && (
               <Link href={`/admin/templates/${copied}`} className={primary}>
-                Edit desain
+                Edit desain sekarang
               </Link>
             )}
             <Link href={`/admin/events/${slug}`} className={copied ? secondary : primary}>
@@ -1176,6 +1335,7 @@ function Summary({
         {mode === "event" ? (
           <Row label="Desain frame" onEdit={at(3)}>
             {paper && <span className="block text-text-2">{paperLabel(paper)}</span>}
+            {designNote && <b className="block">{designNote}</b>}
             {designs.map((d, i) => (
               <span key={d.value} className="block">
                 <b>{d.name}</b>
@@ -1212,7 +1372,7 @@ function Summary({
             Setelah ini · di admin
           </h3>
           <ol className="flex flex-col gap-2.5 text-sm leading-snug">
-            {copy && (
+            {(copy || designNote) && (
               <li>
                 <b>Sesuaikan desain salinan</b> di editor: ganti foto latar, teks, dan warna.
               </li>

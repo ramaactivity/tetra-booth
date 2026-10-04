@@ -1,8 +1,10 @@
 "use server";
-import { DEFAULT_SETTINGS, SOUND_CUES } from "@tetra/shared";
+import { DEFAULT_SETTINGS, LAYOUT_PRESETS, SOUND_CUES } from "@tetra/shared";
 import { z } from "zod";
 import { DEFAULT_TEMPLATE } from "@/lib/event-bundle";
+import { copyLayout } from "@/lib/layouts";
 import { requireMember } from "@/lib/supabase/server";
+import { layoutFromUpload } from "@/lib/template-upload";
 import {
   OPS_MAX_DAYS,
   type OpsBooking,
@@ -21,6 +23,14 @@ const NewEvent = z.object({
     .string()
     .regex(/^[\w-]{1,64}$/)
     .nullish(),
+  /** Ukuran frame booking Ops (#162), untuk peringatan kertas di Pengaturan. */
+  ops_frame_size: z.enum(["2R", "4R", "polaroid"]).nullish(),
+  /**
+   * Desain frame mode Event (#162): `auto` = template baru dari tata letak `auto_preset`, `upload` = template dari
+   * desain PNG (#161); keduanya bernama event & jadi desain utama. Kosong = pilih desain yang ada (`design`).
+   */
+  design_mode: z.enum(["auto", "upload"]).nullish(),
+  auto_preset: z.enum(Object.keys(LAYOUT_PRESETS) as [keyof typeof LAYOUT_PRESETS]).nullish(),
 });
 
 /** Isian Pengaturan yang tidak ditanyakan wizard: nilai bawaan yang sama dengan halaman Pengaturan. */
@@ -73,6 +83,9 @@ export async function createEventWizard(
     event_date: form.get("event_date"),
     mode: form.get("mode"),
     ops_project_id: form.get("ops_project_id") || null,
+    ops_frame_size: form.get("ops_frame_size") || null,
+    design_mode: form.get("design_mode") || null,
+    auto_preset: form.get("auto_preset") || null,
   });
   if (!p.success) return { ok: false, message: "Isi nama, tanggal, dan mode event" };
   const { data: ev, error } = await db
@@ -85,11 +98,31 @@ export async function createEventWizard(
       status: "ready",
       created_by: user.id,
       ops_project_id: p.data.ops_project_id ?? null,
+      ops_frame_size: p.data.ops_frame_size ?? null,
       settings: { template: DEFAULT_TEMPLATE },
     })
     .select("id")
     .single();
   if (error || !ev) return { ok: false, message: "Gagal membuat event, coba lagi" };
+
+  const dropEvent = () => db.from("events").delete().eq("id", ev.id).eq("organization_id", orgId);
+
+  // Template baru khusus event (#162): dibuat dulu, lalu dipasang lewat `design` seperti template biasa.
+  let made: string | null = null;
+  const { design_mode: dm, auto_preset } = p.data;
+  if (dm === "upload") {
+    const u = await layoutFromUpload(db, orgId, form, p.data.name, p.data.mode);
+    if ("error" in u) {
+      await dropEvent();
+      return { ok: false, message: u.error };
+    }
+    made = u.id;
+  } else if (dm === "auto" && auto_preset)
+    made = await copyLayout(db, orgId, auto_preset, () => p.data.name, p.data.mode);
+  if (dm && !made) {
+    await dropEvent();
+    return { ok: false, message: "Gagal membuat template desain, coba lagi" };
+  }
 
   const full = new FormData();
   for (const [k, v] of Object.entries(DEFAULTS)) full.set(k, v);
@@ -97,12 +130,19 @@ export async function createEventWizard(
     full.delete(k);
     for (const v of form.getAll(k)) full.append(k, v);
   }
+  for (const k of ["ov", "slots", "paper", "orient", "design_mode", "auto_preset"]) full.delete(k);
+  if (made) full.set("design", `tpl:${made}`);
   const r = await applySettings(ev.id, full);
   if (!r.ok) {
-    await db.from("events").delete().eq("id", ev.id).eq("organization_id", orgId);
+    await dropEvent();
+    if (made) {
+      await db.from("layout_versions").delete().eq("layout_id", made).eq("organization_id", orgId);
+      await db.from("layouts").delete().eq("id", made).eq("organization_id", orgId);
+    }
     return { ok: false, message: r.message };
   }
-  return { ok: true, slug: r.slug ?? ev.id, ...(r.copied && { copied: r.copied }) };
+  const copied = made ?? r.copied;
+  return { ok: true, slug: r.slug ?? ev.id, ...(copied && { copied }) };
 }
 
 export type OpsList =

@@ -27,7 +27,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, all_devices, package_name, package_hours, scheduled_start, scheduled_end, event_devices(device_id)",
+      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, all_devices, package_name, package_hours, ops_frame_size, scheduled_start, scheduled_end, event_devices(device_id)",
     )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
@@ -76,6 +76,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
         slug={ev.slug}
         v={{
           name: ev.name,
+          opsFrameSize: ev.ops_frame_size,
           event_date: ev.event_date,
           location: ev.location ?? "",
           tagline: branding.tagline ?? "",

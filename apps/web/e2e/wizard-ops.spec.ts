@@ -151,12 +151,19 @@ test("wizard: Ambil dari Tetra Ops mengisi event dan menyimpan project_id", asyn
     await expect(page.getByLabel("Durasi (jam)")).toHaveValue("4");
     await expect(page.getByLabel("Jadwal mulai")).toHaveValue("11:00");
     await expect(page.getByLabel("Jadwal selesai")).toHaveValue("15:00");
+    // Select paket menampilkan paket booking (tidak ada di daftar paket Ops = opsi "dari booking", #162).
+    await expect(page.getByRole("combobox", { name: "Pilih paket Tetra Ops" })).toContainText(
+      "2R Unlimited 4 Jam",
+    );
     await page.screenshot({ path: "test-results/wizard-ops-picked.png", fullPage: true });
     // Paket dari daftar Tetra Ops menimpa isian paket.
     await page.getByRole("combobox", { name: "Pilih paket Tetra Ops" }).click();
     await page.getByRole("option", { name: /4R Unlimited 3 Jam/ }).click();
     await expect(page.getByLabel("Nama paket")).toHaveValue("4R Unlimited 3 Jam");
     await expect(page.getByLabel("Durasi (jam)")).toHaveValue("3");
+    await expect(page.getByRole("combobox", { name: "Pilih paket Tetra Ops" })).toContainText(
+      "4R Unlimited 3 Jam",
+    );
     await page.getByLabel("Nama event").fill(`e2e ops ${tag}`);
 
     // Mode Event + kertas Strip 2R sudah terpilih dari booking.
@@ -164,6 +171,16 @@ test("wizard: Ambil dari Tetra Ops mengisi event dan menyimpan project_id", asyn
     await expect(page.getByRole("radio", { name: /^Event/ })).toBeChecked();
     await page.getByRole("button", { name: /^Lanjut/ }).click();
     await expect(page.getByRole("radio", { name: /Strip 2R/ })).toBeChecked();
+    // Kertas beda dari booking Ops = peringatan (tidak memblokir, #162).
+    const warn = page.getByText(
+      "Tetra Ops mencatat ukuran 2R untuk booking ini. Yakin pakai Foto 4R?",
+    );
+    await expect(warn).toBeHidden();
+    await page.getByRole("radio", { name: /Foto 4R/ }).check();
+    await expect(warn).toBeVisible();
+    await page.screenshot({ path: "test-results/wizard-ops-paper-warning.png" });
+    await page.getByRole("radio", { name: /Strip 2R/ }).check();
+    await expect(warn).toBeHidden();
     const picker = page.getByRole("dialog", { name: "Tambah desain frame" });
     await page.getByRole("button", { name: /Tambah desain/ }).click();
     await picker.getByRole("textbox", { name: "Cari nama desain" }).fill("Strip Klasik");
@@ -180,7 +197,7 @@ test("wizard: Ambil dari Tetra Ops mengisi event dan menyimpan project_id", asyn
     const { data: ev } = await db
       .from("events")
       .select(
-        "package_name, package_hours, ops_project_id, location, event_date, branding, scheduled_start, scheduled_end",
+        "slug, package_name, package_hours, ops_project_id, ops_frame_size, location, event_date, branding, scheduled_start, scheduled_end",
       )
       .eq("name", `e2e ops ${tag}`)
       .single();
@@ -188,12 +205,24 @@ test("wizard: Ambil dari Tetra Ops mengisi event dan menyimpan project_id", asyn
       package_name: "4R Unlimited 3 Jam",
       package_hours: 3,
       ops_project_id: "PRJ-E2E-0001",
+      ops_frame_size: "2R",
       location: "PPMKP Ciawi, Bogor",
       event_date: "2026-10-18",
       branding: { clientName: "Vina & Aji" },
       scheduled_start: "11:00:00",
       scheduled_end: "15:00:00",
     });
+    // Pengaturan: desain 2R sesuai booking = tanpa peringatan; Ops mencatat 4R = peringatan.
+    await page.goto(`/admin/events/${ev?.slug}/settings`);
+    await expect(page.getByText(/Tetra Ops mencatat ukuran/)).toBeHidden();
+    await db
+      .from("events")
+      .update({ ops_frame_size: "4R" })
+      .eq("slug", ev?.slug ?? "");
+    await page.reload();
+    await expect(
+      page.getByText("Tetra Ops mencatat ukuran 4R untuk booking ini. Yakin pakai Strip 2R?"),
+    ).toBeVisible();
   } finally {
     server.close();
     await db.from("events").delete().eq("name", `e2e ops ${tag}`);

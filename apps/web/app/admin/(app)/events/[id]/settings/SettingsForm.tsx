@@ -17,12 +17,15 @@ import {
   useEffect,
   useState,
 } from "react";
+import { OPS_PAPER, OpsPaperWarning } from "../../OpsPaperWarning";
 import { type SaveResult, saveEvent } from "./actions";
 import { type DesignOption, DesignPicker, forMode } from "./DesignPicker";
 import { useLeaveGuard } from "./useLeaveGuard";
 
 export type SettingsValues = {
   name: string;
+  /** Ukuran frame booking Tetra Ops asal event (#162), kosong = bukan dari Ops. */
+  opsFrameSize?: string | null;
   event_date: string;
   location: string;
   tagline: string;
@@ -430,6 +433,7 @@ export function SettingsForm({
   );
 
   const main = v.designOptions.find((o) => o.value === designs[0]);
+  const opsPaper = v.opsFrameSize ? OPS_PAPER[v.opsFrameSize] : undefined;
   const ok = {
     informasi: !!name.trim() && !!date,
     template: designs.length > 0,
@@ -790,6 +794,9 @@ export function SettingsForm({
               background={background}
               overlayUrl={v.hasOverlay ? `/admin/events/${eventId}/overlay` : undefined}
             />
+            {opsPaper && main && main.paper !== opsPaper && (
+              <OpsPaperWarning ops={opsPaper} paper={main.paper} />
+            )}
             {pb && (
               <p className="rounded-[11px] border-[1.5px] border-dashed border-ink bg-sky px-3.5 py-2.5 text-xs leading-normal md:col-span-2">
                 Mode Photobox menjual layout yang dicentang di bagian{" "}

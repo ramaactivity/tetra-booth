@@ -316,6 +316,7 @@ export type Database = {
           location: string | null
           mode: string
           name: string
+          ops_frame_size: string | null
           ops_project_id: string | null
           organization_id: string
           orientation: string
@@ -349,6 +350,7 @@ export type Database = {
           location?: string | null
           mode: string
           name: string
+          ops_frame_size?: string | null
           ops_project_id?: string | null
           organization_id: string
           orientation?: string
@@ -382,6 +384,7 @@ export type Database = {
           location?: string | null
           mode?: string
           name?: string
+          ops_frame_size?: string | null
           ops_project_id?: string | null
           organization_id?: string
           orientation?: string

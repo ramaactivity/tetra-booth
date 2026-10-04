@@ -72,18 +72,32 @@ export async function copyLayout(
     src = { name: p.name, spec: { layout, files: {} } };
   }
   if (!src) return null;
+  return insertLayout(db, orgId, {
+    name: name(src.name),
+    mode: mode ?? (src.mode === "photobox" ? "photobox" : "event"),
+    spec: src.spec,
+  });
+}
+
+/** Simpan template baru versi 1 (`spec.layout.id/version` diisi ulang). `id` boleh ditentukan dulu (aset R2 diunggah sebelum baris dibuat). */
+export async function insertLayout(
+  db: Db,
+  orgId: string,
+  o: { id?: string; name: string; mode: TemplateMode; spec: StoredLayout },
+): Promise<string | null> {
   const { data: l } = await db
     .from("layouts")
     .insert({
+      ...(o.id ? { id: o.id } : {}),
       organization_id: orgId,
-      name: name(src.name).trim().slice(0, 80),
-      paper: src.spec.layout.paper,
-      mode: mode ?? (src.mode === "photobox" ? "photobox" : "event"),
+      name: o.name.trim().slice(0, 80),
+      paper: o.spec.layout.paper,
+      mode: o.mode,
     })
     .select("id")
     .single();
   if (!l) return null;
-  const spec: StoredLayout = { ...src.spec, layout: { ...src.spec.layout, id: l.id, version: 1 } };
+  const spec: StoredLayout = { ...o.spec, layout: { ...o.spec.layout, id: l.id, version: 1 } };
   const { error } = await db.from("layout_versions").insert({
     organization_id: orgId,
     layout_id: l.id,

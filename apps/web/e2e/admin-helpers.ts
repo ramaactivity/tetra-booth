@@ -53,7 +53,11 @@ export async function createEventViaWizard(
     name: string;
     date?: string;
     paper: RegExp;
-    designs: string[];
+    designs?: string[];
+    /** Desain frame baru (#162) alih-alih memilih: template otomatis, atau unggah PNG. */
+    design?: "auto" | { name: string; mimeType: string; buffer: Buffer };
+    /** Screenshot halaman penuh langkah Desain ke test-results/<shot>.png. */
+    shot?: string;
     devices?: string[];
     /** Paket manual (nama + jam) di langkah Info. */
     pkg?: { name: string; hours: string };
@@ -72,7 +76,15 @@ export async function createEventViaWizard(
   await page.getByRole("button", { name: /^Lanjut/ }).click();
   await page.getByRole("radio", { name: o.paper }).check();
   const picker = page.getByRole("dialog", { name: "Tambah desain frame" });
-  for (const d of o.designs) {
+  if (o.design === "auto")
+    await page.getByRole("button", { name: "Lewati, buat template otomatis" }).click();
+  else if (o.design) {
+    await page.getByRole("button", { name: "Upload desain PNG" }).click();
+    await page.getByLabel("Desain PNG").setInputFiles(o.design);
+    await expect(page.getByRole("img", { name: "Pratinjau slot terdeteksi" })).toBeVisible();
+  }
+  if (o.shot) await page.screenshot({ path: `test-results/${o.shot}.png`, fullPage: true });
+  for (const d of o.designs ?? []) {
     await page.getByRole("button", { name: /Tambah desain/ }).click();
     await picker.getByRole("textbox", { name: "Cari nama desain" }).fill(d);
     await picker

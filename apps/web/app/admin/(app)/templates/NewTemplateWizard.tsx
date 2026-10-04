@@ -1,11 +1,12 @@
 "use client";
-import { LAYOUT_PRESETS, type LayoutSpec, type PresetId } from "@tetra/shared";
+import { LAYOUT_PRESETS, type LayoutSpec, PAPER_CANVAS, type PresetId } from "@tetra/shared";
 import { Select } from "@tetra/ui";
 import { ArrowLeft, ArrowRight, CalendarHeart, Check, Plus, Store, X } from "lucide-react";
 import { useActionState, useRef, useState } from "react";
 import { DesignPreview } from "../events/[id]/settings/DesignPreview";
 import { createTemplate } from "./actions";
 import type { AssignEvent, WizardPreset, WizardTemplate } from "./types";
+import { type Design, UploadDesign } from "./UploadDesign";
 
 type Mode = "event" | "photobox";
 type Orient = "portrait" | "landscape";
@@ -28,7 +29,10 @@ type Paper = (typeof PAPERS)[number]["id"];
 const STEPS = [
   ["Mode", "Template ini untuk acara klien atau booth berbayar?"],
   ["Ukuran kertas", "Pilih ukuran cetak dan arah kertas."],
-  ["Mulai dari", "Pilih susunan foto awal. Semua bisa diubah lagi di editor."],
+  [
+    "Mulai dari",
+    "Unggah desain sendiri atau pilih susunan foto awal. Semua bisa diubah lagi di editor.",
+  ],
   ["Nama", "Nama yang mudah dicari, mis. nama klien atau konsep desain."],
   ["Pasang ke event", "Opsional. Bisa juga nanti dari menu template."],
 ] as const;
@@ -93,8 +97,10 @@ export function NewTemplateWizard({
   const [mode, setMode] = useState<Mode>(initialMode);
   const [paper, setPaper] = useState<Paper>("4R");
   const [orient, setOrient] = useState<Orient>("portrait");
-  const [from, setFrom] = useState<"preset" | "copy">("preset");
-  const [source, setSource] = useState(() => firstPreset("4R", "portrait"));
+  // Upload desain = alur utama owner (#161): tab pertama & bawaan.
+  const [from, setFrom] = useState<"upload" | "preset" | "copy">("upload");
+  const [source, setSource] = useState("upload");
+  const [design, setDesign] = useState<Design | null>(null);
   const [name, setName] = useState("");
   const [event, setEvent] = useState("");
 
@@ -128,17 +134,21 @@ export function NewTemplateWizard({
   const reset = () => {
     setStep(0);
     setMode(initialMode);
-    setSource(firstPreset(paper, orient));
+    setSource("upload");
     setName("");
     setEvent("");
-    setFrom("preset");
+    setFrom("upload");
+    setDesign(null);
   };
   const pickPaper = (p: Paper, o: Orient) => {
     setPaper(p);
     setOrient(o);
-    setSource(firstPreset(p, o));
+    if (from !== "upload") setSource(firstPreset(p, o));
   };
-  const ok = [true, true, !!source, !!name.trim(), true][step];
+  const pc = PAPER_CANVAS[paper];
+  const [W, H] = orient === "landscape" ? [pc.height, pc.width] : [pc.width, pc.height];
+  const ready = from === "upload" ? design?.out?.W === W && design.out.H === H : !!source;
+  const ok = [true, true, ready, !!name.trim(), true][step];
   const last = step === STEPS.length - 1;
 
   const card = (o: { value: string; name: string; layout: LayoutSpec; t?: WizardTemplate }) => (
@@ -191,10 +201,22 @@ export function NewTemplateWizard({
         aria-label="Buat template"
         className="m-auto w-[720px] max-w-[calc(100vw-32px)] rounded-[22px] border-[1.5px] border-ink bg-white p-0 backdrop:bg-ink/40"
       >
-        <form action={action} className="flex max-h-[min(760px,calc(100dvh-48px))] flex-col">
+        <form
+          action={(fd) => {
+            const out = from === "upload" ? design?.out : undefined;
+            if (out) {
+              fd.set("ov", out.file);
+              fd.set("slots", JSON.stringify(out.slots));
+            }
+            action(fd);
+          }}
+          className="flex max-h-[min(760px,calc(100dvh-48px))] flex-col"
+        >
           <input type="hidden" name="mode" value={mode} />
           <input type="hidden" name="source" value={source} />
           <input type="hidden" name="event" value={event} />
+          <input type="hidden" name="paper" value={paper} />
+          <input type="hidden" name="orient" value={orient} />
           <header className="flex items-start justify-between gap-4 border-b-[1.5px] border-dashed border-line-soft px-6 pt-5 pb-4">
             <div>
               <p className="text-xs font-bold text-text-2">
@@ -320,6 +342,7 @@ export function NewTemplateWizard({
                 <div className="flex h-10 w-fit overflow-hidden rounded-[11px] border-[1.5px] border-ink bg-white text-[13px] font-bold">
                   {(
                     [
+                      ["upload", "Upload desain (PNG)"],
                       ["preset", "Tata letak cepat"],
                       ["copy", `Salin template (${copies.length})`],
                     ] as const
@@ -330,7 +353,9 @@ export function NewTemplateWizard({
                       aria-pressed={from === v}
                       onClick={() => {
                         setFrom(v);
-                        setSource(v === "preset" ? firstPreset(paper, orient) : "");
+                        setSource(
+                          v === "preset" ? firstPreset(paper, orient) : v === "upload" ? v : "",
+                        );
                       }}
                       className={`px-4 ${i ? "border-l-[1.5px] border-ink" : ""} ${from === v ? "bg-lavender" : "hover:bg-paper"}`}
                     >
@@ -340,7 +365,29 @@ export function NewTemplateWizard({
                 </div>
                 <fieldset className="m-0 border-0 p-0">
                   <legend className="sr-only">Mulai dari</legend>
-                  {from === "preset" ? (
+                  {from === "upload" ? (
+                    <UploadDesign
+                      W={W}
+                      H={H}
+                      paperText={`${PAPERS.find((p) => p.id === paper)?.title} ${orient}`}
+                      design={design}
+                      setDesign={setDesign}
+                      // Nama awal dari nama file (bisa diganti di langkah Nama).
+                      onPick={(f) =>
+                        name || setName(f.name.replace(/\.[a-z0-9]+$/i, "").slice(0, 80))
+                      }
+                      onChangePaper={() => setStep(1)}
+                      match={(w, h) => {
+                        for (const p of PAPERS)
+                          for (const o of ["portrait", "landscape"] as const) {
+                            const c = PAPER_CANVAS[p.id];
+                            const r = o === "landscape" ? c.height / c.width : c.width / c.height;
+                            if (Math.abs(w / h / r - 1) < 0.01 && (p.id !== paper || o !== orient))
+                              return { label: `${p.title} ${o}`, apply: () => pickPaper(p.id, o) };
+                          }
+                      }}
+                    />
+                  ) : from === "preset" ? (
                     <div className="flex flex-col gap-4">
                       {!!mine.length && (
                         <div>

@@ -439,6 +439,7 @@ export function Panels({
   setTab: (t: Tab | null) => void;
 }) {
   const [dragKey, setDragKey] = useState<Key | null>(null);
+  const [detected, setDetected] = useState<string | null>(null);
   const presets = (
     Object.entries(LAYOUT_PRESETS) as [PresetId, (typeof LAYOUT_PRESETS)[PresetId]][]
   ).filter(
@@ -615,6 +616,29 @@ export function Panels({
                   onPick={(f) => ed.pick("ov", f)}
                   onRemove={() => ed.commit(({ overlay: _o, ...l }) => l)}
                 />
+                {ed.layout.overlay && ed.images.ov && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const n = ed.detectFromOverlay();
+                        setDetected(
+                          n
+                            ? `${n} slot dibuat dari area transparan. Slot lama diganti (Urungkan untuk kembali).`
+                            : "Tidak ada area transparan yang cukup besar di overlay.",
+                        );
+                      }}
+                      className="h-10 rounded-[10px] border-[1.5px] border-ink bg-white text-xs font-bold hover:bg-paper"
+                    >
+                      Deteksi slot dari area transparan
+                    </button>
+                    {detected && (
+                      <p role="status" className={small}>
+                        {detected}
+                      </p>
+                    )}
+                  </>
+                )}
               </Section>
               <Section title="Gambar latar">
                 <Upload1
