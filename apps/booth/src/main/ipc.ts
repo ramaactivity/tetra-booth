@@ -9,6 +9,7 @@ import {
   PairRequest,
   PaperSchema,
   PaymentCreateRequest,
+  RUN_ACTIONS,
   SESSION_ID_PATTERN,
 } from "@tetra/shared";
 import { app, BrowserWindow, ipcMain, net, shell } from "electron";
@@ -271,6 +272,16 @@ export function registerIpc(
       cameraService,
       device: cloud.device(),
     };
+  });
+  // Timer event (#149): Buka untuk Tamu / Jeda / Lanjutkan / Selesai → antrean ke cloud, jam saat ditekan.
+  const EventId = z.string().min(1).max(64);
+  ipcMain.handle("crewRunState", (_e, id: unknown) => {
+    crewOnly();
+    return cloud.runState(EventId.parse(id));
+  });
+  ipcMain.handle("crewEventRun", (_e, id: unknown, action: unknown) => {
+    crewOnly();
+    return cloud.runAction(EventId.parse(id), z.enum(RUN_ACTIONS).parse(action));
   });
   ipcMain.handle("crewRetryUploads", async () => {
     crewOnly();

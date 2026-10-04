@@ -66,6 +66,11 @@ const Form = z.object({
   location: z.string().trim().max(120),
   tagline: z.string().trim().max(40),
   client_name: z.string().trim().max(120),
+  /** Paket (#150). Tidak dikirim = tidak diubah; kosong = dihapus. */
+  package_name: z.string().trim().max(80).optional(),
+  package_hours: z
+    .union([z.literal(""), z.coerce.number().min(0.5).max(48).multipleOf(0.5)])
+    .optional(),
   background: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   guest_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   attract_bg: z.string().regex(/^#[0-9a-fA-F]{6}$/),
@@ -392,6 +397,10 @@ export async function applySettings(
       name: f.name,
       event_date: f.event_date,
       location: f.location || null,
+      ...(f.package_name !== undefined && { package_name: f.package_name || null }),
+      ...(f.package_hours !== undefined && {
+        package_hours: f.package_hours === "" ? null : f.package_hours,
+      }),
       mode: f.mode,
       lead_capture,
       settings: {

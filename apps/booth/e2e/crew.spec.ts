@@ -228,6 +228,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   const sessions: { eventId: string; assetCount: number }[] = [];
   const puts: string[] = [];
   const recorded: string[] = [];
+  const runs: { id: string; action: string; at: string }[] = [];
   let gifHead = "";
   const EVENT = "7c9e6679-7425-40de-944b-e07fc1f90ae8";
   const pngSha = createHash("sha256").update(PNG).digest("hex");
@@ -275,6 +276,17 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
             files: [{ file: "overlay.png", sha256: pngSha, url: `http://127.0.0.1:${port}/m/ov` }],
           }),
         );
+      } else if (req.url === `/api/booth/events/${EVENT}/run`) {
+        // Timer event (#149): kiriman pertama gagal (server/internet putus) → antrean mengirim ulang.
+        const b = JSON.parse(body) as { id: string; action: string; at: string };
+        runs.push(b);
+        if (runs.length === 1) {
+          res.statusCode = 503;
+          res.end("{}");
+          return;
+        }
+        const state = { open: "running", start: "running", pause: "paused", finish: "finished" };
+        res.end(JSON.stringify({ state: state[b.action as keyof typeof state] }));
       } else if (req.url === "/api/booth/sessions") {
         sessions.push(JSON.parse(body));
         res.end(JSON.stringify({ ok: true }));
@@ -370,8 +382,38 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await w.getByRole("button", { name: /Mode Event/ }).click();
   await w.getByRole("button", { name: "Ambil event terbaru" }).click();
   await w.getByRole("button", { name: /Rina & Dimas/ }).click();
+  // Event cloud: timer belum mulai, mulai sendiri saat Buka untuk Tamu.
+  await expect(w.getByTestId("crew-run")).toHaveAttribute("data-state", "idle");
+  await w.getByTestId("open-guests").click();
+  await expect(w.getByRole("heading", { name: "Rina & Dimas" })).toBeVisible();
+  await expect.poll(() => runs.length).toBe(1);
+  expect(runs[0]?.action).toBe("open");
+
+  // Jeda / Lanjutkan / Selesai dari Ringkasan; aksi yang gagal terkirim ikut dikirim ulang (id & jam sama).
+  await openCrew(w);
+  await typePin(w, "2468");
+  const run = w.getByTestId("crew-run");
+  await expect(run).toHaveAttribute("data-state", "running");
+  await w.screenshot({ path: "test-results/crew-run.png" });
+  await run.getByRole("button", { name: "Jeda Event" }).click();
+  await expect(run).toHaveAttribute("data-state", "paused");
+  await run.getByRole("button", { name: "Lanjutkan Event" }).click();
+  await expect(run).toHaveAttribute("data-state", "running");
+  await run.getByRole("button", { name: "Selesai Event" }).click();
+  await expect(run).toContainText("Acara sudah selesai?");
+  await w.screenshot({ path: "test-results/crew-run-confirm.png" });
+  await run.getByRole("button", { name: "Ya, Selesai" }).click();
+  await expect(run).toHaveAttribute("data-state", "finished");
+  await expect
+    .poll(() => runs.map((r) => r.action))
+    .toEqual(["open", "open", "pause", "start", "finish"]);
+  expect(runs[1]).toEqual(runs[0]);
+  const at = runs.slice(1).map((r) => Date.parse(r.at));
+  expect(at).toEqual([...at].sort((a, b) => a - b));
+  // Selesai: Buka untuk Tamu tidak membuka timer lagi.
   await w.getByTestId("to-guest").click();
   await expect(w.getByRole("heading", { name: "Rina & Dimas" })).toBeVisible();
+  expect(runs).toHaveLength(5);
 
   // Satu sesi (--fast) untuk event cloud → semua file masuk R2 palsu dan tercatat (N4).
   await w.waitForTimeout(1000);

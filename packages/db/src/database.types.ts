@@ -316,11 +316,15 @@ export type Database = {
           location: string | null
           mode: string
           name: string
+          ops_project_id: string | null
           organization_id: string
           orientation: string
+          package_hours: number | null
+          package_name: string | null
           public_gallery: boolean
           purge_at: string | null
           purged_at: string | null
+          run: NonNullable<Json>
           settings: NonNullable<Json>
           slug: string
           status: string
@@ -343,11 +347,15 @@ export type Database = {
           location?: string | null
           mode: string
           name: string
+          ops_project_id?: string | null
           organization_id: string
           orientation?: string
+          package_hours?: number | null
+          package_name?: string | null
           public_gallery?: boolean
           purge_at?: string | null
           purged_at?: string | null
+          run?: NonNullable<Json>
           settings?: NonNullable<Json>
           slug?: string
           status?: string
@@ -370,11 +378,15 @@ export type Database = {
           location?: string | null
           mode?: string
           name?: string
+          ops_project_id?: string | null
           organization_id?: string
           orientation?: string
+          package_hours?: number | null
+          package_name?: string | null
           public_gallery?: boolean
           purge_at?: string | null
           purged_at?: string | null
+          run?: NonNullable<Json>
           settings?: NonNullable<Json>
           slug?: string
           status?: string

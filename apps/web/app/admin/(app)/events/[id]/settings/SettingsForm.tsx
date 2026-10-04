@@ -27,6 +27,9 @@ export type SettingsValues = {
   location: string;
   tagline: string;
   client_name: string;
+  /** Paket yang dijual (#150): nama + durasi jam, untuk rekap durasi. */
+  package_name: string;
+  package_hours: string;
   /** Desain frame terpilih, berurutan (pertama = utama): preset id atau `tpl:<layoutId>`. */
   designs: string[];
   designOptions: DesignOption[];
@@ -657,6 +660,41 @@ export function SettingsForm({
                 defaultValue={v.client_name}
                 aria-describedby="client_name-hint"
                 className={input}
+              />
+            </Field>
+            <Field
+              id="package_name"
+              label="Paket"
+              optional
+              hint="Nama paket yang dibeli klien, mis. Paket Wedding 3 Jam."
+            >
+              <input
+                id="package_name"
+                name="package_name"
+                maxLength={80}
+                defaultValue={v.package_name}
+                aria-describedby="package_name-hint"
+                className={input}
+              />
+            </Field>
+            <Field
+              id="package_hours"
+              label="Durasi paket"
+              optional
+              unit="jam"
+              hint="Rekap event membandingkan lama event berjalan dengan durasi ini."
+            >
+              <input
+                id="package_hours"
+                name="package_hours"
+                type="number"
+                inputMode="decimal"
+                min={0.5}
+                max={48}
+                step={0.5}
+                defaultValue={v.package_hours}
+                aria-describedby="package_hours-hint"
+                className={input.replace("w-full", "w-28")}
               />
             </Field>
             <Field

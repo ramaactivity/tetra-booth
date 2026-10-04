@@ -1,13 +1,15 @@
 "use client";
 import { type LayoutPaper, paperLabel } from "@tetra/shared";
-import { ArrowLeft, ArrowRight, Check, ExternalLink } from "lucide-react";
+import { Select } from "@tetra/ui";
+import { ArrowLeft, ArrowRight, Check, CloudDownload, ExternalLink, Search } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, startTransition, useActionState, useState } from "react";
+import { type ReactNode, startTransition, useActionState, useEffect, useState } from "react";
+import type { OpsBooking } from "@/lib/tetra-ops";
 import { type DesignOption, DesignPicker } from "../[id]/settings/DesignPicker";
 import { DesignPreview } from "../[id]/settings/DesignPreview";
 import { Box, longDate } from "../[id]/settings/SettingsForm";
 import { useLeaveGuard } from "../[id]/settings/useLeaveGuard";
-import { type CreateResult, createEventWizard } from "../actions";
+import { type CreateResult, createEventWizard, loadOps, type OpsList } from "../actions";
 
 type Device = { id: string; name: string; status: "online" | "offline" | "unpaired" };
 type Mode = "event" | "photobox";
@@ -108,6 +110,24 @@ const STATUS: Record<Device["status"], [string, string]> = {
   unpaired: ["Belum tersambung", "bg-peach"],
 };
 
+/** Ukuran frame Tetra Ops → kertas booth ('none' / tidak dikenal = tidak diubah). */
+const OPS_PAPER: Record<string, LayoutPaper> = { "2R": "2x6x2", "4R": "4R", polaroid: "3x4x2" };
+const opsDate = (ymd: string) =>
+  new Intl.DateTimeFormat("id-ID", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(new Date(`${ymd}T00:00:00Z`));
+/** Nama event dari booking: judul event, atau "<kategori> <klien>" (kategori umum "Event" dilewati). */
+const opsName = (b: OpsBooking) =>
+  b.event_title?.trim() ||
+  [b.event_category && b.event_category !== "event" ? b.event_category_label : null, b.client_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+const hoursText = (h: string) => (h ? `${h.replace(".", ",")} jam` : "");
+
 /** Kunci layout photobox (sama dengan Pengaturan): id preset atau `tpl-<layoutId>`. */
 const pbKey = (value: string) => value.replace(/^tpl:/, "tpl-");
 
@@ -118,11 +138,23 @@ const pbKey = (value: string) => value.replace(/^tpl:/, "tpl-");
 export function EventWizard({
   designOptions,
   devices,
+  opsEnabled,
 }: {
   designOptions: DesignOption[];
   devices: Device[];
+  /** TETRA_OPS_URL + TETRA_OPS_TOKEN terisi (DECISIONS #150). */
+  opsEnabled: boolean;
 }) {
   const [step, setStep] = useState(1);
+  const [pkgName, setPkgName] = useState("");
+  const [pkgHours, setPkgHours] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [opsPicked, setOpsPicked] = useState<OpsBooking | null>(null);
+  const [ops, setOps] = useState<OpsList | null>(null);
+  const [opsQuery, setOpsQuery] = useState("");
+  useEffect(() => {
+    if (opsEnabled) loadOps().then(setOps, () => setOps({ ok: false, message: "Gagal memuat" }));
+  }, [opsEnabled]);
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
@@ -155,6 +187,9 @@ export function EventWizard({
     if (s === 1) {
       if (!name.trim()) e.name = "Isi nama event.";
       if (!date) e.date = "Pilih tanggal event.";
+      const h = Number(pkgHours);
+      if (pkgHours && (!(h >= 0.5 && h <= 48) || !Number.isInteger(h * 2)))
+        e.pkgHours = "Durasi 0,5 sampai 48 jam (kelipatan setengah jam).";
     } else if (s === 2) {
       if (!mode) e.mode = "Pilih salah satu mode.";
     } else if (s === 3 && mode === "event") {
@@ -193,6 +228,10 @@ export function EventWizard({
     fd.set("event_date", date);
     fd.set("location", location.trim());
     fd.set("tagline", tagline.trim());
+    fd.set("package_name", pkgName.trim());
+    fd.set("package_hours", pkgHours);
+    if (clientName.trim()) fd.set("client_name", clientName.trim());
+    if (opsPicked) fd.set("ops_project_id", opsPicked.project_id);
     fd.set("mode", mode ?? "event");
     fd.set("deviceScope", allDevices ? "all" : "pick");
     for (const id of picked) fd.append("devices", id);
@@ -228,6 +267,30 @@ export function EventWizard({
     setCopy(null);
     setErrors({});
   };
+  /** Isi wizard dari booking Tetra Ops: nama, tanggal, lokasi, klien, paket, mode Event + kertas. */
+  const pickOps = (b: OpsBooking) => {
+    setOpsPicked(b);
+    setName(opsName(b) || name);
+    setDate(b.event_date);
+    setLocation([b.venue_name, b.venue_city].filter(Boolean).join(", ").slice(0, 120));
+    setClientName(b.client_name ?? "");
+    setPkgName(b.package_name ?? "");
+    setPkgHours(b.package_duration_hours ? String(b.package_duration_hours) : "");
+    const p = b.frame_size ? OPS_PAPER[b.frame_size] : undefined;
+    if (p) {
+      setMode("event");
+      choosePaper(p);
+    }
+    setErrors({});
+  };
+  const opsList =
+    ops?.ok && !opsPicked
+      ? ops.bookings.filter((b) =>
+          `${b.client_name} ${b.event_title} ${b.venue_name} ${b.venue_city}`
+            .toLowerCase()
+            .includes(opsQuery.trim().toLowerCase()),
+        )
+      : [];
 
   const titles: Record<number, [string, ReactNode]> = {
     1: ["Info event", "Nama dan tanggal tampil di layar booth dan di desain yang memakai teks."],
@@ -327,6 +390,17 @@ export function EventWizard({
         </header>
 
         <div className="px-7 py-6">
+          {step === 1 && opsEnabled && (
+            <OpsPanel
+              ops={ops}
+              picked={opsPicked}
+              list={opsList}
+              query={opsQuery}
+              onQuery={setOpsQuery}
+              onPick={pickOps}
+              onClear={() => setOpsPicked(null)}
+            />
+          )}
           {step === 1 && (
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2">
               <Field id="name" label="Nama event" error={errors.name}>
@@ -388,6 +462,70 @@ export function EventWizard({
                   className={input}
                 />
               </Field>
+              <div className="flex flex-col gap-3 rounded-2xl border-[1.5px] border-dashed border-ink p-4 md:col-span-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="text-[13px] font-bold">
+                    Paket <span className="font-semibold text-muted"> · opsional</span>
+                  </p>
+                  <p className="text-xs text-text-2">
+                    Rekap event membandingkan lama event berjalan dengan durasi paket.
+                  </p>
+                </div>
+                {ops?.ok && ops.packages.length > 0 && (
+                  <Select
+                    label="Pilih paket Tetra Ops"
+                    placeholder="Pilih dari daftar paket Tetra Ops…"
+                    searchable
+                    value=""
+                    onChange={(v) => {
+                      const k = ops.packages[Number(v)];
+                      if (!k) return;
+                      setPkgName(k.name);
+                      setPkgHours(k.duration_hours ? String(k.duration_hours) : "");
+                    }}
+                    options={ops.packages.map((k, i) => ({
+                      value: String(i),
+                      label: k.name,
+                      hint: [
+                        k.frame_size !== "none" && k.frame_size,
+                        k.duration_hours && `${k.duration_hours} jam`,
+                      ]
+                        .filter(Boolean)
+                        .join(" · "),
+                    }))}
+                  />
+                )}
+                <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-[minmax(0,1fr)_200px]">
+                  <Field id="package_name" label="Nama paket">
+                    <input
+                      id="package_name"
+                      maxLength={80}
+                      value={pkgName}
+                      onChange={(e) => setPkgName(e.target.value)}
+                      placeholder="Mis. 2R Unlimited 3 Jam"
+                      className={input}
+                    />
+                  </Field>
+                  <Field id="pkgHours" label="Durasi (jam)" error={errors.pkgHours}>
+                    <input
+                      id="pkgHours"
+                      type="number"
+                      inputMode="decimal"
+                      min={0.5}
+                      max={48}
+                      step={0.5}
+                      value={pkgHours}
+                      onChange={(e) => {
+                        setPkgHours(e.target.value);
+                        clear("pkgHours");
+                      }}
+                      placeholder="3"
+                      className={input}
+                      {...invalid("pkgHours")}
+                    />
+                  </Field>
+                </div>
+              </div>
             </div>
           )}
 
@@ -720,6 +858,8 @@ export function EventWizard({
           {step === 5 && (
             <Summary
               name={name.trim()}
+              pkg={[pkgName.trim(), hoursText(pkgHours)].filter(Boolean).join(" · ")}
+              ops={opsPicked?.project_id ?? null}
               date={date}
               location={location.trim()}
               tagline={tagline.trim()}
@@ -866,6 +1006,8 @@ function Row({
 
 function Summary({
   name,
+  pkg,
+  ops,
   date,
   location,
   tagline,
@@ -881,6 +1023,8 @@ function Summary({
   copied,
 }: {
   name: string;
+  pkg: string;
+  ops: string | null;
   date: string;
   location: string;
   tagline: string;
@@ -940,6 +1084,12 @@ function Summary({
         <Row label="Tanggal & lokasi" onEdit={at(1)}>
           {longDate(date)}
           {location && <span className="text-text-2"> · {location}</span>}
+        </Row>
+        <Row label="Paket" onEdit={at(1)}>
+          {pkg || (
+            <span className="text-text-2">Belum diisi · rekap tidak bisa menilai durasi</span>
+          )}
+          {ops && <span className="block text-text-2">Dari Tetra Ops · {ops}</span>}
         </Row>
         <Row label="Mode" onEdit={at(2)}>
           {mode === "photobox" ? "Photobox · tamu bayar QRIS" : "Event · cetak gratis untuk tamu"}
@@ -1015,5 +1165,142 @@ function Summary({
         </section>
       </div>
     </div>
+  );
+}
+
+/** "Ambil dari Tetra Ops" (DECISIONS #150): daftar booking mendatang, pilih satu untuk mengisi wizard. */
+function OpsPanel({
+  ops,
+  picked,
+  list,
+  query,
+  onQuery,
+  onPick,
+  onClear,
+}: {
+  ops: OpsList | null;
+  picked: OpsBooking | null;
+  list: OpsBooking[];
+  query: string;
+  onQuery: (q: string) => void;
+  onPick: (b: OpsBooking) => void;
+  onClear: () => void;
+}) {
+  if (picked)
+    return (
+      <div
+        data-testid="ops-picked"
+        className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border-[1.5px] border-ink bg-mint-soft px-5 py-3.5"
+      >
+        <p className="flex min-w-0 items-center gap-3 text-sm leading-snug">
+          <span className="flex size-7 flex-none items-center justify-center rounded-full bg-green text-white">
+            <Check aria-hidden strokeWidth={3.5} className="size-3.5" />
+          </span>
+          <span className="min-w-0">
+            Diisi dari Tetra Ops: <b>{picked.client_name ?? picked.project_id}</b>
+            <span className="text-text-2">
+              {" "}
+              · {picked.project_id}. Periksa lalu ubah kalau perlu.
+            </span>
+          </span>
+        </p>
+        <button type="button" onClick={onClear} className={secondary}>
+          Pilih booking lain
+        </button>
+      </div>
+    );
+  return (
+    <section
+      aria-labelledby="ops-title"
+      className="mb-6 flex flex-col gap-3 rounded-2xl border-[1.5px] border-dashed border-ink bg-sky p-5"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="max-w-[60ch]">
+          <h3 id="ops-title" className="flex items-center gap-2 text-[15px] font-extrabold">
+            <CloudDownload aria-hidden className="size-[18px]" strokeWidth={2.25} />
+            Ambil dari Tetra Ops
+          </h3>
+          <p className="mt-1 text-[13px] leading-snug">
+            Booking 60 hari ke depan. Pilih satu untuk mengisi nama, tanggal, lokasi, ukuran kertas,
+            dan paket. Atau lewati dan isi sendiri di bawah.
+          </p>
+        </div>
+        {ops?.ok && (
+          <label className="relative w-full max-w-[260px]">
+            <span className="sr-only">Cari booking</span>
+            <Search
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-2"
+            />
+            <input
+              value={query}
+              onChange={(e) => onQuery(e.target.value)}
+              placeholder="Cari klien atau lokasi"
+              className={`${input} pl-9`}
+            />
+          </label>
+        )}
+      </div>
+      {!ops ? (
+        <p className="text-[13px] text-text-2">Memuat booking…</p>
+      ) : !ops.ok ? (
+        <p role="alert" className="text-[13px] font-bold">
+          {ops.message}
+        </p>
+      ) : list.length === 0 ? (
+        <p className="text-[13px] text-text-2">
+          {query ? "Tidak ada booking yang cocok." : "Belum ada booking mendatang di Tetra Ops."}
+        </p>
+      ) : (
+        <ul
+          data-testid="ops-list"
+          className="flex max-h-[296px] flex-col overflow-y-auto rounded-xl border-[1.5px] border-ink bg-white"
+        >
+          {list.map((b) => (
+            <li
+              key={b.project_id}
+              className="border-b-[1.5px] border-dashed border-line-soft last:border-b-0"
+            >
+              <button
+                type="button"
+                onClick={() => onPick(b)}
+                className="grid w-full grid-cols-[88px_minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 text-left hover:bg-mint-soft"
+              >
+                <span className="font-mono text-[13px] leading-tight">
+                  {opsDate(b.event_date)}
+                  {b.start_time && (
+                    <span className="block text-xs text-text-2">
+                      {b.start_time}
+                      {b.end_time ? `–${b.end_time}` : ""}
+                    </span>
+                  )}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-bold">
+                    {opsName(b) || b.project_id}
+                  </span>
+                  <span className="block truncate text-xs text-text-2">
+                    {[b.venue_name, b.venue_city].filter(Boolean).join(", ") ||
+                      "Lokasi belum diisi"}
+                  </span>
+                </span>
+                <span className="flex flex-wrap justify-end gap-1.5">
+                  {b.package_name && (
+                    <span className="rounded-full border-[1.5px] border-ink bg-white px-2.5 py-0.5 text-xs font-bold">
+                      {b.package_name}
+                    </span>
+                  )}
+                  {b.frame_size && b.frame_size !== "none" && (
+                    <span className="rounded-full border-[1.5px] border-ink bg-lavender px-2.5 py-0.5 font-mono text-xs font-medium">
+                      {b.frame_size}
+                    </span>
+                  )}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

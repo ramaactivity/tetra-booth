@@ -43,15 +43,25 @@ const hourWib = (ts: string) =>
   );
 const key = (k: string) => k.split("#")[0] ?? k;
 
-/** Event dari token klien; kedaluwarsa/purge/token dicabut → gone. */
+/**
+ * Link publik galeri/live (DECISIONS #147): `/g/<slug-event>` atau token acak lama. Link aktif = kolom token terisi
+ * ("Cabut" mengosongkannya, jadi slug & token lama ikut mati). Nilai sudah lolos `LINK`, aman untuk filter `or`.
+ */
+export const LINK = /^[\w-]{1,80}$/;
+export const byLink = (col: "client_token" | "live_token", v: string) =>
+  `${col}.eq.${v},slug.eq.${v}`;
+
+/** Event dari link klien (slug atau token); kedaluwarsa/purge/link dicabut → gone. */
 export async function eventByClientToken(token: string) {
-  if (!/^[\w-]{20,64}$/.test(token)) return null;
+  if (!LINK.test(token)) return null;
   const { data } = await createServiceClient()
     .from("events")
     .select(
       "id, organization_id, name, event_date, location, branding, client_expires_at, purged_at, public_gallery",
     )
-    .eq("client_token", token)
+    .or(byLink("client_token", token))
+    .not("client_token", "is", null)
+    .limit(1)
     .maybeSingle();
   if (
     !data ||
@@ -87,15 +97,17 @@ export async function loadPublicGallery(sessionId: string): Promise<Gallery> {
   return galleryOf(ev, false);
 }
 
-/** Galeri publik dari QR live slideshow (`/l/{liveToken}`): syarat sama dengan dari halaman tamu. */
+/** Galeri publik dari QR live slideshow (`/l/{slug atau liveToken}`): syarat sama dengan dari halaman tamu. */
 export async function loadPublicGalleryByLive(token: string): Promise<Gallery> {
-  if (!/^[\w-]{20,64}$/.test(token)) return { state: "gone" };
+  if (!LINK.test(token)) return { state: "gone" };
   const { data: ev } = await createServiceClient()
     .from("events")
     .select(
       "id, organization_id, name, event_date, location, branding, client_expires_at, guest_expires_at, purged_at, public_gallery",
     )
-    .eq("live_token", token)
+    .or(byLink("live_token", token))
+    .not("live_token", "is", null)
+    .limit(1)
     .maybeSingle();
   const until = ev?.guest_expires_at ?? ev?.client_expires_at;
   if (!ev?.public_gallery || ev.purged_at || (until && new Date(until) <= new Date()))

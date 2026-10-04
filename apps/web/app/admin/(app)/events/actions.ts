@@ -3,12 +3,18 @@ import { DEFAULT_SETTINGS, SOUND_CUES } from "@tetra/shared";
 import { z } from "zod";
 import { DEFAULT_TEMPLATE } from "@/lib/event-bundle";
 import { requireMember } from "@/lib/supabase/server";
+import { type OpsBooking, type OpsPackage, opsBookings, opsPackages } from "@/lib/tetra-ops";
 import { applySettings } from "./[id]/settings/actions";
 
 const NewEvent = z.object({
   name: z.string().trim().min(1).max(120),
   event_date: z.iso.date(),
   mode: z.enum(["event", "photobox"]),
+  /** project_id booking Tetra Ops asal event (impor wizard), hanya referensi. */
+  ops_project_id: z
+    .string()
+    .regex(/^[\w-]{1,64}$/)
+    .nullish(),
 });
 
 /** Isian Pengaturan yang tidak ditanyakan wizard: nilai bawaan yang sama dengan halaman Pengaturan. */
@@ -60,6 +66,7 @@ export async function createEventWizard(
     name: form.get("name"),
     event_date: form.get("event_date"),
     mode: form.get("mode"),
+    ops_project_id: form.get("ops_project_id") || null,
   });
   if (!p.success) return { ok: false, message: "Isi nama, tanggal, dan mode event" };
   const { data: ev, error } = await db
@@ -71,6 +78,7 @@ export async function createEventWizard(
       mode: p.data.mode,
       status: "ready",
       created_by: user.id,
+      ops_project_id: p.data.ops_project_id ?? null,
       settings: { template: DEFAULT_TEMPLATE },
     })
     .select("id")
@@ -89,4 +97,20 @@ export async function createEventWizard(
     return { ok: false, message: r.message };
   }
   return { ok: true, slug: r.slug ?? ev.id, ...(r.copied && { copied: r.copied }) };
+}
+
+export type OpsList =
+  | { ok: true; bookings: OpsBooking[]; packages: OpsPackage[] }
+  | { ok: false; message: string };
+
+/** Wizard "Ambil dari Tetra Ops": booking mendatang + paket aktif (baca-saja). Owner/admin. */
+export async function loadOps(): Promise<OpsList> {
+  await requireMember(["owner", "admin"]);
+  try {
+    const [bookings, packages] = await Promise.all([opsBookings(), opsPackages()]);
+    return { ok: true, bookings, packages };
+  } catch (e) {
+    console.warn(`[tetra-ops] ${e instanceof Error ? e.message : String(e)}`);
+    return { ok: false, message: "Tetra Ops tidak bisa dihubungi. Isi manual, atau coba lagi." };
+  }
 }

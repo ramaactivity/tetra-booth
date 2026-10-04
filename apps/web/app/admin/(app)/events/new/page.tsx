@@ -1,6 +1,7 @@
 import { EVENT_PRESETS, LAYOUT_PRESETS, type PresetId, paperLabel } from "@tetra/shared";
 import { isOnline } from "@/lib/format";
 import { requireMember } from "@/lib/supabase/server";
+import { opsConfigured } from "@/lib/tetra-ops";
 import type { DesignOption } from "../[id]/settings/DesignPicker";
 import { loadDesignOptions } from "../[id]/settings/design-options";
 import { EventWizard } from "./EventWizard";
@@ -38,6 +39,7 @@ export default async function NewEventPage() {
   const now = Date.now();
   return (
     <EventWizard
+      opsEnabled={opsConfigured()}
       designOptions={[...designOptions, ...BASICS]}
       devices={(devices ?? []).map((d) => ({
         id: d.id,

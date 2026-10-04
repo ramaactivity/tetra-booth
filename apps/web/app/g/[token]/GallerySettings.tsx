@@ -69,7 +69,7 @@ export function GallerySettings({
             <span className="text-xs font-bold">Bagikan galeri</span>
             <div className="flex gap-2">
               <span className="flex h-10 min-w-0 flex-1 items-center truncate rounded-lg border-[1.5px] border-ink bg-white px-2.5 font-mono text-xs">
-                /g/{token.slice(0, 6)}…
+                /g/{token}
               </span>
               <button
                 type="button"

@@ -1,15 +1,18 @@
-import { paperLabel, printPaper } from "@tetra/shared";
+import { paperLabel, printPaper, type RunAction, type RunState } from "@tetra/shared";
 import { Button } from "@tetra/ui";
 import {
   ArrowRight,
   ArrowUpDown,
   Camera,
   Check,
+  Flag,
   Focus,
   Heart,
   LayoutGrid,
   type LucideIcon,
   Palette,
+  Pause,
+  Play,
   Printer,
   Settings,
   TriangleAlert,
@@ -286,6 +289,28 @@ export function CrewMenu({
   }, [p, event, hasEvent]);
   const hhmm = (iso: string) =>
     new Date(iso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  // Timer event (#149): null = event lokal (tanpa cloud), tidak ditampilkan.
+  const [run, setRun] = useState<RunState | null>(null);
+  const [finishAsk, setFinishAsk] = useState(false);
+  useEffect(() => {
+    if (!hasEvent) return;
+    p.crew.runState(event.id).then(setRun, () => {});
+  }, [p, event, hasEvent]);
+  const runAct = (a: RunAction) => {
+    setFinishAsk(false);
+    p.crew.eventRun(event.id, a).then(
+      (s) => {
+        setRun(s);
+        if (!status?.online) setNote(copy.crew.run.offline);
+      },
+      (e: unknown) => setNote(crewText(e)),
+    );
+  };
+  /** Buka untuk Tamu dari checklist = timer mulai / lanjut (kecuali sudah selesai). Tidak menunggu jaringan. */
+  const openForGuests = () => {
+    if (hasEvent) void p.crew.eventRun(event.id, "open").catch(() => {});
+    onClose();
+  };
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [blurWarn, setBlurWarn] = useState(() => sharpNotes.crewWarning());
   const [cursorOn, setCursorOn] = useState(guestCursor.shown);
@@ -542,13 +567,93 @@ export function CrewMenu({
               <p className="text-lg font-semibold text-text-2">{copy.crew.setup.openHint}</p>
               <Button
                 className="h-[120px] rounded-[22px] text-[28px] [--lx:7px] [--under:#fff]"
-                onClick={onClose}
+                data-testid="open-guests"
+                onClick={openForGuests}
               >
                 {copy.crew.setup.open} <ArrowRight size={28} strokeWidth={2.5} />
               </Button>
             </li>
           </ol>
         </section>
+        {run && (
+          <section
+            data-testid="crew-run"
+            data-state={run}
+            className="flex flex-wrap items-center gap-x-8 gap-y-5 rounded-[26px] border-[2.5px] border-ink bg-white px-7 py-6"
+          >
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-bold">{copy.crew.run.title}</h2>
+                <Pill
+                  tone={
+                    run === "running"
+                      ? "mint"
+                      : run === "paused"
+                        ? "peach"
+                        : run === "finished"
+                          ? "sky"
+                          : "white"
+                  }
+                >
+                  {dot}
+                  {copy.crew.run.state[run]}
+                </Pill>
+              </div>
+              <p className="text-lg font-semibold text-text-2">
+                {finishAsk ? copy.crew.run.confirm : copy.crew.run[run]}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-4">
+              {finishAsk ? (
+                <>
+                  <Button
+                    variant="plain"
+                    className="h-[80px] rounded-[20px] px-8 text-xl"
+                    onClick={() => setFinishAsk(false)}
+                  >
+                    {copy.crew.run.cancel}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="h-[80px] rounded-[20px] px-8 text-xl"
+                    onClick={() => runAct("finish")}
+                  >
+                    {copy.crew.run.confirmYes}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {run === "running" && (
+                    <Button
+                      variant="secondary"
+                      className="h-[80px] gap-3 rounded-[20px] px-8 text-xl"
+                      onClick={() => runAct("pause")}
+                    >
+                      <Pause size={24} strokeWidth={2.5} /> {copy.crew.run.pause}
+                    </Button>
+                  )}
+                  {run === "paused" && (
+                    <Button
+                      className="h-[80px] gap-3 rounded-[20px] px-8 text-xl [--lx:6px]"
+                      onClick={() => runAct("start")}
+                    >
+                      <Play size={24} strokeWidth={2.5} /> {copy.crew.run.resume}
+                    </Button>
+                  )}
+                  {(run === "running" || run === "paused") && (
+                    <Button
+                      variant="plain"
+                      className="h-[80px] gap-3 rounded-[20px] px-8 text-xl"
+                      onClick={() => setFinishAsk(true)}
+                    >
+                      <Flag size={24} strokeWidth={2.5} /> {copy.crew.run.finish}
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          </section>
+        )}
         <div className="grid grid-cols-4 gap-6 portrait:grid-cols-2">
           <Tile
             icon={Camera}
@@ -867,7 +972,7 @@ export function CrewMenu({
         <Button
           className="mt-auto h-[92px] gap-2 rounded-[20px] px-4 text-xl [--lx:7px] [--under:#fff] portrait:mt-0"
           data-testid="to-guest"
-          onClick={onClose}
+          onClick={openForGuests}
         >
           {copy.crew.toGuest} <ArrowRight size={24} strokeWidth={2.5} />
         </Button>

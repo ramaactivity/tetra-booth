@@ -13,6 +13,7 @@ import {
   type PaymentCreateRequest,
   PaymentCreateResponse,
   PaymentStatusResponse,
+  type RunAction,
 } from "@tetra/shared";
 import { app, safeStorage, screen } from "electron";
 import type { Alerts } from "./alerts";
@@ -20,6 +21,7 @@ import { installBundle } from "./bundle-sync";
 import { cameraHealth, request } from "./camera-client";
 import { config, printerName } from "./config";
 import type { BoothDb } from "./db";
+import { createRunQueue } from "./run-queue";
 import { createUploader } from "./upload";
 
 /**
@@ -170,7 +172,27 @@ export function createCloud(
       if (!res.ok) throw new Error(`R2 PUT ${res.status}`);
     },
   });
-  const uploadQuiet = () => void uploader.drain();
+  const runQueue = createRunQueue({
+    kv: db.kv,
+    log,
+    post: async (path, body) => {
+      const t = token();
+      if (!t) throw new Error("booth belum dipasangkan");
+      const res = await fetch(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${t}` },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+      return { status: res.status, body: await res.json().catch(() => null) };
+    },
+  });
+  const uploadQuiet = () => {
+    void uploader.drain();
+    void runQueue.drain();
+  };
+  /** Event cloud = bundle pernah diunduh dari cloud (event lokal/contoh tidak punya timer). */
+  const cloudEvent = (eventId: string) => !!db.kv.get(`bundle_version:${eventId}`);
 
   let syncing: Promise<number> | null = null;
   /**
@@ -214,6 +236,10 @@ export function createCloud(
       return uploader.drain();
     },
     token,
+    /** Timer event (#149): null = bukan event cloud. */
+    runState: (eventId: string) => (cloudEvent(eventId) ? runQueue.state(eventId) : null),
+    runAction: (eventId: string, action: RunAction) =>
+      cloudEvent(eventId) ? runQueue.push(eventId, action) : null,
     /** Rilis booth terbaru di cloud (DECISIONS #80); null = belum ada rilis. */
     async latestRelease() {
       const t = token();

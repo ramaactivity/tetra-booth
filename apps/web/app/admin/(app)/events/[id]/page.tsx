@@ -1,11 +1,21 @@
-import { LAYOUT_PRESETS, type LayoutPaper, type PresetId, paperLabel } from "@tetra/shared";
+import {
+  LAYOUT_PRESETS,
+  type LayoutPaper,
+  type PresetId,
+  paperLabel,
+  parseRun,
+} from "@tetra/shared";
+import { CloudUpload, Images, Printer, QrCode } from "lucide-react";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DEFAULT_TEMPLATE, type EventTemplate } from "@/lib/event-bundle";
 import { eventKey } from "@/lib/events";
 import { presignDownload, presignGet } from "@/lib/r2";
+import type { RecapData } from "@/lib/recap";
 import { requireMember } from "@/lib/supabase/server";
+import { RecapDialog } from "./RecapDialog";
+import { RunPanel } from "./RunPanel";
 import { SessionTile } from "./SessionTile";
 import { LinksPanel } from "./settings/LinksPanel";
 
@@ -35,33 +45,44 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   const { db, orgId, role } = await requireMember();
   const { data: ev } = await db
     .from("events")
-    .select("id, slug, name, event_date, location, mode, settings, client_token, live_token")
+    .select(
+      "id, slug, name, event_date, location, mode, settings, client_token, live_token, run, package_name, package_hours",
+    )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
     .maybeSingle();
   if (!ev) notFound();
   if (id !== ev.slug) redirect(`/admin/events/${ev.slug}`);
-  const [{ data: sessions }, { data: hits }, { count: leadCount }] = await Promise.all([
-    db
-      .from("sessions")
-      .select("id, started_at, print_count, upload_status, hidden_at")
-      .eq("event_id", ev.id)
-      .eq("organization_id", orgId)
-      .is("deleted_at", null)
-      .order("started_at", { ascending: false })
-      .limit(5000),
-    db
-      .from("analytics_events")
-      .select("session_id, type")
-      .eq("event_id", ev.id)
-      .eq("organization_id", orgId)
-      .limit(50000),
-    db
-      .from("leads")
-      .select("id", { count: "exact", head: true })
-      .eq("event_id", ev.id)
-      .eq("organization_id", orgId),
-  ]);
+  const [{ data: sessions }, { data: hits }, { count: leadCount }, { count: photoCount }] =
+    await Promise.all([
+      db
+        .from("sessions")
+        .select("id, started_at, print_count, upload_status, hidden_at, device_id")
+        .eq("event_id", ev.id)
+        .eq("organization_id", orgId)
+        .is("deleted_at", null)
+        .order("started_at", { ascending: false })
+        .limit(5000),
+      db
+        .from("analytics_events")
+        .select("session_id, type")
+        .eq("event_id", ev.id)
+        .eq("organization_id", orgId)
+        .limit(50000),
+      db
+        .from("leads")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", ev.id)
+        .eq("organization_id", orgId),
+      // Foto terunggah (rekap): file original sesi event ini yang sudah tercatat di cloud.
+      db
+        .from("assets")
+        .select("id, sessions!inner(event_id)", { count: "exact", head: true })
+        .eq("organization_id", orgId)
+        .eq("kind", "original")
+        .eq("sessions.event_id", ev.id)
+        .is("sessions.deleted_at", null),
+    ]);
   // Desain frame event (utama dulu): nama + ukuran; template editor bisa langsung diedit.
   const tpl = (ev.settings as { template?: EventTemplate } | null)?.template ?? DEFAULT_TEMPLATE;
   const picked = [tpl.layoutId ? `tpl:${tpl.layoutId}` : tpl.preset, ...(tpl.extras ?? [])];
@@ -90,22 +111,17 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   const saved = new Set((hits ?? []).filter((h) => h.type !== "qr_open").map((h) => h.session_id));
   const total = list.length;
   const pct = (n: number) => (total ? `${Math.round((n / total) * 100)}%` : "0%");
+  const prints = list.reduce((a, s) => a + s.print_count, 0);
   const stats = [
-    { l: "Total sesi", v: total, x: "", bg: "var(--peach)", i: "◷" },
-    {
-      l: "Lembar dicetak",
-      v: list.reduce((a, s) => a + s.print_count, 0),
-      x: "",
-      bg: "var(--sky)",
-      i: "▤",
-    },
-    { l: "QR dibuka", v: opened.size, x: pct(opened.size), bg: "var(--lavender)", i: "▦" },
+    { l: "Total sesi", v: total, x: "", bg: "var(--peach)", I: Images },
+    { l: "Lembar dicetak", v: prints, x: "", bg: "var(--sky)", I: Printer },
+    { l: "QR dibuka", v: opened.size, x: pct(opened.size), bg: "var(--lavender)", I: QrCode },
     {
       l: "Terkirim lengkap",
       v: list.filter((s) => s.upload_status === "complete").length,
       x: "",
       bg: "var(--mint-soft)",
-      i: "⇪",
+      I: CloudUpload,
     },
   ];
   const byHour = new Map<number, number>();
@@ -156,6 +172,31 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   const btn =
     "flex h-10 items-center rounded-[11px] border-[1.5px] border-ink px-3.5 text-[13px] font-bold no-underline";
 
+  // Rekap event (#148): booth yang memotret sesi event ini, sesi pertama/terakhir.
+  const deviceIds = [...new Set(list.map((s) => s.device_id))];
+  const { data: boothRows } = deviceIds.length
+    ? await db.from("devices").select("id, name").eq("organization_id", orgId).in("id", deviceIds)
+    : { data: [] };
+  const run = parseRun(ev.run);
+  const recap: RecapData = {
+    name: ev.name,
+    date: ev.event_date,
+    venue: ev.location,
+    packageName: ev.package_name,
+    packageHours: ev.package_hours,
+    booths: (boothRows ?? []).map((d) => d.name).sort(),
+    designs: designs.map((d) => `${d.name} (${d.paper})`),
+    sessions: total,
+    prints,
+    opened: opened.size,
+    saved: saved.size,
+    leads: leadCount ?? 0,
+    photos: photoCount ?? 0,
+    firstAt: list.at(-1)?.started_at ?? null,
+    lastAt: list[0]?.started_at ?? null,
+    run,
+  };
+
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
   return (
@@ -179,7 +220,8 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
             </span>
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <RecapDialog data={recap} slug={ev.slug} />
           {!!leadCount && role !== "crew" && (
             <a href={`/admin/events/${ev.slug}/leads`} className={`${btn} bg-white`}>
               Export Lead ({leadCount})
@@ -187,7 +229,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
           )}
           {ev.client_token && (
             <a
-              href={`/g/${ev.client_token}`}
+              href={`/g/${ev.slug}`}
               target="_blank"
               rel="noreferrer"
               className={`${btn} bg-white`}
@@ -197,7 +239,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
           )}
           {ev.live_token && (
             <a
-              href={`/live/${ev.live_token}`}
+              href={`/live/${ev.slug}`}
               target="_blank"
               rel="noreferrer"
               className={`${btn} bg-white`}
@@ -210,6 +252,13 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
           </Link>
         </div>
       </div>
+
+      <RunPanel
+        eventId={ev.id}
+        run={run}
+        packageHours={ev.package_hours}
+        canEdit={role !== "crew"}
+      />
 
       <section
         aria-label="Desain frame"
@@ -262,8 +311,9 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
           <LinksPanel
             eventId={ev.id}
             origin={origin}
-            clientToken={ev.client_token}
-            liveToken={ev.live_token}
+            slug={ev.slug}
+            clientOn={!!ev.client_token}
+            liveOn={!!ev.live_token}
           />
         </section>
       )}
@@ -276,10 +326,10 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
             className="layered flex items-center gap-3.5 rounded-2xl border-[1.5px] border-ink bg-white px-[18px] py-4 [--lb:1.5px] [--lx:5px]"
           >
             <span
-              className="flex size-11 flex-none items-center justify-center rounded-xl border-[1.5px] border-dashed border-ink text-[17px]"
+              className="flex size-11 flex-none items-center justify-center rounded-xl border-[1.5px] border-dashed border-ink"
               style={{ background: s.bg }}
             >
-              {s.i}
+              <s.I aria-hidden className="size-5" strokeWidth={2} />
             </span>
             <div>
               <div className="text-xs font-semibold text-text-2">{s.l}</div>

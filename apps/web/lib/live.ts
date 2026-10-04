@@ -1,8 +1,9 @@
 import "server-only";
+import { byLink, LINK } from "@/lib/gallery";
 import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
-/** Live slideshow `/live/{token}` (FSD §4, desain D1): strip terbaru event yang tidak disembunyikan. */
+/** Live slideshow `/live/{slug atau token}` (FSD §4, desain D1): strip terbaru event yang tidak disembunyikan. */
 export type LiveStrip = { id: string; url: string; at: string };
 /** `publicGallery`: QR ke galeri publik `/l/{token}` tampil di slideshow (DECISIONS #75). */
 export type LiveEvent = {
@@ -13,12 +14,14 @@ export type LiveEvent = {
 };
 
 export async function loadLive(token: string, limit = 24) {
-  if (!/^[\w-]{20,64}$/.test(token)) return null;
+  if (!LINK.test(token)) return null;
   const db = createServiceClient();
   const { data: ev } = await db
     .from("events")
     .select("id, organization_id, name, event_date, branding, purged_at, public_gallery")
-    .eq("live_token", token)
+    .or(byLink("live_token", token))
+    .not("live_token", "is", null)
+    .limit(1)
     .maybeSingle();
   if (!ev || ev.purged_at) return null;
   const { data: rows } = await db

@@ -55,12 +55,18 @@ export async function createEventViaWizard(
     paper: RegExp;
     designs: string[];
     devices?: string[];
+    /** Paket manual (nama + jam) di langkah Info. */
+    pkg?: { name: string; hours: string };
   },
 ) {
   await page.goto("/admin");
   await page.getByRole("link", { name: "+ Buat Event" }).click();
   await page.getByLabel("Nama event").fill(o.name);
   await page.getByLabel("Tanggal event").fill(o.date ?? "2026-10-12");
+  if (o.pkg) {
+    await page.getByLabel("Nama paket").fill(o.pkg.name);
+    await page.getByLabel("Durasi (jam)").fill(o.pkg.hours);
+  }
   await page.getByRole("button", { name: /^Lanjut/ }).click();
   await page.getByRole("radio", { name: /^Event/ }).check();
   await page.getByRole("button", { name: /^Lanjut/ }).click();

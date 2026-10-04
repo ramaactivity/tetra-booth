@@ -8,6 +8,8 @@ import type {
   PaymentCreateRequest,
   PaymentCreateResponse,
   PaymentStatus,
+  RunAction,
+  RunState,
 } from "@tetra/shared";
 
 /**
@@ -151,6 +153,13 @@ export interface BoothCrew {
   oldSessions(): Promise<OldSession[]>;
   /** Tandai aset sesi yang ditulis ulang (strip_web/thumb_strip) untuk diunggah lagi lewat antrean upload. */
   reupload(sessionId: string, assets: SessionAsset[]): Promise<void>;
+  /** Timer event (#149) menurut booth ini; null = event lokal (bukan dari cloud). */
+  runState(eventId: string): Promise<RunState | null>;
+  /**
+   * Catat aksi timer (jam laptop saat ditekan) dan kirim ke cloud lewat antrean (offline aman).
+   * `open` = Buka untuk Tamu: mulai/lanjutkan kalau belum selesai. Balas state baru; null = event lokal.
+   */
+  eventRun(eventId: string, action: RunAction): Promise<RunState | null>;
   /** Unggah antrean sekarang juga, lewati jeda backoff (FSD §1.3 "coba sekarang"). */
   retryUploads(): Promise<void>;
   device(): Promise<DeviceInfo>;

@@ -24,7 +24,7 @@ test("tambah booth bertahap, tersambung, status online, sambung ulang, nonaktifk
   };
   try {
     await login(page, u);
-    await page.getByRole("link", { name: "Device" }).click();
+    await page.locator(`a[href="/admin/devices"]`).first().click();
     await page.getByRole("button", { name: "+ Tambah booth" }).click();
     const dialog = page.getByRole("dialog", { name: "Tambah booth" });
     await expect(dialog.getByTestId("pair-step-name")).toHaveAttribute("data-state", "active");
