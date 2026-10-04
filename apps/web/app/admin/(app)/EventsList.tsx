@@ -315,14 +315,14 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <nav
             aria-label="Status"
-            className="flex overflow-hidden rounded-xl border-[1.5px] border-ink bg-white"
+            className="flex w-full overflow-hidden rounded-xl border-[1.5px] border-ink bg-white sm:w-auto"
           >
             {TABS.map(([k, label], i) => (
               <Link
                 key={k}
                 href={withTab(k)}
                 aria-current={k === tab ? "page" : undefined}
-                className={`flex h-[38px] items-center px-4 text-[13px] no-underline ${i ? "border-l-[1.5px] border-ink" : ""} ${k === tab ? "bg-lavender font-bold" : "font-semibold"}`}
+                className={`flex h-[38px] flex-1 items-center justify-center px-2 text-[13px] no-underline sm:flex-none sm:px-4 ${i ? "border-l-[1.5px] border-ink" : ""} ${k === tab ? "bg-lavender font-bold" : "font-semibold"}`}
               >
                 {label}
               </Link>

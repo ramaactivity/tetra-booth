@@ -456,12 +456,17 @@ export function EventWizard({
                     n
                   )}
                 </span>
-                <span className="truncate">{label}</span>
+                <span className="sr-only truncate sm:not-sr-only">{label}</span>
               </>
             );
-            const cls = `flex h-12 w-full items-center gap-2.5 rounded-xl border-[1.5px] px-3 text-[13px] font-bold ${state === "now" ? "border-ink bg-butter" : state === "done" ? "border-ink bg-white" : "border-dashed border-ink/40 bg-transparent text-text-2"}`;
+            const cls = `flex h-12 w-full min-w-0 items-center justify-center gap-2.5 rounded-xl border-[1.5px] px-1 text-[13px] sm:justify-start sm:px-3 font-bold ${state === "now" ? "border-ink bg-butter" : state === "done" ? "border-ink bg-white" : "border-dashed border-ink/40 bg-transparent text-text-2"}`;
             return (
-              <li key={label} aria-current={state === "now" ? "step" : undefined}>
+              <li
+                key={label}
+                className="min-w-0"
+                aria-label={label}
+                aria-current={state === "now" ? "step" : undefined}
+              >
                 {state === "done" && !done ? (
                   <button
                     type="button"
