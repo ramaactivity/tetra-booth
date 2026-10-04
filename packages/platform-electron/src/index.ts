@@ -158,6 +158,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       active: () => bridge.eventsActive(),
       setActive: (id) => bridge.eventsSetActive(id),
       asset: (e, a) => bridge.eventAsset(e, a),
+      recentPieces: (e, n) => bridge.eventsRecentPieces(e, n),
     },
     payments: {
       create: (req) => bridge.paymentCreate(req),

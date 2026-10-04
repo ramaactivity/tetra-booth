@@ -392,6 +392,17 @@ export function openDb(file: string) {
           .all() as { id: string; eventId: string }[]
       ).filter((s) => UUID.test(s.eventId));
     },
+    /** Sesi selesai satu event, terbaru dulu (layar awal menampilkan hasil asli, #143). */
+    recentSessions(eventId: string, limit: number): string[] {
+      return (
+        db
+          .prepare(
+            `select id from sessions where event_id = ? and status = 'completed'
+             order by completed_at desc limit ?`,
+          )
+          .all(eventId, limit) as { id: string }[]
+      ).map((r) => r.id);
+    },
     /**
      * Aset yang ditulis ulang (#140): ukuran baru, belum terunggah, masuk antrean lagi. Kunci R2 & baris aset cloud
      * sama (sesi/kind/idx), jadi unggahan ulang menimpa objek lama (idempotent).

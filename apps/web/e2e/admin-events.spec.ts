@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { db, hasDb, login, makeUser } from "./admin-helpers";
+import { createEventViaWizard, db, hasDb, login, makeUser } from "./admin-helpers";
 
 /** A3/A4: buat event → pengaturan + template → tugaskan booth → booth menarik bundle lewat API. */
 test.skip(!hasDb, "butuh Supabase dev (apps/web/.env.local)");
@@ -32,10 +32,9 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     .single();
   try {
     await login(page, u);
-    await page.getByRole("button", { name: "+ Buat Event" }).click();
-    await page.getByPlaceholder(/Nama event/).fill(name);
-    await page.getByLabel("Tanggal event").fill("2026-10-12");
-    await page.getByRole("button", { name: "Buat", exact: true }).click();
+    // Wizard Buat event (Strip Klasik, semua booth), lalu lanjut ke Pengaturan.
+    await createEventViaWizard(page, { name, paper: /Strip 2R/, designs: ["Strip Klasik"] });
+    await page.getByRole("link", { name: "Pengaturan lanjutan" }).click();
     await expect(page.getByRole("heading", { name: "Pengaturan" })).toBeVisible();
     // Kepala = kesiapan event; navigasi kiri per kelompok (#128).
     await expect(page.getByRole("navigation", { name: "Bagian pengaturan" })).toBeVisible();
@@ -113,7 +112,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page.getByLabel(/Pilih booth/).check();
     await page.getByLabel(dev?.name ?? "").check();
     await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v2", {
+    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v3", {
       timeout: 30_000,
     });
     await page.waitForLoadState("networkidle"); // refresh RSC setelah simpan selesai dulu
@@ -122,7 +121,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     const auth = { Authorization: `Bearer ${token}` };
     const { events } = await (await request.get("/api/booth/events", { headers: auth })).json();
     const ev = events.find((e: { name: string }) => e.name === name);
-    expect(ev?.bundleVersion).toBe(2);
+    expect(ev?.bundleVersion).toBe(3);
     // Logo halaman tamu tersimpan di branding (R2, folder event), tidak ikut bundle booth.
     const { data: row } = await db.from("events").select("branding").eq("id", ev.id).single();
     expect((row?.branding as { logoKey?: string } | undefined)?.logoKey).toMatch(
@@ -180,7 +179,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page.getByLabel("Harga Strip Klasik").fill("25000");
     await page.getByLabel("Harga lembar tambahan").fill("10000");
     await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v4", {
+    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v5", {
       timeout: 30_000,
     });
     await page.waitForLoadState("networkidle"); // refresh RSC setelah simpan selesai dulu
@@ -206,7 +205,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
     await page.getByLabel(/Teks persetujuan/).fill("Saya setuju data saya dipakai untuk promo.");
     await page.getByLabel("Wajib: foto tampil setelah form diisi").check();
     await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v5", {
+    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v6", {
       timeout: 30_000,
     });
     await page.waitForLoadState("networkidle"); // refresh RSC setelah simpan selesai dulu
@@ -297,6 +296,192 @@ test("duplikat template: salinan versi 1 dengan aset yang sama, lalu editor terb
       await db.from("layout_versions").delete().eq("layout_id", x.id);
       await db.from("layouts").delete().eq("id", x.id);
     }
+    await u.cleanup();
+  }
+});
+
+test("wizard buat event: validasi per langkah, isian tetap saat kembali, bundle sesuai pilihan", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const u = await makeUser("owner");
+  const name = `e2e wizard ${Date.now()}`;
+  const next = page.getByRole("button", { name: /^Lanjut/ });
+  const shot = async (n: number | string) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.screenshot({ path: `test-results/wizard-${n}.png`, fullPage: true });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.screenshot({ path: `test-results/wizard-${n}-1440.png`, fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 900 });
+  };
+  try {
+    await login(page, u);
+    await page.getByRole("link", { name: "+ Buat Event" }).click();
+    await expect(page).toHaveURL(/\/admin\/events\/new$/);
+    await expect(page.getByText("Langkah 1 dari 5")).toBeVisible();
+    // Langkah 1: nama & tanggal wajib.
+    await next.click();
+    await expect(page.getByText("Isi nama event.")).toBeVisible();
+    await expect(page.getByText("Pilih tanggal event.")).toBeVisible();
+    await page.getByLabel("Nama event").fill(name);
+    await page.getByLabel("Tanggal event").fill("2026-10-12");
+    await page.getByLabel(/Lokasi/).fill("Gedung Sate");
+    await page.getByLabel(/Teks kecil di layar booth/).fill("The Wedding of");
+    await shot(1);
+    await next.click();
+
+    // Langkah 2: mode wajib dipilih. Tutup tidak sengaja → konfirmasi; batal = tetap di wizard.
+    await expect(page.getByText("Langkah 2 dari 5")).toBeVisible();
+    let asked = "";
+    page.once("dialog", (d) => {
+      asked = d.message();
+      void d.dismiss();
+    });
+    await page.getByRole("link", { name: "Batal" }).click();
+    await page.waitForTimeout(500);
+    expect(asked).toContain("Isian di wizard akan hilang");
+    await expect(page).toHaveURL(/\/admin\/events\/new$/);
+    await next.click();
+    await expect(page.getByText("Pilih salah satu mode.")).toBeVisible();
+    await page.getByRole("radio", { name: /^Event/ }).check();
+    await shot(2);
+    await next.click();
+
+    // Langkah 3: kertas dulu, lalu 1–3 desain; Strip 4 Foto disalin jadi template event ini.
+    await next.click();
+    await expect(page.getByText("Pilih ukuran kertas dulu.")).toBeVisible();
+    await page.getByRole("radio", { name: /Strip 2R/ }).check();
+    await next.click();
+    await expect(page.getByText("Tambah minimal satu desain frame.")).toBeVisible();
+    const picker = page.getByRole("dialog", { name: "Tambah desain frame" });
+    for (const d of ["Strip Klasik", "Strip 4 Foto"]) {
+      await page.getByRole("button", { name: /Tambah desain/ }).click();
+      // Hanya desain 2R: 4R tidak ditawarkan.
+      await expect(picker.getByRole("button", { name: /^4R Grid/ })).toHaveCount(0);
+      await picker
+        .getByRole("button", { name: new RegExp(`^${d}`) })
+        .first()
+        .click();
+      await picker.getByRole("button", { name: "Pakai desain ini" }).click();
+    }
+    await page.getByRole("button", { name: "Salin & sesuaikan Strip 4 Foto" }).click();
+    await expect(
+      page.getByRole("button", { name: "Salin & sesuaikan Strip 4 Foto" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("img", { name: "Pratinjau Strip Klasik" })).toBeVisible({
+      timeout: 15_000,
+    });
+    await shot(3);
+    // Kembali tidak menghapus isian.
+    await page.getByRole("button", { name: "Kembali" }).click();
+    await page.getByRole("button", { name: "Kembali" }).click();
+    await expect(page.getByLabel("Nama event")).toHaveValue(name);
+    await next.click();
+    await next.click();
+    await expect(page.getByRole("article", { name: "Strip 4 Foto" })).toBeVisible();
+    await next.click();
+
+    // Langkah 4: bawaan Semua booth.
+    await expect(page.getByRole("radio", { name: /^Semua booth/ })).toBeChecked();
+    await shot(4);
+    await next.click();
+
+    // Langkah 5: ringkasan + langkah berikutnya, lalu buat.
+    await expect(page.getByText("Langkah 5 dari 5")).toBeVisible();
+    await expect(page.getByText("disalin jadi template baru")).toBeVisible();
+    await expect(page.getByText(`Pilih “${name}”.`)).toBeVisible();
+    await shot("5-ringkasan");
+    await page.getByRole("button", { name: "Buat event" }).click();
+    await expect(page.getByRole("link", { name: "Edit desain" })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("link", { name: "Pengaturan lanjutan" })).toBeVisible();
+    await shot(5);
+
+    const id = (await page.getByRole("link", { name: "Buka event" }).getAttribute("href"))
+      ?.split("/")
+      .pop();
+    const copyId = (await page.getByRole("link", { name: "Edit desain" }).getAttribute("href"))
+      ?.split("/")
+      .pop();
+    const { data: ev } = await db
+      .from("events")
+      .select("name, location, mode, all_devices, bundle, bundle_version, settings")
+      .eq("id", id ?? "")
+      .single();
+    expect(ev).toMatchObject({
+      name,
+      location: "Gedung Sate",
+      mode: "event",
+      all_devices: true,
+      bundle_version: 2,
+      settings: { template: { preset: "strip-3", extras: [`tpl:${copyId}`] } },
+    });
+    const config = (ev?.bundle as { config: Record<string, unknown> } | undefined)?.config ?? {};
+    expect(config).toMatchObject({
+      name,
+      tagline: "The Wedding of",
+      layout: { paper: "2x6x2" },
+    });
+    expect((config.designs as { name: string }[]).map((d) => d.name)).toEqual([
+      "Strip Klasik",
+      `${name} · Strip 4 Foto`,
+    ]);
+  } finally {
+    const { data: copies } = await db.from("layouts").select("id").like("name", `${name}%`);
+    await db.from("events").delete().eq("name", name);
+    for (const c of copies ?? []) {
+      await db.from("layout_versions").delete().eq("layout_id", c.id);
+      await db.from("layouts").delete().eq("id", c.id);
+    }
+    await u.cleanup();
+  }
+});
+
+test("wizard photobox: layout + harga di langkah 3, bundle photobox", async ({ page }) => {
+  test.setTimeout(90_000);
+  const u = await makeUser("owner");
+  const name = `e2e wizard pb ${Date.now()}`;
+  const next = page.getByRole("button", { name: /^Lanjut/ });
+  try {
+    await login(page, u);
+    await page.goto("/admin/events/new");
+    await page.getByLabel("Nama event").fill(name);
+    await page.getByLabel("Tanggal event").fill("2026-10-12");
+    await next.click();
+    await page.getByRole("radio", { name: /^Photobox/ }).check();
+    await next.click();
+    await next.click();
+    await expect(page.getByText("Centang minimal satu layout yang dijual.")).toBeVisible();
+    await page.getByRole("checkbox", { name: "Jual 4R Grid" }).check();
+    await page.getByLabel("Harga 4R Grid").fill("1000");
+    await next.click();
+    await expect(page.getByText("Harga tiap layout minimal Rp 1.500.")).toBeVisible();
+    await page.getByLabel("Harga 4R Grid").fill("35000");
+    await page.getByRole("checkbox", { name: "Jual Strip Klasik" }).check();
+    await page.screenshot({ path: "test-results/wizard-3-photobox.png", fullPage: true });
+    await next.click();
+    await next.click();
+    await expect(page.getByText("Rp 35.000")).toBeVisible();
+    await page.getByRole("button", { name: "Buat event" }).click();
+    await expect(page.getByRole("link", { name: "Buka event" })).toBeVisible({ timeout: 30_000 });
+    const { data: ev } = await db
+      .from("events")
+      .select("mode, all_devices, bundle")
+      .eq("name", name)
+      .single();
+    expect(ev).toMatchObject({ mode: "photobox", all_devices: true });
+    type Pb = {
+      mode: string;
+      photobox: { extraPrintPrice: number; layouts: { id: string; price: number }[] };
+    };
+    const config = (ev?.bundle as { config: Pb } | undefined)?.config;
+    expect(config?.mode).toBe("photobox");
+    expect(config?.photobox.extraPrintPrice).toBe(10000);
+    expect(config?.photobox.layouts.map((l) => [l.id, l.price])).toEqual([
+      ["strip-3", 25000],
+      ["4r-grid", 35000],
+    ]);
+  } finally {
+    await db.from("events").delete().eq("name", name);
     await u.cleanup();
   }
 });

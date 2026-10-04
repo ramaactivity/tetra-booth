@@ -53,7 +53,10 @@ const int = (min: number, max: number) => z.coerce.number().int().min(min).max(m
 /** Minimal nominal QRIS Xendit. */
 const MIN_PRICE = 1500;
 
-const Design = z.union([z.enum(EVENT_PRESETS), z.string().regex(/^tpl:[0-9a-f-]{36}$/)]);
+const Tpl = z.string().regex(/^tpl:[0-9a-f-]{36}$/);
+const Design = z.union([z.enum(EVENT_PRESETS), Tpl]);
+/** "Salin & sesuaikan" juga menerima bentuk dasar di luar EVENT_PRESETS (mis. Polaroid): salinannya template. */
+const CopySource = z.union([z.enum(Object.keys(LAYOUT_PRESETS) as [PresetId, ...PresetId[]]), Tpl]);
 /** Desain frame event: 1–3, ukuran kertas sama; lebih dari satu = tamu memilih (DECISIONS #99). */
 const MAX_DESIGNS = 3;
 
@@ -90,17 +93,29 @@ const lines = (v: FormDataEntryValue | null) =>
     .filter(Boolean)
     .slice(0, 10);
 
-export type SaveResult = { ok: boolean; message: string } | null;
+/** `copied` = id template salinan "Salin & sesuaikan" (editor dibuka setelah simpan). */
+export type SaveResult = { ok: boolean; message: string; copied?: string } | null;
 
-/**
- * Simpan pengaturan event (E3) + template (preset, latar, overlay) → bundle baru (bundle_version + 1) →
- * booth menarik versi baru saat online. Penugasan device diganti sesuai centang.
- */
+/** Simpan dari halaman Pengaturan; "Salin & sesuaikan" langsung membuka editor salinannya. */
 export async function saveEvent(
   eventId: string,
   _prev: SaveResult,
   form: FormData,
 ): Promise<SaveResult> {
+  const r = await applySettings(eventId, form);
+  if (r.copied) redirect(`/admin/templates/${r.copied}`);
+  return r;
+}
+
+/**
+ * Simpan pengaturan event (E3) + template (preset, latar, overlay) → bundle baru (bundle_version + 1) →
+ * booth menarik versi baru saat online. Penugasan device diganti sesuai centang. Dipakai Pengaturan dan
+ * wizard Buat event (satu jalur simpan, bundle selalu sah).
+ */
+export async function applySettings(
+  eventId: string,
+  form: FormData,
+): Promise<NonNullable<SaveResult>> {
   const { db, orgId } = await requireMember(["owner", "admin"]);
   const p = Form.safeParse(Object.fromEntries(form));
   if (!p.success) return { ok: false, message: "Periksa lagi isian yang ditandai" };
@@ -264,10 +279,14 @@ export async function saveEvent(
     pbTemplates[l.template] = { name: lv.name, custom: lv.custom };
   }
   // Desain frame (utama dulu): preset, atau `tpl:<layoutId>` = template editor (versi terbaru dikunci saat simpan).
-  const copy = Design.safeParse(form.get("copy"));
+  const copy = CopySource.safeParse(form.get("copy"));
   const values = [...new Set(form.getAll("design").map(String))];
   if (copy.success && !values.includes(copy.data)) values.push(copy.data);
-  const picked = z.array(Design).min(1).max(MAX_DESIGNS).safeParse(values);
+  const picked = z
+    .array(copy.success ? z.union([Design, z.literal(copy.data)]) : Design)
+    .min(1)
+    .max(MAX_DESIGNS)
+    .safeParse(values);
   if (!picked.success)
     return {
       ok: false,
@@ -411,9 +430,9 @@ export async function saveEvent(
 
   revalidatePath(`/admin/events/${eventId}/settings`);
   revalidatePath("/admin");
-  if (copied) redirect(`/admin/templates/${copied}`);
   return {
     ok: true,
     message: `Tersimpan · bundle v${ev.bundle_version + 1}. Booth menerima pengaturan baru saat online.`,
+    ...(copied && { copied }),
   };
 }

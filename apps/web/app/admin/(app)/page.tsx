@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { requireMember } from "@/lib/supabase/server";
-import { NewEventForm } from "./NewEventForm";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +58,12 @@ export default async function EventsPage({
     <>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-[30px] font-extrabold tracking-[-0.03em]">Event</h1>
-        <NewEventForm />
+        <Link
+          href="/admin/events/new"
+          className="pressable layered inline-flex h-11 items-center rounded-xl border-[1.5px] border-ink bg-butter px-[18px] text-sm font-extrabold no-underline [--lb:1.5px] [--lx:4px]"
+        >
+          + Buat Event
+        </Link>
       </div>
       <nav className="flex self-start overflow-hidden rounded-xl border-[1.5px] border-ink bg-white">
         {TABS.map(([k, label], i) => (

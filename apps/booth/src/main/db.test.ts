@@ -45,6 +45,19 @@ describe("booth db", () => {
     ]);
   });
 
+  it("layar awal (#143): hanya sesi selesai event itu, terbaru dulu", () => {
+    const db = openDb(":memory:");
+    db.sessionStarted(start);
+    db.sessionCompleted(done);
+    db.sessionStarted({ ...start, id: "baru000001" });
+    db.sessionCompleted({ ...done, id: "baru000001", completedAt: "2026-09-24T11:00:00Z" });
+    db.sessionStarted({ ...start, id: "batal00001" });
+    db.sessionStarted({ ...start, id: "lain000001", eventId: "local" });
+    db.sessionCompleted({ ...done, id: "lain000001" });
+    expect(db.recentSessions(start.eventId, 10)).toEqual(["baru000001", start.id]);
+    expect(db.recentSessions(start.eventId, 1)).toEqual(["baru000001"]);
+  });
+
   it("tajamkan foto lama (#140): strip_web terunggah masuk antrean lagi dengan ukuran baru, tanpa baris ganda", () => {
     const db = openDb(":memory:");
     db.sessionStarted(start);

@@ -27,7 +27,7 @@ export const fit = (w: number, h: number, max: number) => {
 const THUMB_QUALITY = 0.85;
 const VIEW_QUALITY = 0.92;
 
-const encode = async (src: ImageBitmap, w: number, h: number, quality = THUMB_QUALITY) => {
+export const encode = async (src: ImageBitmap, w: number, h: number, quality = THUMB_QUALITY) => {
   const c = cpuCanvas(w, h);
   const g = c.getContext("2d");
   if (!g) throw new Error("canvas 2d tidak tersedia");

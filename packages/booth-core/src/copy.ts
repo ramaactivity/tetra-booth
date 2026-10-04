@@ -131,16 +131,25 @@ export const copy = {
     missingHint:
       "Event tidak muncul? Di admin buka event → Pengaturan → Device, pilih Semua booth atau centang booth ini → Simpan, lalu tekan Ambil event terbaru.",
     sub: "Tentukan mode dulu, lalu pilih event.",
+    /** Urutan persiapan crew dari layar ini sampai tamu bisa mulai. */
+    steps: ["Pilih mode", "Pilih event", "Cek kamera & printer", "Buka untuk tamu"],
     mode: { event: "Mode Event", photobox: "Mode Photobox" },
-    modeSub: {
-      event: "Satu desain khusus per event. Tamu cetak gratis.",
-      photobox: "Tamu memilih desain dan membayar QRIS per sesi.",
+    modeWhen: {
+      event: "Pakai ini kalau booth disewa untuk satu acara (nikahan, ulang tahun, acara kantor).",
+      photobox: "Pakai ini kalau booth berdiri di tempat umum (mall, kafe) dan tamu bayar sendiri.",
     },
+    modeNext: {
+      event: "Cetak gratis, desain dari klien.",
+      photobox: "Tamu pilih desain lalu bayar QRIS per sesi. Butuh internet.",
+    },
+    designs: (n: number) => `${n} desain pilihan`,
+    layouts: (n: number) => `${n} layout dijual`,
     count: (n: number) => `${n} event`,
     back: "Ganti mode",
     pickEvent: "pilih event",
     empty:
-      "Belum ada event untuk mode ini di booth. Buat event di admin (booth.tetraphoto.com/admin), tugaskan ke booth ini, lalu Ambil event terbaru.",
+      "Belum ada event untuk mode ini. Buat event di admin dengan panduan Buat Event, pilih Tampil di booth: Semua booth, lalu tekan Ambil event terbaru.",
+    emptyCrew: "Tombol Ambil event terbaru ada di Mode Crew (kanan atas).",
     crew: "Mode Crew",
     backToCrew: "Kembali ke Mode Crew",
   },

@@ -87,6 +87,7 @@ export type TetraBridge = {
   eventsActive: BoothEvents["active"];
   eventsSetActive: BoothEvents["setActive"];
   eventAsset: BoothEvents["asset"];
+  eventsRecentPieces: BoothEvents["recentPieces"];
   paymentCreate: BoothPayments["create"];
   paymentStatus: BoothPayments["status"];
 };

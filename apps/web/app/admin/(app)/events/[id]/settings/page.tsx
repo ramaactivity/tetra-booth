@@ -1,11 +1,4 @@
-import {
-  EVENT_PRESETS,
-  EventSettingsSchema,
-  LAYOUT_PRESETS,
-  paperLabel,
-  SOUND_CUES,
-  StoredBundle,
-} from "@tetra/shared";
+import { EventSettingsSchema, LAYOUT_PRESETS, SOUND_CUES, StoredBundle } from "@tetra/shared";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -15,12 +8,11 @@ import {
   type EventBranding,
   type EventTemplate,
 } from "@/lib/event-bundle";
-import { StoredLayout } from "@/lib/layouts";
 import type { PhotoboxSettings } from "@/lib/payments";
 import { photoboxKey } from "@/lib/payments";
 import { presignGet } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
-import type { DesignOption } from "./DesignPicker";
+import { loadDesignOptions } from "./design-options";
 import { LinksPanel } from "./LinksPanel";
 import { SettingsForm, type SettingsValues } from "./SettingsForm";
 
@@ -45,15 +37,6 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
     .eq("organization_id", orgId)
     .is("revoked_at", null)
     .order("short_code");
-  const { data: layouts } = await db
-    .from("layouts")
-    .select("id, name, paper, layout_versions(version, spec)")
-    .eq("organization_id", orgId)
-    .is("archived_at", null)
-    .order("created_at", { ascending: false })
-    .order("version", { referencedTable: "layout_versions", ascending: false })
-    .limit(1, { referencedTable: "layout_versions" });
-
   const raw = (ev.settings ?? {}) as Record<string, unknown> & {
     template?: EventTemplate;
     guestDays?: number;
@@ -70,40 +53,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
   const assigned = new Set(ev.event_devices.map((d) => d.device_id));
   const pinned = { ...tpl.versions, ...(tpl.layoutId && { [tpl.layoutId]: tpl.layoutVersion }) };
-  // Template terbaru dulu (urutan "Terbaru" di pemilih), lalu preset.
-  const designOptions: DesignOption[] = [
-    ...(layouts ?? []).flatMap((l) => {
-      const lv = l.layout_versions[0];
-      const spec = StoredLayout.safeParse(lv?.spec);
-      if (!lv || !spec.success) return [];
-      const { paper, canvas, slots } = spec.data.layout;
-      return [
-        {
-          value: `tpl:${l.id}`,
-          name: l.name,
-          paper,
-          info: `${paperLabel(paper, canvas)} · ${slots.length} foto · v${lv.version}`,
-          layout: spec.data.layout,
-          template: {
-            id: l.id,
-            version: lv.version,
-            pinned: pinned[l.id] ?? null,
-            files: Object.fromEntries(Object.entries(spec.data.files).map(([k, f]) => [k, f.file])),
-          },
-        },
-      ];
-    }),
-    ...EVENT_PRESETS.map((id) => {
-      const { layout } = LAYOUT_PRESETS[id];
-      return {
-        value: id,
-        name: LAYOUT_PRESETS[id].name,
-        paper: layout.paper,
-        info: `${paperLabel(layout.paper, layout.canvas)} · ${layout.slots.length} foto`,
-        layout: { id, version: 1, ...layout },
-      };
-    }),
-  ];
+  const { designOptions, layouts } = await loadDesignOptions(db, orgId, pinned);
   const known = new Set(designOptions.map((o) => o.value));
 
   return (
@@ -162,7 +112,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
               };
             }),
           ),
-          templates: (layouts ?? []).map((l) => ({
+          templates: layouts.map((l) => ({
             id: l.id,
             name: l.name,
             paper: l.paper,

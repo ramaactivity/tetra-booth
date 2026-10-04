@@ -1,10 +1,13 @@
+import type { LayoutSpec } from "@tetra/shared";
 import { Button } from "@tetra/ui";
 import { ArrowRight } from "lucide-react";
 import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { createTapDetector } from "../crew/taps";
 import type { BoothEvent } from "../event";
+import { encode } from "../finalize";
 import { usePlatform } from "../PlatformContext";
+import type { BoothStorage } from "../platform";
 import { Logo } from "../ui";
 
 export const START_GUARD_MS = 800;
@@ -49,9 +52,39 @@ function useFitTitle(name: string) {
   return ref;
 }
 
-// Kolom strip contoh di kanan: offset vertikal & warna lapisan belakang per strip (A1).
+// Kolom hasil di kanan: offset vertikal & warna lapisan belakang per kartu (A1).
 const UNDER = ["var(--peach)", "var(--sky)", "var(--lavender)", "var(--mint-soft)"];
 const COLUMNS = [0, -180, -60];
+/** Lebar total kolom (px kanvas 1920); kartu dibagi rata, jarak antar kolom 44. */
+const AREA_W = 748;
+const GAP = 44;
+/** Tinggi minimum setengah isi kolom (loop drift -50%) supaya layar tidak pernah kosong. */
+const HALF_MIN_H = 1300;
+/** Kecepatan geser kolom, px per detik. */
+const DRIFT_PX_S = 20;
+/** Hasil sesi asli di layar awal (#143): maks. kartu, lebar decode, dan interval cek sesi baru. */
+const MAX_PIECES = 24;
+const PIECE_W = 400;
+const REFRESH_MS = 15_000;
+
+/** Strip 2R (tinggi) 3 kolom sempit; 4R/polaroid 2 kolom lebih lebar; potongan sangat lebar 1 kolom. */
+export function columnsFor(aspect: number) {
+  const n = aspect < 0.5 ? 3 : aspect < 2 ? 2 : 1;
+  return { n, width: Math.floor((AREA_W - (n - 1) * GAP) / n) };
+}
+
+/**
+ * Isi satu kolom: kartu ke-c, c+n, … (terbaru di atas kolom pertama); kolom tanpa kartu meminjam satu.
+ * Diulang sampai setengah isi ≥ HALF_MIN_H lalu digandakan, supaya drift -50% berulang mulus.
+ */
+export function columnItems<T>(items: T[], c: number, n: number, height: (x: T) => number): T[] {
+  if (!items.length) return [];
+  const own = items.filter((_, i) => i % n === c);
+  const col = own.length ? own : [items[c % items.length] as T];
+  const h = col.reduce((a, x) => a + height(x) + 48, 0);
+  const half = Array.from({ length: Math.ceil(HALF_MIN_H / h) }, () => col).flat();
+  return [...half, ...half];
+}
 
 /** Layar awal dibangun bertahap (#105), kurva sama dengan bumper: masuk cepat, sedikit overshoot. */
 const rise = (ms: number) =>
@@ -61,18 +94,98 @@ const rise = (ms: number) =>
 const pop = (ms: number) =>
   ({ animation: `pop 700ms cubic-bezier(.34,1.56,.64,1) ${ms}ms both` }) as const;
 
-function SampleStrip({ name, under }: { name: string; under: string }) {
+type Piece = { url: string; w: number; h: number };
+
+/** Potongan desain sesi → JPEG kecil (lebar PIECE_W) sebagai object URL, supaya memori tetap kecil. */
+async function pieceThumb(storage: BoothStorage, path: string): Promise<Piece> {
+  const bmp = await createImageBitmap(new Blob([await storage.readFile(path)]), {
+    resizeWidth: PIECE_W,
+    resizeQuality: "high",
+  });
+  try {
+    const jpeg = await encode(bmp, bmp.width, bmp.height);
+    return {
+      url: URL.createObjectURL(new Blob([jpeg], { type: "image/jpeg" })),
+      w: bmp.width,
+      h: bmp.height,
+    };
+  } finally {
+    bmp.close();
+  }
+}
+
+/**
+ * Hasil desain sesi selesai event ini dari disk lokal (offline), terbaru dulu. Dicek ulang tiap REFRESH_MS
+ * (output sesi terakhir selesai di belakang layar setelah layar QR); object URL dilepas saat diganti/unmount.
+ * `eventId` kosong = tidak memuat (photobox: foto tamu lain tidak ditampilkan di tempat umum).
+ */
+function useRecentPieces(eventId: string | undefined) {
+  const { events, storage } = usePlatform();
+  const [pieces, setPieces] = useState<Piece[]>([]);
+  useEffect(() => {
+    if (!eventId) return;
+    let live = true;
+    let busy = false;
+    let key = "";
+    let urls: string[] = [];
+    const load = async () => {
+      const paths = await events.recentPieces(eventId, MAX_PIECES);
+      if (!live || paths.join("|") === key) return;
+      key = paths.join("|");
+      const next = (
+        await Promise.all(paths.map((f) => pieceThumb(storage, f).catch(() => null)))
+      ).filter((x): x is Piece => x !== null);
+      for (const u of live ? urls : next.map((x) => x.url)) URL.revokeObjectURL(u);
+      if (!live) return;
+      urls = next.map((x) => x.url);
+      setPieces(next);
+    };
+    const run = () => {
+      if (busy) return;
+      busy = true;
+      load()
+        .catch((e: unknown) => console.warn("[attract] hasil sesi tidak terbaca", e))
+        .finally(() => {
+          busy = false;
+        });
+    };
+    run();
+    const t = setInterval(run, REFRESH_MS);
+    return () => {
+      live = false;
+      clearInterval(t);
+      for (const u of urls) URL.revokeObjectURL(u);
+    };
+  }, [eventId, events, storage]);
+  return pieces;
+}
+
+/**
+ * Contoh sebelum ada sesi: bentuk = kanvas kertas event, kotak foto bergaris di posisi slot desain.
+ * Juga pratinjau kecil di daftar event (StartScreen), tanpa nama.
+ */
+export function SampleCard({ name, layout }: { name?: string; layout: LayoutSpec }) {
+  const { width: cw, height: ch } = layout.canvas;
+  const pct = (v: number, of: number) => `${(v / of) * 100}%`;
   return (
-    <div
-      style={{ "--under": under } as CSSProperties}
-      className="layered flex w-[220px] shrink-0 flex-col gap-2.5 rounded-2xl border-[2.5px] border-ink bg-white px-3.5 pt-3.5"
-    >
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="stripes h-[150px] rounded-lg" />
+    <div style={{ aspectRatio: `${cw} / ${ch}` }} className="relative bg-white">
+      {layout.slots.map((s) => (
+        <div
+          key={s.id}
+          className="stripes absolute rounded-lg"
+          style={{
+            left: pct(s.x, cw),
+            top: pct(s.y, ch),
+            width: pct(s.w, cw),
+            height: pct(s.h, ch),
+          }}
+        />
       ))}
-      <div className="flex h-[52px] items-center justify-center truncate text-[15px] font-extrabold tracking-[-0.01em]">
-        {name}
-      </div>
+      {name && (
+        <div className="absolute bottom-3 left-1/2 max-w-[88%] -translate-x-1/2 truncate rounded-full border-2 border-ink bg-white px-3.5 py-1 text-[15px] font-extrabold tracking-[-0.01em]">
+          {name}
+        </div>
+      )}
     </div>
   );
 }
@@ -82,6 +195,8 @@ export function Attract({
   tagline,
   date,
   theme,
+  layout,
+  photosOf,
   onStart,
   onCrew,
 }: {
@@ -90,6 +205,10 @@ export function Attract({
   date: string;
   /** Layar awal per event (#102): warna/gambar latar, teks tombol, strip contoh. */
   theme?: BoothEvent["attract"];
+  /** Desain utama event: bentuk kartu contoh & jumlah kolom. */
+  layout: LayoutSpec;
+  /** ID event yang hasil sesinya boleh tampil (#143); kosong = hanya contoh (photobox). */
+  photosOf?: string | undefined;
   onStart: () => void;
   /** `"exit"` = Ctrl+Shift+Q: setelah PIN langsung konfirmasi Tutup Aplikasi. */
   onCrew?: ((intent?: "exit") => void) | undefined;
@@ -103,6 +222,11 @@ export function Attract({
     return () => clearTimeout(t);
   }, []);
   const titleRef = useFitTitle(eventName);
+  // Hasil asli sesi event ini (#143); sebelum ada sesi: kartu contoh berbentuk kertas event.
+  const pieces = useRecentPieces(theme?.samples === false ? undefined : photosOf);
+  const cols = columnsFor(layout.canvas.width / layout.canvas.height);
+  const sample = { url: "", w: layout.canvas.width, h: layout.canvas.height };
+  const cards: Piece[] = pieces.length ? pieces : [sample];
 
   // Jalan lain ke mode crew selain 5 ketukan pojok (UX, masukan Rama): tahan logo 2 detik, atau Ctrl+Shift+M
   // di keyboard laptop. Hanya di layar ini, jadi sesi tamu tidak pernah terpotong.
@@ -184,27 +308,51 @@ export function Attract({
         </>
       )}
 
-      {/* Kolom strip contoh, bergerak lambat (loop vertikal). */}
+      {/* Kolom hasil sesi asli (atau contoh sebelum ada sesi), bergerak lambat (loop vertikal). */}
       <div
         hidden={theme?.samples === false}
+        data-testid="attract-columns"
         className="absolute -top-[60px] -bottom-[60px] right-[110px] flex gap-11 portrait:hidden"
       >
-        {COLUMNS.map((offset, c) => (
-          <div
-            key={offset}
-            style={{ marginTop: offset, ...rise(260 + c * 90) }}
-            className="overflow-visible"
-          >
+        {COLUMNS.slice(0, cols.n).map((offset, c) => {
+          const items = columnItems(cards, c, cols.n, (x) => cols.width * (x.h / x.w));
+          const half = items.reduce((a, x) => a + cols.width * (x.h / x.w) + 48, 0) / 2;
+          return (
             <div
-              style={{ animationDuration: `${90 + c * 20}s` }}
-              className="flex animate-[drift_linear_infinite] flex-col gap-12 pb-12 motion-reduce:animate-none"
+              key={offset}
+              style={{ marginTop: offset, ...rise(260 + c * 90) }}
+              className="overflow-visible"
             >
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <SampleStrip key={i} name={eventName} under={UNDER[(c + i) % 4] as string} />
-              ))}
+              <div
+                style={{ animationDuration: `${Math.round(half / DRIFT_PX_S)}s` }}
+                className="flex animate-[drift_linear_infinite] flex-col gap-12 pb-12 motion-reduce:animate-none"
+              >
+                {items.map((x, i) => (
+                  <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: daftar diulang (loop), urutan tetap
+                    key={i}
+                    style={{ width: cols.width, "--under": UNDER[(c + i) % 4] } as CSSProperties}
+                    className="layered shrink-0 overflow-hidden rounded-2xl border-[2.5px] border-ink bg-white"
+                  >
+                    {x.url ? (
+                      <img
+                        src={x.url}
+                        alt=""
+                        decoding="async"
+                        draggable={false}
+                        data-testid="attract-piece"
+                        style={{ aspectRatio: `${x.w} / ${x.h}` }}
+                        className="block w-full"
+                      />
+                    ) : (
+                      <SampleCard name={eventName} layout={layout} />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <button

@@ -605,6 +605,22 @@ export function registerIpc(
       applyDesignOverride(applyOverride(b, overrideOf(b.id)), designOf(b.id)),
     ),
   );
+  // Layar awal (#143): hasil desain sesi selesai event ini; thumb (960 px) dulu, lalu potongan web/cetak.
+  // Tanpa PIN (layar tamu), hanya path di folder sesi; renderer membacanya lewat readFile.
+  ipcMain.handle("eventsRecentPieces", (_e, id: unknown, limit: unknown) =>
+    db
+      .recentSessions(
+        z.string().min(1).max(64).parse(id),
+        z.number().int().min(1).max(48).parse(limit),
+      )
+      .flatMap((sid) => {
+        const out = join(sessionsRoot(), sid, "out");
+        const f = ["thumb_strip.jpg", "piece@2x.jpg", "piece.jpg", "strip.jpg"]
+          .map((n) => join(out, n))
+          .find((p) => existsSync(p));
+        return f ? [f] : [];
+      }),
+  );
   // Desain diedit di booth (DECISIONS #128/#131): layout.id → waktu simpan, hanya layout yang masih ada di bundle.
   ipcMain.handle("crewDesigns", (_e, id: unknown) => {
     crewOnly();

@@ -19,6 +19,7 @@ import {
 } from "react";
 import { type SaveResult, saveEvent } from "./actions";
 import { type DesignOption, DesignPicker } from "./DesignPicker";
+import { useLeaveGuard } from "./useLeaveGuard";
 
 export type SettingsValues = {
   name: string;
@@ -97,7 +98,7 @@ const input = "h-[42px] w-full rounded-[11px] border-[1.5px] border-ink bg-white
 const textarea = "w-full rounded-[11px] border-[1.5px] border-ink bg-white px-3 py-2.5 text-sm";
 
 /** "12 Oktober 2026" (sama dengan tanggal di strip, lib/guest `longDate`). */
-const longDate = (d: string) => {
+export const longDate = (d: string) => {
   const t = new Date(`${d}T00:00:00Z`);
   return Number.isNaN(t.getTime())
     ? ""
@@ -105,7 +106,7 @@ const longDate = (d: string) => {
 };
 
 /** Kotak centang / radio bergaya v2 (input asli, jadi keyboard & label tetap jalan). */
-function Box({ radio, ...p }: InputHTMLAttributes<HTMLInputElement> & { radio?: boolean }) {
+export function Box({ radio, ...p }: InputHTMLAttributes<HTMLInputElement> & { radio?: boolean }) {
   return (
     <span className="relative inline-flex size-5 flex-none">
       <input
@@ -384,27 +385,7 @@ export function SettingsForm({
   useEffect(() => {
     if (r?.ok) setDirty(false);
   }, [r]);
-  // Perubahan belum disimpan: tanya dulu saat menutup tab/reload, atau saat mengklik link lain di admin
-  // (navigasi Next tidak memicu beforeunload). Link anchor bagian (#…) di halaman ini tidak ditanya.
-  useEffect(() => {
-    if (!dirty) return;
-    const onUnload = (e: BeforeUnloadEvent) => e.preventDefault();
-    const onClick = (e: MouseEvent) => {
-      const a = (e.target as Element | null)?.closest("a[href]");
-      const href = a?.getAttribute("href");
-      if (!href || href.startsWith("#") || a?.getAttribute("target") === "_blank") return;
-      if (!confirm("Ada perubahan belum disimpan. Tinggalkan halaman ini?")) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-    window.addEventListener("beforeunload", onUnload);
-    document.addEventListener("click", onClick, true);
-    return () => {
-      window.removeEventListener("beforeunload", onUnload);
-      document.removeEventListener("click", onClick, true);
-    };
-  }, [dirty]);
+  useLeaveGuard(dirty, "Ada perubahan belum disimpan. Tinggalkan halaman ini?");
   const pb = mode === "photobox";
 
   // Bagian yang sedang terbaca → disorot di navigasi kiri.

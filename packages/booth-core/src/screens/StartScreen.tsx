@@ -1,4 +1,4 @@
-import type { EventBundle } from "@tetra/shared";
+import { type EventBundle, paperLabel } from "@tetra/shared";
 import { Button } from "@tetra/ui";
 import {
   ArrowLeft,
@@ -12,10 +12,46 @@ import {
 import { useState } from "react";
 import { copy } from "../copy";
 import { errText } from "../errors";
+import { DEFAULT_EVENT } from "../event";
 import { Logo } from "../ui";
+import { SampleCard } from "./Attract";
 
 type Mode = "event" | "photobox";
+type Row = Pick<EventBundle, "id" | "name" | "date" | "layout" | "designs" | "photobox">;
 const t = copy.start;
+
+/** Keterangan satu event di daftar: tanggal · kertas · jumlah desain/layout. */
+const info = (b: Row) =>
+  [
+    b.date,
+    paperLabel(b.layout.paper, b.layout.canvas),
+    b.photobox
+      ? t.layouts(b.photobox.layouts.length)
+      : b.designs
+        ? t.designs(b.designs.length)
+        : undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+/** Urutan persiapan crew; `at` = langkah yang sedang dikerjakan di layar ini. */
+function SetupSteps({ at }: { at: number }) {
+  return (
+    <ol className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xl font-bold">
+      {t.steps.map((label, i) => (
+        <li key={label} className="flex items-center gap-3">
+          {i > 0 && <span className="w-8 border-t-[2.5px] border-dashed border-ink" />}
+          <span
+            className={`flex size-9 items-center justify-center rounded-full border-2 border-ink ${i === at ? "bg-ink text-white" : i < at ? "bg-mint-soft" : "bg-white"}`}
+          >
+            {i + 1}
+          </span>
+          <span className={i === at ? "" : "text-text-2"}>{label}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 /**
  * Layar awal (DECISIONS #86): pilih mode dulu (Event / Photobox), lalu event dengan mode itu.
@@ -49,10 +85,14 @@ export function StartScreen({
   const [note, setNote] = useState<string>();
   const of = (m: Mode) => bundles.filter((b) => (b.mode ?? "event") === m);
   // Event default (lokal) hanya untuk mode event.
-  const list =
+  const list: Row[] =
     mode === "event"
-      ? [{ id: "local", name: copy.crew.defaultEvent, date: "" }, ...of("event")]
+      ? [
+          { id: "local", name: copy.crew.defaultEvent, date: "", layout: DEFAULT_EVENT.layout },
+          ...of("event"),
+        ]
       : of("photobox");
+  const empty = !!mode && !of(mode).length;
 
   const sync = async () => {
     if (!onSync) return;
@@ -84,6 +124,7 @@ export function StartScreen({
           </button>
         </div>
       </header>
+      <SetupSteps at={mode ? 1 : 0} />
 
       {!mode ? (
         <section className="flex flex-1 flex-col justify-center gap-10">
@@ -115,8 +156,9 @@ export function StartScreen({
                     {t.mode[m]}
                   </span>
                   <span className="mt-2 block text-2xl font-medium text-text-2">
-                    {t.modeSub[m]}
+                    {t.modeWhen[m]}
                   </span>
+                  <span className="mt-3 block text-2xl font-bold">{t.modeNext[m]}</span>
                 </span>
                 <span className="flex items-center justify-between text-xl font-bold">
                   {t.count(of(m).length + (m === "event" ? 1 : 0))}
@@ -158,12 +200,27 @@ export function StartScreen({
                 <button
                   type="button"
                   onClick={() => onPick(b.id)}
-                  className={`pressable flex min-h-[104px] flex-1 items-center justify-between gap-6 rounded-[24px] border-[2.5px] border-ink px-8 text-left text-[30px] font-bold ${b.id === activeId ? "bg-mint-soft" : "bg-white"}`}
+                  className={`pressable flex min-h-[112px] flex-1 items-center gap-6 rounded-[24px] border-[2.5px] border-ink py-3 pr-8 pl-5 text-left ${b.id === activeId ? "bg-mint-soft" : "bg-white"}`}
                 >
-                  {b.name}
-                  {b.date && (
-                    <span className="font-mono text-xl font-normal text-text-2">{b.date}</span>
-                  )}
+                  <span
+                    aria-hidden
+                    className="flex h-[84px] w-[84px] shrink-0 items-center justify-center"
+                  >
+                    <span
+                      style={{
+                        aspectRatio: `${b.layout.canvas.width} / ${b.layout.canvas.height}`,
+                        [b.layout.canvas.width > b.layout.canvas.height ? "width" : "height"]:
+                          "100%",
+                      }}
+                      className="block overflow-hidden rounded-md border-2 border-ink"
+                    >
+                      <SampleCard layout={b.layout} />
+                    </span>
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[30px] font-bold">{b.name}</span>
+                    <span className="block font-mono text-xl text-text-2">{info(b)}</span>
+                  </span>
                 </button>
                 {onEditEvent && b.id !== "local" && (
                   <button
@@ -181,11 +238,13 @@ export function StartScreen({
             {onEditEvent && list.some((b) => b.id !== "local") && (
               <p className="text-xl font-medium text-text-2">{t.editHint}</p>
             )}
-            {onSync && <p className="text-xl font-medium text-text-2">{t.missingHint}</p>}
-            {!list.length && (
-              <p className="rounded-[24px] border-[2.5px] border-dashed border-ink px-8 py-10 text-2xl font-medium text-text-2">
+            {empty ? (
+              <p className="rounded-[24px] border-[2.5px] border-dashed border-ink px-8 py-8 text-2xl font-medium text-text-2">
                 {t.empty}
+                {!onSync && <span className="mt-2 block font-bold text-ink">{t.emptyCrew}</span>}
               </p>
+            ) : (
+              onSync && <p className="text-xl font-medium text-text-2">{t.missingHint}</p>
             )}
           </div>
         </section>

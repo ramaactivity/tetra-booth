@@ -1,4 +1,4 @@
-import { printPaper } from "@tetra/shared";
+import { paperLabel, printPaper } from "@tetra/shared";
 import { Button } from "@tetra/ui";
 import {
   ArrowRight,
@@ -497,7 +497,11 @@ export function CrewMenu({
               testId="step-event"
               done={hasEvent}
               title={copy.crew.setup.event}
-              detail={hasEvent ? event.name : copy.crew.setup.eventTodo}
+              detail={
+                hasEvent
+                  ? `${event.name} · ${paperLabel(event.layout.paper, event.layout.canvas)}`
+                  : copy.crew.setup.eventTodo
+              }
               action={hasEvent ? copy.crew.setup.eventChange : copy.crew.setup.eventAction}
               onAction={onChangeEvent}
             />

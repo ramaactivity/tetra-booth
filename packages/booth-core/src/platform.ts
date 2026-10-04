@@ -191,6 +191,8 @@ export interface BoothEvents {
   active(): Promise<string | null>;
   setActive(id: string): Promise<void>;
   asset(eventId: string, assetId: string): Promise<Uint8Array<ArrayBuffer>>;
+  /** Hasil desain sesi selesai event ini di laptop ini, terbaru dulu (path file lokal, layar awal #143). */
+  recentPieces(eventId: string, limit: number): Promise<string[]>;
 }
 
 /** QRIS photobox lewat cloud (TSD §8). Satu-satunya langkah yang butuh internet; gagal = reject. */

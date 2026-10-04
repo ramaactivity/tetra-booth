@@ -445,6 +445,8 @@ export function SessionRunner({
             tagline={event.tagline}
             date={event.date}
             theme={event.attract}
+            layout={event.layout}
+            photosOf={event.photobox ? undefined : event.id}
             onStart={() => {
               // Sapaan hanya kalau ada layar pilih dulu; kalau langsung foto, "gaya pertama" sudah menyapa.
               if (cfg.countdownSound && (event.photobox || event.designs)) void play("mulai");
