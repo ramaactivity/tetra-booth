@@ -430,6 +430,10 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await typePin(w, "2468");
   const run = w.getByTestId("crew-run");
   await expect(run).toHaveAttribute("data-state", "idle");
+  // Timer belum pernah jalan: rekap tetap bisa dibuka (perkiraan dari sesi).
+  await run.getByRole("button", { name: "Rekap Acara" }).click();
+  await expect(w.getByTestId("booth-recap")).toBeVisible();
+  await w.getByTestId("booth-recap").getByRole("button", { name: "Tutup" }).click();
   await w.getByTestId("to-guest").click();
   await w
     .getByTestId("start-dialog")

@@ -660,15 +660,14 @@ export function CrewMenu({
                       <Flag size={24} strokeWidth={2.5} /> {copy.crew.run.finish}
                     </Button>
                   )}
-                  {run !== "idle" && run !== "waiting" && (
-                    <Button
-                      variant="secondary"
-                      className="h-[80px] gap-3 rounded-[20px] px-8 text-xl"
-                      onClick={() => setRecapOpen(true)}
-                    >
-                      <ClipboardList size={24} strokeWidth={2.5} /> {copy.crew.run.recap}
-                    </Button>
-                  )}
+                  {/* Selalu ada: event tanpa timer (mis. sebelum 0.5.48) tetap punya rekap perkiraan sesi pertama → terakhir. */}
+                  <Button
+                    variant="secondary"
+                    className="h-[80px] gap-3 rounded-[20px] px-8 text-xl"
+                    onClick={() => setRecapOpen(true)}
+                  >
+                    <ClipboardList size={24} strokeWidth={2.5} /> {copy.crew.run.recap}
+                  </Button>
                 </>
               )}
             </div>
