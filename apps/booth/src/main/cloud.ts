@@ -10,6 +10,7 @@ import {
   EdsdkResponse,
   GalleryLinkResponse,
   type HeartbeatRequest,
+  type LocalStorage,
   PairResponse,
   type PaymentCreateRequest,
   PaymentCreateResponse,
@@ -240,12 +241,24 @@ export function createCloud(
     /** Timer event (#149): null = bukan event cloud. */
     runState: (eventId: string) => (cloudEvent(eventId) ? runQueue.state(eventId) : null),
     /** `arm` = Mulai acara (#152): timer mulai saat sesi tamu pertama. */
-    runAction: (eventId: string, action: RunAction | "arm") =>
+    runAction: (eventId: string, action: RunAction | "arm", local?: LocalStorage) =>
       !cloudEvent(eventId)
         ? null
         : action === "arm"
           ? runQueue.arm(eventId)
-          : runQueue.push(eventId, action),
+          : runQueue.push(eventId, action, local),
+    /**
+     * Laporkan ukuran folder event di laptop (#166) saat rekap booth dibuka. Idempotent (nilai terakhir menang);
+     * offline / gagal = dilewati, terkirim lagi saat rekap dibuka berikutnya.
+     */
+    reportStorage(eventId: string, local: LocalStorage) {
+      if (!cloudEvent(eventId) || !token()) return;
+      api(`/api/booth/events/${eventId}/storage`, local).catch((e: unknown) =>
+        log(
+          `[cloud] ukuran folder event belum terkirim: ${e instanceof Error ? e.message : String(e)}`,
+        ),
+      );
+    },
     /** Sesi tamu (bukan tes) mulai: timer yang menunggu mulai di jam sesi itu. */
     sessionStarted: (eventId: string, at: string) => {
       if (cloudEvent(eventId)) runQueue.sessionStarted(eventId, at);

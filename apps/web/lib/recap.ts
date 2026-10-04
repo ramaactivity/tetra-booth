@@ -2,6 +2,7 @@ import {
   compareSchedule,
   durationText,
   type EventRun,
+  fileSize,
   localHhmm,
   type RunVerdict,
   runElapsedMs,
@@ -37,6 +38,10 @@ export type RecapData = {
   /** Jadwal booking (#152) "HH:MM" waktu lokal venue (WIB); null = tidak diisi. */
   scheduledStart: string | null;
   scheduledEnd: string | null;
+  /** Ukuran folder event di laptop booth (#166); null = belum dilaporkan booth. */
+  local: { bytes: number; files: number } | null;
+  /** Jumlah ukuran file sesi asli di cloud (#166). */
+  cloudBytes: number;
 };
 
 const WIB = { timeZone: "Asia/Jakarta" } as const;
@@ -137,6 +142,13 @@ export function recapView(d: RecapData, now: number): RecapView {
       },
       { label: "Booth", value: d.booths.join(", ") || "–" },
       { label: "Desain frame", value: d.designs.join(", ") || "–" },
+      {
+        label: "Ukuran di laptop",
+        value: d.local
+          ? `${fileSize(d.local.bytes)} (${d.local.files.toLocaleString("id-ID")} file)`
+          : "Belum dilaporkan booth",
+      },
+      { label: "Ukuran di cloud", value: fileSize(d.cloudBytes) },
     ],
     generated: stamp(now),
   };

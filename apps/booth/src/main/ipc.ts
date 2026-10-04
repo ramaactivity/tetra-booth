@@ -41,7 +41,7 @@ import {
   saveDesign,
 } from "./design-override";
 import { FOCUS_STEPS, focus, liveViewFrame, liveViewStart, liveViewStop } from "./digicam";
-import { buildEventFolder, folderName } from "./event-folder";
+import { buildEventFolder, eventFolderSize, folderName, removableDrives } from "./event-folder";
 import {
   applyOverride,
   diffOverride,
@@ -282,9 +282,13 @@ export function registerIpc(
     crewOnly();
     return cloud.runState(EventId.parse(id));
   });
-  ipcMain.handle("crewEventRun", (_e, id: unknown, action: unknown) => {
+  ipcMain.handle("crewEventRun", async (_e, id: unknown, action: unknown) => {
     crewOnly();
-    return cloud.runAction(EventId.parse(id), z.enum([...RUN_ACTIONS, "arm"]).parse(action));
+    const eventId = EventId.parse(id);
+    const a = z.enum([...RUN_ACTIONS, "arm"]).parse(action);
+    // Hentikan Acara: ukuran folder event ikut terkirim (#166).
+    const local = a === "finish" ? await eventFolderSize(db.eventFiles(eventId)) : undefined;
+    return cloud.runAction(eventId, a, local);
   });
   // Rekap booth (#154): dihitung dari SQLite & timer lokal, jalan offline.
   ipcMain.handle("crewRecap", (_e, id: unknown) => {
@@ -295,6 +299,17 @@ export function registerIpc(
       run: cloud.runState(eventId) ? cloud.localRun(eventId) : null,
       info: bundles.find((b) => b.id === eventId)?.info ?? {},
     };
+  });
+  // Ukuran isi "Buka Folder Event" + flashdisk terpasang (#166); dilaporkan ke cloud kalau online.
+  ipcMain.handle("crewEventSize", async (_e, id: unknown) => {
+    crewOnly();
+    const eventId = EventId.parse(id);
+    const [size, drives] = await Promise.all([
+      eventFolderSize(db.eventFiles(eventId)),
+      removableDrives(),
+    ]);
+    cloud.reportStorage(eventId, size);
+    return { ...size, drives };
   });
   // "Buka folder event" (#155): kumpulkan file sesi asli event ini lalu buka di Explorer untuk disalin crew.
   ipcMain.handle("crewOpenEventFolder", async (e, id: unknown) => {

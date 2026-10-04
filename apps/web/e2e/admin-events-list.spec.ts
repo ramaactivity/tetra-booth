@@ -37,6 +37,8 @@ test("daftar event & photobox, filter URL, sesi tes tidak dihitung", async ({ pa
       client_token: newAccessToken(),
       live_token: newAccessToken(),
       client_expires_at: "2099-01-01T00:00:00Z",
+      local_bytes: 2 * 1024 ** 3,
+      local_files: 300,
     })
     .select("id, slug")
     .single();
@@ -137,6 +139,8 @@ test("daftar event & photobox, filter URL, sesi tes tidak dihitung", async ({ pa
     // Pencarian klien juga cocok; photobox tidak tampil di daftar Event.
     await page.goto(`/admin?q=${encodeURIComponent(`keluarga uji`)}&bulan=2026-10`);
     await expect(page.getByTestId("event-row").filter({ hasText: name })).toHaveCount(1);
+    // Rata-rata ukuran folder event di laptop (#166) atas event yang cocok filter.
+    await expect(page.getByTestId("list-stat-Rata-rata ukuran per event")).toHaveText("2 GB");
     await page.goto(`/admin?q=${encodeURIComponent(pbName)}`);
     await expect(page.getByTestId("event-row")).toHaveCount(0);
     await expect(page.getByText("Tidak ada event yang cocok dengan filter ini.")).toBeVisible();

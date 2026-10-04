@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@tetra/db";
-import { type EventRun, parseRun } from "@tetra/shared";
+import { type EventRun, type LocalStorage, parseRun } from "@tetra/shared";
 
 /**
  * Ubah `events.run` (timer event, DECISIONS #149) dengan kunci optimis `updated_at`: admin dan booth bisa menulis
@@ -36,4 +36,23 @@ export async function updateRun(
     if (data?.length) return next;
   }
   throw new Error("run: terlalu banyak tulisan bersamaan");
+}
+
+/** Ukuran folder event di laptop booth (#166): nilai terakhir menang, aman dikirim ulang. */
+export async function saveLocalStorage(
+  db: SupabaseClient<Database>,
+  eventId: string,
+  orgId: string,
+  local: LocalStorage,
+) {
+  const { error } = await db
+    .from("events")
+    .update({
+      local_bytes: local.bytes,
+      local_files: local.files,
+      local_reported_at: new Date().toISOString(),
+    })
+    .eq("id", eventId)
+    .eq("organization_id", orgId);
+  if (error) throw error;
 }

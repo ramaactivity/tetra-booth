@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LocalStorage } from "./size";
 
 /**
  * Timer jalannya event (DECISIONS #149): data saja, booth tidak dibatasi. Disimpan di `events.run`.
@@ -29,6 +30,8 @@ export const BoothRunRequest = z.object({
   id: z.uuid(),
   action: z.enum(RUN_ACTIONS),
   at: Iso,
+  /** Ukuran folder event di laptop saat `finish` (#166); booth lama tidak mengirim. */
+  local: LocalStorage.optional(),
 });
 export type BoothRunRequest = z.infer<typeof BoothRunRequest>;
 export const BoothRunResponse = z.object({

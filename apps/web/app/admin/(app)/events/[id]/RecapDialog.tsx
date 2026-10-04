@@ -229,7 +229,7 @@ function RecapCard({ data, v }: { data: RecapData; v: RecapView }) {
         {v.rows.map((r) => (
           <div
             key={r.label}
-            className="grid grid-cols-[104px_minmax(0,1fr)] gap-3 border-t-[1.5px] border-dashed border-line-soft py-2 text-[13px]"
+            className="grid grid-cols-[124px_minmax(0,1fr)] gap-3 border-t-[1.5px] border-dashed border-line-soft py-2 text-[13px]"
           >
             <dt className="font-bold text-text-2">{r.label}</dt>
             <dd data-testid={`recap-row-${r.label}`} className="font-semibold">
@@ -472,10 +472,10 @@ function draw(
   // Paket, booth, desain
   for (const r of v.rows) {
     dash(ctx, P, W - P, y, C.line);
-    const lines = wrap(ctx, r.value, `600 13px ${SANS}`, inner - 116);
+    const lines = wrap(ctx, r.value, `600 13px ${SANS}`, inner - 136);
     text(ctx, r.label, P, y + 22, `700 13px ${SANS}`, C.t2);
     lines.forEach((l, i) => {
-      text(ctx, l, P + 116, y + 22 + i * 18, `600 13px ${SANS}`);
+      text(ctx, l, P + 136, y + 22 + i * 18, `600 13px ${SANS}`);
     });
     y += 14 + lines.length * 18;
   }

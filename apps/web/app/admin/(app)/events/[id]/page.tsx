@@ -56,44 +56,51 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, slug, name, event_date, location, mode, settings, client_token, live_token, run, package_name, package_hours, scheduled_start, scheduled_end",
+      "id, slug, name, event_date, location, mode, settings, client_token, live_token, run, package_name, package_hours, scheduled_start, scheduled_end, local_bytes, local_files",
     )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
     .maybeSingle();
   if (!ev) notFound();
   if (id !== ev.slug) redirect(`/admin/events/${ev.slug}`);
-  const [{ data: sessions }, { data: hits }, { count: leadCount }, { count: photoCount }] =
-    await Promise.all([
-      db
-        .from("sessions")
-        .select("id, started_at, print_count, upload_status, hidden_at, device_id, is_test")
-        .eq("event_id", ev.id)
-        .eq("organization_id", orgId)
-        .is("deleted_at", null)
-        .order("started_at", { ascending: false })
-        .limit(5000),
-      db
-        .from("analytics_events")
-        .select("session_id, type")
-        .eq("event_id", ev.id)
-        .eq("organization_id", orgId)
-        .limit(50000),
-      db
-        .from("leads")
-        .select("id", { count: "exact", head: true })
-        .eq("event_id", ev.id)
-        .eq("organization_id", orgId),
-      // Foto terunggah (rekap): file original sesi event ini yang sudah tercatat di cloud.
-      db
-        .from("assets")
-        .select("id, sessions!inner(event_id)", { count: "exact", head: true })
-        .eq("organization_id", orgId)
-        .eq("kind", "original")
-        .eq("sessions.event_id", ev.id)
-        .eq("sessions.is_test", false)
-        .is("sessions.deleted_at", null),
-    ]);
+  const [
+    { data: sessions },
+    { data: hits },
+    { count: leadCount },
+    { count: photoCount },
+    { data: cloudSize },
+  ] = await Promise.all([
+    db
+      .from("sessions")
+      .select("id, started_at, print_count, upload_status, hidden_at, device_id, is_test")
+      .eq("event_id", ev.id)
+      .eq("organization_id", orgId)
+      .is("deleted_at", null)
+      .order("started_at", { ascending: false })
+      .limit(5000),
+    db
+      .from("analytics_events")
+      .select("session_id, type")
+      .eq("event_id", ev.id)
+      .eq("organization_id", orgId)
+      .limit(50000),
+    db
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", ev.id)
+      .eq("organization_id", orgId),
+    // Foto terunggah (rekap): file original sesi event ini yang sudah tercatat di cloud.
+    db
+      .from("assets")
+      .select("id, sessions!inner(event_id)", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .eq("kind", "original")
+      .eq("sessions.event_id", ev.id)
+      .eq("sessions.is_test", false)
+      .is("sessions.deleted_at", null),
+    // Ukuran di cloud (rekap #166): jumlah assets.bytes sesi asli.
+    db.rpc("event_cloud_storage", { org: orgId, ev: ev.id }),
+  ]);
   // Desain frame event (utama dulu): nama + ukuran; template editor bisa langsung diedit.
   const tpl = (ev.settings as { template?: EventTemplate } | null)?.template ?? DEFAULT_TEMPLATE;
   const picked = [tpl.layoutId ? `tpl:${tpl.layoutId}` : tpl.preset, ...(tpl.extras ?? [])];
@@ -217,6 +224,8 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     run,
     scheduledStart: hhmm(ev.scheduled_start),
     scheduledEnd: hhmm(ev.scheduled_end),
+    local: ev.local_bytes === null ? null : { bytes: ev.local_bytes, files: ev.local_files ?? 0 },
+    cloudBytes: cloudSize?.[0]?.bytes ?? 0,
   };
 
   const h = await headers();

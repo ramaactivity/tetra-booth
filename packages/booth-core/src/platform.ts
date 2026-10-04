@@ -103,6 +103,12 @@ export type BoothRecap = {
   /** Jadwal, paket, slug dari bundle cloud. */
   info: EventInfo;
 };
+/** Ukuran folder event di laptop ini (#166). `drives` = flashdisk terpasang, ruang dalam byte. */
+export type EventSize = {
+  bytes: number;
+  files: number;
+  drives: { name: string; free: number; total: number }[];
+};
 /** Kamera & printer dari mode crew (DECISIONS #85). */
 export type DeviceSettings = {
   camera?: "webcam" | "simulated" | "hotfolder" | "canon";
@@ -182,6 +188,11 @@ export interface BoothCrew {
   eventRun(eventId: string, action: RunAction | "arm"): Promise<BoothRunState | null>;
   /** Rekap acara di booth (#154). */
   recap(eventId: string): Promise<BoothRecap>;
+  /**
+   * Ukuran isi Buka Folder Event (#166, dihitung dari file sumber) + flashdisk terpasang (Windows; kosong kalau
+   * tidak terdeteksi). Online = sekalian dilaporkan ke cloud.
+   */
+  eventSize(eventId: string): Promise<EventSize>;
   /** Kumpulkan file sesi event ini ke satu folder lalu buka di Explorer (#155). Balas path folder. */
   openEventFolder(eventId: string): Promise<string>;
   /** Aktifkan link galeri klien & salin alamatnya ke clipboard (#155). Offline = Error berpesan. */

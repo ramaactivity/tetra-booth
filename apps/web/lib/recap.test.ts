@@ -26,6 +26,8 @@ const base: RecapData = {
   },
   scheduledStart: "10:00",
   scheduledEnd: "13:00",
+  local: { bytes: 3.2 * 1024 ** 3, files: 412 },
+  cloudBytes: 850 * 1024 ** 2,
 };
 const now = Date.parse("2026-10-04T08:00:00.000Z");
 
@@ -55,6 +57,11 @@ describe("rekap event", () => {
     expect(t).toContain("Lembar dicetak: 22 (+ cetak ulang)");
     expect(t).toContain("Jadwal 10.00–13.00 · Nyata 10.00–13.30");
     expect(t).toContain("Mulai tepat waktu · selesai telat 30 menit");
+    expect(t).toContain("Ukuran di laptop: 3,2 GB (412 file)");
+    expect(t).toContain("Ukuran di cloud: 850 MB");
+    expect(recapText({ ...base, local: null }, now)).toContain(
+      "Ukuran di laptop: Belum dilaporkan booth",
+    );
   });
 
   it("jadwal kosong = tidak dibandingkan", () => {

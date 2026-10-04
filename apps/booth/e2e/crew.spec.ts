@@ -1,5 +1,12 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -238,7 +245,8 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   const sessions: { id: string; eventId: string; assetCount: number; isTest?: boolean }[] = [];
   const puts: string[] = [];
   const recorded: string[] = [];
-  const runs: { id: string; action: string; at: string }[] = [];
+  const runs: { id: string; action: string; at: string; local?: unknown }[] = [];
+  const storage: { bytes: number; files: number }[] = [];
   let gifHead = "";
   const EVENT = "7c9e6679-7425-40de-944b-e07fc1f90ae8";
   const pngSha = createHash("sha256").update(PNG).digest("hex");
@@ -298,6 +306,9 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
         }
         const state = { open: "running", start: "running", pause: "paused", finish: "finished" };
         res.end(JSON.stringify({ state: state[b.action as keyof typeof state] }));
+      } else if (req.url === `/api/booth/events/${EVENT}/storage`) {
+        storage.push(JSON.parse(body));
+        res.end(JSON.stringify({ ok: true }));
       } else if (req.url === `/api/booth/events/${EVENT}/gallery-link`) {
         res.end(JSON.stringify({ slug: "rina-dimas-2026-10-12" }));
       } else if (req.url === "/api/booth/sessions") {
@@ -433,6 +444,9 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   // Timer belum pernah jalan: rekap tetap bisa dibuka (perkiraan dari sesi).
   await run.getByRole("button", { name: "Rekap Acara" }).click();
   await expect(w.getByTestId("booth-recap")).toBeVisible();
+  // Ukuran folder event (#166): hanya sesi tes → kosong; tetap dilaporkan ke cloud.
+  await expect(w.getByTestId("booth-recap-size")).toContainText("0 B · 0 file");
+  await expect.poll(() => storage.at(-1)).toEqual({ bytes: 0, files: 0 });
   await w.getByTestId("booth-recap").getByRole("button", { name: "Tutup" }).click();
   await w.getByTestId("to-guest").click();
   await w
@@ -475,12 +489,24 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await expect(recap.getByTestId("booth-recap-Sesi tamu")).toHaveText("1");
   await expect(recap).toContainText("1 sesi tes tidak dihitung");
   await expect(recap.getByTestId("booth-recap-schedule")).toContainText("Jadwal 08.00–11.00");
+  // Ukuran isi Buka Folder Event (#166): sesi asli = lembar cetak + 2 foto asli + GIF.
+  const size = recap.getByTestId("booth-recap-size");
+  await expect(size).toContainText(/Ukuran file di laptop\s*[\d,]+ (B|KB|MB) · 4 file/);
+  await expect(size).toContainText("Pastikan flashdisk punya ruang kosong lebih dari ini.");
+  await expect.poll(() => storage.at(-1)?.files).toBe(4);
   await w.screenshot({ path: "test-results/booth-recap.png" });
   // Buka Folder Event: file sesi asli dikumpulkan (Explorer tidak dibuka di uji, TETRA_NO_SHELL_OPEN).
   await recap.getByRole("button", { name: /Buka Folder Event/ }).click();
   await expect(recap.getByTestId("booth-recap-note")).toContainText("Folder dibuka:");
   const folder = join(data, "Foto Event", "Rina & Dimas");
   expect(readdirSync(join(folder, "Cetak"))).toHaveLength(1);
+  // Isi folder = jumlah file di baris ukuran.
+  expect(
+    ["Cetak", "Foto asli", "GIF", "Video"].reduce(
+      (n, d) => n + (existsSync(join(folder, d)) ? readdirSync(join(folder, d)).length : 0),
+      0,
+    ),
+  ).toBe(4);
   // Salin Link Galeri: booth mengaktifkan link galeri klien lalu menyalin alamat slug.
   await recap.getByRole("button", { name: /Salin Link Galeri/ }).click();
   await expect(recap.getByTestId("booth-recap-note")).toContainText(
@@ -498,6 +524,9 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await expect
     .poll(() => runs.map((r) => r.action))
     .toEqual(["start", "start", "pause", "start", "finish"]);
+  // Hentikan Acara membawa ukuran folder event yang sama dengan rekap.
+  expect(runs[4]?.local).toEqual(storage.at(-1));
+  expect(runs[1]).not.toHaveProperty("local");
   const at = runs.slice(1).map((r) => Date.parse(r.at));
   expect(at).toEqual([...at].sort((a, b) => a - b));
   // Selesai: Buka untuk Tamu langsung ke tamu, timer tidak berubah.

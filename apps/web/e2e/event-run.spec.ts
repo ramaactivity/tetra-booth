@@ -30,6 +30,9 @@ test("timer admin: mulai, jeda, lanjut, selesai, ubah jam → rekap lebih 20 men
       package_hours: 1,
       scheduled_start: "10:00",
       scheduled_end: "11:00",
+      // Dilaporkan booth (#166).
+      local_bytes: 3_435_973_837,
+      local_files: 412,
     })
     .select("id, slug")
     .single();
@@ -67,10 +70,20 @@ test("timer admin: mulai, jeda, lanjut, selesai, ubah jam → rekap lebih 20 men
           session_id: sid,
           kind: "original",
           idx,
+          bytes: 2_000_000,
           r2_key: `${R2}/original_${idx}.jpg#${sid}`,
         })),
       ),
     );
+    // Aset sesi tes tidak ikut ukuran cloud (#166).
+    await db.from("assets").insert({
+      organization_id: u.org,
+      session_id: `rkt${tag}a`,
+      kind: "strip_web",
+      idx: 0,
+      bytes: 900_000_000,
+      r2_key: `${R2}/strip_web_0.jpg#rkt${tag}a`,
+    });
     await db.from("analytics_events").insert([
       { organization_id: u.org, event_id: eventId, session_id: ids[0], type: "qr_open" },
       { organization_id: u.org, event_id: eventId, session_id: ids[1], type: "qr_open" },
@@ -143,6 +156,9 @@ test("timer admin: mulai, jeda, lanjut, selesai, ubah jam → rekap lebih 20 men
       /Mulai (telat|lebih awal|tepat)/,
     );
     if (device) await expect(page.getByTestId("recap-row-Booth")).toHaveText(device.name);
+    // Ukuran (#166): laptop dari laporan booth; cloud = 6 × 2 MB foto asli (sesi tes tidak dihitung).
+    await expect(page.getByTestId("recap-row-Ukuran di laptop")).toHaveText("3,2 GB (412 file)");
+    await expect(page.getByTestId("recap-row-Ukuran di cloud")).toHaveText("11 MB");
     // Muat tanpa scroll di laptop 1440×900.
     const box = await page.getByRole("dialog", { name: "Rekap event" }).boundingBox();
     expect(box && box.y >= 0 && box.y + box.height <= 900).toBe(true);
@@ -155,6 +171,8 @@ test("timer admin: mulai, jeda, lanjut, selesai, ubah jam → rekap lebih 20 men
     expect(text).toContain(`*Rekap Event · e2e rekap ${tag}*`);
     expect(text).toContain("*Lebih 20 menit*");
     expect(text).toContain("Sesi: 3");
+    expect(text).toContain("Ukuran di laptop: 3,2 GB (412 file)");
+    expect(text).toContain("Ukuran di cloud: 11 MB");
     expect(text).toContain("Jadwal 10.00–11.00 · Nyata");
 
     const dl = page.waitForEvent("download");
@@ -224,7 +242,23 @@ test("API booth: buka, ulang (idempotent), jeda offline terlambat, selesai", asy
     expect(await (await send("pause", at(60))).json()).toEqual({ state: "paused" });
     // Buka untuk Tamu 15 menit kemudian (jam booth), lalu selesai.
     expect(await (await send("open", at(75))).json()).toEqual({ state: "running" });
-    expect(await (await send("finish", at(135))).json()).toEqual({ state: "finished" });
+    // Hentikan Acara membawa ukuran folder event di laptop (#166).
+    const fin = await request.post(`/api/booth/events/${eventId}/run`, {
+      headers: auth,
+      data: { id: randomUUID(), action: "finish", at: at(135), local: { bytes: 5000, files: 3 } },
+    });
+    expect(await fin.json()).toEqual({ state: "finished" });
+    const size = async () =>
+      (await db.from("events").select("local_bytes, local_files").eq("id", eventId).single()).data;
+    expect(await size()).toEqual({ local_bytes: 5000, local_files: 3 });
+    // Rekap booth dibuka lagi: ukuran terbaru menang; kirim ulang aman; data rusak / tanpa token ditolak.
+    const storage = (data: unknown, headers = auth) =>
+      request.post(`/api/booth/events/${eventId}/storage`, { headers, data });
+    expect((await storage({ bytes: 3_435_973_837, files: 412 })).status()).toBe(200);
+    expect((await storage({ bytes: 3_435_973_837, files: 412 })).status()).toBe(200);
+    expect(await size()).toEqual({ local_bytes: 3_435_973_837, local_files: 412 });
+    expect((await storage({ bytes: -1, files: 1 })).status()).toBe(400);
+    expect((await storage({ bytes: 1, files: 1 }, {} as typeof auth)).status()).toBe(401);
     // Buka untuk Tamu setelah selesai tidak membuka lagi.
     expect(await (await send("open", at(140))).json()).toEqual({ state: "finished" });
 

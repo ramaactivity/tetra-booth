@@ -30,7 +30,14 @@ export function EventFilters({
   const router = useRouter();
   const [text, setText] = useState(q);
   const cur = { tab, q, bulan, booth, urut: urut === "terbaru" ? "" : urut };
+  // q terakhir yang dikirim ke URL: tanpa ini, debounce cari bisa menembak dengan props lama setelah Hapus filter
+  // (server belum selesai render) dan mengembalikan filter bulan/booth yang baru dihapus.
+  const sent = useRef(q);
+  useEffect(() => {
+    sent.current = q;
+  }, [q]);
   const go = (patch: Partial<typeof cur>) => {
+    if (patch.q !== undefined) sent.current = patch.q;
     const p = new URLSearchParams(
       Object.entries({ ...cur, ...patch }).filter(([, v]) => !!v) as [string, string][],
     );
@@ -40,10 +47,10 @@ export function EventFilters({
   const goRef = useRef(go);
   goRef.current = go;
   useEffect(() => {
-    if (text === q) return;
+    if (text.trim() === sent.current) return;
     const t = setTimeout(() => goRef.current({ q: text.trim() }), 300);
     return () => clearTimeout(t);
-  }, [text, q]);
+  }, [text]);
   const any = !!(q || bulan || booth || urut !== "terbaru");
   return (
     <div className="flex flex-wrap items-center gap-2.5">

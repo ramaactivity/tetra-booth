@@ -36,6 +36,26 @@ describe("antrean timer event booth", () => {
     expect(q.state(EV)).toBe("paused");
   });
 
+  it("finish membawa ukuran folder event (#166), aksi lain tidak", async () => {
+    const sent: unknown[] = [];
+    const q = createRunQueue({
+      kv: memKv(),
+      post: async (_p, body) => {
+        sent.push(body);
+        return { status: 200, body: { state: "running" } };
+      },
+      log: () => {},
+    });
+    q.push(EV, "open");
+    q.push(EV, "finish", { bytes: 3_400_000_000, files: 412 });
+    await q.drain();
+    expect(sent[0]).not.toHaveProperty("local");
+    expect(sent[1]).toMatchObject({
+      action: "finish",
+      local: { bytes: 3_400_000_000, files: 412 },
+    });
+  });
+
   it("buka untuk tamu saat sudah berjalan tidak dikirim lagi; 404 dibuang", async () => {
     const kv = memKv();
     const post: RunPost = async () => ({ status: 404, body: { error: "not_found" } });

@@ -1,8 +1,8 @@
-import { durationText, hhmm, parseRun, runElapsedMs, runState } from "@tetra/shared";
+import { durationText, fileSize, hhmm, parseRun, runElapsedMs, runState } from "@tetra/shared";
 import {
   CalendarClock,
   CalendarDays,
-  Gauge,
+  HardDrive,
   Images,
   type LucideIcon,
   Plus,
@@ -33,6 +33,7 @@ export type ListParams = {
 };
 
 const DAY = 86_400_000;
+type Stat = { l: string; v: number | string; sub?: string; I: LucideIcon; bg: string };
 const ymdWib = (ms: number) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date(ms));
 const STATUS: Record<Phase, [string, string]> = {
@@ -119,7 +120,7 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
       db
         .from("events")
         .select(
-          "id, slug, name, event_date, purge_at, all_devices, location, branding, settings, package_name, package_hours, scheduled_start, scheduled_end, run, event_devices(device_id, devices(name))",
+          "id, slug, name, event_date, purge_at, all_devices, location, branding, settings, package_name, package_hours, scheduled_start, scheduled_end, run, local_bytes, event_devices(device_id, devices(name))",
         )
         .eq("organization_id", orgId)
         .eq("mode", mode)
@@ -172,58 +173,6 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
     };
   });
 
-  const live = rows.filter((e) => e.phase === "berlangsung").length;
-  const summary: { l: string; v: string; sub?: string; I: LucideIcon; bg: string }[] =
-    mode === "event"
-      ? [
-          {
-            l: "Event bulan ini",
-            v: String(rows.filter((e) => e.event_date.startsWith(month)).length),
-            I: CalendarDays,
-            bg: "var(--lavender)",
-          },
-          { l: "Berlangsung sekarang", v: String(live), I: Radio, bg: "var(--mint-soft)" },
-          {
-            l: "7 hari ke depan",
-            v: String(rows.filter((e) => e.event_date > today && e.event_date <= week).length),
-            I: CalendarClock,
-            bg: "var(--sky)",
-          },
-          { l: "Sesi bulan ini", v: String(pm?.sessions ?? 0), I: Images, bg: "var(--peach)" },
-          {
-            l: "Dicetak bulan ini",
-            v: String(pm?.prints ?? 0),
-            sub: "lembar",
-            I: Printer,
-            bg: "var(--butter)",
-          },
-        ]
-      : [
-          { l: "Berlangsung sekarang", v: String(live), I: Radio, bg: "var(--mint-soft)" },
-          { l: "Sesi bulan ini", v: String(pm?.sessions ?? 0), I: Images, bg: "var(--peach)" },
-          {
-            l: "Rata-rata per hari",
-            v: pm?.active_days ? String(Math.round(pm.sessions / pm.active_days)) : "0",
-            sub: `sesi · ${pm?.active_days ?? 0} hari aktif`,
-            I: Gauge,
-            bg: "var(--sky)",
-          },
-          {
-            l: "Dicetak bulan ini",
-            v: String(pm?.prints ?? 0),
-            sub: "lembar",
-            I: Printer,
-            bg: "var(--butter)",
-          },
-          {
-            l: "Transaksi lunas bulan ini",
-            v: String(pm?.paid ?? 0),
-            ...(money && { sub: rupiah(pm?.revenue ?? 0) }),
-            I: ReceiptText,
-            bg: "var(--lavender)",
-          },
-        ];
-
   const q = (sp.q ?? "").trim().toLowerCase();
   const bulan = /^\d{4}-\d{2}$/.test(sp.bulan ?? "") ? (sp.bulan as string) : "";
   const booth = (devices ?? []).some((d) => d.id === sp.booth) ? (sp.booth as string) : "";
@@ -243,6 +192,70 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
         ? Math.abs(dayMs(a.event_date) - t0) - Math.abs(dayMs(b.event_date) - t0)
         : 0,
     );
+  const filtered = !!(q || bulan || booth || tab !== "semua");
+  const noun = mode === "event" ? "event" : "photobox";
+  // Rata-rata ukuran folder event di laptop (#166): event dengan ukuran terlapor, di daftar yang difilter (tanpa
+  // filter = bulan ini).
+  const sized = (filtered ? events : rows.filter((e) => e.event_date.startsWith(month))).flatMap(
+    (e) => (e.local_bytes === null ? [] : [e.local_bytes]),
+  );
+  const avgSize: Stat = {
+    l: "Rata-rata ukuran per event",
+    v: sized.length ? fileSize(sized.reduce((x, y) => x + y, 0) / sized.length) : "—",
+    sub: sized.length
+      ? `laptop · ${sized.length} ${noun}${filtered ? " cocok" : ""}`
+      : "belum dilaporkan booth",
+    I: HardDrive,
+    bg: "var(--sky)",
+  };
+  const live = rows.filter((e) => e.phase === "berlangsung").length;
+  const soon = rows.filter((e) => e.event_date > today && e.event_date <= week).length;
+  const summary: Stat[] =
+    mode === "event"
+      ? [
+          {
+            l: "Event bulan ini",
+            v: rows.filter((e) => e.event_date.startsWith(month)).length,
+            sub: `${soon} dalam 7 hari`,
+            I: CalendarDays,
+            bg: "var(--lavender)",
+          },
+          { l: "Berlangsung sekarang", v: live, I: Radio, bg: "var(--mint-soft)" },
+          { l: "Sesi bulan ini", v: pm?.sessions ?? 0, I: Images, bg: "var(--peach)" },
+          {
+            l: "Dicetak bulan ini",
+            v: pm?.prints ?? 0,
+            sub: "lembar",
+            I: Printer,
+            bg: "var(--butter)",
+          },
+          avgSize,
+        ]
+      : [
+          { l: "Berlangsung sekarang", v: live, I: Radio, bg: "var(--mint-soft)" },
+          {
+            l: "Sesi bulan ini",
+            v: pm?.sessions ?? 0,
+            sub: `${pm?.active_days ? Math.round(pm.sessions / pm.active_days) : 0}/hari · ${pm?.active_days ?? 0} hari aktif`,
+            I: Images,
+            bg: "var(--peach)",
+          },
+          {
+            l: "Dicetak bulan ini",
+            v: pm?.prints ?? 0,
+            sub: "lembar",
+            I: Printer,
+            bg: "var(--butter)",
+          },
+          {
+            l: "Transaksi lunas bulan ini",
+            v: pm?.paid ?? 0,
+            ...(money && { sub: rupiah(pm?.revenue ?? 0) }),
+            I: ReceiptText,
+            bg: "var(--lavender)",
+          },
+          avgSize,
+        ];
   const months = [...new Set(rows.map((e) => e.event_date.slice(0, 7)))].sort().reverse();
   const base = mode === "event" ? "/admin" : "/admin/photobox";
   const withTab = (k: string) => {
@@ -254,8 +267,6 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
     const s = p.toString();
     return s ? `${base}?${s}` : base;
   };
-  const filtered = !!(q || bulan || booth || tab !== "semua");
-  const noun = mode === "event" ? "event" : "photobox";
   const cols = COLS[mode];
 
   return (
@@ -292,7 +303,7 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
                 data-testid={`list-stat-${s.l}`}
                 className="text-[24px] font-extrabold tracking-[-0.03em]"
               >
-                {Number(s.v).toLocaleString("id-ID")}
+                {typeof s.v === "number" ? s.v.toLocaleString("id-ID") : s.v}
               </span>
               {s.sub && <span className="truncate text-xs font-semibold text-text-2">{s.sub}</span>}
             </div>

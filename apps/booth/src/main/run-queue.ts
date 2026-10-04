@@ -4,12 +4,13 @@ import {
   BoothRunResponse,
   EMPTY_RUN,
   type EventRun,
+  type LocalStorage,
   type RunAction,
   type RunState,
 } from "@tetra/shared";
 
 type Kv = { get(key: string): string | null | undefined; set(key: string, value: string): void };
-type Item = { id: string; eventId: string; action: RunAction; at: string };
+type Item = { id: string; eventId: string; action: RunAction; at: string; local?: LocalStorage };
 export type RunPost = (path: string, body: unknown) => Promise<{ status: number; body: unknown }>;
 
 const QUEUE = "run_outbox";
@@ -72,6 +73,7 @@ export function createRunQueue(o: {
             id: item.id,
             action: item.action,
             at: item.at,
+            ...(item.local && { local: item.local }),
           });
         } catch {
           return; // offline: coba lagi nanti
@@ -95,13 +97,18 @@ export function createRunQueue(o: {
   };
 
   /** Catat aksi (jam `at`, bawaan sekarang), perbarui state lokal, kirim di latar belakang. */
-  const push = (eventId: string, action: RunAction, at = new Date(now()).toISOString()) => {
+  const push = (
+    eventId: string,
+    action: RunAction,
+    at = new Date(now()).toISOString(),
+    local?: LocalStorage,
+  ) => {
     const before = state(eventId);
     const next = nextRunState(before, action);
     if (action !== "open") o.kv.set(armedKey(eventId), "");
     // Aksi yang tidak mengubah apa pun (sudah berjalan / selesai / jeda dua kali) tidak perlu dikirim.
     if (next === before) return before;
-    write([...read(), { id: randomUUID(), eventId, action, at }]);
+    write([...read(), { id: randomUUID(), eventId, action, at, ...(local && { local }) }]);
     o.kv.set(stateKey(eventId), next);
     o.kv.set(logKey(eventId), JSON.stringify([...readLog(eventId), { action, at }].slice(-500)));
     void drain();
@@ -114,8 +121,9 @@ export function createRunQueue(o: {
     state: boothState,
     pending: () => read().length,
     drain,
-    push: (eventId: string, action: RunAction): BoothRunState => {
-      push(eventId, action);
+    /** `local` = ukuran folder event, ikut terkirim bersama `finish` (#166). */
+    push: (eventId: string, action: RunAction, local?: LocalStorage): BoothRunState => {
+      push(eventId, action, undefined, local);
       return boothState(eventId);
     },
     /**

@@ -2,6 +2,7 @@ import {
   clockId,
   compareSchedule,
   durationText,
+  fileSize,
   localHhmm,
   runElapsedMs,
   runPausedMs,
@@ -9,13 +10,22 @@ import {
   runVerdict,
 } from "@tetra/shared";
 import { Button } from "@tetra/ui";
-import { CircleCheck, Clock, ClockArrowDown, ClockArrowUp, FolderOpen, Link2 } from "lucide-react";
+import {
+  CircleCheck,
+  Clock,
+  ClockArrowDown,
+  ClockArrowUp,
+  FolderOpen,
+  HardDrive,
+  Link2,
+  Usb,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { copy } from "../copy";
 import { crewText } from "../errors";
 import type { BoothEvent } from "../event";
 import { usePlatform } from "../PlatformContext";
-import type { BoothRecap as RecapData } from "../platform";
+import type { EventSize, BoothRecap as RecapData } from "../platform";
 
 const t = copy.crew.recap;
 const TONE = {
@@ -84,11 +94,14 @@ function view(d: RecapData, now: number) {
 export function BoothRecap({ event, onClose }: { event: BoothEvent; onClose: () => void }) {
   const p = usePlatform();
   const [data, setData] = useState<RecapData | null>(null);
+  const [size, setSize] = useState<EventSize | null>(null);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [now] = useState(Date.now);
   useEffect(() => {
     p.crew.recap(event.id).then(setData, (e: unknown) => setNote({ ok: false, text: crewText(e) }));
+    // Ukuran folder event (#166): gagal = baris ukuran tetap "Menghitung…" tanpa mengganggu rekap.
+    p.crew.eventSize(event.id).then(setSize, () => {});
   }, [p, event.id]);
   const v = data && view(data, now);
   const [bg, Icon] = TONE[v?.verdict?.kind ?? "none"];
@@ -214,6 +227,37 @@ export function BoothRecap({ event, onClose }: { event: BoothEvent; onClose: () 
             {note.text}
           </p>
         )}
+
+        <section
+          data-testid="booth-recap-size"
+          className="flex items-center gap-5 rounded-[20px] border-[2.5px] border-ink bg-sky px-6 py-4"
+        >
+          <HardDrive size={34} strokeWidth={2.25} className="flex-none" />
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-bold text-text-2">{t.size}</p>
+            <p className="text-[34px] leading-tight font-extrabold tracking-[-0.02em]">
+              {size ? t.sizeValue(fileSize(size.bytes), size.files) : t.sizeLoading}
+            </p>
+            <p className="text-lg font-semibold text-text-3">{t.sizeHint}</p>
+          </div>
+          {!!size?.drives.length && (
+            <ul className="flex flex-none flex-col gap-2">
+              {size.drives.map((d) => {
+                const ok = d.free > size.bytes;
+                return (
+                  <li
+                    key={d.name}
+                    data-testid="booth-recap-drive"
+                    className={`flex items-center gap-2 rounded-full border-2 border-ink px-4 py-1.5 text-lg font-bold ${ok ? "bg-mint-soft" : "bg-coral"}`}
+                  >
+                    <Usb size={20} strokeWidth={2.25} />
+                    {t.drive(d.name, fileSize(d.free))} · {ok ? t.driveOk : t.driveLow}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
         <div className="flex items-center gap-4">
           <Button

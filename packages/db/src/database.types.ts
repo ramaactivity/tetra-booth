@@ -313,6 +313,9 @@ export type Database = {
           id: string
           lead_capture: NonNullable<Json>
           live_token: string | null
+          local_bytes: number | null
+          local_files: number | null
+          local_reported_at: string | null
           location: string | null
           mode: string
           name: string
@@ -347,6 +350,9 @@ export type Database = {
           id?: string
           lead_capture?: NonNullable<Json>
           live_token?: string | null
+          local_bytes?: number | null
+          local_files?: number | null
+          local_reported_at?: string | null
           location?: string | null
           mode: string
           name: string
@@ -381,6 +387,9 @@ export type Database = {
           id?: string
           lead_capture?: NonNullable<Json>
           live_token?: string | null
+          local_bytes?: number | null
+          local_files?: number | null
+          local_reported_at?: string | null
           location?: string | null
           mode?: string
           name?: string
@@ -924,6 +933,13 @@ export type Database = {
       }
     }
     Functions: {
+      event_cloud_storage: {
+        Args: { ev: string; org: string }
+        Returns: {
+          bytes: number
+          files: number
+        }[]
+      }
       event_payment_stats: {
         Args: { org: string }
         Returns: {
