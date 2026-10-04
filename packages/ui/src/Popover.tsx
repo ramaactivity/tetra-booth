@@ -93,6 +93,7 @@ export function Popover({
     >
       {children}
     </div>,
-    document.body,
+    // Di dalam <dialog> modal: portal ke dialog itu (top layer), kalau ke body panel tertutup & tidak bisa diklik.
+    anchor.current?.closest("dialog") ?? document.body,
   );
 }

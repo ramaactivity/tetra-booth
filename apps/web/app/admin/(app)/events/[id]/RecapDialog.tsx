@@ -183,6 +183,26 @@ function RecapCard({ data, v }: { data: RecapData; v: RecapView }) {
             </div>
           ))}
         </dl>
+        {v.schedule && (
+          <p
+            data-testid="recap-schedule"
+            className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-t-[1.5px] border-dashed border-ink pt-3 text-[13px]"
+          >
+            <span className="font-bold">
+              {t.planned} <span className="font-mono font-medium">{v.schedule.planned}</span>
+              {v.schedule.actual && (
+                <>
+                  {" "}
+                  <span className="text-text-2">vs</span> {t.actual}{" "}
+                  <span className="font-mono font-medium">{v.schedule.actual}</span>
+                </>
+              )}
+            </span>
+            {v.schedule.note && (
+              <span className="font-semibold text-text-3">{v.schedule.note}</span>
+            )}
+          </p>
+        )}
       </section>
 
       <dl className="grid grid-cols-4 gap-2.5">
@@ -381,7 +401,13 @@ function draw(
   // Vonis + garis waktu
   const subFont = `600 13px ${SANS}`;
   const sub = wrap(ctx, v.verdictSub, subFont, inner - 40 - 56);
-  const vh = 18 + 28 + sub.length * 18 + 14 + 14 + 40;
+  const sched = v.schedule
+    ? [
+        `${t.planned} ${v.schedule.planned}${v.schedule.actual ? `  vs  ${t.actual} ${v.schedule.actual}` : ""}`,
+        ...(v.schedule.note ? wrap(ctx, v.schedule.note, subFont, inner - 40) : []),
+      ]
+    : [];
+  const vh = 18 + 28 + sub.length * 18 + 14 + 14 + 40 + (sched.length ? 16 + sched.length * 18 : 0);
   box(ctx, P, y, inner, vh, 16, token(toneOf(v).bg));
   ctx.beginPath();
   ctx.arc(P + 20 + 20, y + 18 + 20, 20, 0, Math.PI * 2);
@@ -405,6 +431,13 @@ function draw(
     text(ctx, k, x, vy + 20, `700 11px ${SANS}`, C.t2);
     text(ctx, val, x, vy + 40, `500 15px ${MONO}`);
   });
+  if (sched.length) {
+    vy += 52;
+    dash(ctx, P + 20, W - P - 20, vy);
+    sched.forEach((l, i) => {
+      text(ctx, l, P + 20, vy + 20 + i * 18, i ? subFont : `700 13px ${SANS}`, i ? C.t3 : C.ink);
+    });
+  }
   y += vh + 16;
 
   // Statistik 4 × 2

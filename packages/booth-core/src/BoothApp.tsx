@@ -40,6 +40,8 @@ export function BoothApp({
   // Tombol Dashboard Admin di layar awal: PIN crew dulu, lalu browser terbuka.
   const [adminIntent, setAdminIntent] = useState(false);
   const [exitIntent, setExitIntent] = useState(false);
+  /** Mode "Tes dulu" (#153): sesi ditandai tes, lencana TES di pojok. Dipilih ulang tiap Buka untuk Tamu. */
+  const [testMode, setTestMode] = useState(false);
   // Kursor di mode tamu: diatur crew (CrewMenu), dibaca ulang tiap mode crew ditutup.
   const [showCursor, setShowCursor] = useState(guestCursor.shown);
   // Notifikasi hasil update (berhasil / gagal dipasang) sekali setelah booth terbuka lagi (masukan Rama).
@@ -163,7 +165,8 @@ export function BoothApp({
           onReloadEvents={reload}
           openAdmin={adminIntent}
           openExit={exitIntent}
-          onClose={() => {
+          onClose={(mode) => {
+            if (mode) setTestMode(mode === "test");
             setAdminIntent(false);
             setExitIntent(false);
             setShowCursor(guestCursor.shown());
@@ -184,6 +187,7 @@ export function BoothApp({
           demo={demo}
           fast={fast}
           bumper={bumper}
+          test={testMode}
           onCrew={(intent) => {
             setExitIntent(intent === "exit");
             setCrewOpen(true);

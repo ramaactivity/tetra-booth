@@ -25,7 +25,13 @@ const BASICS: DesignOption[] = (Object.keys(LAYOUT_PRESETS) as PresetId[])
   });
 
 /** Wizard Buat event (5 langkah): info, mode, ukuran & desain (atau layout & harga), booth, ringkasan. */
-export default async function NewEventPage() {
+export default async function NewEventPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
+  // "Buat Photobox" dari daftar Photobox (#156): mode Photobox sudah terpilih.
+  const initialMode = (await searchParams).mode === "photobox" ? "photobox" : null;
   const { db, orgId } = await requireMember(["owner", "admin"]);
   const [{ designOptions }, { data: devices }] = await Promise.all([
     loadDesignOptions(db, orgId),
@@ -39,6 +45,7 @@ export default async function NewEventPage() {
   const now = Date.now();
   return (
     <EventWizard
+      initialMode={initialMode}
       opsEnabled={opsConfigured()}
       designOptions={[...designOptions, ...BASICS]}
       devices={(devices ?? []).map((d) => ({

@@ -18,21 +18,76 @@ import { z } from "zod";
 import { copyLayout, StoredLayout } from "@/lib/layouts";
 import { putObject } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
+import { assignToEvent } from "./assign";
 
 const MAX_TOTAL = 4 * 1024 * 1024; // batas request Vercel 4,5 MB
 const NewTemplate = z.object({
   name: z.string().trim().min(1).max(80),
-  preset: z.enum(Object.keys(LAYOUT_PRESETS) as [keyof typeof LAYOUT_PRESETS]),
+  mode: z.enum(["event", "photobox"]),
+  /** Preset, "Tata letak saya" (`lp:<id>`), atau salinan template lain (`tpl:<id>`). */
+  source: z.union([
+    z.enum(Object.keys(LAYOUT_PRESETS) as [keyof typeof LAYOUT_PRESETS]),
+    z.string().regex(/^(lp|tpl):[0-9a-f-]{36}$/),
+  ]),
+  event: z.union([z.literal(""), z.uuid()]).default(""),
+  price: z.coerce.number().int().min(1500).max(10_000_000).optional(),
 });
 
-/** Template baru dari preset (versi 1), lalu buka editornya. */
+/** Wizard Buat Template (#160): mode → kertas → mulai dari → nama → (opsional) pasang ke event → editor. */
 export async function createTemplate(_prev: string | null, form: FormData): Promise<string | null> {
   const { db, orgId } = await requireMember(["owner", "admin"]);
   const p = NewTemplate.safeParse(Object.fromEntries(form));
   if (!p.success) return "Isi nama template";
-  const id = await copyLayout(db, orgId, p.data.preset, () => p.data.name);
+  const { name, mode, source, event, price } = p.data;
+  const id = await copyLayout(db, orgId, source, () => name, mode);
   if (!id) return "Gagal membuat template, coba lagi";
+  if (event) {
+    const { data: l } = await db.from("layouts").select("id, paper").eq("id", id).single();
+    const r = l && (await assignToEvent(db, orgId, l, event, price));
+    if (!r?.ok) {
+      revalidatePath("/admin/templates");
+      return `Template dibuat, tapi belum terpasang ke event: ${r?.message ?? "coba lagi"}. Pasang lewat menu template.`;
+    }
+  }
   redirect(`/admin/templates/${id}`);
+}
+
+export type AssignResult = { ok: boolean; message: string; slug?: string } | null;
+
+/** "Pasang ke event…" dari menu template (#160). */
+export async function assignTemplate(
+  layoutId: string,
+  _prev: AssignResult,
+  form: FormData,
+): Promise<AssignResult> {
+  const { db, orgId } = await requireMember(["owner", "admin"]);
+  const ev = z.uuid().safeParse(form.get("event"));
+  if (!ev.success) return { ok: false, message: "Pilih event dulu" };
+  const price = form.get("price");
+  const pr =
+    price === null ? undefined : z.coerce.number().int().min(1500).max(10_000_000).safeParse(price);
+  if (pr && !pr.success) return { ok: false, message: "Harga minimal Rp 1.500" };
+  const { data: l } = await db
+    .from("layouts")
+    .select("id, paper")
+    .eq("id", layoutId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (!l) return { ok: false, message: "Template tidak ditemukan" };
+  const r = await assignToEvent(db, orgId, l, ev.data, pr?.data);
+  revalidatePath("/admin/templates");
+  return r;
+}
+
+/** Pindah template ke tab Event / Photobox (#160). */
+export async function setTemplateMode(id: string, mode: "event" | "photobox") {
+  const { db, orgId } = await requireMember(["owner", "admin"]);
+  await db
+    .from("layouts")
+    .update({ mode: mode === "photobox" ? "photobox" : "event" })
+    .eq("id", id)
+    .eq("organization_id", orgId);
+  revalidatePath("/admin/templates");
 }
 
 /** Duplikat: versi terbaru jadi template baru "<nama> (salinan)" versi 1, lalu buka editornya. */

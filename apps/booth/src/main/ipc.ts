@@ -12,7 +12,7 @@ import {
   RUN_ACTIONS,
   SESSION_ID_PATTERN,
 } from "@tetra/shared";
-import { app, BrowserWindow, ipcMain, net, shell } from "electron";
+import { app, BrowserWindow, clipboard, ipcMain, net, shell } from "electron";
 import { z } from "zod";
 import type { Alerts } from "./alerts";
 import { cameraHealth, liveViewUrl, request, ServiceUnavailable } from "./camera-client";
@@ -20,6 +20,7 @@ import type { Cloud } from "./cloud";
 import {
   config,
   DeviceSettings,
+  dataDir,
   deviceFile,
   deviceNow,
   lockedByArgv,
@@ -40,6 +41,7 @@ import {
   saveDesign,
 } from "./design-override";
 import { FOCUS_STEPS, focus, liveViewFrame, liveViewStart, liveViewStop } from "./digicam";
+import { buildEventFolder, folderName } from "./event-folder";
 import {
   applyOverride,
   diffOverride,
@@ -80,6 +82,7 @@ const SessionStarted = z.object({
   layoutVersionId: z.string().min(1).max(128),
   startedAt: Iso,
   paymentId: z.uuid().optional(),
+  isTest: z.boolean().optional(),
 });
 const SessionCompleted = z.object({
   id: z.string().regex(SESSION_ID_PATTERN),
@@ -281,7 +284,60 @@ export function registerIpc(
   });
   ipcMain.handle("crewEventRun", (_e, id: unknown, action: unknown) => {
     crewOnly();
-    return cloud.runAction(EventId.parse(id), z.enum(RUN_ACTIONS).parse(action));
+    return cloud.runAction(EventId.parse(id), z.enum([...RUN_ACTIONS, "arm"]).parse(action));
+  });
+  // Rekap booth (#154): dihitung dari SQLite & timer lokal, jalan offline.
+  ipcMain.handle("crewRecap", (_e, id: unknown) => {
+    crewOnly();
+    const eventId = EventId.parse(id);
+    return {
+      ...db.recap(eventId),
+      run: cloud.runState(eventId) ? cloud.localRun(eventId) : null,
+      info: bundles.find((b) => b.id === eventId)?.info ?? {},
+    };
+  });
+  // "Buka folder event" (#155): kumpulkan file sesi asli event ini lalu buka di Explorer untuk disalin crew.
+  ipcMain.handle("crewOpenEventFolder", async (e, id: unknown) => {
+    crewOnly();
+    const eventId = EventId.parse(id);
+    const name = bundles.find((b) => b.id === eventId)?.name ?? eventId;
+    // --data (dev/e2e) = folder data sendiri, supaya Dokumen laptop tidak terisi data uji.
+    const root = dataDir
+      ? join(dataDir, "Foto Event")
+      : join(app.getPath("documents"), "Tetra Booth");
+    const dest = join(root, folderName(name));
+    const added = await buildEventFolder(dest, db.eventFiles(eventId));
+    console.info(`[crew] folder event ${dest} (+${added} file)`);
+    // Uji otomatis: jangan membuka Explorer/Finder.
+    if (process.env.TETRA_NO_SHELL_OPEN !== "1") {
+      const win = BrowserWindow.fromWebContents(e.sender);
+      if (win?.isKiosk()) {
+        setKioskOn(win, false);
+        win.once("focus", () => {
+          if (!win.isDestroyed()) setKioskOn(win, true);
+        });
+      }
+      const err = await shell.openPath(dest);
+      if (err) throw new Error(`Folder tidak bisa dibuka: ${err}`);
+      win?.minimize();
+    }
+    return dest;
+  });
+  // "Salin link galeri" (#155): aktifkan link galeri klien di cloud, salin alamatnya ke clipboard.
+  ipcMain.handle("crewGalleryLink", async (_e, id: unknown) => {
+    crewOnly();
+    let slug: string;
+    try {
+      slug = await cloud.galleryLink(EventId.parse(id));
+    } catch (err) {
+      console.warn(
+        `[cloud] link galeri gagal: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      throw new Error("Link galeri butuh internet. Sambungkan booth ke internet lalu coba lagi");
+    }
+    const url = `${config.guestUrl}/g/${slug}`;
+    clipboard.writeText(url);
+    return url;
   });
   ipcMain.handle("crewRetryUploads", async () => {
     crewOnly();
@@ -754,7 +810,12 @@ export function registerIpc(
     return new Uint8Array(await readFile(local ? join(localDir(b.id), local) : assetPath(b, a)));
   });
 
-  ipcMain.handle("sessionStarted", (_e, x: unknown) => db.sessionStarted(SessionStarted.parse(x)));
+  ipcMain.handle("sessionStarted", (_e, x: unknown) => {
+    const s = SessionStarted.parse(x);
+    db.sessionStarted(s);
+    // "Mulai acara" (#152): sesi tamu pertama memulai timer; sesi tes tidak.
+    if (!s.isTest) cloud.sessionStarted(s.eventId, s.startedAt);
+  });
   ipcMain.handle("sessionCompleted", (_e, x: unknown) => {
     const s = SessionCompleted.parse(x);
     db.sessionCompleted({

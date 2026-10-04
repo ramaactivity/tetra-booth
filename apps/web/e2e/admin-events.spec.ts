@@ -217,7 +217,8 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
       consentVersion: expect.stringMatching(/^[0-9a-f]{10}$/),
     });
 
-    await page.goto("/admin");
+    // Event ini sudah jadi photobox (di atas): daftar Photobox (#156).
+    await page.goto("/admin/photobox");
     await expect(page.getByRole("link", { name: new RegExp(name) })).toContainText(dev?.name ?? "");
   } finally {
     await db.from("events").delete().eq("name", name);
@@ -274,6 +275,7 @@ test("duplikat template: salinan versi 1 dengan aset yang sama, lalu editor terb
     await login(page, u);
     await page.goto("/admin/templates");
     await page.screenshot({ path: "test-results/admin-templates-list.png" });
+    await page.getByRole("button", { name: `Lainnya untuk ${name}` }).click();
     await page.getByRole("button", { name: `Duplikat ${name}` }).click();
     await expect(page).toHaveURL(/\/admin\/templates\/[0-9a-f-]{36}$/, { timeout: 30_000 });
     const copyId = page.url().split("/").pop() ?? "";

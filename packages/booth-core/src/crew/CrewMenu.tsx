@@ -1,10 +1,11 @@
-import { paperLabel, printPaper, type RunAction, type RunState } from "@tetra/shared";
+import { paperLabel, printPaper, type RunAction } from "@tetra/shared";
 import { Button } from "@tetra/ui";
 import {
   ArrowRight,
   ArrowUpDown,
   Camera,
   Check,
+  ClipboardList,
   Flag,
   Focus,
   Heart,
@@ -31,14 +32,16 @@ import { eventDesigns } from "../designEdit";
 import { crewText, errText } from "../errors";
 import { type BoothEvent, DEFAULT_EVENT } from "../event";
 import { usePlatform } from "../PlatformContext";
-import type { CrewStatus, FailedPrint, UpdateCheck } from "../platform";
+import type { BoothRunState, CrewStatus, FailedPrint, UpdateCheck } from "../platform";
 import { type SharpenProgress, sharpenOldSessions } from "../rerender";
 import { sharpNotes } from "../sharpness";
 import { Logo } from "../ui";
+import { BoothRecap } from "./BoothRecap";
 import { CameraProps } from "./CameraProps";
 import { DeviceSheet } from "./DeviceSheet";
 import { EventSettingsSheet } from "./EventSettingsSheet";
 import { Sheet } from "./Sheet";
+import { StartDialog } from "./StartDialog";
 import { testPrint } from "./testPrint";
 
 const PAPER_LOW = 30;
@@ -263,7 +266,8 @@ export function CrewMenu({
   onCameraCheck: () => void;
   onChangePin: () => void;
   onPair: () => void;
-  onClose: () => void;
+  /** `live` = tamu sungguhan, `test` = Tes dulu (sesi ditandai tes, #153); kosong = mode tidak berubah. */
+  onClose: (mode?: "live" | "test") => void;
 }) {
   const p = usePlatform();
   const [status, setStatus] = useState<CrewStatus>();
@@ -290,26 +294,31 @@ export function CrewMenu({
   const hhmm = (iso: string) =>
     new Date(iso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
   // Timer event (#149): null = event lokal (tanpa cloud), tidak ditampilkan.
-  const [run, setRun] = useState<RunState | null>(null);
+  const [run, setRun] = useState<BoothRunState | null>(null);
   const [finishAsk, setFinishAsk] = useState(false);
+  /** Pop-up Mulai acara / Tes dulu (#152) dan kartu rekap (#154). */
+  const [goAsk, setGoAsk] = useState(false);
+  const [recapOpen, setRecapOpen] = useState(false);
   useEffect(() => {
     if (!hasEvent) return;
     p.crew.runState(event.id).then(setRun, () => {});
   }, [p, event, hasEvent]);
-  const runAct = (a: RunAction) => {
-    setFinishAsk(false);
+  const runAct = (a: RunAction | "arm") =>
     p.crew.eventRun(event.id, a).then(
       (s) => {
+        setFinishAsk(false);
         setRun(s);
-        if (!status?.online) setNote(copy.crew.run.offline);
+        if (!status?.online && a !== "arm") setNote(copy.crew.run.offline);
       },
       (e: unknown) => setNote(crewText(e)),
     );
-  };
-  /** Buka untuk Tamu dari checklist = timer mulai / lanjut (kecuali sudah selesai). Tidak menunggu jaringan. */
+  /**
+   * Buka untuk Tamu (#152): acara belum mulai / dijeda = tanya Mulai acara atau Tes dulu. Berjalan, menunggu sesi
+   * pertama, selesai, atau event lokal = langsung buka. Timer tidak pernah menunggu jaringan.
+   */
   const openForGuests = () => {
-    if (hasEvent) void p.crew.eventRun(event.id, "open").catch(() => {});
-    onClose();
+    if (hasEvent && (run === "idle" || run === "paused")) setGoAsk(true);
+    else onClose("live");
   };
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [blurWarn, setBlurWarn] = useState(() => sharpNotes.crewWarning());
@@ -592,7 +601,9 @@ export function CrewMenu({
                         ? "peach"
                         : run === "finished"
                           ? "sky"
-                          : "white"
+                          : run === "waiting"
+                            ? "lavender"
+                            : "white"
                   }
                 >
                   {dot}
@@ -616,7 +627,7 @@ export function CrewMenu({
                   <Button
                     variant="destructive"
                     className="h-[80px] rounded-[20px] px-8 text-xl"
-                    onClick={() => runAct("finish")}
+                    onClick={() => void runAct("finish").then(() => setRecapOpen(true))}
                   >
                     {copy.crew.run.confirmYes}
                   </Button>
@@ -627,7 +638,7 @@ export function CrewMenu({
                     <Button
                       variant="secondary"
                       className="h-[80px] gap-3 rounded-[20px] px-8 text-xl"
-                      onClick={() => runAct("pause")}
+                      onClick={() => void runAct("pause")}
                     >
                       <Pause size={24} strokeWidth={2.5} /> {copy.crew.run.pause}
                     </Button>
@@ -635,7 +646,7 @@ export function CrewMenu({
                   {run === "paused" && (
                     <Button
                       className="h-[80px] gap-3 rounded-[20px] px-8 text-xl [--lx:6px]"
-                      onClick={() => runAct("start")}
+                      onClick={() => void runAct("start")}
                     >
                       <Play size={24} strokeWidth={2.5} /> {copy.crew.run.resume}
                     </Button>
@@ -647,6 +658,15 @@ export function CrewMenu({
                       onClick={() => setFinishAsk(true)}
                     >
                       <Flag size={24} strokeWidth={2.5} /> {copy.crew.run.finish}
+                    </Button>
+                  )}
+                  {run !== "idle" && run !== "waiting" && (
+                    <Button
+                      variant="secondary"
+                      className="h-[80px] gap-3 rounded-[20px] px-8 text-xl"
+                      onClick={() => setRecapOpen(true)}
+                    >
+                      <ClipboardList size={24} strokeWidth={2.5} /> {copy.crew.run.recap}
                     </Button>
                   )}
                 </>
@@ -1130,6 +1150,17 @@ export function CrewMenu({
         </Sheet>
       )}
 
+      {goAsk && (
+        <StartDialog
+          paused={run === "paused"}
+          onStart={() =>
+            void runAct(run === "paused" ? "start" : "arm").then(() => onClose("live"))
+          }
+          onTest={() => onClose("test")}
+          onClose={() => setGoAsk(false)}
+        />
+      )}
+      {recapOpen && <BoothRecap event={event} onClose={() => setRecapOpen(false)} />}
       {sheet === "exit" && (
         <Sheet title={copy.crew.exitConfirm} onClose={() => setSheet(null)}>
           <p className="text-2xl font-medium text-text-2">{copy.crew.exitBody}</p>

@@ -7,13 +7,13 @@ import { updateRun } from "@/lib/run";
 import { requireMember } from "@/lib/supabase/server";
 
 /**
- * Moderasi sesi (FSD §5, desain E8): sembunyikan/tampilkan atau hapus (foto di R2 ikut dihapus).
- * Owner/admin; semua aksi masuk audit_logs.
+ * Moderasi sesi (FSD §5, desain E8): sembunyikan/tampilkan, hapus (foto di R2 ikut dihapus), atau "Bukan tes"
+ * (sesi tes booth #153 jadi sesi asli). Owner/admin; semua aksi masuk audit_logs.
  */
 export async function moderate(
   eventId: string,
   sessionId: string,
-  action: "hide" | "show" | "delete",
+  action: "hide" | "show" | "delete" | "untest",
 ) {
   const { db, orgId, user } = await requireMember(["owner", "admin"]);
   const scope = db
@@ -21,7 +21,9 @@ export async function moderate(
     .update(
       action === "delete"
         ? { deleted_at: new Date().toISOString() }
-        : { hidden_at: action === "hide" ? new Date().toISOString() : null },
+        : action === "untest"
+          ? { is_test: false }
+          : { hidden_at: action === "hide" ? new Date().toISOString() : null },
     );
   const { data } = await scope
     .eq("id", sessionId)

@@ -2,6 +2,8 @@ import type {
   AssetKindName,
   CommandResult,
   EventBundle,
+  EventInfo,
+  EventRun,
   EventSettings,
   LayoutSpec,
   Paper,
@@ -57,6 +59,8 @@ export interface BoothDb {
     startedAt: string;
     /** Photobox: pembayaran paket yang lunas. */
     paymentId?: string;
+    /** Sesi mode "Tes dulu" crew (#153): tidak dihitung, tidak tampil di galeri. */
+    isTest?: boolean;
   }): Promise<void>;
   /** Sesi + aset + antrean upload dalam satu transaksi (TSD §4.2). */
   sessionCompleted(s: {
@@ -83,6 +87,22 @@ export type CrewStatus = {
 };
 
 export type CloudDevice = { name: string; shortCode: string };
+/** Timer event menurut booth: `waiting` = Mulai acara ditekan, menunggu sesi tamu pertama (#152). */
+export type BoothRunState = RunState | "waiting";
+/** Rekap booth (#154), dihitung dari data laptop ini (jalan offline). */
+export type BoothRecap = {
+  /** Sesi asli selesai (tanpa sesi tes). */
+  sessions: number;
+  /** Lembar dicetak, termasuk cetak lagi dari galeri. */
+  prints: number;
+  tests: number;
+  firstAt: string | null;
+  lastAt: string | null;
+  /** Timer menurut laptop ini; null = event lokal (bukan cloud). */
+  run: EventRun | null;
+  /** Jadwal, paket, slug dari bundle cloud. */
+  info: EventInfo;
+};
 /** Kamera & printer dari mode crew (DECISIONS #85). */
 export type DeviceSettings = {
   camera?: "webcam" | "simulated" | "hotfolder" | "canon";
@@ -154,12 +174,18 @@ export interface BoothCrew {
   /** Tandai aset sesi yang ditulis ulang (strip_web/thumb_strip) untuk diunggah lagi lewat antrean upload. */
   reupload(sessionId: string, assets: SessionAsset[]): Promise<void>;
   /** Timer event (#149) menurut booth ini; null = event lokal (bukan dari cloud). */
-  runState(eventId: string): Promise<RunState | null>;
+  runState(eventId: string): Promise<BoothRunState | null>;
   /**
    * Catat aksi timer (jam laptop saat ditekan) dan kirim ke cloud lewat antrean (offline aman).
    * `open` = Buka untuk Tamu: mulai/lanjutkan kalau belum selesai. Balas state baru; null = event lokal.
    */
-  eventRun(eventId: string, action: RunAction): Promise<RunState | null>;
+  eventRun(eventId: string, action: RunAction | "arm"): Promise<BoothRunState | null>;
+  /** Rekap acara di booth (#154). */
+  recap(eventId: string): Promise<BoothRecap>;
+  /** Kumpulkan file sesi event ini ke satu folder lalu buka di Explorer (#155). Balas path folder. */
+  openEventFolder(eventId: string): Promise<string>;
+  /** Aktifkan link galeri klien & salin alamatnya ke clipboard (#155). Offline = Error berpesan. */
+  galleryLink(eventId: string): Promise<string>;
   /** Unggah antrean sekarang juga, lewati jeda backoff (FSD §1.3 "coba sekarang"). */
   retryUploads(): Promise<void>;
   device(): Promise<DeviceInfo>;

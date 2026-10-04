@@ -176,6 +176,8 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     await expect(ed).toHaveCount(0);
     await expect(row).toContainText("Diubah di booth");
     await w.getByTestId("to-guest").click();
+    // Event cloud belum mulai: pop-up Mulai acara / Tes dulu (#152).
+    await w.getByRole("button", { name: /^Mulai acara/ }).click();
     await w.waitForTimeout(1000);
 
     // Layar awal per event: gambar latar, teks tombol sendiri, strip contoh disembunyikan.

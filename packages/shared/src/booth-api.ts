@@ -177,6 +177,8 @@ export const SessionUpsert = z.object({
   paymentId: z.uuid().optional(),
   /** Jumlah aset yang akan diunggah; sesi `complete` saat semuanya tercatat. */
   assetCount: z.number().int().min(1).max(50),
+  /** Sesi mode "Tes dulu" crew (#153): tidak dihitung di statistik, rekap, galeri. Booth lama = tidak dikirim. */
+  isTest: z.boolean().optional(),
 });
 export type SessionUpsert = z.infer<typeof SessionUpsert>;
 
@@ -203,6 +205,10 @@ export const AssetsResponse = z.object({
   uploadStatus: z.enum(["pending", "partial", "complete"]),
 });
 export type AssetsResponse = z.infer<typeof AssetsResponse>;
+
+/** POST /api/booth/events/{id}/gallery-link: aktifkan link galeri klien event ini (idempotent), balas slug. */
+export const GalleryLinkResponse = z.object({ slug: z.string().regex(/^[\w-]{1,80}$/) });
+export type GalleryLinkResponse = z.infer<typeof GalleryLinkResponse>;
 
 /** POST /api/track (publik, rate-limited): analytics halaman tamu (FSD §2). */
 export const TrackRequest = z.object({

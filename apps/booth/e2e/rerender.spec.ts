@@ -125,6 +125,8 @@ test("tajamkan foto lama: sesi tanpa piece@2x dirender ulang & strip_web diungga
     await w.getByRole("button", { name: "Ambil event terbaru" }).click();
     await w.getByRole("button", { name: /Sari & Bima/ }).click();
     await w.getByTestId("to-guest").click();
+    // Event cloud belum mulai: pop-up Mulai acara / Tes dulu (#152).
+    await w.getByRole("button", { name: /^Mulai acara/ }).click();
 
     // Sesi: desain kedua (4R, 2 foto) + filter Hangat → pencocokan harus memilih kombinasi ini.
     await start.click();

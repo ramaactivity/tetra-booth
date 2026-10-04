@@ -18,7 +18,7 @@ import {
   useState,
 } from "react";
 import { type SaveResult, saveEvent } from "./actions";
-import { type DesignOption, DesignPicker } from "./DesignPicker";
+import { type DesignOption, DesignPicker, forMode } from "./DesignPicker";
 import { useLeaveGuard } from "./useLeaveGuard";
 
 export type SettingsValues = {
@@ -30,10 +30,13 @@ export type SettingsValues = {
   /** Paket yang dijual (#150): nama + durasi jam, untuk rekap durasi. */
   package_name: string;
   package_hours: string;
+  /** Jadwal booking (#152) "HH:MM", kosong = tidak diisi. */
+  scheduled_start: string;
+  scheduled_end: string;
   /** Desain frame terpilih, berurutan (pertama = utama): preset id atau `tpl:<layoutId>`. */
   designs: string[];
   designOptions: DesignOption[];
-  templates: { id: string; name: string; paper: string; version: number }[];
+  templates: { id: string; name: string; paper: string; mode: string; version: number }[];
   background: string;
   hasOverlay: boolean;
   /** Layar awal booth (#102). */
@@ -704,6 +707,27 @@ export function SettingsForm({
               />
             </Field>
             <Field
+              label="Jadwal"
+              optional
+              hint="Jam mulai dan selesai menurut booking. Rekap membandingkannya dengan jam nyata, booth tidak dibatasi."
+            >
+              <input
+                name="scheduled_start"
+                type="time"
+                aria-label="Jadwal mulai"
+                defaultValue={v.scheduled_start}
+                className={input.replace("w-full", "w-32")}
+              />
+              <span className="text-[13px] text-text-2">sampai</span>
+              <input
+                name="scheduled_end"
+                type="time"
+                aria-label="Jadwal selesai"
+                defaultValue={v.scheduled_end}
+                className={input.replace("w-full", "w-32")}
+              />
+            </Field>
+            <Field
               id="tagline"
               label="Teks kecil di layar booth"
               optional
@@ -756,7 +780,7 @@ export function SettingsForm({
             desc="Bingkai yang tercetak di setiap foto. Pilih 1–3 desain berukuran kertas sama; lebih dari satu = tamu memilih sebelum foto. Desain pertama = utama."
           >
             <DesignPicker
-              options={v.designOptions}
+              options={forMode(v.designOptions, mode, (x) => designs.includes(x))}
               value={designs}
               onChange={(d) => {
                 setDesigns(d);
@@ -1120,11 +1144,14 @@ export function SettingsForm({
                   name: LAYOUT_PRESETS[id].name,
                   info: LAYOUT_PRESETS[id].info,
                 })),
-                ...v.templates.map((t) => ({
-                  id: `tpl-${t.id}`,
-                  name: t.name,
-                  info: `${paperLabel(t.paper as LayoutPaper)} · template`,
-                })),
+                // Template photobox saja (#160), kecuali yang sudah dijual event ini.
+                ...v.templates
+                  .filter((t) => t.mode === "photobox" || sold.has(`tpl-${t.id}`))
+                  .map((t) => ({
+                    id: `tpl-${t.id}`,
+                    name: t.name,
+                    info: `${paperLabel(t.paper as LayoutPaper)} · template`,
+                  })),
               ].map((p) => (
                 <div
                   key={p.id}

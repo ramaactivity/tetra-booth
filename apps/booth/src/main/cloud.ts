@@ -8,6 +8,7 @@ import {
   BoothUpdateResponse,
   BundleManifest,
   EdsdkResponse,
+  GalleryLinkResponse,
   type HeartbeatRequest,
   PairResponse,
   type PaymentCreateRequest,
@@ -238,8 +239,24 @@ export function createCloud(
     token,
     /** Timer event (#149): null = bukan event cloud. */
     runState: (eventId: string) => (cloudEvent(eventId) ? runQueue.state(eventId) : null),
-    runAction: (eventId: string, action: RunAction) =>
-      cloudEvent(eventId) ? runQueue.push(eventId, action) : null,
+    /** `arm` = Mulai acara (#152): timer mulai saat sesi tamu pertama. */
+    runAction: (eventId: string, action: RunAction | "arm") =>
+      !cloudEvent(eventId)
+        ? null
+        : action === "arm"
+          ? runQueue.arm(eventId)
+          : runQueue.push(eventId, action),
+    /** Sesi tamu (bukan tes) mulai: timer yang menunggu mulai di jam sesi itu. */
+    sessionStarted: (eventId: string, at: string) => {
+      if (cloudEvent(eventId)) runQueue.sessionStarted(eventId, at);
+    },
+    /** Timer menurut laptop ini (rekap booth offline, #154). */
+    localRun: (eventId: string) => runQueue.localRun(eventId),
+    /** Aktifkan link galeri klien event ini (#155) dan balas slug-nya. Offline/ditolak = Error. */
+    async galleryLink(eventId: string) {
+      return GalleryLinkResponse.parse(await api(`/api/booth/events/${eventId}/gallery-link`, {}))
+        .slug;
+    },
     /** Rilis booth terbaru di cloud (DECISIONS #80); null = belum ada rilis. */
     async latestRelease() {
       const t = token();

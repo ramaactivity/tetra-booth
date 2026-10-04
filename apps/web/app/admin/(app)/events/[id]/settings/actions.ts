@@ -71,6 +71,9 @@ const Form = z.object({
   package_hours: z
     .union([z.literal(""), z.coerce.number().min(0.5).max(48).multipleOf(0.5)])
     .optional(),
+  /** Jadwal booking (#152), "HH:MM". Tidak dikirim = tidak diubah; kosong = dihapus. */
+  scheduled_start: z.union([z.literal(""), z.string().regex(/^\d{2}:\d{2}$/)]).optional(),
+  scheduled_end: z.union([z.literal(""), z.string().regex(/^\d{2}:\d{2}$/)]).optional(),
   background: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   guest_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   attract_bg: z.string().regex(/^#[0-9a-fA-F]{6}$/),
@@ -401,6 +404,8 @@ export async function applySettings(
       ...(f.package_hours !== undefined && {
         package_hours: f.package_hours === "" ? null : f.package_hours,
       }),
+      ...(f.scheduled_start !== undefined && { scheduled_start: f.scheduled_start || null }),
+      ...(f.scheduled_end !== undefined && { scheduled_end: f.scheduled_end || null }),
       mode: f.mode,
       lead_capture,
       settings: {

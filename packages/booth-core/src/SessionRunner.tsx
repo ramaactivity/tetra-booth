@@ -76,6 +76,7 @@ export function SessionRunner({
   demo = false,
   fast = false,
   bumper = false,
+  test = false,
   onCrew,
 }: {
   event: BoothEvent;
@@ -85,6 +86,8 @@ export function SessionRunner({
   fast?: boolean;
   /** Booth terpasang: putar bumper saat event ini dibuka (#105). */
   bumper?: boolean;
+  /** Mode "Tes dulu" crew (#153): sesi ditandai tes, lencana kecil di pojok. */
+  test?: boolean;
   onCrew?: (intent?: "exit") => void;
 }) {
   const p = usePlatform();
@@ -287,6 +290,9 @@ export function SessionRunner({
     };
   }, [p, s.phase]);
 
+  // Mode tes dibaca saat sesi mulai saja: berganti mode tidak mencatat ulang sesi yang sudah ada.
+  const testRef = useRef(test);
+  testRef.current = test;
   // Catat sesi mulai (untuk deteksi sesi terputus saat app mati).
   useEffect(() => {
     if (!s.sessionId) return;
@@ -297,6 +303,7 @@ export function SessionRunner({
         layoutVersionId: `${ev.layout.id}@${ev.layout.version}`,
         startedAt: new Date().toISOString(),
         ...(s.paymentId && { paymentId: s.paymentId }),
+        ...(testRef.current && { isTest: true }),
       })
       .catch((e: unknown) => console.error(`[session] gagal mencatat sesi: ${errText(e)}`));
   }, [p, s.sessionId, s.paymentId, ev]);
@@ -424,6 +431,15 @@ export function SessionRunner({
           className={`absolute top-[52px] right-[72px] z-10 rounded-full border-[2.5px] border-ink px-8 py-4 font-mono text-[30px] font-bold ${s.deadline - now <= 60_000 ? "bg-peach" : "bg-white"}`}
         >
           {copy.photobox.timeLeft} {mmss(s.deadline - now)}
+        </span>
+      )}
+      {test && (
+        <span
+          data-testid="test-badge"
+          title={copy.crew.testHint}
+          className="pointer-events-none absolute right-5 bottom-5 z-20 rounded-full border-2 border-ink bg-butter px-3.5 py-1 font-mono text-base font-bold tracking-[0.08em]"
+        >
+          {copy.crew.testBadge}
         </span>
       )}
       {bumperState !== "done" && s.phase === "attract" && (

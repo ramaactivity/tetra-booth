@@ -73,13 +73,31 @@ const BOOKINGS = [
     package_name: null,
     package_duration_hours: null,
   },
+  {
+    project_id: "PRJ-E2E-0003",
+    client_name: "PT Uji",
+    event_title: "Gathering PT Uji",
+    event_category: "corporate",
+    event_category_label: "Corporate",
+    event_date: "2026-11-07",
+    start_time: "09:00",
+    end_time: "12:00",
+    venue_name: "Hotel Uji",
+    venue_city: "Jakarta",
+    service_type: "photobooth_classic",
+    frame_size: "4R",
+    package_name: "4R Unlimited 3 Jam",
+    package_duration_hours: 3,
+  },
 ];
 
 test("wizard: Ambil dari Tetra Ops mengisi event dan menyimpan project_id", async ({ page }) => {
   test.setTimeout(90_000);
   const auths: string[] = [];
+  const urls: string[] = [];
   const server: Server = createServer((req, res) => {
     auths.push(req.headers.authorization ?? "");
+    urls.push(req.url ?? "");
     res.setHeader("content-type", "application/json");
     if (req.url?.startsWith("/api/booth/bookings"))
       return res.end(JSON.stringify({ bookings: BOOKINGS }));
@@ -101,10 +119,28 @@ test("wizard: Ambil dari Tetra Ops mengisi event dan menyimpan project_id", asyn
     await login(page, u);
     await page.goto("/admin/events/new");
     const list = page.getByTestId("ops-list");
+    // Filter bulan (#152): bawaan bulan ini; booking diambil sekali untuk 180 hari (batas Tetra Ops).
+    const months = page.getByTestId("ops-months");
+    await expect(months.getByRole("button", { name: /^Okt/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     await expect(list.getByRole("button")).toHaveCount(2);
     await page.screenshot({ path: "test-results/wizard-ops.png" });
+    const q = new URL(`http://x${urls.find((x) => x.startsWith("/api/booth/bookings")) ?? ""}`)
+      .searchParams;
+    expect((Date.parse(q.get("to") ?? "") - Date.parse(q.get("from") ?? "")) / 86_400_000).toBe(
+      179,
+    );
+    await months.getByRole("button", { name: /^Nov/ }).click();
+    await expect(list.getByRole("button")).toHaveCount(1);
+    await expect(list).toContainText("Gathering PT Uji");
+    await page.screenshot({ path: "test-results/wizard-ops-month.png" });
+    await months.getByRole("button", { name: /^Semua/ }).click();
+    await expect(list.getByRole("button")).toHaveCount(3);
+    await months.getByRole("button", { name: /^Okt/ }).click();
     expect(auths.every((a) => a === "Bearer e2e-ops-token")).toBe(true);
-    await page.getByPlaceholder("Cari klien atau lokasi").fill("ciawi");
+    await page.getByPlaceholder("Cari klien, lokasi, paket").fill("ciawi");
     await expect(list.getByRole("button")).toHaveCount(1);
     await list.getByRole("button", { name: /Wedding Vina & Aji/ }).click();
     await expect(page.getByTestId("ops-picked")).toContainText("PRJ-E2E-0001");
@@ -113,6 +149,8 @@ test("wizard: Ambil dari Tetra Ops mengisi event dan menyimpan project_id", asyn
     await expect(page.getByLabel(/^Lokasi/)).toHaveValue("PPMKP Ciawi, Bogor");
     await expect(page.getByLabel("Nama paket")).toHaveValue("2R Unlimited 4 Jam");
     await expect(page.getByLabel("Durasi (jam)")).toHaveValue("4");
+    await expect(page.getByLabel("Jadwal mulai")).toHaveValue("11:00");
+    await expect(page.getByLabel("Jadwal selesai")).toHaveValue("15:00");
     await page.screenshot({ path: "test-results/wizard-ops-picked.png", fullPage: true });
     // Paket dari daftar Tetra Ops menimpa isian paket.
     await page.getByRole("combobox", { name: "Pilih paket Tetra Ops" }).click();
@@ -141,7 +179,9 @@ test("wizard: Ambil dari Tetra Ops mengisi event dan menyimpan project_id", asyn
     await expect(page.getByRole("link", { name: "Buka event" })).toBeVisible({ timeout: 30_000 });
     const { data: ev } = await db
       .from("events")
-      .select("package_name, package_hours, ops_project_id, location, event_date, branding")
+      .select(
+        "package_name, package_hours, ops_project_id, location, event_date, branding, scheduled_start, scheduled_end",
+      )
       .eq("name", `e2e ops ${tag}`)
       .single();
     expect(ev).toMatchObject({
@@ -151,6 +191,8 @@ test("wizard: Ambil dari Tetra Ops mengisi event dan menyimpan project_id", asyn
       location: "PPMKP Ciawi, Bogor",
       event_date: "2026-10-18",
       branding: { clientName: "Vina & Aji" },
+      scheduled_start: "11:00:00",
+      scheduled_end: "15:00:00",
     });
   } finally {
     server.close();

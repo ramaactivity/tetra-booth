@@ -145,3 +145,62 @@ export function durationText(totalMin: number) {
   if (!h) return `${r} menit`;
   return r ? `${h} jam ${r} menit` : `${h} jam`;
 }
+
+/** "08:00" / "08:00:00" (kolom time Postgres) → "08:00"; selain itu null. */
+export const hhmm = (v: string | null | undefined) =>
+  v && /^\d{2}:\d{2}/.test(v) ? v.slice(0, 5) : null;
+/** "08:00" → "08.00" (penulisan jam Indonesia). */
+export const clockId = (v: string) => v.replace(":", ".");
+const minOf = (v: string) => Number(v.slice(0, 2)) * 60 + Number(v.slice(3, 5));
+/** Jam:menit sebuah waktu di zona `timeZone` (tanpa = zona laptop) sebagai "HH:MM". */
+export const localHhmm = (iso: string | number, timeZone?: string) =>
+  new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    ...(timeZone && { timeZone }),
+  }).format(new Date(iso));
+
+/**
+ * Jadwal vs nyata (#152): selisih menit jam nyata terhadap jam jadwal (positif = telat), dibungkus ke ±12 jam
+ * supaya event lewat tengah malam tetap masuk akal. Hanya referensi, tidak pernah membatasi booth.
+ */
+export function scheduleDelta(scheduled: string, actual: string) {
+  const d = minOf(actual) - minOf(scheduled);
+  return ((((d + 720) % 1440) + 1440) % 1440) - 720;
+}
+/** "mulai telat 12 menit" / "selesai lebih awal 5 menit" / "mulai tepat waktu". */
+export function deltaText(what: "mulai" | "selesai", delta: number) {
+  if (!delta) return `${what} tepat waktu`;
+  return `${what} ${delta > 0 ? "telat" : "lebih awal"} ${durationText(Math.abs(delta))}`;
+}
+export type ScheduleCompare = {
+  /** "08.00–11.00" */
+  planned: string;
+  /** "08.12–11.05", "08.12–…" (masih berjalan), null = belum ada data nyata. */
+  actual: string | null;
+  /** "Mulai telat 12 menit · selesai lebih awal 5 menit". */
+  note: string | null;
+};
+/**
+ * Bandingkan jadwal (HH:MM) dengan jam nyata (HH:MM lokal). Jadwal tanpa jam selesai tetap dibandingkan di jam
+ * mulai. null = jadwal kosong.
+ */
+export function compareSchedule(
+  start: string | null,
+  end: string | null,
+  actualStart: string | null,
+  actualEnd: string | null,
+): ScheduleCompare | null {
+  if (!start) return null;
+  const planned = `${clockId(start)}${end ? `–${clockId(end)}` : ""}`;
+  if (!actualStart) return { planned, actual: null, note: null };
+  const notes = [deltaText("mulai", scheduleDelta(start, actualStart))];
+  if (end && actualEnd) notes.push(deltaText("selesai", scheduleDelta(end, actualEnd)));
+  const note = notes.join(" · ");
+  return {
+    planned,
+    actual: `${clockId(actualStart)}–${actualEnd ? clockId(actualEnd) : "…"}`,
+    note: note.charAt(0).toUpperCase() + note.slice(1),
+  };
+}

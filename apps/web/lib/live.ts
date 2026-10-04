@@ -29,6 +29,7 @@ export async function loadLive(token: string, limit = 24) {
     .select("id, started_at, assets!inner(kind, r2_key)")
     .eq("event_id", ev.id)
     .eq("organization_id", ev.organization_id)
+    .eq("is_test", false)
     .is("hidden_at", null)
     .is("deleted_at", null)
     .eq("assets.kind", "strip_web")

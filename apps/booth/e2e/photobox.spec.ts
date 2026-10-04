@@ -152,6 +152,8 @@ test("photobox: layout → QRIS → foto dengan timer → tambah lembar → QRIS
     await w.getByRole("button", { name: "Ambil event terbaru" }).click();
     await w.getByRole("button", { name: /Photobox Mall/ }).click();
     await w.getByTestId("to-guest").click();
+    // Event cloud belum mulai: pop-up Mulai acara / Tes dulu (#152).
+    await w.getByRole("button", { name: /^Mulai acara/ }).click();
     await w.waitForTimeout(1000);
 
     await w.getByRole("button", { name: /sentuh untuk mulai/i }).click();

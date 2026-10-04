@@ -1,5 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { BoothRunResponse, type RunAction, type RunState } from "@tetra/shared";
+import {
+  applyRun,
+  BoothRunResponse,
+  EMPTY_RUN,
+  type EventRun,
+  type RunAction,
+  type RunState,
+} from "@tetra/shared";
 
 type Kv = { get(key: string): string | null | undefined; set(key: string, value: string): void };
 type Item = { id: string; eventId: string; action: RunAction; at: string };
@@ -7,6 +14,12 @@ export type RunPost = (path: string, body: unknown) => Promise<{ status: number;
 
 const QUEUE = "run_outbox";
 const stateKey = (eventId: string) => `run_state:${eventId}`;
+/** "Mulai acara" ditekan, timer menunggu sesi tamu pertama (#152). */
+const armedKey = (eventId: string) => `run_armed:${eventId}`;
+/** Aksi yang diterapkan di laptop ini, untuk rekap booth offline (#154). */
+const logKey = (eventId: string) => `run_log:${eventId}`;
+/** State menurut booth: `waiting` = Mulai acara sudah ditekan, belum ada sesi tamu. */
+export type BoothRunState = RunState | "waiting";
 
 /** Perkiraan state lokal (sama dengan applyRun di server) supaya menu crew langsung berubah walau offline. */
 export function nextRunState(s: RunState, a: RunAction): RunState {
@@ -38,6 +51,14 @@ export function createRunQueue(o: {
   };
   const write = (q: Item[]) => o.kv.set(QUEUE, JSON.stringify(q));
   const state = (eventId: string) => (o.kv.get(stateKey(eventId)) as RunState | null) ?? "idle";
+  const armed = (eventId: string) => o.kv.get(armedKey(eventId)) === "1";
+  const readLog = (eventId: string): { action: RunAction; at: string }[] => {
+    try {
+      return JSON.parse(o.kv.get(logKey(eventId)) ?? "[]");
+    } catch {
+      return [];
+    }
+  };
 
   let draining: Promise<void> | null = null;
   const drain = () => {
@@ -73,20 +94,48 @@ export function createRunQueue(o: {
     return draining;
   };
 
+  /** Catat aksi (jam `at`, bawaan sekarang), perbarui state lokal, kirim di latar belakang. */
+  const push = (eventId: string, action: RunAction, at = new Date(now()).toISOString()) => {
+    const before = state(eventId);
+    const next = nextRunState(before, action);
+    if (action !== "open") o.kv.set(armedKey(eventId), "");
+    // Aksi yang tidak mengubah apa pun (sudah berjalan / selesai / jeda dua kali) tidak perlu dikirim.
+    if (next === before) return before;
+    write([...read(), { id: randomUUID(), eventId, action, at }]);
+    o.kv.set(stateKey(eventId), next);
+    o.kv.set(logKey(eventId), JSON.stringify([...readLog(eventId), { action, at }].slice(-500)));
+    void drain();
+    return next;
+  };
+  const boothState = (eventId: string): BoothRunState =>
+    state(eventId) === "idle" && armed(eventId) ? "waiting" : state(eventId);
+
   return {
-    state,
+    state: boothState,
     pending: () => read().length,
     drain,
-    /** Catat aksi (jam sekarang = jam aksi), perbarui state lokal, kirim di latar belakang. */
-    push(eventId: string, action: RunAction): RunState {
-      const before = state(eventId);
-      const next = nextRunState(before, action);
-      // "Buka untuk Tamu" yang tidak mengubah apa pun (sudah berjalan / selesai) tidak perlu dikirim.
-      if (action === "open" && next === before && before !== "idle") return before;
-      write([...read(), { id: randomUUID(), eventId, action, at: new Date(now()).toISOString() }]);
-      o.kv.set(stateKey(eventId), next);
-      void drain();
-      return next;
+    push: (eventId: string, action: RunAction): BoothRunState => {
+      push(eventId, action);
+      return boothState(eventId);
+    },
+    /**
+     * "Mulai acara" (#152): timer belum jalan, menunggu sesi tamu pertama. Event yang sudah pernah mulai
+     * (berjalan/dijeda/selesai) tidak berubah.
+     */
+    arm(eventId: string): BoothRunState {
+      if (state(eventId) === "idle") o.kv.set(armedKey(eventId), "1");
+      return boothState(eventId);
+    },
+    /** Sesi tamu (bukan tes) mulai: kalau menunggu, timer mulai di jam sesi itu. */
+    sessionStarted(eventId: string, at: string) {
+      if (armed(eventId) && state(eventId) === "idle") push(eventId, "start", at);
+    },
+    /** Timer menurut laptop ini (rekap offline); bisa beda dengan cloud kalau admin mengubah dari dashboard. */
+    localRun(eventId: string): EventRun {
+      return readLog(eventId).reduce(
+        (r, x) => applyRun(r, x.action, x.at, Date.parse(x.at)),
+        EMPTY_RUN,
+      );
     },
   };
 }

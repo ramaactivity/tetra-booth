@@ -1,11 +1,14 @@
 import {
+  compareSchedule,
   durationText,
   type EventRun,
+  localHhmm,
   type RunVerdict,
   runElapsedMs,
   runPausedMs,
   runState,
   runVerdict,
+  type ScheduleCompare,
 } from "@tetra/shared";
 
 /**
@@ -31,6 +34,9 @@ export type RecapData = {
   firstAt: string | null;
   lastAt: string | null;
   run: EventRun;
+  /** Jadwal booking (#152) "HH:MM" waktu lokal venue (WIB); null = tidak diisi. */
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
 };
 
 const WIB = { timeZone: "Asia/Jakarta" } as const;
@@ -61,6 +67,8 @@ export type RecapView = {
   verdict: RunVerdict | null;
   verdictText: string;
   verdictSub: string;
+  /** Jadwal vs nyata (#152); null = jadwal kosong. */
+  schedule: ScheduleCompare | null;
   packageText: string;
   stats: { label: string; value: string; note?: string }[];
   rows: { label: string; value: string }[];
@@ -103,6 +111,12 @@ export function recapView(d: RecapData, now: number): RecapView {
     verdict,
     verdictText,
     verdictSub,
+    schedule: compareSchedule(
+      d.scheduledStart,
+      d.scheduledEnd,
+      startAt ? localHhmm(startAt, WIB.timeZone) : null,
+      endAt ? localHhmm(endAt, WIB.timeZone) : null,
+    ),
     packageText,
     stats: [
       { label: "Sesi", value: String(d.sessions) },
@@ -144,6 +158,11 @@ export function recapText(d: RecapData, now: number): string {
   if (v.source)
     lines.push(
       `Mulai ${time(v.startAt)} · Selesai ${v.running ? "masih berjalan" : time(v.endAt)}${v.source === "timer" ? ` · Jeda ${durationText(v.pausedMs / 60_000)}` : ""}`,
+    );
+  if (v.schedule)
+    lines.push(
+      `Jadwal ${v.schedule.planned}${v.schedule.actual ? ` · Nyata ${v.schedule.actual}` : ""}`,
+      ...(v.schedule.note ? [v.schedule.note] : []),
     );
   lines.push(
     "",

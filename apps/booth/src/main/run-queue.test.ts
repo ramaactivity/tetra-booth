@@ -48,4 +48,28 @@ describe("antrean timer event booth", () => {
     expect(q.push(EV, "finish")).toBe("finished");
     expect(q.push(EV, "open")).toBe("finished");
   });
+
+  it("Mulai acara: menunggu sesi tamu pertama, timer mulai di jam sesi itu; rekap lokal", async () => {
+    const kv = memKv();
+    const sent: { action: string; at: string }[] = [];
+    const post: RunPost = async (_p, body) => {
+      sent.push(body as { action: string; at: string });
+      return { status: 200, body: { state: "running" } };
+    };
+    const q = createRunQueue({ kv, post, log: () => {} });
+    expect(q.arm(EV)).toBe("waiting");
+    expect(q.pending()).toBe(0);
+    q.sessionStarted(EV, "2026-10-04T01:12:00.000Z");
+    expect(q.state(EV)).toBe("running");
+    q.sessionStarted(EV, "2026-10-04T01:20:00.000Z"); // sesi kedua tidak mengubah apa-apa
+    await q.drain();
+    expect(sent).toEqual([
+      expect.objectContaining({ action: "start", at: "2026-10-04T01:12:00.000Z" }),
+    ]);
+    expect(q.arm(EV)).toBe("running"); // sudah mulai: arm tidak berlaku
+    q.push(EV, "finish");
+    const run = q.localRun(EV);
+    expect(run.segments[0]?.start).toBe("2026-10-04T01:12:00.000Z");
+    expect(run.finishedAt).toBeDefined();
+  });
 });

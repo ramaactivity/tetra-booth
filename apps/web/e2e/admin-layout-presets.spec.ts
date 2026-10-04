@@ -1,15 +1,13 @@
 import { expect, type Page, test } from "@playwright/test";
 import { db, hasDb, login, makeUser } from "./admin-helpers";
+import { createTemplateViaWizard } from "./template-helpers";
 
 /** Tata letak cepat → "Tata letak saya": simpan posisi slot, pakai di desain lain berkertas sama, hapus. */
 test.skip(!hasDb, "butuh Supabase dev (apps/web/.env.local) + migrasi 0009_layout_presets");
 
 async function newTemplate(page: Page, name: string) {
   await page.goto("/admin/templates");
-  await page.getByRole("button", { name: "Buat Template" }).click();
-  await page.getByPlaceholder(/Nama template/).fill(name);
-  await page.getByRole("button", { name: "Buat", exact: true }).click();
-  await expect(page.getByLabel("Nama template")).toHaveValue(name);
+  await createTemplateViaWizard(page, { name });
 }
 
 test("editor template: simpan tata letak sendiri lalu pakai di template lain", async ({ page }) => {

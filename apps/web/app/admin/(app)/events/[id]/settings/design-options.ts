@@ -17,7 +17,7 @@ export async function loadDesignOptions(
 ) {
   const { data: layouts } = await db
     .from("layouts")
-    .select("id, name, paper, layout_versions(version, spec)")
+    .select("id, name, paper, mode, layout_versions(version, spec)")
     .eq("organization_id", orgId)
     .is("archived_at", null)
     .order("created_at", { ascending: false })
@@ -34,6 +34,7 @@ export async function loadDesignOptions(
           value: `tpl:${l.id}`,
           name: l.name,
           paper,
+          mode: l.mode === "photobox" ? ("photobox" as const) : ("event" as const),
           info: `${paperLabel(paper, canvas)} · ${slots.length} foto · v${lv.version}`,
           layout: spec.data.layout,
           template: {

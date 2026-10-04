@@ -1,4 +1,5 @@
 import {
+  hhmm,
   LAYOUT_PRESETS,
   type LayoutPaper,
   type PresetId,
@@ -55,7 +56,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, slug, name, event_date, location, mode, settings, client_token, live_token, run, package_name, package_hours",
+      "id, slug, name, event_date, location, mode, settings, client_token, live_token, run, package_name, package_hours, scheduled_start, scheduled_end",
     )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
@@ -66,7 +67,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     await Promise.all([
       db
         .from("sessions")
-        .select("id, started_at, print_count, upload_status, hidden_at, device_id")
+        .select("id, started_at, print_count, upload_status, hidden_at, device_id, is_test")
         .eq("event_id", ev.id)
         .eq("organization_id", orgId)
         .is("deleted_at", null)
@@ -90,6 +91,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
         .eq("organization_id", orgId)
         .eq("kind", "original")
         .eq("sessions.event_id", ev.id)
+        .eq("sessions.is_test", false)
         .is("sessions.deleted_at", null),
     ]);
   // Desain frame event (utama dulu): nama + ukuran; template editor bisa langsung diedit.
@@ -115,9 +117,18 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
         : [];
     },
   );
-  const list = sessions ?? [];
-  const opened = new Set((hits ?? []).filter((h) => h.type === "qr_open").map((h) => h.session_id));
-  const saved = new Set((hits ?? []).filter((h) => h.type !== "qr_open").map((h) => h.session_id));
+  // Sesi tes crew (#153) tampil di daftar sesi dengan tanda "Tes", tapi tidak dihitung di statistik & rekap.
+  const all = sessions ?? [];
+  const list = all.filter((s) => !s.is_test);
+  const real = new Set(list.map((s) => s.id));
+  const hitIds = (f: (t: string) => boolean) =>
+    new Set(
+      (hits ?? [])
+        .filter((h) => f(h.type) && !!h.session_id && real.has(h.session_id))
+        .map((h) => h.session_id),
+    );
+  const opened = hitIds((t) => t === "qr_open");
+  const saved = hitIds((t) => t !== "qr_open");
   const total = list.length;
   const pct = (n: number) => (total ? `${Math.round((n / total) * 100)}%` : "0%");
   const prints = list.reduce((a, s) => a + s.print_count, 0);
@@ -144,7 +155,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     { l: "Disimpan ke HP", n: saved.size, c: "var(--mint)" },
   ];
 
-  const recent = list.slice(0, TILES);
+  const recent = all.slice(0, TILES);
   const { data: thumbs } = recent.length
     ? await db
         .from("assets")
@@ -204,6 +215,8 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     firstAt: list.at(-1)?.started_at ?? null,
     lastAt: list[0]?.started_at ?? null,
     run,
+    scheduledStart: hhmm(ev.scheduled_start),
+    scheduledEnd: hhmm(ev.scheduled_end),
   };
 
   const h = await headers();
@@ -213,11 +226,11 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Link
-            href="/admin"
+            href={ev.mode === "photobox" ? "/admin/photobox" : "/admin"}
             className="-ml-1 inline-flex items-center gap-0.5 text-[13px] font-semibold text-text-2 no-underline hover:text-ink"
           >
             <ChevronLeft aria-hidden className="size-4" strokeWidth={2} />
-            Event
+            {ev.mode === "photobox" ? "Photobox" : "Event"}
           </Link>
           <h1 className="mt-1 text-[28px] font-extrabold tracking-[-0.03em]">{ev.name}</h1>
           <p className="mt-2.5 flex items-center gap-2 text-[13px] text-text-3">
@@ -415,7 +428,12 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
 
       <section className="flex flex-col gap-3">
         <h2 className="text-[15px] font-extrabold">
-          Sesi {total > TILES ? `(${TILES} terbaru dari ${total})` : ""}
+          Sesi {all.length > TILES ? `(${TILES} terbaru dari ${all.length})` : ""}
+          {all.length > total && (
+            <span className="ml-2 text-xs font-semibold text-text-2">
+              {all.length - total} sesi tes tidak dihitung
+            </span>
+          )}
         </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-8">
           {recent.map((s) => (
@@ -427,11 +445,12 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
               download={downloadUrl.get(s.id) ?? null}
               time={clock(s.started_at)}
               hidden={!!s.hidden_at}
+              test={s.is_test}
               status={UPLOAD[s.upload_status] ?? s.upload_status}
             />
           ))}
         </div>
-        {!total && <p className="text-sm text-text-2">Belum ada sesi dari booth.</p>}
+        {!all.length && <p className="text-sm text-text-2">Belum ada sesi dari booth.</p>}
       </section>
     </>
   );

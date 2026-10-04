@@ -3,7 +3,13 @@ import { DEFAULT_SETTINGS, SOUND_CUES } from "@tetra/shared";
 import { z } from "zod";
 import { DEFAULT_TEMPLATE } from "@/lib/event-bundle";
 import { requireMember } from "@/lib/supabase/server";
-import { type OpsBooking, type OpsPackage, opsBookings, opsPackages } from "@/lib/tetra-ops";
+import {
+  OPS_MAX_DAYS,
+  type OpsBooking,
+  type OpsPackage,
+  opsBookings,
+  opsPackages,
+} from "@/lib/tetra-ops";
 import { applySettings } from "./[id]/settings/actions";
 
 const NewEvent = z.object({
@@ -103,11 +109,20 @@ export type OpsList =
   | { ok: true; bookings: OpsBooking[]; packages: OpsPackage[] }
   | { ok: false; message: string };
 
-/** Wizard "Ambil dari Tetra Ops": booking mendatang + paket aktif (baca-saja). Owner/admin. */
+/**
+ * Wizard "Ambil dari Tetra Ops": booking hari ini s.d. +179 hari (batas Tetra Ops 180 hari) + paket aktif
+ * (baca-saja). Wizard memilahnya per bulan di klien. Owner/admin.
+ */
 export async function loadOps(): Promise<OpsList> {
   await requireMember(["owner", "admin"]);
+  const ymd = (ms: number) =>
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date(ms));
+  const now = Date.now();
   try {
-    const [bookings, packages] = await Promise.all([opsBookings(), opsPackages()]);
+    const [bookings, packages] = await Promise.all([
+      opsBookings(ymd(now), ymd(now + (OPS_MAX_DAYS - 1) * 86_400_000)),
+      opsPackages(),
+    ]);
     return { ok: true, bookings, packages };
   } catch (e) {
     console.warn(`[tetra-ops] ${e instanceof Error ? e.message : String(e)}`);

@@ -17,7 +17,13 @@ export type DesignOption = {
   template?: PreviewTemplate & { pinned: number | null };
   /** Bentuk dasar di luar preset event (wizard): hanya bisa dipakai lewat "Salin & sesuaikan". */
   copyOnly?: boolean;
+  /** Template editor: untuk mode Event atau Photobox (layouts.mode, #160); preset = semua mode. */
+  mode?: "event" | "photobox";
 };
+
+/** Pilihan untuk satu mode event: preset + template mode itu, plus yang sudah terpasang (`keep`) walau beda mode. */
+export const forMode = (options: DesignOption[], mode: string, keep: (v: string) => boolean) =>
+  options.filter((o) => !o.mode || o.mode === mode || keep(o.value));
 
 export const MAX_DESIGNS = 3;
 const PAGE = 12;

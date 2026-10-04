@@ -27,7 +27,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, all_devices, package_name, package_hours, event_devices(device_id)",
+      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, all_devices, package_name, package_hours, scheduled_start, scheduled_end, event_devices(device_id)",
     )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
@@ -82,6 +82,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           client_name: branding.clientName ?? "",
           package_name: ev.package_name ?? "",
           package_hours: ev.package_hours ? String(ev.package_hours) : "",
+          scheduled_start: ev.scheduled_start?.slice(0, 5) ?? "",
+          scheduled_end: ev.scheduled_end?.slice(0, 5) ?? "",
           guestColor: branding.color ?? "#f8f7f4",
           hasLogo: !!branding.logoKey,
           // Template yang sudah diarsip tidak ada di pilihan: tidak ikut terpilih.
@@ -123,6 +125,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
             id: l.id,
             name: l.name,
             paper: l.paper,
+            mode: l.mode,
             version: l.layout_versions[0]?.version ?? 1,
           })),
           background: tpl.background,

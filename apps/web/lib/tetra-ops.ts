@@ -45,11 +45,14 @@ async function get<T>(path: string, schema: z.ZodType<T>): Promise<T> {
   return schema.parse(await res.json());
 }
 
-/** Booking yang belum lewat (hari ini s.d. +60 hari, rentang bawaan Tetra Ops). */
-export const opsBookings = () =>
-  get("/api/booth/bookings", z.object({ bookings: z.array(OpsBooking).max(500) })).then(
-    (r) => r.bookings,
-  );
+/** Rentang maksimum `from`–`to` yang diterima Tetra Ops. */
+export const OPS_MAX_DAYS = 180;
+/** Booking di rentang tanggal (YYYY-MM-DD, maks. 180 hari); dipilah per bulan di wizard (#152). */
+export const opsBookings = (from: string, to: string) =>
+  get(
+    `/api/booth/bookings?from=${from}&to=${to}`,
+    z.object({ bookings: z.array(OpsBooking).max(1000) }),
+  ).then((r) => r.bookings);
 export const opsPackages = () =>
   get("/api/booth/packages", z.object({ packages: z.array(OpsPackage).max(500) })).then(
     (r) => r.packages,

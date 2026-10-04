@@ -30,7 +30,8 @@ export function CrewMode({
   guestBaseUrl: string;
   onSelectEvent: (id: string) => void;
   onReloadEvents: () => Promise<void>;
-  onClose: () => void;
+  /** `test` = crew memilih Tes dulu (#153); kosong = mode tamu tidak berubah. */
+  onClose: (mode?: "live" | "test") => void;
   /** Dibuka dari tombol Dashboard Admin di layar awal: setelah PIN benar, langsung buka browser. */
   openAdmin?: boolean;
   /** Ctrl+Shift+Q: setelah PIN langsung konfirmasi Tutup Aplikasi. */
@@ -50,9 +51,9 @@ export function CrewMode({
       .catch(() => setView("pin"));
   }, [crew]);
 
-  const close = () => {
+  const close = (mode?: "live" | "test") => {
     void crew.lock();
-    onClose();
+    onClose(mode);
   };
 
   switch (view) {
@@ -69,7 +70,7 @@ export function CrewMode({
             if (openAdmin && view === "pin") void crew.openAdmin().catch(() => {});
             setView("menu");
           }}
-          onCancel={view === "change" ? () => setView("menu") : close}
+          onCancel={view === "change" ? () => setView("menu") : () => close()}
         />
       );
     case "pair":

@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   applyRun,
+  compareSchedule,
   durationText,
   EMPTY_RUN,
   runElapsedMs,
   runPausedMs,
   runState,
   runVerdict,
+  scheduleDelta,
   setRunTimes,
 } from "./run";
 
@@ -69,5 +71,29 @@ describe("timer event", () => {
     expect(durationText(192)).toBe("3 jam 12 menit");
     expect(durationText(45)).toBe("45 menit");
     expect(durationText(120)).toBe("2 jam");
+  });
+});
+
+describe("jadwal vs nyata", () => {
+  it("selisih menit, lewat tengah malam tetap masuk akal", () => {
+    expect(scheduleDelta("08:00", "08:12")).toBe(12);
+    expect(scheduleDelta("11:00", "10:55")).toBe(-5);
+    expect(scheduleDelta("23:30", "00:10")).toBe(40);
+  });
+  it("teks jadwal vs nyata", () => {
+    expect(compareSchedule("08:00", "11:00", "08:12", "11:05")).toEqual({
+      planned: "08.00–11.00",
+      actual: "08.12–11.05",
+      note: "Mulai telat 12 menit · selesai telat 5 menit",
+    });
+    expect(compareSchedule("08:00", "11:00", "07:50", null)?.note).toBe(
+      "Mulai lebih awal 10 menit",
+    );
+    expect(compareSchedule("08:00", null, null, null)).toEqual({
+      planned: "08.00",
+      actual: null,
+      note: null,
+    });
+    expect(compareSchedule(null, "11:00", "08:00", null)).toBeNull();
   });
 });

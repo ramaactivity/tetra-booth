@@ -28,6 +28,8 @@ test("timer admin: mulai, jeda, lanjut, selesai, ubah jam → rekap lebih 20 men
       location: "Gedung Kirana",
       package_name: "2R Unlimited 1 Jam",
       package_hours: 1,
+      scheduled_start: "10:00",
+      scheduled_end: "11:00",
     })
     .select("id, slug")
     .single();
@@ -47,6 +49,17 @@ test("timer admin: mulai, jeda, lanjut, selesai, ubah jam → rekap lebih 20 men
         upload_status: "complete",
       })),
     );
+    // Sesi tes crew (#153): tidak ikut dihitung di rekap.
+    await db.from("sessions").insert({
+      id: `rkt${tag}a`,
+      organization_id: u.org,
+      event_id: eventId,
+      device_id: device?.id ?? "",
+      started_at: "2026-10-12T02:30:00Z",
+      print_count: 5,
+      upload_status: "complete",
+      is_test: true,
+    });
     await db.from("assets").insert(
       ids.flatMap((sid) =>
         [1, 2].map((idx) => ({
@@ -122,6 +135,13 @@ test("timer admin: mulai, jeda, lanjut, selesai, ubah jam → rekap lebih 20 men
     await expect(page.getByTestId("recap-Sesi pertama")).toHaveText("10.05");
     await expect(page.getByTestId("recap-Sesi terakhir")).toHaveText("12.05");
     await expect(page.getByTestId("recap-row-Paket")).toHaveText("2R Unlimited 1 Jam · 1 jam");
+    // Jadwal vs nyata (#152): jam nyata = timer yang dikoreksi.
+    await expect(page.getByTestId("recap-schedule")).toContainText(
+      /Jadwal 10\.00–11\.00 vs Nyata \d{2}\.\d{2}–\d{2}\.\d{2}/,
+    );
+    await expect(page.getByTestId("recap-schedule")).toContainText(
+      /Mulai (telat|lebih awal|tepat)/,
+    );
     if (device) await expect(page.getByTestId("recap-row-Booth")).toHaveText(device.name);
     // Muat tanpa scroll di laptop 1440×900.
     const box = await page.getByRole("dialog", { name: "Rekap event" }).boundingBox();
@@ -135,6 +155,7 @@ test("timer admin: mulai, jeda, lanjut, selesai, ubah jam → rekap lebih 20 men
     expect(text).toContain(`*Rekap Event · e2e rekap ${tag}*`);
     expect(text).toContain("*Lebih 20 menit*");
     expect(text).toContain("Sesi: 3");
+    expect(text).toContain("Jadwal 10.00–11.00 · Nyata");
 
     const dl = page.waitForEvent("download");
     await page.getByRole("button", { name: "Unduh gambar" }).click();
@@ -207,6 +228,23 @@ test("API booth: buka, ulang (idempotent), jeda offline terlambat, selesai", asy
     // Buka untuk Tamu setelah selesai tidak membuka lagi.
     expect(await (await send("open", at(140))).json()).toEqual({ state: "finished" });
 
+    // Salin Link Galeri dari rekap booth (#155): link klien aktif, idempotent (token tidak berganti).
+    const link = () =>
+      request.post(`/api/booth/events/${eventId}/gallery-link`, { headers: auth, data: {} });
+    expect((await request.post(`/api/booth/events/${eventId}/gallery-link`)).status()).toBe(401);
+    const l1 = await link();
+    expect(l1.status()).toBe(200);
+    const { slug } = await l1.json();
+    expect(slug).toMatch(/^e2e-run-\d+-2026-10-12$/);
+    const tok1 = (await db.from("events").select("client_token").eq("id", eventId).single()).data
+      ?.client_token;
+    expect(tok1).toBeTruthy();
+    expect((await (await link()).json()).slug).toBe(slug);
+    expect(
+      (await db.from("events").select("client_token").eq("id", eventId).single()).data
+        ?.client_token,
+    ).toBe(tok1);
+
     const run = (await db.from("events").select("run").eq("id", eventId).single()).data?.run as {
       segments: { start: string; end?: string }[];
       finishedAt?: string;
@@ -217,6 +255,7 @@ test("API booth: buka, ulang (idempotent), jeda offline terlambat, selesai", asy
     ]);
     expect(run.finishedAt).toBe(at(135));
   } finally {
+    await db.from("audit_logs").delete().eq("target", eventId);
     await db.from("events").delete().eq("id", eventId);
     await db
       .from("devices")

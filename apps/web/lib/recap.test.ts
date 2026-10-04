@@ -24,6 +24,8 @@ const base: RecapData = {
     ],
     finishedAt: "2026-10-04T06:30:00.000Z",
   },
+  scheduledStart: "10:00",
+  scheduledEnd: "13:00",
 };
 const now = Date.parse("2026-10-04T08:00:00.000Z");
 
@@ -51,5 +53,11 @@ describe("rekap event", () => {
     expect(t).toContain("*Lebih 20 menit*");
     expect(t).toContain("Mulai 10.00 · Selesai 13.30 · Jeda 10 menit");
     expect(t).toContain("Lembar dicetak: 22 (+ cetak ulang)");
+    expect(t).toContain("Jadwal 10.00–13.00 · Nyata 10.00–13.30");
+    expect(t).toContain("Mulai tepat waktu · selesai telat 30 menit");
+  });
+
+  it("jadwal kosong = tidak dibandingkan", () => {
+    expect(recapView({ ...base, scheduledStart: null }, now).schedule).toBeNull();
   });
 });

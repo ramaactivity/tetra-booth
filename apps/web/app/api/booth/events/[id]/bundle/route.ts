@@ -1,4 +1,4 @@
-import { type BundleManifest, StoredBundle } from "@tetra/shared";
+import { type BundleManifest, type EventInfo, hhmm, StoredBundle } from "@tetra/shared";
 import { z } from "zod";
 import { apiError, authDevice, deviceEvents } from "@/lib/booth";
 import { presignGet } from "@/lib/r2";
@@ -15,17 +15,29 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   if (!found[0]) return apiError("not_found", 404);
   const { data: ev, error } = await createServiceClient()
     .from("events")
-    .select("id, bundle_version, bundle")
+    .select(
+      "id, bundle_version, bundle, slug, scheduled_start, scheduled_end, package_name, package_hours",
+    )
     .eq("id", id)
     .eq("organization_id", device.organizationId)
     .single();
   if (error) return apiError("server_error", 500);
   const stored = StoredBundle.safeParse(ev.bundle);
   if (!stored.success) return apiError("not_found", 404);
+  // Info rekap booth (#154): dibaca saat bundle diunduh; jadwal & paket diubah lewat Simpan Pengaturan (versi naik).
+  const start = hhmm(ev.scheduled_start);
+  const end = hhmm(ev.scheduled_end);
+  const info: EventInfo = {
+    ...(start && { scheduledStart: start }),
+    ...(end && { scheduledEnd: end }),
+    ...(ev.package_name && { packageName: ev.package_name }),
+    ...(ev.package_hours && { packageHours: ev.package_hours }),
+    slug: ev.slug,
+  };
   // URL GET bertanda tangan 15 menit (TSD §4.1); r2.dev diblokir ISP Indonesia (DECISIONS #63).
   return Response.json({
     bundleVersion: ev.bundle_version,
-    config: { ...stored.data.config, id: ev.id },
+    config: { ...stored.data.config, id: ev.id, info },
     files: await Promise.all(
       stored.data.files.map(async (f) => ({
         file: f.file,

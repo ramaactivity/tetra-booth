@@ -325,6 +325,8 @@ export type Database = {
           purge_at: string | null
           purged_at: string | null
           run: NonNullable<Json>
+          scheduled_end: string | null
+          scheduled_start: string | null
           settings: NonNullable<Json>
           slug: string
           status: string
@@ -356,6 +358,8 @@ export type Database = {
           purge_at?: string | null
           purged_at?: string | null
           run?: NonNullable<Json>
+          scheduled_end?: string | null
+          scheduled_start?: string | null
           settings?: NonNullable<Json>
           slug?: string
           status?: string
@@ -387,6 +391,8 @@ export type Database = {
           purge_at?: string | null
           purged_at?: string | null
           run?: NonNullable<Json>
+          scheduled_end?: string | null
+          scheduled_start?: string | null
           settings?: NonNullable<Json>
           slug?: string
           status?: string
@@ -539,6 +545,7 @@ export type Database = {
           archived_at: string | null
           created_at: string
           id: string
+          mode: string
           name: string
           organization_id: string
           paper: string
@@ -547,6 +554,7 @@ export type Database = {
           archived_at?: string | null
           created_at?: string
           id?: string
+          mode?: string
           name: string
           organization_id: string
           paper: string
@@ -555,6 +563,7 @@ export type Database = {
           archived_at?: string | null
           created_at?: string
           id?: string
+          mode?: string
           name?: string
           organization_id?: string
           paper?: string
@@ -803,6 +812,7 @@ export type Database = {
           event_id: string
           hidden_at: string | null
           id: string
+          is_test: boolean
           layout_version_id: string | null
           organization_id: string
           payment_id: string | null
@@ -821,6 +831,7 @@ export type Database = {
           event_id: string
           hidden_at?: string | null
           id: string
+          is_test?: boolean
           layout_version_id?: string | null
           organization_id: string
           payment_id?: string | null
@@ -839,6 +850,7 @@ export type Database = {
           event_id?: string
           hidden_at?: string | null
           id?: string
+          is_test?: boolean
           layout_version_id?: string | null
           organization_id?: string
           payment_id?: string | null
@@ -888,11 +900,56 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      layout_usage: {
+        Row: {
+          last_used_at: string | null
+          layout_id: string | null
+          organization_id: string | null
+          prints: number | null
+          sessions: number | null
+          sessions_month: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      event_payment_stats: {
+        Args: { org: string }
+        Returns: {
+          event_id: string
+          paid: number
+          revenue: number
+        }[]
+      }
+      event_session_stats: {
+        Args: { org: string }
+        Returns: {
+          event_id: string
+          prints: number
+          sessions: number
+        }[]
+      }
       event_slug_base: { Args: { d: string; name: string }; Returns: string }
       is_member: { Args: { org: string; roles?: string[] }; Returns: boolean }
+      org_period_stats: {
+        Args: { d_from: string; d_to: string; org: string }
+        Returns: {
+          active_days: number
+          mode: string
+          paid: number
+          prints: number
+          revenue: number
+          sessions: number
+        }[]
+      }
       rate_hit: {
         Args: { k: string; max_hits: number; window_s: number }
         Returns: boolean

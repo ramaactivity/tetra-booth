@@ -122,6 +122,7 @@ async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gall
     .select("id, started_at")
     .eq("event_id", ev.id)
     .eq("organization_id", ev.organization_id)
+    .eq("is_test", false)
     .is("hidden_at", null)
     .is("deleted_at", null)
     .order("started_at")

@@ -1,5 +1,5 @@
 "use client";
-import { type LayoutPaper, paperLabel } from "@tetra/shared";
+import { clockId, hhmm, type LayoutPaper, paperLabel } from "@tetra/shared";
 import { Select } from "@tetra/ui";
 import {
   ArrowLeft,
@@ -13,7 +13,7 @@ import {
 import Link from "next/link";
 import { type ReactNode, startTransition, useActionState, useEffect, useState } from "react";
 import type { OpsBooking } from "@/lib/tetra-ops";
-import { type DesignOption, DesignPicker } from "../[id]/settings/DesignPicker";
+import { type DesignOption, DesignPicker, forMode } from "../[id]/settings/DesignPicker";
 import { DesignPreview } from "../[id]/settings/DesignPreview";
 import { Box, longDate } from "../[id]/settings/SettingsForm";
 import { useLeaveGuard } from "../[id]/settings/useLeaveGuard";
@@ -135,6 +135,20 @@ const opsName = (b: OpsBooking) =>
     .join(" ")
     .trim();
 const hoursText = (h: string) => (h ? `${h.replace(".", ",")} jam` : "");
+/** Bulan ini (WIB) "YYYY-MM". */
+const thisMonth = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date()).slice(0, 7);
+/** "2026-11" → "Nov" (tahun lain: "Jan 27"). */
+const monthLabel = (ym: string) => {
+  const d = new Date(`${ym}-01T00:00:00Z`);
+  const m = new Intl.DateTimeFormat("id-ID", { month: "short", timeZone: "UTC" }).format(d);
+  return ym.slice(0, 4) === thisMonth().slice(0, 4) ? m : `${m} ${ym.slice(2, 4)}`;
+};
+/** Bulan berikutnya "YYYY-MM". */
+const nextMonth = (ym: string) => {
+  const [y = 0, m = 0] = ym.split("-").map(Number);
+  return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+};
 
 /** Kunci layout photobox (sama dengan Pengaturan): id preset atau `tpl-<layoutId>`. */
 const pbKey = (value: string) => value.replace(/^tpl:/, "tpl-");
@@ -147,7 +161,10 @@ export function EventWizard({
   designOptions,
   devices,
   opsEnabled,
+  initialMode = null,
 }: {
+  /** Dibuka dari daftar Photobox = mode Photobox sudah terpilih (#156). */
+  initialMode?: Mode | null;
   designOptions: DesignOption[];
   devices: Device[];
   /** TETRA_OPS_URL + TETRA_OPS_TOKEN terisi (DECISIONS #150). */
@@ -160,6 +177,10 @@ export function EventWizard({
   const [opsPicked, setOpsPicked] = useState<OpsBooking | null>(null);
   const [ops, setOps] = useState<OpsList | null>(null);
   const [opsQuery, setOpsQuery] = useState("");
+  /** Filter bulan daftar booking (#152): bawaan bulan ini, "all" = semua bulan. */
+  const [opsMonth, setOpsMonth] = useState(thisMonth);
+  const [schedStart, setSchedStart] = useState("");
+  const [schedEnd, setSchedEnd] = useState("");
   useEffect(() => {
     if (opsEnabled) loadOps().then(setOps, () => setOps({ ok: false, message: "Gagal memuat" }));
   }, [opsEnabled]);
@@ -167,7 +188,7 @@ export function EventWizard({
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
   const [tagline, setTagline] = useState("");
-  const [mode, setMode] = useState<Mode | null>(null);
+  const [mode, setMode] = useState<Mode | null>(initialMode);
   const [paper, setPaper] = useState<LayoutPaper | null>(null);
   const [designs, setDesigns] = useState<string[]>([]);
   const [copy, setCopy] = useState<string | null>(null);
@@ -176,6 +197,7 @@ export function EventWizard({
   const [allDevices, setAllDevices] = useState(true);
   const [picked, setPicked] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const listHref = initialMode === "photobox" ? "/admin/photobox" : "/admin";
   const [r, action, pending] = useActionState<CreateResult, FormData>(createEventWizard, null);
   const done = r?.ok ? r : null;
   const dirty = !done && (step > 1 || !!(name || date || location || tagline));
@@ -186,7 +208,9 @@ export function EventWizard({
   const basics = chosen.filter((o) => o.copyOnly);
   // Bentuk dasar hanya bisa dipakai sebagai salinan: salinan otomatis jatuh padanya.
   const copyValue = basics[0]?.value ?? copy;
-  const sellable = designOptions.filter((o) => !o.copyOnly);
+  // Template per mode (#160): Event memakai template event, Photobox menjual template photobox; preset di keduanya.
+  const eventOptions = forMode(designOptions, "event", () => false);
+  const sellable = forMode(designOptions, "photobox", () => false).filter((o) => !o.copyOnly);
   const soldKeys = Object.keys(sold);
   const vars = { event_name: name.trim() || "Nama Event", date: longDate(date) };
 
@@ -238,6 +262,8 @@ export function EventWizard({
     fd.set("tagline", tagline.trim());
     fd.set("package_name", pkgName.trim());
     fd.set("package_hours", pkgHours);
+    fd.set("scheduled_start", schedStart);
+    fd.set("scheduled_end", schedEnd);
     if (clientName.trim()) fd.set("client_name", clientName.trim());
     if (opsPicked) fd.set("ops_project_id", opsPicked.project_id);
     fd.set("mode", mode ?? "event");
@@ -284,6 +310,8 @@ export function EventWizard({
     setClientName(b.client_name ?? "");
     setPkgName(b.package_name ?? "");
     setPkgHours(b.package_duration_hours ? String(b.package_duration_hours) : "");
+    setSchedStart(hhmm(b.start_time) ?? "");
+    setSchedEnd(hhmm(b.end_time) ?? "");
     const p = b.frame_size ? OPS_PAPER[b.frame_size] : undefined;
     if (p) {
       setMode("event");
@@ -291,12 +319,23 @@ export function EventWizard({
     }
     setErrors({});
   };
+  // Chip bulan: bulan ini sampai bulan booking terakhir (maks. 6), dengan jumlah booking per bulan.
+  const opsMonths: { ym: string; n: number }[] = [];
+  if (ops?.ok) {
+    const last = ops.bookings.reduce((a, b) => (b.event_date > a ? b.event_date : a), "");
+    for (let ym = thisMonth(); opsMonths.length < 6; ym = nextMonth(ym)) {
+      if (opsMonths.length && ym > last.slice(0, 7)) break;
+      opsMonths.push({ ym, n: ops.bookings.filter((b) => b.event_date.startsWith(ym)).length });
+    }
+  }
   const opsList =
     ops?.ok && !opsPicked
-      ? ops.bookings.filter((b) =>
-          `${b.client_name} ${b.event_title} ${b.venue_name} ${b.venue_city}`
-            .toLowerCase()
-            .includes(opsQuery.trim().toLowerCase()),
+      ? ops.bookings.filter(
+          (b) =>
+            (opsMonth === "all" || b.event_date.startsWith(opsMonth)) &&
+            `${opsName(b)} ${b.client_name} ${b.venue_name} ${b.venue_city} ${b.package_name}`
+              .toLowerCase()
+              .includes(opsQuery.trim().toLowerCase()),
         )
       : [];
 
@@ -332,16 +371,16 @@ export function EventWizard({
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Link
-            href="/admin"
+            href={listHref}
             className="-ml-1 inline-flex items-center gap-0.5 text-[13px] font-semibold text-text-2 no-underline hover:text-ink"
           >
             <ChevronLeft aria-hidden className="size-4" strokeWidth={2} />
-            Event
+            {initialMode === "photobox" ? "Photobox" : "Event"}
           </Link>
           <h1 className="mt-1 text-[28px] font-extrabold tracking-[-0.03em]">Buat event</h1>
         </div>
         {!done && (
-          <Link href="/admin" className={secondary}>
+          <Link href={listHref} className={secondary}>
             Batal
           </Link>
         )}
@@ -409,6 +448,9 @@ export function EventWizard({
               list={opsList}
               query={opsQuery}
               onQuery={setOpsQuery}
+              months={opsMonths}
+              month={opsMonth}
+              onMonth={setOpsMonth}
               onPick={pickOps}
               onClear={() => setOpsPicked(null)}
             />
@@ -477,10 +519,10 @@ export function EventWizard({
               <div className="flex flex-col gap-3 rounded-2xl border-[1.5px] border-dashed border-ink p-4 md:col-span-2">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="text-[13px] font-bold">
-                    Paket <span className="font-semibold text-muted"> · opsional</span>
+                    Paket & jadwal <span className="font-semibold text-muted"> · opsional</span>
                   </p>
                   <p className="text-xs text-text-2">
-                    Rekap event membandingkan lama event berjalan dengan durasi paket.
+                    Rekap event membandingkan jalannya event dengan paket dan jadwal ini.
                   </p>
                 </div>
                 {ops?.ok && ops.packages.length > 0 && (
@@ -507,7 +549,7 @@ export function EventWizard({
                     }))}
                   />
                 )}
-                <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-[minmax(0,1fr)_200px]">
+                <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_130px_150px_150px]">
                   <Field id="package_name" label="Nama paket">
                     <input
                       id="package_name"
@@ -534,6 +576,24 @@ export function EventWizard({
                       placeholder="3"
                       className={input}
                       {...invalid("pkgHours")}
+                    />
+                  </Field>
+                  <Field id="sched_start" label="Jadwal mulai">
+                    <input
+                      id="sched_start"
+                      type="time"
+                      value={schedStart}
+                      onChange={(e) => setSchedStart(e.target.value)}
+                      className={input}
+                    />
+                  </Field>
+                  <Field id="sched_end" label="Jadwal selesai">
+                    <input
+                      id="sched_end"
+                      type="time"
+                      value={schedEnd}
+                      onChange={(e) => setSchedEnd(e.target.value)}
+                      className={input}
                     />
                   </Field>
                 </div>
@@ -592,7 +652,7 @@ export function EventWizard({
                 <legend className="mb-3 text-[15px] font-extrabold">1. Ukuran kertas</legend>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   {PAPERS.map((p) => {
-                    const n = designOptions.filter((o) => o.paper === p.id && !o.copyOnly).length;
+                    const n = eventOptions.filter((o) => o.paper === p.id && !o.copyOnly).length;
                     return (
                       <label
                         key={p.id}
@@ -662,7 +722,7 @@ export function EventWizard({
                     </p>
                   </div>
                   <DesignPicker
-                    options={designOptions.filter((o) => o.paper === paper)}
+                    options={eventOptions.filter((o) => o.paper === paper)}
                     value={designs}
                     onChange={(d) => {
                       setDesigns(d);
@@ -870,7 +930,14 @@ export function EventWizard({
           {step === 5 && (
             <Summary
               name={name.trim()}
-              pkg={[pkgName.trim(), hoursText(pkgHours)].filter(Boolean).join(" · ")}
+              pkg={[
+                pkgName.trim(),
+                hoursText(pkgHours),
+                schedStart &&
+                  `jadwal ${clockId(schedStart)}${schedEnd ? `–${clockId(schedEnd)}` : ""}`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
               ops={opsPicked?.project_id ?? null}
               date={date}
               location={location.trim()}
@@ -1187,6 +1254,9 @@ function OpsPanel({
   list,
   query,
   onQuery,
+  months,
+  month,
+  onMonth,
   onPick,
   onClear,
 }: {
@@ -1195,6 +1265,10 @@ function OpsPanel({
   list: OpsBooking[];
   query: string;
   onQuery: (q: string) => void;
+  months: { ym: string; n: number }[];
+  /** "YYYY-MM" atau "all". */
+  month: string;
+  onMonth: (m: string) => void;
   onPick: (b: OpsBooking) => void;
   onClear: () => void;
 }) {
@@ -1233,8 +1307,8 @@ function OpsPanel({
             Ambil dari Tetra Ops
           </h3>
           <p className="mt-1 text-[13px] leading-snug">
-            Booking 60 hari ke depan. Pilih satu untuk mengisi nama, tanggal, lokasi, ukuran kertas,
-            dan paket. Atau lewati dan isi sendiri di bawah.
+            Pilih satu booking untuk mengisi nama, tanggal, lokasi, ukuran kertas, paket, dan
+            jadwal. Atau lewati dan isi sendiri di bawah.
           </p>
         </div>
         {ops?.ok && (
@@ -1247,12 +1321,33 @@ function OpsPanel({
             <input
               value={query}
               onChange={(e) => onQuery(e.target.value)}
-              placeholder="Cari klien atau lokasi"
+              placeholder="Cari klien, lokasi, paket"
               className={`${input} pl-9`}
             />
           </label>
         )}
       </div>
+      {ops?.ok && months.length > 0 && (
+        <fieldset className="flex flex-wrap gap-1.5" data-testid="ops-months">
+          <legend className="sr-only">Bulan booking</legend>
+          {[...months, { ym: "all", n: ops.bookings.length }].map((m) => (
+            <button
+              key={m.ym}
+              type="button"
+              aria-pressed={month === m.ym}
+              onClick={() => onMonth(m.ym)}
+              className={`inline-flex h-8 items-center gap-1.5 rounded-full border-[1.5px] border-ink px-3 text-[13px] font-bold ${month === m.ym ? "bg-ink text-white" : "bg-white hover:bg-mint-soft"}`}
+            >
+              {m.ym === "all" ? "Semua" : monthLabel(m.ym)}
+              <span
+                className={`font-mono text-[11px] font-medium ${month === m.ym ? "text-white/80" : "text-text-2"}`}
+              >
+                {m.n}
+              </span>
+            </button>
+          ))}
+        </fieldset>
+      )}
       {!ops ? (
         <p className="text-[13px] text-text-2">Memuat booking…</p>
       ) : !ops.ok ? (
@@ -1261,7 +1356,11 @@ function OpsPanel({
         </p>
       ) : list.length === 0 ? (
         <p className="text-[13px] text-text-2">
-          {query ? "Tidak ada booking yang cocok." : "Belum ada booking mendatang di Tetra Ops."}
+          {query
+            ? "Tidak ada booking yang cocok."
+            : month === "all"
+              ? "Belum ada booking mendatang di Tetra Ops."
+              : `Tidak ada booking di bulan ${monthLabel(month)}. Pilih bulan lain.`}
         </p>
       ) : (
         <ul

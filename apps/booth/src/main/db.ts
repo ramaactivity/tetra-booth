@@ -67,6 +67,23 @@ export type SessionMeta = {
   retakeCount: number;
   printCount: number;
   assetCount: number;
+  isTest?: boolean;
+};
+/** Rekap booth (#154): sesi asli (bukan tes) yang selesai di laptop ini. */
+export type LocalRecap = {
+  sessions: number;
+  prints: number;
+  tests: number;
+  firstAt: string | null;
+  lastAt: string | null;
+};
+/** File hasil sesi untuk folder event (#155). */
+export type EventFile = {
+  sessionId: string;
+  startedAt: string;
+  kind: AssetKind;
+  idx: number;
+  path: string;
 };
 
 export type SessionStart = {
@@ -76,6 +93,8 @@ export type SessionStart = {
   startedAt: string;
   /** Photobox: pembayaran paket yang lunas (DECISIONS #70). */
   paymentId?: string | undefined;
+  /** Sesi mode "Tes dulu" crew (#153). */
+  isTest?: boolean | undefined;
 };
 export type SessionDone = {
   id: string;
@@ -122,6 +141,12 @@ export function openDb(file: string) {
   const db = new DatabaseSync(file);
   db.exec("pragma journal_mode = wal; pragma synchronous = normal; pragma foreign_keys = on;");
   db.exec(SCHEMA);
+  // Kolom baru di database lama (tambah saja, tidak pernah ubah/hapus).
+  const cols = new Set(
+    (db.prepare("pragma table_info(sessions)").all() as { name: string }[]).map((c) => c.name),
+  );
+  if (!cols.has("is_test"))
+    db.exec("alter table sessions add column is_test int not null default 0");
   // Sesi yang masih berjalan saat app mati tidak akan pernah selesai.
   const abandoned = db
     .prepare("update sessions set status = 'abandoned' where status = 'in_progress'")
@@ -140,8 +165,8 @@ export function openDb(file: string) {
   };
 
   const insertStart = db.prepare(
-    `insert into sessions (id, event_id, layout_version_id, payment_id, status, started_at, photo_count, retake_count, print_count)
-     values (?, ?, ?, ?, 'in_progress', ?, 0, 0, 0)
+    `insert into sessions (id, event_id, layout_version_id, payment_id, status, started_at, photo_count, retake_count, print_count, is_test)
+     values (?, ?, ?, ?, 'in_progress', ?, 0, 0, 0, ?)
      on conflict (id) do nothing`,
   );
   const complete = db.prepare(
@@ -195,7 +220,14 @@ export function openDb(file: string) {
     abandoned: Number(abandoned),
 
     sessionStarted(s: SessionStart) {
-      insertStart.run(s.id, s.eventId, s.layoutVersionId, s.paymentId ?? null, s.startedAt);
+      insertStart.run(
+        s.id,
+        s.eventId,
+        s.layoutVersionId,
+        s.paymentId ?? null,
+        s.startedAt,
+        s.isTest ? 1 : 0,
+      );
     },
 
     /** Sesi + aset + antrean upload dalam satu transaksi (TSD §4.2 langkah 1). Idempotent per aset (id = sesi:kind:idx). */
@@ -342,17 +374,17 @@ export function openDb(file: string) {
         .all(now, limit) as DueUpload[];
     },
     /** Metadata sesi untuk upsert cloud (POST /api/booth/sessions). */
-    sessionMeta(id: string) {
-      const { paymentId, ...m } = db
+    sessionMeta(id: string): SessionMeta & { paymentId?: string } {
+      const { paymentId, isTest, ...m } = db
         .prepare(
           `select id, event_id eventId, started_at startedAt, completed_at completedAt,
              photo_count photoCount, retake_count retakeCount, print_count printCount,
              (select count(*) from assets where session_id = sessions.id) assetCount,
-             payment_id paymentId
+             payment_id paymentId, is_test isTest
            from sessions where id = ?`,
         )
-        .get(id) as SessionMeta & { paymentId: string | null };
-      return paymentId ? { ...m, paymentId } : m;
+        .get(id) as Omit<SessionMeta, "isTest"> & { paymentId: string | null; isTest: number };
+      return { ...m, ...(paymentId && { paymentId }), ...(isTest && { isTest: true }) };
     },
     sessionMetaSynced(id: string) {
       db.prepare("update sessions set synced_meta = 1 where id = ?").run(id);
@@ -412,7 +444,7 @@ export function openDb(file: string) {
           .prepare(
             `select id, completed_at completedAt, layout_version_id layoutVersionId, print_count printCount,
                ${REPRINTED} reprinted
-             from sessions where event_id = ? and status = 'completed' and completed_at < ?
+             from sessions where event_id = ? and status = 'completed' and is_test = 0 and completed_at < ?
              order by completed_at desc limit ?`,
           )
           .all(eventId, before, limit) as (GallerySession & { layoutVersionId: string })[]
@@ -429,9 +461,34 @@ export function openDb(file: string) {
       return db
         .prepare(
           `select substr(completed_at, 1, 13) hour, count(*) n from sessions
-           where event_id = ? and status = 'completed' group by hour order by hour desc`,
+           where event_id = ? and status = 'completed' and is_test = 0 group by hour order by hour desc`,
         )
         .all(eventId) as { hour: string; n: number }[];
+    },
+    /** Rekap booth (#154): sesi asli selesai event ini (print_count sudah termasuk cetak ulang galeri). */
+    recap(eventId: string): LocalRecap {
+      return db
+        .prepare(
+          `select coalesce(sum(is_test = 0), 0) sessions,
+             coalesce(sum(case when is_test = 0 then print_count end), 0) prints,
+             coalesce(sum(is_test), 0) tests,
+             min(case when is_test = 0 then started_at end) firstAt,
+             max(case when is_test = 0 then started_at end) lastAt
+           from sessions where event_id = ? and status = 'completed'`,
+        )
+        .get(eventId) as LocalRecap;
+    },
+    /** File hasil sesi asli event ini (lembar cetak, foto asli, GIF, video) untuk folder event (#155). */
+    eventFiles(eventId: string): EventFile[] {
+      return db
+        .prepare(
+          `select a.session_id sessionId, s.started_at startedAt, a.kind, a.idx, a.path
+           from assets a join sessions s on s.id = a.session_id
+           where s.event_id = ? and s.status = 'completed' and s.is_test = 0
+             and a.kind in ('strip', 'original', 'animation', 'video')
+           order by s.started_at, a.kind, a.idx`,
+        )
+        .all(eventId) as EventFile[];
     },
     /** Lembar cetak ulang dari galeri untuk sesi selesai ini; undefined = sesi tidak ada / belum selesai. */
     reprinted(sessionId: string): number | undefined {

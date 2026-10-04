@@ -132,9 +132,13 @@ export const copy = {
       paused: "Jeda",
       generated: "Dibuat",
       brand: "Tetra Booth",
+      planned: "Jadwal",
+      actual: "Nyata",
     },
     nav: {
+      ops: "Operasional",
       events: "Event",
+      photobox: "Photobox",
       templates: "Template",
       devices: "Device",
       transactions: "Transaksi",

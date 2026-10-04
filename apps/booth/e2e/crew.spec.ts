@@ -43,6 +43,16 @@ function makeData() {
   return data;
 }
 
+/** Satu sesi --fast dari layar awal sampai kembali ke layar awal. */
+const session = async (w: Page) => {
+  const start = w.getByRole("button", { name: /sentuh untuk mulai/i });
+  await expect(start).toBeVisible();
+  await w.waitForTimeout(1000); // START_GUARD_MS
+  await start.click();
+  await w.getByRole("button", { name: /pakai semua foto/i }).click({ timeout: 30_000 });
+  await w.getByRole("button", { name: /cetak sekarang/i }).click({ timeout: 15_000 });
+  await w.getByRole("button", { name: "Selesai" }).click({ timeout: 60_000 });
+};
 const openCrew = async (w: Page) => {
   const hot = w.getByTestId("crew-hotspot");
   for (let i = 0; i < 5; i++) await hot.click();
@@ -225,7 +235,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   const TOKEN = "t".repeat(54);
   const beats: string[] = [];
   const beatBodies: HeartbeatRequest[] = [];
-  const sessions: { eventId: string; assetCount: number }[] = [];
+  const sessions: { id: string; eventId: string; assetCount: number; isTest?: boolean }[] = [];
   const puts: string[] = [];
   const recorded: string[] = [];
   const runs: { id: string; action: string; at: string }[] = [];
@@ -268,6 +278,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
               ...config,
               id: EVENT,
               name: "Rina & Dimas",
+              info: { scheduledStart: "08:00", scheduledEnd: "11:00", packageHours: 3 },
               layout: {
                 ...config.layout,
                 slots: [config.layout.slots[0], { ...config.layout.slots[0], id: "b", y: 900 }],
@@ -287,17 +298,26 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
         }
         const state = { open: "running", start: "running", pause: "paused", finish: "finished" };
         res.end(JSON.stringify({ state: state[b.action as keyof typeof state] }));
+      } else if (req.url === `/api/booth/events/${EVENT}/gallery-link`) {
+        res.end(JSON.stringify({ slug: "rina-dimas-2026-10-12" }));
       } else if (req.url === "/api/booth/sessions") {
-        sessions.push(JSON.parse(body));
+        // Upsert boleh terkirim lebih dari sekali (idempotent): simpan satu per id.
+        const x = JSON.parse(body);
+        const i = sessions.findIndex((y) => y.id === x.id);
+        if (i < 0) sessions.push(x);
+        else sessions[i] = x;
         res.end(JSON.stringify({ ok: true }));
       } else if (req.url === "/api/booth/uploads/sign") {
-        const { assets } = JSON.parse(body) as { assets: { kind: string; idx: number }[] };
+        const { assets, sessionId } = JSON.parse(body) as {
+          sessionId: string;
+          assets: { kind: string; idx: number }[];
+        };
         res.end(
           JSON.stringify({
             uploads: assets.map((a) => ({
               ...a,
-              key: `k/${a.kind}_${a.idx}`,
-              url: `http://127.0.0.1:${port}/r2/${a.kind}_${a.idx}`,
+              key: `k/${sessionId}/${a.kind}_${a.idx}`,
+              url: `http://127.0.0.1:${port}/r2/${sessionId}/${a.kind}_${a.idx}`,
             })),
           }),
         );
@@ -322,8 +342,13 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
   const port = (server.address() as { port: number }).port;
 
-  const env: NodeJS.ProcessEnv = { ...process.env, TETRA_GUEST_URL: `http://127.0.0.1:${port}` };
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    TETRA_GUEST_URL: `http://127.0.0.1:${port}`,
+    TETRA_NO_SHELL_OPEN: "1",
+  };
   delete env.ELECTRON_RUN_AS_NODE;
+  const data = makeData();
   const app = await electron.launch({
     executablePath: electronPath,
     // --use-mock-keychain: safeStorage di macOS tanpa dialog Keychain.
@@ -331,7 +356,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
       appDir,
       "--camera=simulated",
       "--no-spawn",
-      `--data=${makeData()}`,
+      `--data=${data}`,
       "--fast",
       "--use-mock-keychain",
     ],
@@ -382,48 +407,108 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await w.getByRole("button", { name: /Mode Event/ }).click();
   await w.getByRole("button", { name: "Ambil event terbaru" }).click();
   await w.getByRole("button", { name: /Rina & Dimas/ }).click();
-  // Event cloud: timer belum mulai, mulai sendiri saat Buka untuk Tamu.
+  // Event cloud belum mulai: Buka untuk Tamu = pop-up Mulai acara / Tes dulu + panduan masuk crew (#152).
   await expect(w.getByTestId("crew-run")).toHaveAttribute("data-state", "idle");
   await w.getByTestId("open-guests").click();
-  await expect(w.getByRole("heading", { name: "Rina & Dimas" })).toBeVisible();
-  await expect.poll(() => runs.length).toBe(1);
-  expect(runs[0]?.action).toBe("open");
+  const go = w.getByTestId("start-dialog");
+  await expect(go.getByRole("heading", { name: "Acara sudah mulai?" })).toBeVisible();
+  await expect(go.getByTestId("crew-entry-guide")).toContainText("Ketuk pojok kanan atas 5×");
+  await w.screenshot({ path: "test-results/booth-start-popup.png" });
 
-  // Jeda / Lanjutkan / Selesai dari Ringkasan; aksi yang gagal terkirim ikut dikirim ulang (id & jam sama).
+  // Tes dulu: lencana TES, sesi ditandai tes, timer tidak mulai.
+  await go.getByRole("button", { name: /^Tes dulu/ }).click();
+  await expect(w.getByRole("heading", { name: "Rina & Dimas" })).toBeVisible();
+  await expect(w.getByTestId("test-badge")).toBeVisible();
+  await w.screenshot({ path: "test-results/booth-test-mode.png" });
+  await session(w);
+  await expect.poll(() => sessions.length, { timeout: 30_000 }).toBe(1);
+  expect(sessions[0]?.isTest).toBe(true);
+  expect(runs).toHaveLength(0);
+
+  // Kembali ke crew → Buka untuk Tamu bertanya lagi → Mulai acara: timer menunggu sesi tamu pertama.
   await openCrew(w);
   await typePin(w, "2468");
   const run = w.getByTestId("crew-run");
+  await expect(run).toHaveAttribute("data-state", "idle");
+  await w.getByTestId("to-guest").click();
+  await w
+    .getByTestId("start-dialog")
+    .getByRole("button", { name: /^Mulai acara/ })
+    .click();
+  await expect(w.getByRole("heading", { name: "Rina & Dimas" })).toBeVisible();
+  await expect(w.getByTestId("test-badge")).toHaveCount(0);
+  await openCrew(w);
+  await typePin(w, "2468");
+  await expect(run).toHaveAttribute("data-state", "waiting");
+  await expect(run).toContainText("Menunggu sesi pertama");
+  expect(runs).toHaveLength(0);
+  // Menunggu sesi pertama: langsung ke tamu tanpa pop-up.
+  await w.getByTestId("to-guest").click();
+  await expect(w.getByTestId("start-dialog")).toHaveCount(0);
+  await session(w);
+  // Timer mulai di jam sesi tamu pertama; kiriman pertama gagal (503) lalu dikirim ulang (id & jam sama).
+  await expect.poll(() => runs.length, { timeout: 30_000 }).toBe(2);
+  expect(runs[0]?.action).toBe("start");
+  expect(runs[1]).toEqual(runs[0]);
+  await expect.poll(() => sessions.length, { timeout: 30_000 }).toBeGreaterThanOrEqual(2);
+  expect(sessions.find((x) => x.id !== sessions[0]?.id)?.isTest).toBeUndefined();
+
+  // Jeda / Lanjutkan / Hentikan dari Ringkasan → kartu rekap muncul sendiri.
+  await openCrew(w);
+  await typePin(w, "2468");
   await expect(run).toHaveAttribute("data-state", "running");
   await w.screenshot({ path: "test-results/crew-run.png" });
-  await run.getByRole("button", { name: "Jeda Event" }).click();
+  await run.getByRole("button", { name: "Jeda Acara" }).click();
   await expect(run).toHaveAttribute("data-state", "paused");
-  await run.getByRole("button", { name: "Lanjutkan Event" }).click();
+  await run.getByRole("button", { name: "Lanjutkan Acara" }).click();
   await expect(run).toHaveAttribute("data-state", "running");
-  await run.getByRole("button", { name: "Selesai Event" }).click();
+  await run.getByRole("button", { name: "Hentikan Acara" }).click();
   await expect(run).toContainText("Acara sudah selesai?");
-  await w.screenshot({ path: "test-results/crew-run-confirm.png" });
-  await run.getByRole("button", { name: "Ya, Selesai" }).click();
+  await run.getByRole("button", { name: "Ya, Hentikan" }).click();
+  const recap = w.getByTestId("booth-recap");
+  await expect(recap).toBeVisible();
   await expect(run).toHaveAttribute("data-state", "finished");
+  await expect(recap.getByTestId("booth-recap-Sesi tamu")).toHaveText("1");
+  await expect(recap).toContainText("1 sesi tes tidak dihitung");
+  await expect(recap.getByTestId("booth-recap-schedule")).toContainText("Jadwal 08.00–11.00");
+  await w.screenshot({ path: "test-results/booth-recap.png" });
+  // Buka Folder Event: file sesi asli dikumpulkan (Explorer tidak dibuka di uji, TETRA_NO_SHELL_OPEN).
+  await recap.getByRole("button", { name: /Buka Folder Event/ }).click();
+  await expect(recap.getByTestId("booth-recap-note")).toContainText("Folder dibuka:");
+  const folder = join(data, "Foto Event", "Rina & Dimas");
+  expect(readdirSync(join(folder, "Cetak"))).toHaveLength(1);
+  // Salin Link Galeri: booth mengaktifkan link galeri klien lalu menyalin alamat slug.
+  await recap.getByRole("button", { name: /Salin Link Galeri/ }).click();
+  await expect(recap.getByTestId("booth-recap-note")).toContainText(
+    `127.0.0.1:${port}/g/rina-dimas-2026-10-12`,
+  );
+  expect(await app.evaluate(({ clipboard }) => clipboard.readText())).toBe(
+    `http://127.0.0.1:${port}/g/rina-dimas-2026-10-12`,
+  );
+  await w.screenshot({ path: "test-results/booth-recap-done.png" });
+  await recap.getByRole("button", { name: "Tutup" }).click();
+  // Rekap bisa dibuka lagi dari Ringkasan.
+  await run.getByRole("button", { name: "Rekap Acara" }).click();
+  await expect(recap).toBeVisible();
+  await recap.getByRole("button", { name: "Tutup" }).click();
   await expect
     .poll(() => runs.map((r) => r.action))
-    .toEqual(["open", "open", "pause", "start", "finish"]);
-  expect(runs[1]).toEqual(runs[0]);
+    .toEqual(["start", "start", "pause", "start", "finish"]);
   const at = runs.slice(1).map((r) => Date.parse(r.at));
   expect(at).toEqual([...at].sort((a, b) => a - b));
-  // Selesai: Buka untuk Tamu tidak membuka timer lagi.
+  // Selesai: Buka untuk Tamu langsung ke tamu, timer tidak berubah.
   await w.getByTestId("to-guest").click();
   await expect(w.getByRole("heading", { name: "Rina & Dimas" })).toBeVisible();
   expect(runs).toHaveLength(5);
 
-  // Satu sesi (--fast) untuk event cloud → semua file masuk R2 palsu dan tercatat (N4).
-  await w.waitForTimeout(1000);
-  await w.getByRole("button", { name: /sentuh untuk mulai/i }).click();
-  await w.getByRole("button", { name: /pakai semua foto/i }).click({ timeout: 30_000 });
-  await w.getByRole("button", { name: /cetak sekarang/i }).click({ timeout: 15_000 });
+  // Semua file sesi masuk R2 palsu dan tercatat (N4).
   await expect
-    .poll(() => sessions.length > 0 && recorded.length === sessions[0]?.assetCount, {
-      timeout: 30_000,
-    })
+    .poll(
+      () =>
+        sessions.length >= 2 &&
+        recorded.length === sessions.slice(0, 2).reduce((a, x) => a + x.assetCount, 0),
+      { timeout: 30_000 },
+    )
     .toBe(true);
   expect(sessions[0]?.eventId).toBe(EVENT);
   expect(recorded).toContain("strip_web");
