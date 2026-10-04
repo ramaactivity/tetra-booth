@@ -343,7 +343,7 @@ export function NewTemplateWizard({
                 <div className="flex h-10 w-fit overflow-hidden rounded-[11px] border-[1.5px] border-ink bg-white text-[13px] font-bold">
                   {(
                     [
-                      ["upload", "Upload desain (PNG)"],
+                      ["upload", "Upload desain"],
                       ["preset", "Tata letak cepat"],
                       ["copy", `Salin template (${copies.length})`],
                     ] as const

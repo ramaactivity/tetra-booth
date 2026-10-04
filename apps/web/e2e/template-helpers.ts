@@ -3,7 +3,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
 /**
  * Wizard Buat Template (#160) dari halaman Template: mode → kertas & arah → mulai dari → nama → (event) → editor.
  * Bawaan: mode tab aktif, 4R portrait, tata letak 4R Grid (tab "Tata letak cepat"), tanpa pasang ke event.
- * `upload` = tab "Upload desain (PNG)" (#161) dengan file ini, lalu tunggu pratinjau slot terdeteksi.
+ * `upload` = tab "Upload desain" (#161) dengan file ini, lalu tunggu pratinjau slot terdeteksi.
  */
 export async function createTemplateViaWizard(
   page: Page,

@@ -79,7 +79,7 @@ export async function createEventViaWizard(
   if (o.design === "auto")
     await page.getByRole("button", { name: "Lewati, buat template otomatis" }).click();
   else if (o.design) {
-    await page.getByRole("button", { name: "Upload desain PNG" }).click();
+    await page.getByRole("button", { name: "Upload desain", exact: true }).click();
     await page.getByLabel("Desain PNG").setInputFiles(o.design);
     await expect(page.getByRole("img", { name: "Pratinjau slot terdeteksi" })).toBeVisible();
   }

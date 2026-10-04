@@ -788,7 +788,7 @@ export function EventWizard({
                     {(
                       [
                         ["pick", "Pilih desain yang ada"],
-                        ["upload", "Upload desain PNG"],
+                        ["upload", "Upload desain"],
                         ["auto", "Lewati, buat template otomatis"],
                       ] as const
                     ).map(([v, l], i) => (
