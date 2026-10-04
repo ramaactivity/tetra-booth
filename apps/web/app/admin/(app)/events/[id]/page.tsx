@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DEFAULT_TEMPLATE, type EventTemplate } from "@/lib/event-bundle";
-import { presignGet } from "@/lib/r2";
+import { presignDownload, presignGet } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 import { SessionTile } from "./SessionTile";
 import { LinksPanel } from "./settings/LinksPanel";
@@ -121,19 +121,34 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   const { data: thumbs } = recent.length
     ? await db
         .from("assets")
-        .select("session_id, r2_key")
+        .select("session_id, kind, r2_key")
         .eq("organization_id", orgId)
-        .eq("kind", "thumb_strip")
+        .in("kind", ["thumb_strip", "strip_web"])
         .in(
           "session_id",
           recent.map((s) => s.id),
         )
     : { data: [] };
+  const key = (k: string) => k.split("#")[0] ?? k;
   const thumbUrl = new Map(
     await Promise.all(
-      (thumbs ?? []).map(
-        async (t) => [t.session_id, await presignGet(t.r2_key.split("#")[0] ?? t.r2_key)] as const,
-      ),
+      (thumbs ?? [])
+        .filter((t) => t.kind === "thumb_strip")
+        .map(async (t) => [t.session_id, await presignGet(key(t.r2_key))] as const),
+    ),
+  );
+  // Tombol Download per sesi: strip web resolusi penuh, langsung terunduh (attachment).
+  const downloadUrl = new Map(
+    await Promise.all(
+      (thumbs ?? [])
+        .filter((t) => t.kind === "strip_web")
+        .map(
+          async (t) =>
+            [
+              t.session_id,
+              await presignDownload(key(t.r2_key), `tetra-${t.session_id}-strip.jpg`),
+            ] as const,
+        ),
     ),
   );
   const btn =
@@ -343,6 +358,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
               eventId={ev.id}
               id={s.id}
               thumb={thumbUrl.get(s.id) ?? null}
+              download={downloadUrl.get(s.id) ?? null}
               time={clock(s.started_at)}
               hidden={!!s.hidden_at}
               status={UPLOAD[s.upload_status] ?? s.upload_status}
