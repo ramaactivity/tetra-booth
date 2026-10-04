@@ -14,6 +14,8 @@ import {
 import type { ImageLike } from "@tetra/template-engine";
 import { ChevronLeft, Eye, EyeOff, Minus, Plus, Redo2, Undo2 } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { KeySetting } from "./ChromaControls";
+import { keyColor } from "./chroma";
 import { detectSlots } from "./detect";
 import { type FontPack, LIB_FONTS, type LibFont } from "./fonts";
 import {
@@ -52,6 +54,7 @@ const VARS: Record<string, string> = {
 const fill = (v: string) =>
   v.replace(/\{(event_name|date|custom)\}/g, (_, k: string) => VARS[k] ?? "");
 const SAFE_KEY = "tetra.editor.safe";
+const MAX_OVERLAY_BYTES = 4 * 1024 * 1024; // batas server action
 
 export type AlignTo = "page" | "safe" | "selection";
 
@@ -156,7 +159,8 @@ function useEditorApi(p: TemplateEditorProps) {
         fetch(url)
           .then((r) => r.blob())
           .then(createImageBitmap)
-          .then((img) => setImages((m) => ({ ...m, [assetId]: img })))
+          // Gambar lokal yang lebih baru (unggahan/hapus warna sebelum fetch selesai) tidak ditimpa.
+          .then((img) => setImages((m) => (m[assetId] ? m : { ...m, [assetId]: img })))
           .catch(() => {});
       else if (!assetId.startsWith("lib-"))
         addFont(assetId, `tpl-${p.initial.id}-${assetId}`, url).catch(() => {});
@@ -347,6 +351,36 @@ function useEditorApi(p: TemplateEditorProps) {
       applySlots(rects.map((x) => ({ id: "", ...x, fit: "cover", z: "below_overlay" })));
     return rects.length;
   };
+  // Overlay hasil hapus warna (#163) bisa diurungkan: gambar + file tertunda dicatat per keadaan layout di
+  // kedua sisi langkah itu; undo/redo selalu melewati keadaan itu, jadi efek ini memulihkan pasangannya.
+  const ovAt = useRef(new WeakMap<LayoutSpec, { img: ImageLike; file: File | undefined }>());
+  useEffect(() => {
+    const s = ovAt.current.get(layout);
+    if (!s) return;
+    setImages((m) => (m.ov === s.img ? m : { ...m, ov: s.img }));
+    setPending(({ ov: _ov, ...rest }) => (s.file ? { ...rest, ov: s.file } : rest));
+  }, [layout]);
+  /** Hapus warna penanda dari overlay → PNG baru (ukuran kanvas). Hasil: pesan galat atau null. */
+  const keyOverlay = async (k: KeySetting): Promise<string | null> => {
+    const img = images.ov;
+    const g = new OffscreenCanvas(W, H).getContext("2d");
+    if (!img || !g) return "Overlay belum dimuat";
+    g.drawImage(img as CanvasImageSource, 0, 0, W, H);
+    const data = g.getImageData(0, 0, W, H);
+    if (!keyColor(data.data, W, H, { color: k.color, tolerance: k.tol }))
+      return "Tidak ada area warna itu yang cukup besar untuk slot foto. Pilih warna lain atau naikkan kepekaan.";
+    g.putImageData(data, 0, 0);
+    const blob = await g.canvas.convertToBlob({ type: "image/png" });
+    if (blob.size > MAX_OVERLAY_BYTES)
+      return `Hasil ${(blob.size / 1024 / 1024).toFixed(1)} MB, maksimal 4 MB.`;
+    const file = new File([blob], "ov.png", { type: "image/png" });
+    const next = await createImageBitmap(blob);
+    ovAt.current.set(layout, { img, file: pending.ov });
+    const keyed = { ...layout };
+    ovAt.current.set(keyed, { img: next, file });
+    commit(keyed);
+    return null;
+  };
   const applyPreset = (preset: keyof typeof LAYOUT_PRESETS) =>
     applySlots(LAYOUT_PRESETS[preset].layout.slots);
 
@@ -465,11 +499,24 @@ function useEditorApi(p: TemplateEditorProps) {
       return { ...l, slots };
     });
 
-  const pick = async (assetId: AssetId, file: File | undefined) => {
-    if (!file) return;
-    setPending((x) => ({ ...x, [assetId]: file }));
+  const pick = async (assetId: AssetId, picked: File | undefined) => {
+    if (!picked) return;
+    let file = picked;
     if (assetId === "ov" || assetId === "bg") {
-      const img = await createImageBitmap(file);
+      let img = await createImageBitmap(file);
+      // Overlay wajib PNG seukuran kanvas (server): JPG/WebP jadi PNG; rasio sama (< 1%) diskalakan ke kanvas
+      // seperti upload desain (#161). Rasio beda dibiarkan, server menolak dengan pesan ukuran.
+      const same = Math.abs(img.width / img.height / (W / H) - 1) < 0.01;
+      const resize = same && (img.width !== W || img.height !== H);
+      if (assetId === "ov" && (file.type !== "image/png" || resize)) {
+        const [cw, ch] = same ? [W, H] : [img.width, img.height];
+        const c = new OffscreenCanvas(cw, ch);
+        c.getContext("2d")?.drawImage(img, 0, 0, cw, ch);
+        const blob = await c.convertToBlob({ type: "image/png" });
+        file = new File([blob], "ov.png", { type: "image/png" });
+        img = await createImageBitmap(blob);
+      }
+      setPending((x) => ({ ...x, [assetId]: file }));
       setImages((m) => ({ ...m, [assetId]: img }));
       commit((l) =>
         assetId === "ov"
@@ -477,6 +524,7 @@ function useEditorApi(p: TemplateEditorProps) {
           : { ...l, background: { ...l.background, assetId: "bg" } },
       );
     } else {
+      setPending((x) => ({ ...x, [assetId]: file }));
       await addFont(assetId, `tpl-${assetId}-${Date.now()}`, await file.arrayBuffer());
       setFontNames((m) => ({ ...m, [assetId]: file.name }));
     }
@@ -525,6 +573,7 @@ function useEditorApi(p: TemplateEditorProps) {
     applyPreset,
     applySlots,
     detectFromOverlay,
+    keyOverlay,
     presets,
     setPresets,
     savePreset: p.onSavePreset,

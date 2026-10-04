@@ -242,7 +242,10 @@ export function EventWizard({
     : upOrient === "landscape"
       ? [pc.height, pc.width]
       : [pc.width, pc.height];
-  const upOut = upload?.out?.W === upW && upload.out.H === upH ? upload.out : undefined;
+  const upOut =
+    upload?.out?.W === upW && upload.out.H === upH && upload.out.file
+      ? { ...upload.out, file: upload.out.file }
+      : undefined;
   const auto = paper ? autoPreset(paper) : null;
   // Paket terpilih di Select = paket Ops bernama sama dengan isian; nama lain (mis. dari booking) = opsi "booking".
   const pkgIdx = ops?.ok

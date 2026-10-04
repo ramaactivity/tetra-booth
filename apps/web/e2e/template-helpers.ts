@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /**
  * Wizard Buat Template (#160) dari halaman Template: mode → kertas & arah → mulai dari → nama → (event) → editor.
@@ -15,6 +15,8 @@ export async function createTemplateViaWizard(
     /** Nama kartu tata letak / template sumber. */
     source?: RegExp;
     upload?: { name: string; mimeType: string; buffer: Buffer };
+    /** Setelah pratinjau upload tampil (mis. cek langkah hapus warna). */
+    onUpload?: (dlg: Locator) => Promise<void>;
     /** Nama event + harga (photobox) untuk langkah Pasang ke event. */
     event?: { name: string; price?: string };
     /** Simpan screenshot tiap langkah ke test-results/<shot>-<n>.png. */
@@ -38,6 +40,7 @@ export async function createTemplateViaWizard(
     await snap();
     await dlg.getByLabel("Desain PNG").setInputFiles(o.upload);
     await expect(dlg.getByRole("img", { name: "Pratinjau slot terdeteksi" })).toBeVisible();
+    await o.onUpload?.(dlg);
   } else {
     await dlg.getByRole("button", { name: "Tata letak cepat" }).click();
     if (o.source) await dlg.getByRole("radio", { name: o.source }).check({ force: true });
@@ -94,4 +97,42 @@ export async function makePng(
     [w, h, holes] as const,
   );
   return { name, mimeType: "image/png", buffer: Buffer.from(b64, "base64") };
+}
+
+/**
+ * JPG desain uji (#163) seperti ekspor Canva: latar putih, kotak foto diisi warna penanda kuning (membulat) dengan
+ * kotak gelap kecil (mis. QR) di dalamnya dekat sudut, teks di bawah. `rect` = [x, y, w, h] kotak kuning.
+ */
+export async function makeJpg(
+  page: Page,
+  w: number,
+  h: number,
+  rect: [number, number, number, number],
+  name = "desain.jpg",
+) {
+  const b64 = await page.evaluate(
+    async ([w, h, [x, y, rw, rh]]) => {
+      const c = new OffscreenCanvas(w, h);
+      const g = c.getContext("2d") as OffscreenCanvasRenderingContext2D;
+      g.fillStyle = "#ffffff";
+      g.fillRect(0, 0, w, h);
+      g.fillStyle = "#ffde59";
+      g.beginPath();
+      g.roundRect(x, y, rw, rh, 48);
+      g.fill();
+      g.fillStyle = "#1d1d1b";
+      g.fillRect(x + rw - 140, y + rh - 140, 100, 100);
+      g.font = `bold ${Math.round(w / 13)}px sans-serif`;
+      g.textAlign = "center";
+      g.fillText("Andi & Sari", w / 2, h - h / 18);
+      const bytes = new Uint8Array(
+        await (await c.convertToBlob({ type: "image/jpeg", quality: 0.85 })).arrayBuffer(),
+      );
+      let s = "";
+      for (const x of bytes) s += String.fromCharCode(x);
+      return btoa(s);
+    },
+    [w, h, rect] as const,
+  );
+  return { name, mimeType: "image/jpeg", buffer: Buffer.from(b64, "base64") };
 }

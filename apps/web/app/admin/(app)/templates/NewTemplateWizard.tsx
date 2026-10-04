@@ -147,7 +147,8 @@ export function NewTemplateWizard({
   };
   const pc = PAPER_CANVAS[paper];
   const [W, H] = orient === "landscape" ? [pc.height, pc.width] : [pc.width, pc.height];
-  const ready = from === "upload" ? design?.out?.W === W && design.out.H === H : !!source;
+  const ready =
+    from === "upload" ? design?.out?.W === W && design.out.H === H && !!design.out.file : !!source;
   const ok = [true, true, ready, !!name.trim(), true][step];
   const last = step === STEPS.length - 1;
 
@@ -204,7 +205,7 @@ export function NewTemplateWizard({
         <form
           action={(fd) => {
             const out = from === "upload" ? design?.out : undefined;
-            if (out) {
+            if (out?.file) {
               fd.set("ov", out.file);
               fd.set("slots", JSON.stringify(out.slots));
             }

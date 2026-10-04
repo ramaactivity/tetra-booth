@@ -71,6 +71,8 @@ test("upload desain: rasio beda diberi peringatan + saran kertas", async ({ page
     await dlg.getByRole("button", { name: "Pakai Strip 2R portrait" }).click();
     await expect(dlg.getByText("1 slot foto terdeteksi")).toBeVisible();
     await expect(dlg.getByText("disesuaikan ke 600×1800 px")).toBeVisible();
+    // Sudah transparan: hapus warna penanda (#163) hanya opsi.
+    await expect(dlg.getByRole("button", { name: "Hapus warna penanda" })).toBeVisible();
     await expect(dlg.getByRole("button", { name: "Lanjut" })).toBeEnabled();
   } finally {
     await u.cleanup();
