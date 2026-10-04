@@ -107,7 +107,10 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
   return {
     camera: cfg.mirrorPhoto ? withMirroredPhotos(camera, storage) : camera,
     mirrorLiveView: cfg.mirrorLiveView ?? true,
-    printer: { submit: (job) => bridge.printSubmit(job) },
+    printer: {
+      submit: (job) => bridge.printSubmit(job),
+      reprint: (req) => bridge.printReprint(req),
+    },
     storage,
     db: {
       sessionStarted: (x) => bridge.sessionStarted(x),
@@ -158,7 +161,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       active: () => bridge.eventsActive(),
       setActive: (id) => bridge.eventsSetActive(id),
       asset: (e, a) => bridge.eventAsset(e, a),
-      recentPieces: (e, n) => bridge.eventsRecentPieces(e, n),
+      recentPieces: (e, n, before) => bridge.eventsRecentPieces(e, n, before),
     },
     payments: {
       create: (req) => bridge.paymentCreate(req),

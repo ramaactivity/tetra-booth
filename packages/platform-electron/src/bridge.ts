@@ -1,4 +1,10 @@
-import type { BoothCrew, BoothDb, BoothEvents, BoothPayments } from "@tetra/booth-core";
+import type {
+  BoothCrew,
+  BoothDb,
+  BoothEvents,
+  BoothPayments,
+  BoothPlatform,
+} from "@tetra/booth-core";
 import type { CommandResult, Paper } from "@tetra/shared";
 
 export type BoothConfig = {
@@ -44,6 +50,7 @@ export type TetraBridge = {
   liveViewFrame(): Promise<Uint8Array<ArrayBuffer>>;
   liveViewStop(): Promise<void>;
   printSubmit(job: { jobId: string; path: string; copies: number; paper: Paper }): Promise<void>;
+  printReprint: BoothPlatform["printer"]["reprint"];
   phaseChanged(phase: string): void;
   sessionStarted: BoothDb["sessionStarted"];
   sessionCompleted: BoothDb["sessionCompleted"];

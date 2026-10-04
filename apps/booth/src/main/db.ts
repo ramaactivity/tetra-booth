@@ -85,6 +85,16 @@ export type SessionDone = {
   printCount: number;
   assets: { kind: AssetKind; idx: number; path: string; bytes: number }[];
 };
+/** Job cetak ulang galeri = `<sesi>-g<waktu>`; job gagal tidak dihitung (crew mencetak ulang dari menunya). */
+const REPRINTED = `(select coalesce(sum(copies), 0) from print_jobs p
+  where p.session_id = sessions.id and p.id like sessions.id || '-g%' and p.status != 'failed')`;
+export type GallerySession = {
+  id: string;
+  completedAt: string;
+  layoutId: string;
+  printCount: number;
+  reprinted: number;
+};
 export type PrintJobStatus = "queued" | "done" | "failed" | "reprinted";
 export type PrintJobInfo = {
   id: string;
@@ -392,16 +402,51 @@ export function openDb(file: string) {
           .all() as { id: string; eventId: string }[]
       ).filter((s) => UUID.test(s.eventId));
     },
-    /** Sesi selesai satu event, terbaru dulu (layar awal menampilkan hasil asli, #143). */
-    recentSessions(eventId: string, limit: number): string[] {
+    /**
+     * Sesi selesai satu event, terbaru dulu (layar awal #143, galeri tamu #145). Halaman berikut: `before` =
+     * completedAt kartu terakhir (keyset). `reprinted` = lembar yang sudah dicetak lagi dari galeri.
+     */
+    recentSessions(eventId: string, limit: number, before = "9999"): GallerySession[] {
       return (
         db
           .prepare(
-            `select id from sessions where event_id = ? and status = 'completed'
+            `select id, completed_at completedAt, layout_version_id layoutVersionId, print_count printCount,
+               ${REPRINTED} reprinted
+             from sessions where event_id = ? and status = 'completed' and completed_at < ?
              order by completed_at desc limit ?`,
           )
-          .all(eventId, limit) as { id: string }[]
-      ).map((r) => r.id);
+          .all(eventId, before, limit) as (GallerySession & { layoutVersionId: string })[]
+      ).map(({ layoutVersionId, ...s }) => ({
+        ...s,
+        layoutId: layoutVersionId.slice(0, layoutVersionId.lastIndexOf("@")),
+      }));
+    },
+    /**
+     * Jumlah sesi selesai per jam (UTC "YYYY-MM-DDTHH"), terbaru dulu, untuk chip jam galeri (#145).
+     * ponytail: jam UTC = jam lokal hanya untuk zona offset jam penuh (WIB/WITA/WIT); ubah kalau booth di zona :30.
+     */
+    sessionHours(eventId: string): { hour: string; n: number }[] {
+      return db
+        .prepare(
+          `select substr(completed_at, 1, 13) hour, count(*) n from sessions
+           where event_id = ? and status = 'completed' group by hour order by hour desc`,
+        )
+        .all(eventId) as { hour: string; n: number }[];
+    },
+    /** Lembar cetak ulang dari galeri untuk sesi selesai ini; undefined = sesi tidak ada / belum selesai. */
+    reprinted(sessionId: string): number | undefined {
+      return (
+        db
+          .prepare(`select ${REPRINTED} n from sessions where id = ? and status = 'completed'`)
+          .get(sessionId) as { n: number } | undefined
+      )?.n;
+    },
+    /** Cetak ulang dari galeri menambah print_count sesi (#145). */
+    addPrints(sessionId: string, copies: number) {
+      db.prepare("update sessions set print_count = print_count + ? where id = ?").run(
+        copies,
+        sessionId,
+      );
     },
     /**
      * Aset yang ditulis ulang (#140): ukuran baru, belum terunggah, masuk antrean lagi. Kunci R2 & baris aset cloud

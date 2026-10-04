@@ -54,8 +54,39 @@ describe("booth db", () => {
     db.sessionStarted({ ...start, id: "batal00001" });
     db.sessionStarted({ ...start, id: "lain000001", eventId: "local" });
     db.sessionCompleted({ ...done, id: "lain000001" });
-    expect(db.recentSessions(start.eventId, 10)).toEqual(["baru000001", start.id]);
-    expect(db.recentSessions(start.eventId, 1)).toEqual(["baru000001"]);
+    const ids = (r: { id: string }[]) => r.map((x) => x.id);
+    expect(ids(db.recentSessions(start.eventId, 10))).toEqual(["baru000001", start.id]);
+    expect(ids(db.recentSessions(start.eventId, 1))).toEqual(["baru000001"]);
+    // Galeri (#145): halaman berikut lewat kursor completedAt; jam UTC + jumlah untuk chip.
+    expect(db.recentSessions(start.eventId, 1, "2026-09-24T11:00:00Z")).toEqual([
+      {
+        id: start.id,
+        completedAt: done.completedAt,
+        layoutId: "l",
+        printCount: 2,
+        reprinted: 0,
+      },
+    ]);
+    expect(db.sessionHours(start.eventId)).toEqual([
+      { hour: "2026-09-24T11", n: 1 },
+      { hour: "2026-09-24T10", n: 1 },
+    ]);
+  });
+
+  it("galeri cetak lagi (#145): hanya job -g yang tidak gagal dihitung, print_count bertambah", () => {
+    const db = openDb(":memory:");
+    db.sessionStarted(start);
+    expect(db.reprinted(start.id)).toBeUndefined();
+    db.sessionCompleted(done);
+    const job = { sessionId: start.id, path: "/s/out/strip.jpg", paper: "4R" };
+    db.printSubmitting({ ...job, id: start.id, copies: 2 });
+    db.printSubmitting({ ...job, id: `${start.id}-g1`, copies: 1 });
+    db.printSubmitting({ ...job, id: `${start.id}-g2`, copies: 1 });
+    db.printJobResult(`${start.id}-g2`, "failed", "x");
+    db.printSubmitting({ ...job, id: `${start.id}-r1`, copies: 1 });
+    expect(db.reprinted(start.id)).toBe(1);
+    db.addPrints(start.id, 1);
+    expect(db.recentSessions(start.eventId, 1)[0]).toMatchObject({ printCount: 3, reprinted: 1 });
   });
 
   it("tajamkan foto lama (#140): strip_web terunggah masuk antrean lagi dengan ukuran baru, tanpa baris ganda", () => {

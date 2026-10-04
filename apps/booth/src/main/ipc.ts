@@ -197,25 +197,21 @@ export function registerIpc(
     else await liveViewStop();
   });
 
-  ipcMain.handle("printSubmit", async (_e, job: unknown) => {
-    const j = PrintJob.parse(job);
-    const path = inSessions(j.path);
+  /** Jalur cetak sesi & galeri: write-ahead, Camera Service mati = tetap queued (dikirim ulang begitu pulih). */
+  const sendPrint = async (j: {
+    jobId: string;
+    sessionId: string;
+    path: string;
+    copies: number;
+    paper: z.infer<typeof PaperSchema>;
+  }) => {
     // Write-ahead: baris queued ada sebelum event hasil bisa datang (M-012).
-    if (
-      !db.printSubmitting({
-        id: j.jobId,
-        sessionId: j.jobId,
-        path,
-        copies: j.copies,
-        paper: j.paper,
-      })
-    )
-      return;
+    if (!db.printSubmitting({ ...j, id: j.jobId })) return;
     try {
       const r = await request({
         id: crypto.randomUUID(),
         type: "print.submit",
-        payload: { ...j, path },
+        payload: { jobId: j.jobId, path: j.path, copies: j.copies, paper: j.paper },
       });
       if (!r.accepted) db.printJobResult(j.jobId, "failed", "print ditolak Camera Service");
     } catch (e) {
@@ -228,6 +224,30 @@ export function registerIpc(
       db.printJobResult(j.jobId, "failed", e instanceof Error ? e.message : String(e));
       throw e;
     }
+  };
+  ipcMain.handle("printSubmit", async (_e, job: unknown) => {
+    const j = PrintJob.parse(job);
+    await sendPrint({ ...j, sessionId: j.jobId, path: inSessions(j.path) });
+  });
+  // Galeri tamu (#145): cetak lagi lembar cetak sesi selesai, maks. `max` lembar per sesi dari galeri.
+  const Reprint = z.object({
+    sessionId: SessionId,
+    copies: z.number().int().min(1).max(10),
+    max: z.number().int().min(1).max(10),
+    paper: PaperSchema,
+  });
+  ipcMain.handle("printReprint", async (_e, req: unknown) => {
+    const r = Reprint.parse(req);
+    const used = db.reprinted(r.sessionId);
+    if (used === undefined) throw new Error("sesi belum selesai");
+    if (used + r.copies > r.max) return { jobId: null, reprinted: used };
+    const path = join(sessionsRoot(), r.sessionId, "out", "strip.jpg");
+    if (!existsSync(path)) throw new Error("lembar cetak sesi tidak ada");
+    const jobId = `${r.sessionId}-g${Date.now().toString(36)}`;
+    db.addPrints(r.sessionId, r.copies);
+    console.info(`[gallery] cetak lagi ${jobId}: ${r.copies} lembar`);
+    await sendPrint({ jobId, sessionId: r.sessionId, path, copies: r.copies, paper: r.paper });
+    return { jobId, reprinted: used + r.copies };
   });
 
   // Mode crew (FSD §1.3). Semua aksi selain PIN butuh crew sudah masuk.
@@ -607,20 +627,25 @@ export function registerIpc(
   );
   // Layar awal (#143): hasil desain sesi selesai event ini; thumb (960 px) dulu, lalu potongan web/cetak.
   // Tanpa PIN (layar tamu), hanya path di folder sesi; renderer membacanya lewat readFile.
-  ipcMain.handle("eventsRecentPieces", (_e, id: unknown, limit: unknown) =>
-    db
+  ipcMain.handle("eventsRecentPieces", (_e, id: unknown, limit: unknown, before: unknown) => {
+    const eventId = z.string().min(1).max(64).parse(id);
+    const pick = (sid: string, names: string[]) =>
+      names.map((n) => join(sessionsRoot(), sid, "out", n)).find((p) => existsSync(p));
+    const hours = db.sessionHours(eventId);
+    const pieces = db
       .recentSessions(
-        z.string().min(1).max(64).parse(id),
+        eventId,
         z.number().int().min(1).max(48).parse(limit),
+        Iso.optional().parse(before),
       )
-      .flatMap((sid) => {
-        const out = join(sessionsRoot(), sid, "out");
-        const f = ["thumb_strip.jpg", "piece@2x.jpg", "piece.jpg", "strip.jpg"]
-          .map((n) => join(out, n))
-          .find((p) => existsSync(p));
-        return f ? [f] : [];
-      }),
-  );
+      .flatMap(({ id: sessionId, ...s }) => {
+        const path = pick(sessionId, ["thumb_strip.jpg", "piece@2x.jpg", "piece.jpg", "strip.jpg"]);
+        // Galeri (#145): sumber paling tajam; strip.jpg (lembar cetak) hanya kalau potongan tidak ada.
+        const full = pick(sessionId, ["piece@2x.jpg", "piece.jpg", "strip.jpg", "thumb_strip.jpg"]);
+        return path && full ? [{ ...s, sessionId, path, full }] : [];
+      });
+    return { total: hours.reduce((a, h) => a + h.n, 0), hours, pieces };
+  });
   // Desain diedit di booth (DECISIONS #128/#131): layout.id → waktu simpan, hanya layout yang masih ada di bundle.
   ipcMain.handle("crewDesigns", (_e, id: unknown) => {
     crewOnly();

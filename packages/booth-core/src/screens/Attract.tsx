@@ -1,13 +1,13 @@
 import type { LayoutSpec } from "@tetra/shared";
 import { Button } from "@tetra/ui";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Images } from "lucide-react";
 import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { createTapDetector } from "../crew/taps";
 import type { BoothEvent } from "../event";
 import { encode } from "../finalize";
 import { usePlatform } from "../PlatformContext";
-import type { BoothStorage } from "../platform";
+import type { BoothStorage, SessionPiece } from "../platform";
 import { Logo } from "../ui";
 
 export const START_GUARD_MS = 800;
@@ -94,7 +94,7 @@ const rise = (ms: number) =>
 const pop = (ms: number) =>
   ({ animation: `pop 700ms cubic-bezier(.34,1.56,.64,1) ${ms}ms both` }) as const;
 
-type Piece = { url: string; w: number; h: number };
+type Piece = { url: string; w: number; h: number; session?: SessionPiece };
 
 /** Potongan desain sesi → JPEG kecil (lebar PIECE_W) sebagai object URL, supaya memori tetap kecil. */
 async function pieceThumb(storage: BoothStorage, path: string): Promise<Piece> {
@@ -119,9 +119,10 @@ async function pieceThumb(storage: BoothStorage, path: string): Promise<Piece> {
  * (output sesi terakhir selesai di belakang layar setelah layar QR); object URL dilepas saat diganti/unmount.
  * `eventId` kosong = tidak memuat (photobox: foto tamu lain tidak ditampilkan di tempat umum).
  */
-function useRecentPieces(eventId: string | undefined) {
+function useRecentPieces(eventId: string | undefined, thumbs: boolean) {
   const { events, storage } = usePlatform();
   const [pieces, setPieces] = useState<Piece[]>([]);
+  const [total, setTotal] = useState(0);
   useEffect(() => {
     if (!eventId) return;
     let live = true;
@@ -129,11 +130,20 @@ function useRecentPieces(eventId: string | undefined) {
     let key = "";
     let urls: string[] = [];
     const load = async () => {
-      const paths = await events.recentPieces(eventId, MAX_PIECES);
+      const page = await events.recentPieces(eventId, MAX_PIECES);
+      if (live) setTotal(page.total);
+      const paths = thumbs ? page.pieces.map((x) => x.path) : [];
       if (!live || paths.join("|") === key) return;
       key = paths.join("|");
       const next = (
-        await Promise.all(paths.map((f) => pieceThumb(storage, f).catch(() => null)))
+        await Promise.all(
+          (thumbs ? page.pieces : []).map((x) =>
+            pieceThumb(storage, x.path).then(
+              (t): Piece => ({ ...t, session: x }),
+              () => null,
+            ),
+          ),
+        )
       ).filter((x): x is Piece => x !== null);
       for (const u of live ? urls : next.map((x) => x.url)) URL.revokeObjectURL(u);
       if (!live) return;
@@ -156,8 +166,8 @@ function useRecentPieces(eventId: string | undefined) {
       clearInterval(t);
       for (const u of urls) URL.revokeObjectURL(u);
     };
-  }, [eventId, events, storage]);
-  return pieces;
+  }, [eventId, thumbs, events, storage]);
+  return { pieces, total };
 }
 
 /**
@@ -198,6 +208,7 @@ export function Attract({
   layout,
   photosOf,
   onStart,
+  onGallery,
   onCrew,
 }: {
   eventName: string;
@@ -210,6 +221,8 @@ export function Attract({
   /** ID event yang hasil sesinya boleh tampil (#143); kosong = hanya contoh (photobox). */
   photosOf?: string | undefined;
   onStart: () => void;
+  /** Galeri tamu (#145), mode event saja; dengan sesi = langsung buka foto itu. */
+  onGallery?: ((at?: SessionPiece) => void) | undefined;
   /** `"exit"` = Ctrl+Shift+Q: setelah PIN langsung konfirmasi Tutup Aplikasi. */
   onCrew?: ((intent?: "exit") => void) | undefined;
 }) {
@@ -223,7 +236,7 @@ export function Attract({
   }, []);
   const titleRef = useFitTitle(eventName);
   // Hasil asli sesi event ini (#143); sebelum ada sesi: kartu contoh berbentuk kertas event.
-  const pieces = useRecentPieces(theme?.samples === false ? undefined : photosOf);
+  const { pieces, total } = useRecentPieces(photosOf, theme?.samples !== false);
   const cols = columnsFor(layout.canvas.width / layout.canvas.height);
   const sample = { url: "", w: layout.canvas.width, h: layout.canvas.height };
   const cards: Piece[] = pieces.length ? pieces : [sample];
@@ -335,15 +348,23 @@ export function Attract({
                     className="layered shrink-0 overflow-hidden rounded-2xl border-[2.5px] border-ink bg-white"
                   >
                     {x.url ? (
-                      <img
-                        src={x.url}
-                        alt=""
-                        decoding="async"
-                        draggable={false}
-                        data-testid="attract-piece"
-                        style={{ aspectRatio: `${x.w} / ${x.h}` }}
+                      <button
+                        type="button"
+                        aria-label={copy.attract.openPiece}
+                        disabled={!onGallery}
                         className="block w-full"
-                      />
+                        onClick={() => ready && onGallery?.(x.session)}
+                      >
+                        <img
+                          src={x.url}
+                          alt=""
+                          decoding="async"
+                          draggable={false}
+                          data-testid="attract-piece"
+                          style={{ aspectRatio: `${x.w} / ${x.h}` }}
+                          className="block w-full"
+                        />
+                      </button>
                     ) : (
                       <SampleCard name={eventName} layout={layout} />
                     )}
@@ -425,6 +446,23 @@ export function Attract({
             <ArrowRight size={44} strokeWidth={2.5} />
           </span>
         </Button>
+        {onGallery && total > 0 && (
+          <Button
+            variant="secondary"
+            style={rise(360)}
+            className="h-24 self-start rounded-[24px] pr-4 pl-7 text-[30px]"
+            onClick={() => ready && onGallery()}
+          >
+            <Images size={34} strokeWidth={2.25} />
+            {copy.attract.gallery}
+            <span
+              data-testid="gallery-count"
+              className="ml-2 rounded-full border-2 border-ink bg-butter px-4 py-1 text-2xl"
+            >
+              {copy.attract.galleryCount(total)}
+            </span>
+          </Button>
+        )}
       </div>
     </main>
   );

@@ -21,6 +21,10 @@ export type CaptureRequest = { sessionId: string; index: number };
 /** File foto sudah tersimpan di disk lokal. */
 export type CaptureResult = CommandResult<"capture">;
 export type PrintJob = { jobId: string; path: string; copies: number; paper: Paper };
+/** Cetak lagi dari galeri tamu (#145): lembar cetak sesi (out/strip.jpg), dibatasi `max` lembar per sesi. */
+export type ReprintRequest = { sessionId: string; copies: number; max: number; paper: Paper };
+/** `jobId` null = batas tercapai, tidak dicetak. `reprinted` = total lembar cetak ulang galeri sesi ini. */
+export type ReprintResult = { jobId: string | null; reprinted: number };
 
 export interface BoothCamera {
   startLiveView(onFrame: (frame: LiveFrame) => void): Promise<void>;
@@ -185,14 +189,35 @@ export interface BoothCrew {
   onPrintUpdated(cb: (u: PrintUpdate) => void): Unsubscribe;
 }
 
+/** Satu sesi selesai: `path` = potongan kecil (layar awal), `full` = potongan paling tajam (galeri). */
+export type SessionPiece = {
+  sessionId: string;
+  path: string;
+  full: string;
+  completedAt: string;
+  /** layout.id desain yang dipakai sesi ini (kertas cetak ulang). */
+  layoutId: string;
+  printCount: number;
+  reprinted: number;
+};
+/** `hours` = jam UTC "YYYY-MM-DDTHH" yang punya sesi, terbaru dulu; `total` = semua sesi selesai event. */
+export type PiecePage = {
+  total: number;
+  hours: { hour: string; n: number }[];
+  pieces: SessionPiece[];
+};
+
 /** Event dari bundle lokal (M6; Fase 2 lewat sync). */
 export interface BoothEvents {
   list(): Promise<EventBundle[]>;
   active(): Promise<string | null>;
   setActive(id: string): Promise<void>;
   asset(eventId: string, assetId: string): Promise<Uint8Array<ArrayBuffer>>;
-  /** Hasil desain sesi selesai event ini di laptop ini, terbaru dulu (path file lokal, layar awal #143). */
-  recentPieces(eventId: string, limit: number): Promise<string[]>;
+  /**
+   * Hasil desain sesi selesai event ini di laptop ini, terbaru dulu (layar awal #143, galeri #145).
+   * `before` = `completedAt` kartu terakhir halaman sebelumnya.
+   */
+  recentPieces(eventId: string, limit: number, before?: string): Promise<PiecePage>;
 }
 
 /** QRIS photobox lewat cloud (TSD §8). Satu-satunya langkah yang butuh internet; gagal = reject. */
@@ -204,7 +229,11 @@ export interface BoothPayments {
 export interface BoothPlatform {
   camera: BoothCamera;
   /** Gagal = reject. Sesi tetap selesai walau print gagal (FSD §1.10). */
-  printer: { submit(job: PrintJob): Promise<void> };
+  printer: {
+    submit(job: PrintJob): Promise<void>;
+    /** Cetak lagi dari galeri lewat antrean & tabel print_jobs yang sama (#145). */
+    reprint(req: ReprintRequest): Promise<ReprintResult>;
+  };
   storage: BoothStorage;
   db: BoothDb;
   crew: BoothCrew;

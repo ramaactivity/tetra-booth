@@ -8,6 +8,7 @@ import type { BoothEvent } from "./event";
 import { buildOutputs, previewUrl } from "./finalize";
 import { mmss, rupiah } from "./format";
 import { usePlatform } from "./PlatformContext";
+import type { SessionPiece } from "./platform";
 import {
   after,
   beforeCue,
@@ -22,6 +23,7 @@ import { Bumper } from "./screens/Bumper";
 import { Capturing } from "./screens/Capturing";
 import { Countdown } from "./screens/Countdown";
 import { FilterSelect } from "./screens/FilterSelect";
+import { Gallery } from "./screens/Gallery";
 import { LayoutSelect } from "./screens/LayoutSelect";
 import { LiveView, slotAspect } from "./screens/LiveView";
 import { CameraError, Message } from "./screens/Message";
@@ -98,6 +100,8 @@ export function SessionRunner({
   /** Percobaan sambung ulang kamera yang gagal, untuk layar A10. */
   const [reconnects, setReconnects] = useState(0);
   const send = (e: SessionEvent) => () => dispatch(e);
+  // Galeri tamu (#145): layar di atas attract, bukan fase sesi; selama terbuka tidak ada sesi baru yang mulai.
+  const [gallery, setGallery] = useState<{ at?: SessionPiece | undefined } | null>(null);
   useEffect(() => setSoundOverrides(event.sounds), [event.sounds]);
   // Bumper (#105): play → leave (memudar, layar awal mulai dibangun di bawahnya) → done.
   const [bumperState, setBumperState] = useState<"play" | "leave" | "done">(
@@ -192,7 +196,7 @@ export function SessionRunner({
     };
     switch (s.phase) {
       case "attract":
-        return demo ? after(tapMs, startEvent(event)) : undefined;
+        return demo && !gallery ? after(tapMs, startEvent(event)) : undefined;
       case "paid":
         return s.draftId
           ? after(PAID_SEC * 1000, {
@@ -220,7 +224,7 @@ export function SessionRunner({
       default:
         return undefined;
     }
-  }, [s.phase, s.draftId, demo, fast, cfg, event, ev]);
+  }, [s.phase, s.draftId, demo, fast, cfg, event, ev, gallery]);
 
   // Timer sesi photobox (FSD §1.5): habis → slot kosong diisi, lanjut compose / cetak 1 lembar.
   useEffect(() => {
@@ -409,7 +413,7 @@ export function SessionRunner({
       )}
       {/* printing → qr satu layar (A8): jangan animasi masuk dua kali. */}
       <div
-        key={s.phase === "printing" ? "qr" : s.phase}
+        key={s.phase === "printing" ? "qr" : gallery && s.phase === "attract" ? "gallery" : s.phase}
         className="absolute inset-0 animate-[enter_250ms_ease-out]"
       >
         {screen()}
@@ -439,6 +443,15 @@ export function SessionRunner({
       case "attract":
         // Selama bumper: kertas polos; layar awal baru dibangun (animasi masuk) saat bumper selesai.
         if (bumperState === "play") return null;
+        if (gallery)
+          return (
+            <Gallery
+              event={event}
+              guestBaseUrl={guestBaseUrl}
+              at={gallery.at}
+              onClose={() => setGallery(null)}
+            />
+          );
         return (
           <Attract
             eventName={event.name}
@@ -447,6 +460,7 @@ export function SessionRunner({
             theme={event.attract}
             layout={event.layout}
             photosOf={event.photobox ? undefined : event.id}
+            onGallery={event.photobox ? undefined : (at) => setGallery({ at })}
             onStart={() => {
               // Sapaan hanya kalau ada layar pilih dulu; kalau langsung foto, "gaya pertama" sudah menyapa.
               if (cfg.countdownSound && (event.photobox || event.designs)) void play("mulai");
