@@ -39,6 +39,9 @@ export default async function teardown() {
   for (const u of users?.users ?? []) {
     if (!/^e2e-.*@example\.com$/.test(u.email ?? "")) continue;
     await db.from("members").delete().eq("user_id", u.id);
+    // FK tanpa on delete: lepas jejak user uji dari event asli & audit log supaya user bisa dihapus.
+    await db.from("events").update({ created_by: null }).eq("created_by", u.id);
+    await db.from("audit_logs").update({ actor_user_id: null }).eq("actor_user_id", u.id);
     await db.auth.admin.deleteUser(u.id);
   }
 }
