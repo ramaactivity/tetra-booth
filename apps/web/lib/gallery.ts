@@ -1,6 +1,6 @@
 import "server-only";
 import { SESSION_ID_PATTERN } from "@tetra/shared";
-import { presignGet } from "@/lib/r2";
+import { presignDownload, presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /**
@@ -14,6 +14,8 @@ export type GalleryPhoto = {
   hour: number;
   thumb: string;
   full: string;
+  /** URL unduh langsung (attachment). */
+  download: string;
   favorite: boolean;
 };
 export type Gallery =
@@ -144,6 +146,11 @@ async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gall
           hour: hourWib(started.get(a.session_id) ?? ev.event_date),
           thumb: await presignGet(key(thumb.r2_key), 6 * 3600),
           full: await presignGet(key(a.r2_key), 6 * 3600),
+          download: await presignDownload(
+            key(a.r2_key),
+            `tetra-${a.session_id}-${KIND[a.kind]}-${a.idx}.${a.kind === "animation" ? "gif" : "jpg"}`,
+            6 * 3600,
+          ),
           favorite: fav.has(a.id),
         };
       }),

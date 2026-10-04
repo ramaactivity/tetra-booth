@@ -24,7 +24,15 @@ async function save(assets: GuestAsset[], sessionId: string) {
       }),
     );
   } catch {
-    window.open(assets[0]?.url, "_blank");
+    // Tanpa CORS: unduh langsung lewat URL attachment (bukan membuka gambar di tab baru).
+    for (const a of assets) {
+      const link = document.createElement("a");
+      link.href = a.download;
+      link.rel = "noopener";
+      document.body.append(link);
+      link.click();
+      link.remove();
+    }
     return;
   }
   if (navigator.canShare?.({ files })) {

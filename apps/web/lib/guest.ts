@@ -2,13 +2,13 @@ import "server-only";
 import { SESSION_ID_PATTERN } from "@tetra/shared";
 import type { EventBranding } from "@/lib/event-bundle";
 import { type LeadField, leadCapture } from "@/lib/leads";
-import { presignGet } from "@/lib/r2";
+import { presignDownload, presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /** Data halaman tamu `/s/{id}` (FSD §2). Dibaca di server; service role tidak pernah ke browser. */
 /** `color`/`logoUrl` = branding header (admin → Halaman tamu). */
 export type GuestEvent = { name: string; date: string; color?: string; logoUrl?: string };
-export type GuestAsset = { kind: string; idx: number; url: string };
+export type GuestAsset = { kind: string; idx: number; url: string; download: string };
 /** Form lead yang harus/boleh diisi tamu ini (belum pernah mengisi untuk sesi ini). */
 export type GuestLead = { mode: "gate" | "optional"; fields: LeadField[]; consentText: string };
 export type GuestState =
@@ -84,6 +84,10 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
       kind: a.kind,
       idx: a.idx,
       url: await presignGet(a.r2_key.split("#")[0] ?? a.r2_key),
+      download: await presignDownload(
+        a.r2_key.split("#")[0] ?? a.r2_key,
+        `tetra-${sessionId}-${a.kind}-${a.idx}.${a.kind === "animation" ? "gif" : a.kind === "video" ? "mp4" : "jpg"}`,
+      ),
     })),
   );
   if (s.upload_status !== "complete")

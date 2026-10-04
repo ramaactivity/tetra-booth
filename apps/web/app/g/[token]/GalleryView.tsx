@@ -32,17 +32,15 @@ const GRID = {
 // Sesi baru (#133) 2× lebih besar; deskriptor yang terlalu kecil aman (hasilnya hanya lebih tajam).
 const W = { strip: [160, 600], original: [480, 2400] } as const;
 
-async function download(p: GalleryPhoto) {
-  try {
-    const blob = await (await fetch(p.full)).blob();
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `tetra-${p.sessionId}-${p.kind}.${ext(p)}`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
-  } catch {
-    window.open(p.full, "_blank");
-  }
+/** Unduh langsung lewat URL attachment (R2 mengirim Content-Disposition), tidak membuka tab gambar. */
+function download(p: GalleryPhoto) {
+  const a = document.createElement("a");
+  a.href = p.download;
+  a.download = `tetra-${p.sessionId}-${p.kind}.${ext(p)}`;
+  a.rel = "noopener";
+  document.body.append(a);
+  a.click();
+  a.remove();
 }
 
 /**

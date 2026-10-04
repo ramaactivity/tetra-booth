@@ -79,6 +79,12 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
       (await db.from("favorites").select("asset_id").eq("event_id", eventId)).data,
     ).toHaveLength(1);
     await expect(guest.getByRole("link", { name: "↓ Download Semua" })).toBeVisible();
+    // Download satu foto = unduhan file (Content-Disposition attachment), bukan membuka gambar di tab.
+    await guest.getByTestId("gallery-photo").first().click();
+    const dl = guest.waitForEvent("download");
+    await guest.getByRole("button", { name: /Download/ }).click();
+    expect((await dl).suggestedFilename()).toMatch(/^tetra-.+\.jpg$/);
+    await guest.getByRole("button", { name: "Tutup" }).click();
     await guest.getByRole("button", { name: "▶ Putar Slideshow" }).click();
     await expect(guest.getByRole("dialog")).toContainText("1 / 2");
     await expect(guest.getByRole("dialog")).toContainText("2 / 2", { timeout: 6000 });
