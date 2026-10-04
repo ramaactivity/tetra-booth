@@ -560,6 +560,7 @@ export function SessionRunner({
             index={s.index}
             photos={s.photos}
             onDone={send({ type: "COUNTDOWN_DONE" })}
+            belowTimer={s.deadline !== null}
             sound={cfg.countdownSound}
             prompt={beforeText(s.index, s.slots, before)}
             cue={cfg.promptsBefore.length ? null : beforeCue(s.index, s.slots)}

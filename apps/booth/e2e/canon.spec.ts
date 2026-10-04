@@ -45,6 +45,12 @@ test("canon (EDSDK palsu): live view dari Camera Service, 3 jepretan sampai laya
     await expect(w.getByText("Foto 1 dari 3")).toBeVisible();
     // Frame live view sampai: petunjuk "Lihat ke kamera" (tanpa live view) tidak tampil.
     await expect(w.getByText("Lihat ke kamera")).toBeHidden({ timeout: 5000 });
+    // Angka hitung mundur di pojok kanan atas, tidak menutupi wajah di tengah live view.
+    const num = w.getByTestId("countdown-number");
+    await expect(num).toBeVisible({ timeout: 5000 });
+    const box = await num.boundingBox();
+    const vw = await w.evaluate(() => window.innerWidth);
+    expect(box && box.x > vw * 0.75 && box.y < 120).toBe(true);
     await w.screenshot({ path: "test-results/canon-liveview.png" });
     await expect(w.getByRole("heading", { name: "Cek fotonya dulu" })).toBeVisible({
       timeout: 30_000,
