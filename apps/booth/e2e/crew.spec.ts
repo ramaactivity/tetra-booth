@@ -330,13 +330,31 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await openCrew(w);
   await typePin(w, "2468");
   await typePin(w, "2468");
-  await expect(w.getByTestId("cloud-device")).toHaveText("Belum dipasangkan");
+  await expect(w.getByTestId("cloud-device")).toHaveText("Belum tersambung");
 
-  await w.getByRole("button", { name: /^Pasangkan/ }).click();
+  // Sambungkan ke akun Tetra: petunjuk dari mana kodenya di samping keypad.
+  await w.getByTestId("step-pair").getByRole("button", { name: "Sambungkan" }).click();
+  await expect(w.getByRole("heading", { name: "Sambungkan ke akun Tetra" })).toBeVisible();
+  await expect(w.getByText(/127\.0\.0\.1:\d+\/admin → Device → Tambah booth/)).toBeVisible();
+  await w.screenshot({ path: "test-results/pair-empty.png" });
   await typePin(w, "111111");
-  await expect(w.getByRole("status")).toHaveText("Kode salah atau sudah kedaluwarsa");
+  await expect(w.getByRole("status")).toHaveText(/^Kode salah atau sudah lewat 10 menit/);
+  await w.screenshot({ path: "test-results/pair-error.png" });
   await typePin(w, "123456");
+  await expect(w.getByTestId("pair-device")).toHaveText(
+    "Booth ini sekarang tersambung sebagai Booth Uji · B07.",
+  );
+  await w.screenshot({ path: "test-results/pair-success.png" });
+  await w.getByRole("button", { name: "Kembali ke Menu Crew" }).click();
   await expect(w.getByTestId("cloud-device")).toHaveText("Booth Uji · B07");
+  await expect(w.getByTestId("step-pair")).toHaveAttribute("data-done", "true");
+  // Sudah tersambung: sambung ulang = aksi kedua yang dijelaskan, bukan langsung keypad.
+  await w.getByTestId("crew-nav-system").click();
+  await w.getByRole("button", { name: "Sambungkan Ulang" }).click();
+  await expect(w.getByTestId("pair-device")).toHaveText("Tersambung sebagai Booth Uji · B07");
+  await w.screenshot({ path: "test-results/pair-already.png" });
+  await w.getByRole("button", { name: "Kembali ke Menu Crew" }).click();
+  await w.getByTestId("crew-nav-home").click();
   await expect.poll(() => beats).toContain(`Bearer ${TOKEN}`);
   // Snapshot status untuk pantauan admin (kontrak BoothStatus, field hasil zod tidak dibuang).
   const st = beatBodies[0]?.status;

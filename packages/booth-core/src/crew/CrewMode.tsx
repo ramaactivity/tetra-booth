@@ -73,7 +73,14 @@ export function CrewMode({
         />
       );
     case "pair":
-      return <PairPad onDone={() => setView("menu")} onCancel={() => setView("menu")} />;
+      return (
+        <PairPad
+          guestBaseUrl={guestBaseUrl}
+          onDone={() => setView("menu")}
+          onNext={() => setView("start")}
+          onCancel={() => setView("menu")}
+        />
+      );
     case "camera":
       return (
         <CameraCheck

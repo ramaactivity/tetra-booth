@@ -36,10 +36,12 @@ const SYNC_MS = 5 * 60_000;
 const UPLOAD_MS = 15_000;
 const TIMEOUT_MS = 15_000;
 
+/** Pesan untuk crew di layar Sambungkan ke akun Tetra: apa yang salah + apa yang harus dilakukan. */
 const PAIR_ERRORS: Record<string, string> = {
-  invalid_code: "Kode salah atau sudah kedaluwarsa",
-  rate_limited: "Terlalu banyak percobaan, tunggu 10 menit",
-  bad_request: "Kode harus 6 digit",
+  invalid_code:
+    "Kode salah atau sudah lewat 10 menit. Cek angkanya, atau minta admin menekan Buat kode baru.",
+  rate_limited: "Terlalu banyak kode salah. Tunggu 10 menit, lalu coba lagi dengan kode baru.",
+  bad_request: "Kode harus 6 angka.",
 };
 
 /**
@@ -260,12 +262,17 @@ export function createCloud(
           signal: AbortSignal.timeout(TIMEOUT_MS),
         });
       } catch {
-        throw new Error("Tidak tersambung ke server. Cek internet lalu coba lagi");
+        throw new Error(
+          "Laptop booth tidak tersambung ke internet. Sambungkan ke Wi-Fi atau hotspot, lalu ketik kodenya lagi.",
+        );
       }
       const body: unknown = await res.json().catch(() => ({}));
       if (!res.ok) {
         const err = (body as { error?: string }).error ?? "";
-        throw new Error(PAIR_ERRORS[err] ?? `Server menolak (${res.status})`);
+        throw new Error(
+          PAIR_ERRORS[err] ??
+            `Server sedang bermasalah (${res.status}). Coba lagi beberapa menit lagi.`,
+        );
       }
       const p = PairResponse.parse(body);
       db.kv.set("cloud_token", safeStorage.encryptString(p.token).toString("base64"));

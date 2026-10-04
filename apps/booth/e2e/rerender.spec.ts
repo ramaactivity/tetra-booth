@@ -115,8 +115,10 @@ test("tajamkan foto lama: sesi tanpa piece@2x dirender ulang & strip_web diungga
     for (let i = 0; i < 5; i++) await w.getByTestId("crew-hotspot").click();
     await typePin(w, "2468");
     await typePin(w, "2468");
-    await w.getByRole("button", { name: /^Pasangkan/ }).click();
+    await w.getByTestId("step-pair").getByRole("button", { name: "Sambungkan" }).click();
     await typePin(w, "123456");
+    await expect(w.getByTestId("pair-device")).toContainText("Booth Uji · B09");
+    await w.getByRole("button", { name: "Kembali ke Menu Crew" }).click();
     await expect(w.getByTestId("cloud-device")).toHaveText("Booth Uji · B09");
     await w.getByTestId("step-event").getByRole("button").click();
     await w.getByRole("button", { name: /Mode Event/ }).click();

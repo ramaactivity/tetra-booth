@@ -794,7 +794,7 @@ export function SettingsForm({
           >
             {(
               [
-                ["all", "Semua booth", "Termasuk booth yang baru dipasangkan nanti."],
+                ["all", "Semua booth", "Termasuk booth yang baru disambungkan nanti."],
                 ["pick", "Pilih booth", "Hanya booth yang dicentang di bawah."],
               ] as const
             ).map(([val, title, hint]) => (

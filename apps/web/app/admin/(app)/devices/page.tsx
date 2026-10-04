@@ -1,4 +1,5 @@
 import { BoothStatus, newerVersion } from "@tetra/shared";
+import { copy } from "@/lib/copy";
 import { ago, isOnline } from "@/lib/format";
 import { latestBoothRelease } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
@@ -55,9 +56,11 @@ function problems(
   return p;
 }
 
-/** Device (desain v2 E5): pantauan kondisi tiap booth dari heartbeat (tiap 60 dtk), daftarkan & kode pairing. */
+/** Device (desain v2 E5): pantauan kondisi tiap booth dari heartbeat (tiap 60 dtk), tambah booth & sambungkan laptop booth. */
 export default async function DevicesPage() {
-  const { db, orgId } = await requireMember();
+  const { db, orgId, role } = await requireMember();
+  const canManage = role !== "crew";
+  const t = copy.admin.devices;
   const [{ data: devices }, latest] = await Promise.all([
     db
       .from("devices")
@@ -115,9 +118,36 @@ export default async function DevicesPage() {
             {latest ? ` · rilis terbaru v${latest.version}` : ""}
           </p>
         </div>
-        <AddDevice />
+        {canManage && <AddDevice />}
       </div>
       <AutoRefresh seconds={REFRESH_S} />
+      {rows.length === 0 && (
+        <section
+          data-testid="devices-empty"
+          className="flex flex-col gap-5 rounded-[18px] border-[1.5px] border-dashed border-ink bg-white px-6 py-6"
+        >
+          <div>
+            <h2 className="text-xl font-extrabold tracking-[-0.02em]">{t.emptyTitle}</h2>
+            <p className="mt-1 text-sm text-text-2">{t.emptyBody}</p>
+          </div>
+          <ol className="grid grid-cols-1 gap-3.5 md:grid-cols-3">
+            {t.emptySteps.map(([title, body], i) => (
+              <li
+                key={title}
+                className="flex gap-3 rounded-[14px] border-[1.5px] border-ink bg-paper px-4 py-3.5"
+              >
+                <span className="flex size-8 flex-none items-center justify-center rounded-full border-[1.5px] border-ink bg-butter text-sm font-extrabold">
+                  {i + 1}
+                </span>
+                <div>
+                  <h3 className="text-sm font-extrabold">{title}</h3>
+                  <p className="mt-1 text-[13px] leading-normal text-text-3">{body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2 xl:grid-cols-3">
         {rows.map(({ d, st, online, paired, outdated, issues }) => {
           const under = issues.length
@@ -180,7 +210,7 @@ export default async function DevicesPage() {
                     ? "● Online"
                     : paired
                       ? `Offline · ${ago(d.last_seen_at, now)}`
-                      : "Belum dipasangkan"}
+                      : t.notConnected}
                 </span>
               </div>
               <div className="mx-[18px] rounded-[11px] border-[1.5px] border-dashed border-ink px-3 py-[9px] text-[13px]">
@@ -243,7 +273,7 @@ export default async function DevicesPage() {
                   ))}
                 </ul>
               )}
-              <DeviceActions id={d.id} name={d.name} />
+              {canManage && <DeviceActions id={d.id} name={d.name} paired={paired} />}
             </article>
           );
         })}
