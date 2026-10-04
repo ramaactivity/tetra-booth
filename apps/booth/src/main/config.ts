@@ -148,35 +148,32 @@ export const kioskFlag = (isPackaged: boolean) =>
   flags.has("kiosk") || (isPackaged && !flags.has("no-kiosk"));
 
 /**
- * `--digicam`: kamera DSLR lewat digiCamControl (lihat digicam.ts). Menyiratkan `--camera=hotfolder`,
- * pemicu shutter ke web server digiCamControl, buka aplikasinya otomatis, dan live view.
- * `--digicam-exe` untuk lokasi CameraControl.exe yang tidak standar. Mode crew "DSLR (digiCamControl)" (hot folder
- * + pemicu ke port 5513) mendapat perilaku yang sama.
+ * digiCamControl dipensiunkan (DECISIONS #141): DSLR Canon selalu lewat EDSDK. Booth lama yang memakai `--digicam`
+ * atau mode crew "DSLR (digiCamControl)" (hot folder + pemicu port 5513) otomatis pindah ke Canon EDSDK.
+ * ponytail: kode digicam.ts/dcc.ts dibiarkan mati sampai EDSDK terbukti di beberapa event, lalu dihapus.
  */
-export const digicam =
+export const digicam: { exe?: string } | undefined = undefined;
+const legacyDigicam =
   flags.has("digicam") ||
-  (flags.value("camera") === "hotfolder" && isDigiCamTrigger(flags.value("hot-folder-trigger")))
-    ? { exe: flags.value("digicam-exe") }
-    : undefined;
+  (flags.value("camera") === "hotfolder" && isDigiCamTrigger(flags.value("hot-folder-trigger")));
+/** Booth terpasang (installer) di Windows tanpa pilihan kamera: bawaan Canon EDSDK, bukan webcam. */
+const packagedWindows = process.platform === "win32" && !process.defaultApp;
 
 /**
  * `--camera=canon`: DSLR Canon lewat EDSDK di Camera Service (DECISIONS #111). DLL Canon tidak ikut installer
- * (lisensi): disalin sekali ke `<folder data>/edsdk` (EDSDK.dll + EdsImage.dll), atau `--canon <folder>`;
+ * (lisensi) dan diunduh otomatis ke `<folder data>/edsdk` (#112), atau `--canon <folder>`;
  * `--canon fake` = kamera simulasi (dev/e2e).
  */
 export const canon =
-  !digicam && flags.value("camera") === "canon"
+  flags.value("camera") === "canon" || legacyDigicam || (packagedWindows && !flags.value("camera"))
     ? (flags.value("canon") ?? join(userDir, "edsdk"))
     : undefined;
 
 export const config: BoothConfig = {
-  camera: digicam
-    ? "hotfolder"
-    : canon
-      ? "canon"
-      : ((["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ??
-        "webcam"),
-  liveView: !!digicam || !!canon,
+  camera: canon
+    ? "canon"
+    : ((["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ?? "webcam"),
+  liveView: !!canon,
   demo: flags.has("demo"),
   fast: flags.has("fast"),
   guestUrl: process.env.TETRA_GUEST_URL ?? "https://booth.tetraphoto.com",

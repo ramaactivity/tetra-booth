@@ -7,9 +7,8 @@ import { usePlatform } from "../PlatformContext";
 import type { DeviceInfo, DeviceSettings } from "../platform";
 import { Sheet } from "./Sheet";
 
-const DEFAULT_HOT = "C:\\TetraBooth\\hot";
-const DEFAULT_TRIGGER = "http://localhost:5513/?CMD=Capture";
-const CAMERAS = ["webcam", "canon", "hotfolder", "simulated"] as const;
+/** digiCamControl dipensiunkan (#141): DSLR Canon = EDSDK; hot folder hanya lewat flag teknisi. */
+const CAMERAS = ["canon", "webcam", "simulated"] as const;
 
 const choice = (on: boolean) =>
   `pressable flex min-h-[72px] items-center justify-center rounded-[18px] border-[2.5px] border-ink px-6 py-2 text-center text-xl leading-tight font-bold disabled:opacity-40 ${on ? "bg-mint-soft" : "bg-white"}`;
@@ -86,17 +85,7 @@ export function DeviceSheet({
                 type="button"
                 disabled={locked("camera")}
                 className={choice(camera === c)}
-                onClick={() =>
-                  set(
-                    c === "hotfolder"
-                      ? {
-                          camera: c,
-                          hotFolder: draft.hotFolder ?? DEFAULT_HOT,
-                          hotFolderTrigger: draft.hotFolderTrigger ?? DEFAULT_TRIGGER,
-                        }
-                      : { camera: c },
-                  )
-                }
+                onClick={() => set({ camera: c })}
               >
                 {copy.crew.cameraKind[c]}
               </button>
