@@ -2,7 +2,7 @@ import { newSessionId } from "@tetra/shared";
 import { Button } from "@tetra/ui";
 import { useRef, useState } from "react";
 import { copy } from "../copy";
-import { errText } from "../errors";
+import { crewText as errText } from "../errors";
 import { previewUrl } from "../finalize";
 import { usePlatform } from "../PlatformContext";
 import type { CameraProp, FocusStep, LiveFrame } from "../platform";

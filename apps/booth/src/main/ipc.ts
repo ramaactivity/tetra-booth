@@ -489,7 +489,9 @@ export function registerIpc(
       return;
     }
     await focus(s).catch(() => {
-      throw new Error("digiCamControl tidak menjawab. Cek kamera menyala & live view jalan");
+      throw new Error(
+        "digiCamControl tidak menjawab. Kamera Canon? Pilih Kamera DSLR Canon di Kamera & Printer. Kalau tetap digiCamControl: buka aplikasinya, nyalakan kamera, aktifkan live view.",
+      );
     });
     console.info(`[camera] fokus ${s}`);
   });
