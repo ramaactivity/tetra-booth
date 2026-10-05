@@ -111,7 +111,7 @@ export type EventSize = {
 };
 /** Kamera & printer dari mode crew (DECISIONS #85). */
 export type DeviceSettings = {
-  camera?: "webcam" | "simulated" | "hotfolder" | "canon";
+  camera?: "webcam" | "simulated" | "hotfolder" | "canon" | "sony";
   webcamId?: string;
   /** Live view seperti cermin (bawaan nyala, FSD §1.7). */
   mirrorLiveView?: boolean;

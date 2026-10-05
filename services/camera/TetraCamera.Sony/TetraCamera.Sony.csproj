@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Sony Camera Remote Command (DECISIONS #169): protokol PTP saja, tanpa DLL Sony. sdk/ = dokumen Sony (tidak di-commit). -->
+  <ItemGroup>
+    <ProjectReference Include="../TetraCamera.HotFolder/TetraCamera.HotFolder.csproj" />
+  </ItemGroup>
+</Project>

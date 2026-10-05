@@ -24,6 +24,7 @@ const CAMERA_KIND: Record<string, string> = {
   simulated: "Simulasi",
   hotfolder: "Hot folder",
   canon: "Canon",
+  sony: "Sony",
 };
 
 /** Status perangkat: `detail` (model/nama) teks biasa, `text` di pill berwarna + teks. */

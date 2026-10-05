@@ -101,7 +101,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
   const camera =
     cfg.camera === "simulated"
       ? createSimulatedCamera(storage)
-      : cfg.camera === "hotfolder" || cfg.camera === "canon"
+      : cfg.camera === "hotfolder" || cfg.camera === "canon" || cfg.camera === "sony"
         ? serviceCamera(bridge, !!cfg.liveView, cfg.camera === "canon")
         : createWebcamCamera(storage, cfg.webcamId);
   return {

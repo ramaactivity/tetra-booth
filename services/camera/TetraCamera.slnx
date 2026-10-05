@@ -4,5 +4,6 @@
   <Project Path="TetraCamera.HotFolder/TetraCamera.HotFolder.csproj" />
   <Project Path="TetraCamera.Print.Windows/TetraCamera.Print.Windows.csproj" />
   <Project Path="TetraCamera.Print/TetraCamera.Print.csproj" />
+  <Project Path="TetraCamera.Sony/TetraCamera.Sony.csproj" />
   <Project Path="TetraCamera.Tests/TetraCamera.Tests.csproj" />
 </Solution>

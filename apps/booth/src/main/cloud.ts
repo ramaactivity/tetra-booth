@@ -66,7 +66,7 @@ async function statusSnapshot(db: BoothDb, alerts: Alerts): Promise<BoothStatus>
   }
   const health = await cameraHealth().catch(() => null);
   const model =
-    config.camera === "canon"
+    config.camera === "canon" || config.camera === "sony"
       ? await request({ id: randomUUID(), type: "camera.status" })
           .then((s) => s.model?.slice(0, 80) ?? null)
           .catch(() => null)

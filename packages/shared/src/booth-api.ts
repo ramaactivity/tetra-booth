@@ -27,7 +27,7 @@ export const BoothStatus = z.object({
   activeEventName: tolerant(z.string().max(120)),
   camera: tolerant(
     z.object({
-      kind: z.enum(["webcam", "simulated", "hotfolder", "canon"]),
+      kind: z.enum(["webcam", "simulated", "hotfolder", "canon", "sony"]),
       /** null = tidak dipantau main (webcam dikelola renderer). */
       connected: z.boolean().nullable(),
       model: z.string().max(80).nullable(),

@@ -22,6 +22,7 @@ export const VALUE_FLAGS = [
   "print-offset",
   "printer-2x6x2",
   "canon",
+  "sony",
 ] as const;
 type ValueFlag = (typeof VALUE_FLAGS)[number];
 
@@ -70,7 +71,7 @@ export const userDir = dataDir ?? join(appData, "TetraBooth");
 
 /** Pengaturan perangkat dari mode crew (DECISIONS #85), satu file per laptop. */
 export const DeviceSettings = z.object({
-  camera: z.enum(["webcam", "simulated", "hotfolder", "canon"]).optional(),
+  camera: z.enum(["webcam", "simulated", "hotfolder", "canon", "sony"]).optional(),
   webcamId: z.string().max(512).optional(),
   mirrorLiveView: z.boolean().optional(),
   mirrorPhoto: z.boolean().optional(),
@@ -170,10 +171,20 @@ export const canon =
     ? (flags.value("canon") ?? join(userDir, "edsdk"))
     : undefined;
 
+/**
+ * `--camera=sony`: mirrorless Sony lewat Camera Remote Command (PTP) di Camera Service (DECISIONS #169). Driver MTP
+ * bawaan Windows (`--sony wpd`, bawaan); `--sony fake` (A7 III) / `--sony fake-v3` (A7 IV) = kamera simulasi (dev/e2e).
+ * Tahap S1: tersambung + model saja, jepret & live view menyusul (docs/PLAN-SONY.md).
+ */
+export const sony = flags.value("camera") === "sony" ? (flags.value("sony") ?? "wpd") : undefined;
+
 export const config: BoothConfig = {
   camera: canon
     ? "canon"
-    : ((["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ?? "webcam"),
+    : sony
+      ? "sony"
+      : ((["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ??
+        "webcam"),
   liveView: !!canon,
   demo: flags.has("demo"),
   fast: flags.has("fast"),
@@ -219,6 +230,7 @@ export const cameraServiceFlags = {
   }),
 };
 if (canon) cameraServiceFlags.args.push("--canon", canon);
+if (sony) cameraServiceFlags.args.push("--sony", sony);
 
 /** Antrean printer utama (`--printer`), untuk membuka dialog Printing Preferences dari menu crew. */
 export const printerName = flags.value("printer");

@@ -14,6 +14,9 @@ string? printer2x6x2 = null;
 Uri? hotFolderTrigger = null;
 // Canon EDSDK (DECISIONS #111): folder berisi EDSDK.dll, atau "fake" (kamera simulasi untuk dev/e2e).
 string? canon = null, canonSettings = null;
+// Sony Camera Remote Command (DECISIONS #169): `wpd` (Windows), `fake` (A7 III v2) / `fake-v3` (A7 IV) untuk dev/e2e.
+// `--sony-probe <wpd|fake|fake-v3>` = diagnostik W-037 lalu keluar; `--sony-force 2|3` memaksa versi protokol.
+string? sony = null, sonyProbe = null, sonyForce = null;
 for (var i = 0; i + 1 < args.Length; i++)
 {
     switch (args[i])
@@ -35,7 +38,17 @@ for (var i = 0; i + 1 < args.Length; i++)
         case "--hot-folder-trigger": hotFolderTrigger = new Uri(args[i + 1]); break;
         case "--canon": canon = args[i + 1]; break;
         case "--canon-settings": canonSettings = Path.GetFullPath(args[i + 1]); break;
+        case "--sony": sony = args[i + 1]; break;
+        case "--sony-probe": sonyProbe = args[i + 1]; break;
+        case "--sony-force": sonyForce = args[i + 1]; break;
     }
+}
+if (sonyProbe is not null)
+{
+    using var t = SonyTransport(sonyProbe);
+    if (t is null) return 1;
+    return TetraCamera.Sony.SonyProbe.Run(t, Console.Out,
+        sonyForce switch { "2" => TetraCamera.Sony.SonyProfile.V2, "3" => TetraCamera.Sony.SonyProfile.V3, _ => null });
 }
 var tokenBytes = Encoding.UTF8.GetBytes(token);
 
@@ -69,6 +82,12 @@ if (canon is not null)
     }
     catch (TetraCamera.HotFolder.CameraFailure e) { Console.Error.WriteLine($"Canon EDSDK tidak dipakai: {e.Message}"); }
 }
+if (camera is null && sony is not null && SonyTransport(sony) is { } sonyTransport)
+{
+    var cam = new TetraCamera.Sony.SonyCamera(sonyTransport);
+    cam.ConnectionChanged += on => events.Publish(Dispatcher.CameraEvent(cam, on));
+    camera = cam;
+}
 camera ??= hotFolder is null ? null : new TetraCamera.HotFolder.HotFolderCamera(hotFolder, trigger: hotFolderTrigger);
 var dispatcher = new Dispatcher(printer, camera);
 
@@ -97,3 +116,13 @@ Console.WriteLine($"TetraCamera siap di ws://127.0.0.1:{port}/ws");
 if (camera is not null) Console.WriteLine($"Kamera: {camera.Brand} ({camera.Serial})");
 if (printerName is not null) Console.WriteLine($"Printer: {printerName} (4R: {paper4R ?? "ukuran 4x6"}, 2x6x2: {paper2x6x2 ?? "-"}{(paperFitMargin ? ", mode ber-margin" : "")})");
 app.Run();
+return 0;
+
+static TetraCamera.Sony.IPtpTransport? SonyTransport(string kind)
+{
+    if (kind == "fake") return TetraCamera.Sony.FakeSonyTransport.A7III();
+    if (kind == "fake-v3") return TetraCamera.Sony.FakeSonyTransport.A7IV();
+    if (kind == "wpd" && OperatingSystem.IsWindows()) return new TetraCamera.Sony.WpdTransport();
+    Console.Error.WriteLine($"--sony '{kind}' tidak dipakai (fake | fake-v3 | wpd di Windows)");
+    return null;
+}
