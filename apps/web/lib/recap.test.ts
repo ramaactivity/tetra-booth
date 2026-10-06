@@ -17,6 +17,7 @@ const base: RecapData = {
   photos: 30,
   firstAt: "2026-10-04T03:05:00.000Z",
   lastAt: "2026-10-04T05:50:00.000Z",
+  outside: 0,
   run: {
     segments: [
       { start: "2026-10-04T03:00:00.000Z", end: "2026-10-04T04:00:00.000Z" },
@@ -66,5 +67,33 @@ describe("rekap event", () => {
 
   it("jadwal kosong = tidak dibandingkan", () => {
     expect(recapView({ ...base, scheduledStart: null }, now).schedule).toBeNull();
+  });
+});
+
+describe("rekap: sesi hari lain & di luar waktu acara (#170)", () => {
+  it("jam hari lain ditulis dengan tanggal, sesi di luar acara dicatat", () => {
+    // Event 27 Sep dipakai lagi untuk uji 5 Okt: sesi pertama dari 27 Sep, timer 5 Okt.
+    const d: RecapData = {
+      ...base,
+      date: "2026-09-27",
+      firstAt: "2026-09-27T16:51:00.000Z",
+      lastAt: "2026-10-05T07:30:00.000Z",
+      outside: 3,
+      run: {
+        segments: [{ start: "2026-10-05T05:05:00.000Z", end: "2026-10-05T07:00:00.000Z" }],
+        finishedAt: "2026-10-05T07:00:00.000Z",
+      },
+    };
+    const v = recapView(d, Date.parse("2026-10-05T09:00:00.000Z"));
+    expect(v.startText).toBe("12.05");
+    expect(v.endText).toBe("14.00");
+    expect(v.stats.find((s) => s.label === "Sesi pertama")?.value).toBe("27 Sep 23.51");
+    expect(v.stats.find((s) => s.label === "Sesi terakhir")?.value).toBe("14.30");
+    expect(v.stats.find((s) => s.label === "Sesi")?.note).toBe("3 sesi di luar waktu acara");
+    expect(recapText(d, now)).toContain("Sesi pertama: 27 Sep 23.51");
+    // Tanpa timer: hari acara = tanggal event.
+    const noRun = recapView({ ...d, run: { segments: [] } }, now);
+    expect(noRun.startText).toBe("23.51");
+    expect(noRun.stats.find((s) => s.label === "Sesi terakhir")?.value).toBe("5 Okt 14.30");
   });
 });

@@ -478,6 +478,17 @@ export function openDb(file: string) {
         )
         .get(eventId) as LocalRecap;
     },
+    /** Jam mulai sesi asli event ini (sesi di luar waktu acara di rekap, #170). */
+    sessionTimes(eventId: string): string[] {
+      return (
+        db
+          .prepare(
+            `select started_at t from sessions
+             where event_id = ? and status = 'completed' and is_test = 0`,
+          )
+          .all(eventId) as { t: string }[]
+      ).map((r) => r.t);
+    },
     /** File hasil sesi asli event ini (lembar cetak, foto asli, GIF, video) untuk folder event (#155). */
     eventFiles(eventId: string): EventFile[] {
       return db

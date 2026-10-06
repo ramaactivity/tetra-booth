@@ -1,9 +1,11 @@
 import {
+  clockOn,
   compareSchedule,
   durationText,
   type EventRun,
   fileSize,
   localHhmm,
+  localYmd,
   type RunVerdict,
   runElapsedMs,
   runPausedMs,
@@ -34,6 +36,8 @@ export type RecapData = {
   /** started_at sesi pertama / terakhir. */
   firstAt: string | null;
   lastAt: string | null;
+  /** Sesi sebelum timer mulai / setelah acara dihentikan (#170). */
+  outside: number;
   run: EventRun;
   /** Jadwal booking (#152) "HH:MM" waktu lokal venue (WIB); null = tidak diisi. */
   scheduledStart: string | null;
@@ -68,6 +72,9 @@ export type RecapView = {
   durationMs: number;
   startAt: string | null;
   endAt: string | null;
+  /** Jam mulai/selesai untuk ditampilkan; hari lain dari hari acara ditulis dengan tanggal (#170). */
+  startText: string;
+  endText: string;
   pausedMs: number;
   verdict: RunVerdict | null;
   verdictText: string;
@@ -94,6 +101,9 @@ export function recapView(d: RecapData, now: number): RecapView {
   const startAt = timer ? (first?.start ?? null) : d.firstAt;
   const endAt = timer ? (st === "running" ? null : (last?.end ?? null)) : d.lastAt;
   const verdict = source && d.packageHours ? runVerdict(durationMs, d.packageHours) : null;
+  // Hari acara = hari timer mulai, atau tanggal event kalau timer belum pernah jalan (#170).
+  const ref = first ? localYmd(first.start, WIB.timeZone) : d.date;
+  const when = (ts: string | null) => (ts ? clockOn(ts, ref, WIB.timeZone) : "–");
   const dur = durationText(durationMs / 60_000);
   const packageText = d.packageHours ? durationText(d.packageHours * 60) : "";
   const verdictText = !source
@@ -112,6 +122,8 @@ export function recapView(d: RecapData, now: number): RecapView {
     durationMs,
     startAt,
     endAt,
+    startText: when(startAt),
+    endText: when(endAt),
     pausedMs: timer ? runPausedMs(d.run, now) : 0,
     verdict,
     verdictText,
@@ -124,14 +136,18 @@ export function recapView(d: RecapData, now: number): RecapView {
     ),
     packageText,
     stats: [
-      { label: "Sesi", value: String(d.sessions) },
+      {
+        label: "Sesi",
+        value: String(d.sessions),
+        ...(d.outside > 0 && { note: `${d.outside} sesi di luar waktu acara` }),
+      },
       { label: "Lembar dicetak", value: String(d.prints), note: "+ cetak ulang" },
       { label: "QR dibuka", value: `${pct(d.opened, d.sessions)}%`, note: `${d.opened} sesi` },
       { label: "Disimpan ke HP", value: `${pct(d.saved, d.sessions)}%`, note: `${d.saved} sesi` },
       { label: "Data tamu", value: String(d.leads) },
       { label: "Foto terunggah", value: String(d.photos) },
-      { label: "Sesi pertama", value: d.firstAt ? clockWib(d.firstAt) : "–" },
-      { label: "Sesi terakhir", value: d.lastAt ? clockWib(d.lastAt) : "–" },
+      { label: "Sesi pertama", value: when(d.firstAt) },
+      { label: "Sesi terakhir", value: when(d.lastAt) },
     ],
     rows: [
       {
@@ -157,7 +173,6 @@ export function recapView(d: RecapData, now: number): RecapView {
 /** Ringkasan teks untuk WhatsApp (*tebal* ala WA, tanpa emoji). */
 export function recapText(d: RecapData, now: number): string {
   const v = recapView(d, now);
-  const time = (ts: string | null) => (ts ? clockWib(ts) : "…");
   const lines = [
     `*Rekap Event · ${d.name}*`,
     [dateLong(d.date), d.venue].filter(Boolean).join(" · "),
@@ -169,7 +184,7 @@ export function recapText(d: RecapData, now: number): string {
   ];
   if (v.source)
     lines.push(
-      `Mulai ${time(v.startAt)} · Selesai ${v.running ? "masih berjalan" : time(v.endAt)}${v.source === "timer" ? ` · Jeda ${durationText(v.pausedMs / 60_000)}` : ""}`,
+      `Mulai ${v.startText} · Selesai ${v.running ? "masih berjalan" : v.endText}${v.source === "timer" ? ` · Jeda ${durationText(v.pausedMs / 60_000)}` : ""}`,
     );
   if (v.schedule)
     lines.push(

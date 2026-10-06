@@ -313,11 +313,11 @@ export function CrewMenu({
       (e: unknown) => setNote(crewText(e)),
     );
   /**
-   * Buka untuk Tamu (#152): acara belum mulai / dijeda = tanya Mulai acara atau Tes dulu. Berjalan, menunggu sesi
-   * pertama, selesai, atau event lokal = langsung buka. Timer tidak pernah menunggu jaringan.
+   * Buka untuk Tamu (#152): acara belum mulai / dijeda / sudah dihentikan (#170) = tanya Mulai/Lanjutkan acara atau
+   * Tes dulu. Berjalan, menunggu sesi pertama, atau event lokal = langsung buka. Timer tidak pernah menunggu jaringan.
    */
   const openForGuests = () => {
-    if (hasEvent && (run === "idle" || run === "paused")) setGoAsk(true);
+    if (hasEvent && (run === "idle" || run === "paused" || run === "finished")) setGoAsk(true);
     else onClose("live");
   };
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
@@ -1151,10 +1151,8 @@ export function CrewMenu({
 
       {goAsk && (
         <StartDialog
-          paused={run === "paused"}
-          onStart={() =>
-            void runAct(run === "paused" ? "start" : "arm").then(() => onClose("live"))
-          }
+          state={run === "paused" || run === "finished" ? run : "idle"}
+          onStart={() => void runAct(run === "idle" ? "arm" : "start").then(() => onClose("live"))}
           onTest={() => onClose("test")}
           onClose={() => setGoAsk(false)}
         />

@@ -145,8 +145,10 @@ test("timer admin: mulai, jeda, lanjut, selesai, ubah jam → rekap lebih 20 men
     await expect(page.getByTestId("recap-Disimpan ke HP")).toHaveText("33%");
     await expect(page.getByTestId("recap-Data tamu")).toHaveText("1");
     await expect(page.getByTestId("recap-Foto terunggah")).toHaveText("6");
-    await expect(page.getByTestId("recap-Sesi pertama")).toHaveText("10.05");
-    await expect(page.getByTestId("recap-Sesi terakhir")).toHaveText("12.05");
+    // Sesi bertanggal 12 Okt, timer hari ini: jam ditulis dengan tanggal + dicatat di luar waktu acara (#170).
+    await expect(page.getByTestId("recap-Sesi pertama")).toHaveText("12 Okt 10.05");
+    await expect(page.getByTestId("recap-Sesi terakhir")).toHaveText("12 Okt 12.05");
+    await expect(card).toContainText("3 sesi di luar waktu acara");
     await expect(page.getByTestId("recap-row-Paket")).toHaveText("2R Unlimited 1 Jam · 1 jam");
     // Jadwal vs nyata (#152): jam nyata = timer yang dikoreksi.
     await expect(page.getByTestId("recap-schedule")).toContainText(
@@ -170,7 +172,7 @@ test("timer admin: mulai, jeda, lanjut, selesai, ubah jam → rekap lebih 20 men
     const text = await page.evaluate(() => navigator.clipboard.readText());
     expect(text).toContain(`*Rekap Event · e2e rekap ${tag}*`);
     expect(text).toContain("*Lebih 20 menit*");
-    expect(text).toContain("Sesi: 3");
+    expect(text).toContain("Sesi: 3 (3 sesi di luar waktu acara)");
     expect(text).toContain("Ukuran di laptop: 3,2 GB (412 file)");
     expect(text).toContain("Ukuran di cloud: 11 MB");
     expect(text).toContain("Jadwal 10.00–11.00 · Nyata");
@@ -295,5 +297,88 @@ test("API booth: buka, ulang (idempotent), jeda offline terlambat, selesai", asy
       .from("devices")
       .delete()
       .eq("id", dev?.id ?? "");
+  }
+});
+
+test("API booth: booth yang memotret event boleh lapor & bagikan galeri walau tidak ditugaskan (#170)", async ({
+  request,
+}) => {
+  const org =
+    (await db.from("organizations").select("id").eq("slug", "tetra").single()).data?.id ?? "";
+  const tag = String(Date.now()).slice(-6).replace(/[01]/g, "4");
+  const mk = async (n: string) => {
+    const token = randomBytes(32).toString("base64url");
+    const { data } = await db
+      .from("devices")
+      .insert({
+        organization_id: org,
+        name: `e2e ${n} ${tag}`,
+        short_code: `E${n}-${tag}`,
+        token_hash: createHash("sha256").update(token).digest("hex"),
+      })
+      .select("id")
+      .single();
+    return { id: data?.id ?? "", auth: { Authorization: `Bearer ${token}` } };
+  };
+  // Booth Rama ditugaskan; Booth 1 dulu memotret event ini (punya sesi), Booth 2 tidak pernah.
+  const [rama, shot, other] = [await mk("R"), await mk("S"), await mk("O")];
+  const { data: ev } = await db
+    .from("events")
+    .insert({
+      organization_id: org,
+      name: `e2e assign ${tag}`,
+      mode: "event",
+      event_date: "2026-09-27",
+      all_devices: false,
+    })
+    .select("id")
+    .single();
+  const eventId = ev?.id ?? "";
+  try {
+    await db
+      .from("event_devices")
+      .insert({ event_id: eventId, device_id: rama.id, organization_id: org });
+    await db.from("sessions").insert({
+      id: `asg${tag}a`,
+      organization_id: org,
+      event_id: eventId,
+      device_id: shot.id,
+      started_at: "2026-09-27T16:51:00Z",
+      print_count: 1,
+      upload_status: "complete",
+    });
+    const call = (auth: Record<string, string>, sid: string) =>
+      Promise.all([
+        request.post(`/api/booth/events/${eventId}/gallery-link`, { headers: auth, data: {} }),
+        request.post(`/api/booth/events/${eventId}/storage`, {
+          headers: auth,
+          data: { bytes: 10, files: 1 },
+        }),
+        request.post(`/api/booth/events/${eventId}/run`, {
+          headers: auth,
+          data: { id: randomUUID(), action: "start", at: new Date().toISOString() },
+        }),
+        request.post("/api/booth/sessions", {
+          headers: auth,
+          data: {
+            id: `as${sid}${tag}a`,
+            eventId,
+            startedAt: new Date().toISOString(),
+            completedAt: new Date().toISOString(),
+            photoCount: 1,
+            retakeCount: 0,
+            printCount: 1,
+            assetCount: 1,
+          },
+        }),
+      ]).then((r) => r.map((x) => x.status()));
+    expect(await call(rama.auth, "r")).toEqual([200, 200, 200, 200]);
+    expect(await call(shot.auth, "s")).toEqual([200, 200, 200, 200]);
+    expect(await call(other.auth, "x")).toEqual([404, 404, 404, 404]);
+  } finally {
+    await db.from("audit_logs").delete().eq("target", eventId);
+    await db.from("sessions").delete().eq("event_id", eventId);
+    await db.from("events").delete().eq("id", eventId);
+    await db.from("devices").delete().in("id", [rama.id, shot.id, other.id]);
   }
 });

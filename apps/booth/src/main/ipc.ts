@@ -6,6 +6,7 @@ import {
   AssetKindSchema,
   LayoutSpecSchema,
   newerVersion,
+  outsideRun,
   PairRequest,
   PaperSchema,
   PaymentCreateRequest,
@@ -17,6 +18,7 @@ import { z } from "zod";
 import type { Alerts } from "./alerts";
 import { cameraHealth, liveViewUrl, request, ServiceUnavailable } from "./camera-client";
 import type { Cloud } from "./cloud";
+import { cloudErrorText } from "./cloud-error";
 import {
   config,
   DeviceSettings,
@@ -279,9 +281,11 @@ export function registerIpc(
   ipcMain.handle("crewRecap", (_e, id: unknown) => {
     crewOnly();
     const eventId = EventId.parse(id);
+    const run = cloud.runState(eventId) ? cloud.localRun(eventId) : null;
     return {
       ...db.recap(eventId),
-      run: cloud.runState(eventId) ? cloud.localRun(eventId) : null,
+      outside: run ? outsideRun(run, db.sessionTimes(eventId)) : 0,
+      run,
       info: bundles.find((b) => b.id === eventId)?.info ?? {},
     };
   });
@@ -317,9 +321,10 @@ export function registerIpc(
           if (!win.isDestroyed()) setKioskOn(win, true);
         });
       }
+      // Jendela booth tidak diperkecil (#170): Explorer muncul di depan, mode crew tetap terbuka di belakangnya.
+      // Dulu diperkecil → kembali ke booth, webcam bisa sudah mati dan tamu tertahan di layar kamera bermasalah.
       const err = await shell.openPath(dest);
       if (err) throw new Error(`Folder tidak bisa dibuka: ${err}`);
-      win?.minimize();
     }
     return dest;
   });
@@ -333,7 +338,12 @@ export function registerIpc(
       console.warn(
         `[cloud] link galeri gagal: ${err instanceof Error ? err.message : String(err)}`,
       );
-      throw new Error("Link galeri butuh internet. Sambungkan booth ke internet lalu coba lagi");
+      throw new Error(
+        cloudErrorText(
+          err,
+          "Link galeri butuh internet. Sambungkan booth ke internet lalu coba lagi",
+        ),
+      );
     }
     const url = `${config.guestUrl}/g/${slug}`;
     clipboard.writeText(url);
@@ -388,7 +398,12 @@ export function registerIpc(
       return await cloud.syncEvents(true);
     } catch (e) {
       console.warn(`[cloud] sync event gagal: ${e instanceof Error ? e.message : String(e)}`);
-      throw new Error("Tidak bisa mengunduh event dari cloud. Cek koneksi internet lalu coba lagi");
+      throw new Error(
+        cloudErrorText(
+          e,
+          "Tidak bisa mengunduh event dari cloud. Cek koneksi internet lalu coba lagi",
+        ),
+      );
     }
   });
   // Update aplikasi (aturan 7: hanya dari mode crew, DECISIONS #80).

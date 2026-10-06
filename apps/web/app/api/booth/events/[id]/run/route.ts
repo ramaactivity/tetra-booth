@@ -1,6 +1,6 @@
 import { applyRun, BoothRunRequest, runState } from "@tetra/shared";
 import { z } from "zod";
-import { apiError, authDevice, deviceEvents, parseBody } from "@/lib/booth";
+import { apiError, authDevice, deviceMayUseEvent, parseBody } from "@/lib/booth";
 import { saveLocalStorage, updateRun } from "@/lib/run";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -15,8 +15,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const eventId = z.uuid().safeParse((await ctx.params).id).data;
   const a = await parseBody(req, BoothRunRequest);
   if (!eventId || !a) return apiError("bad_request", 400);
-  if (!(await deviceEvents(device, { eventId, includeArchived: true }).catch(() => [])).length)
-    return apiError("not_found", 404);
+  if (!(await deviceMayUseEvent(device, eventId))) return apiError("not_found", 404);
   try {
     const db = createServiceClient();
     const run = await updateRun(db, eventId, device.organizationId, (r) =>

@@ -248,6 +248,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   const runs: { id: string; action: string; at: string; local?: unknown }[] = [];
   const storage: { bytes: number; files: number }[] = [];
   let gifHead = "";
+  let linkCalls = 0;
   const EVENT = "7c9e6679-7425-40de-944b-e07fc1f90ae8";
   const pngSha = createHash("sha256").update(PNG).digest("hex");
   const config = JSON.parse(
@@ -310,6 +311,12 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
         storage.push(JSON.parse(body));
         res.end(JSON.stringify({ ok: true }));
       } else if (req.url === `/api/booth/events/${EVENT}/gallery-link`) {
+        // Pertama: booth tidak ditugaskan ke event (#170) → pesan yang benar, bukan "butuh internet".
+        if (++linkCalls === 1) {
+          res.statusCode = 404;
+          res.end(JSON.stringify({ error: "not_found" }));
+          return;
+        }
         res.end(JSON.stringify({ slug: "rina-dimas-2026-10-12" }));
       } else if (req.url === "/api/booth/sessions") {
         // Upsert boleh terkirim lebih dari sekali (idempotent): simpan satu per id.
@@ -507,7 +514,12 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
       0,
     ),
   ).toBe(4);
-  // Salin Link Galeri: booth mengaktifkan link galeri klien lalu menyalin alamat slug.
+  // Salin Link Galeri: ditolak server (404) = alasan & langkahnya, bukan "butuh internet" (#170).
+  await recap.getByRole("button", { name: /Salin Link Galeri/ }).click();
+  await expect(recap.getByTestId("booth-recap-note")).toHaveText(
+    "Booth ini tidak ditugaskan ke event ini. Minta admin menugaskan booth ini di Pengaturan event, lalu coba lagi.",
+  );
+  // Setelah admin menugaskan: booth mengaktifkan link galeri klien lalu menyalin alamat slug.
   await recap.getByRole("button", { name: /Salin Link Galeri/ }).click();
   await expect(recap.getByTestId("booth-recap-note")).toContainText(
     `127.0.0.1:${port}/g/rina-dimas-2026-10-12`,
@@ -529,10 +541,30 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   expect(runs[1]).not.toHaveProperty("local");
   const at = runs.slice(1).map((r) => Date.parse(r.at));
   expect(at).toEqual([...at].sort((a, b) => a - b));
-  // Selesai: Buka untuk Tamu langsung ke tamu, timer tidak berubah.
+  // Sudah dihentikan: Buka untuk Tamu bertanya dulu (#170); Tes dulu = timer tidak berubah.
   await w.getByTestId("to-guest").click();
-  await expect(w.getByRole("heading", { name: "Rina & Dimas" })).toBeVisible();
+  const again = w.getByTestId("start-dialog");
+  await expect(again.getByRole("heading", { name: "Acara sudah dihentikan" })).toBeVisible();
+  await expect(again.getByTestId("crew-entry-guide")).toContainText("Ketuk pojok kanan atas 5×");
+  await w.screenshot({ path: "test-results/booth-start-finished.png" });
+  await again.getByRole("button", { name: /^Tes dulu/ }).click();
+  await expect(w.getByTestId("test-badge")).toBeVisible();
   expect(runs).toHaveLength(5);
+  // Lanjutkan acara = segmen baru, timer jalan lagi (antrean run seperti Jeda/Lanjutkan).
+  await openCrew(w);
+  await typePin(w, "2468");
+  await expect(run).toHaveAttribute("data-state", "finished");
+  await w.getByTestId("to-guest").click();
+  await again.getByRole("button", { name: /^Lanjutkan acara/ }).click();
+  await expect(w.getByRole("heading", { name: "Rina & Dimas" })).toBeVisible();
+  await expect(w.getByTestId("test-badge")).toHaveCount(0);
+  await expect.poll(() => runs.map((r) => r.action).at(-1)).toBe("start");
+  expect(runs).toHaveLength(6);
+  await openCrew(w);
+  await typePin(w, "2468");
+  await expect(run).toHaveAttribute("data-state", "running");
+  await w.getByTestId("to-guest").click();
+  await expect(w.getByTestId("start-dialog")).toHaveCount(0);
 
   // Semua file sesi masuk R2 palsu dan tercatat (N4).
   await expect

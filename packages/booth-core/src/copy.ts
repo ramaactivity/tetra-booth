@@ -472,6 +472,9 @@ export const copy = {
       titlePaused: "Acara sedang dijeda",
       sub: "Pilih Mulai acara kalau tamu sudah boleh berfoto. Belum? Tes dulu.",
       subPaused: "Lanjutkan kalau acara sudah jalan lagi. Mau coba kamera dulu? Tes dulu.",
+      titleFinished: "Acara sudah dihentikan",
+      subFinished:
+        "Tamu masih mau berfoto? Lanjutkan acara supaya waktunya ikut tercatat. Mau coba kamera saja? Tes dulu.",
       start: "Mulai acara",
       startNote: "Timer mulai sendiri saat tamu pertama berfoto.",
       resume: "Lanjutkan acara",
@@ -503,6 +506,7 @@ export const copy = {
       paused: "Jeda",
       running: "berjalan",
       tests: (n: number) => `${n} sesi tes tidak dihitung`,
+      outside: (n: number) => `${n} sesi di luar waktu acara`,
       noRun: "Timer belum jalan. Durasi dihitung dari sesi pertama sampai terakhir.",
       okPkg: "Sesuai paket",
       over: (t: string) => `Lebih ${t} dari paket`,

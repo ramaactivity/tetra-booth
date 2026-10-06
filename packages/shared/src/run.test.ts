@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   applyRun,
+  clockOn,
   compareSchedule,
   durationText,
   EMPTY_RUN,
+  outsideRun,
   runElapsedMs,
   runPausedMs,
   runState,
@@ -95,5 +97,24 @@ describe("jadwal vs nyata", () => {
       note: null,
     });
     expect(compareSchedule(null, "11:00", "08:00", null)).toBeNull();
+  });
+});
+
+describe("jam rekap beda hari & sesi di luar acara (#170)", () => {
+  const WIB = "Asia/Jakarta";
+  it("tanggal pendek hanya kalau harinya beda dengan hari acara", () => {
+    expect(clockOn("2026-10-05T05:05:00Z", "2026-10-05", WIB)).toBe("12.05");
+    expect(clockOn("2026-09-27T16:51:00Z", "2026-10-05", WIB)).toBe("27 Sep 23.51");
+    expect(clockOn("2026-09-27T16:51:00Z", null, WIB)).toBe("23.51");
+  });
+  it("sesi sebelum mulai / setelah dihentikan dihitung di luar", () => {
+    const run = {
+      segments: [{ start: "2026-10-05T05:00:00Z", end: "2026-10-05T07:00:00Z" }],
+      finishedAt: "2026-10-05T07:00:00Z",
+    };
+    const times = ["2026-09-27T16:51:00Z", "2026-10-05T06:00:00Z", "2026-10-05T08:00:00Z"];
+    expect(outsideRun(run, times)).toBe(2);
+    expect(outsideRun({ segments: [{ start: "2026-10-05T05:00:00Z" }] }, times)).toBe(1);
+    expect(outsideRun(EMPTY_RUN, times)).toBe(0);
   });
 });

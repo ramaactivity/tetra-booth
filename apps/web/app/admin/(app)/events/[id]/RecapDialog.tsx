@@ -15,14 +15,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
-import {
-  clockWib,
-  dateLong,
-  type RecapData,
-  type RecapView,
-  recapText,
-  recapView,
-} from "@/lib/recap";
+import { dateLong, type RecapData, type RecapView, recapText, recapView } from "@/lib/recap";
 
 const t = copy.admin.recap;
 const btn =
@@ -38,10 +31,9 @@ const TONE = {
   none: { bg: "--neutral", icon: Clock },
 } satisfies Record<string, { bg: string; icon: LucideIcon }>;
 const toneOf = (v: RecapView) => TONE[v.verdict?.kind ?? "none"];
-const time = (ts: string | null) => (ts ? clockWib(ts) : "–");
 const timeline = (v: RecapView): [string, string][] => [
-  [t.start, time(v.startAt)],
-  [t.end, v.running ? t.running : time(v.endAt)],
+  [t.start, v.startText],
+  [t.end, v.running ? t.running : v.endText],
   [t.paused, v.source === "timer" ? durationText(v.pausedMs / 60_000) : "–"],
 ];
 

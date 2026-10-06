@@ -3,7 +3,7 @@ import { Button } from "@tetra/ui";
 import { ArrowRight, Images } from "lucide-react";
 import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { copy } from "../copy";
-import { createTapDetector } from "../crew/taps";
+import { CrewHotspot, useCrewKeys } from "../crew/CrewEntry";
 import type { BoothEvent } from "../event";
 import { encode } from "../finalize";
 import { usePlatform } from "../PlatformContext";
@@ -226,7 +226,6 @@ export function Attract({
   /** `"exit"` = Ctrl+Shift+Q: setelah PIN langsung konfirmasi Tutup Aplikasi. */
   onCrew?: ((intent?: "exit") => void) | undefined;
 }) {
-  const tap = useRef(createTapDetector());
   // Tombol mulai baru aktif sebentar setelah layar muncul: sentuhan ganda dari layar QR ("Selesai") atau
   // input tertunda setelah reload tidak boleh langsung memulai sesi baru (catatan W-016).
   const [ready, setReady] = useState(false);
@@ -242,7 +241,7 @@ export function Attract({
   const cards: Piece[] = pieces.length ? pieces : [sample];
 
   // Jalan lain ke mode crew selain 5 ketukan pojok (UX, masukan Rama): tahan logo 2 detik, atau Ctrl+Shift+M
-  // di keyboard laptop. Hanya di layar ini, jadi sesi tamu tidak pernah terpotong.
+  // di keyboard laptop. Hanya di layar ini (dan layar kamera bermasalah, #170), jadi sesi tamu tidak terpotong.
   const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdStart = () => {
     if (hold.current) clearTimeout(hold.current);
@@ -258,21 +257,7 @@ export function Attract({
     },
     [],
   );
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "m") {
-        e.preventDefault();
-        onCrew?.();
-      }
-      // Tutup aplikasi dari keyboard laptop tetap lewat PIN crew (Alt+F4 diblokir di kiosk).
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "q") {
-        e.preventDefault();
-        onCrew?.("exit");
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onCrew]);
+  useCrewKeys(onCrew);
 
   // Petunjuk cara masuk crew hanya selama PIN belum dibuat (setup pertama).
   const { crew } = usePlatform();
@@ -402,14 +387,7 @@ export function Attract({
           </Button>
         </div>
       )}
-      {/* Pojok kanan atas tak terlihat: tap 5x dalam 3 detik → mode crew (FSD §1.3). */}
-      <button
-        type="button"
-        aria-label="crew"
-        data-testid="crew-hotspot"
-        className="absolute top-6 right-6 size-[72px] rounded-[14px] border-[1.5px] border-dashed border-ink/[0.08]"
-        onClick={() => tap.current(Date.now()) && onCrew?.()}
-      />
+      <CrewHotspot onCrew={onCrew} />
 
       {/* Kolom judul mulai di bawah logo (top 168 px) supaya tagline/judul panjang tidak menimpa logo. */}
       {/* Di atas gambar latar: kolom judul di kartu putih supaya tetap terbaca. */}

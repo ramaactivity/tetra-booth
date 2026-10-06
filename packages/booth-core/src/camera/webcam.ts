@@ -49,10 +49,29 @@ export function createWebcamCamera(storage: BoothStorage, deviceId?: string): Bo
     );
   };
   const close = () => {
-    cancelAnimationFrame(raf);
     for (const t of stream?.getTracks() ?? []) t.stop();
     stream = null;
     video = null;
+  };
+  /**
+   * Stream masih hidup? Windows bisa mengakhiri/membisukan track webcam saat jendela diperkecil atau kamera
+   * direbut aplikasi lain (#170); live view & jepret berikutnya membuka ulang getUserMedia, bukan gagal.
+   */
+  let reopening: Promise<void> | null = null;
+  const ready = () => {
+    const track = stream?.getVideoTracks()[0];
+    if (video && track?.readyState === "live" && !track.muted) return Promise.resolve();
+    if (track)
+      console.warn(
+        `[webcam] track ${track.readyState}${track.muted ? " (muted)" : ""}, buka ulang`,
+      );
+    reopening ??= (async () => {
+      close();
+      await open();
+    })().finally(() => {
+      reopening = null;
+    });
+    return reopening;
   };
   const grabFrame = (v: HTMLVideoElement) => {
     const c = cpuCanvas(v.videoWidth, v.videoHeight);
@@ -74,7 +93,7 @@ export function createWebcamCamera(storage: BoothStorage, deviceId?: string): Bo
 
   return {
     async startLiveView(onFrame) {
-      if (!video) await open();
+      await ready();
       cancelAnimationFrame(raf);
       const loop = () => {
         const v = video;
@@ -87,7 +106,7 @@ export function createWebcamCamera(storage: BoothStorage, deviceId?: string): Bo
       cancelAnimationFrame(raf);
     },
     async capture({ sessionId, index }) {
-      if (!video) await open();
+      await ready();
       const track = stream?.getVideoTracks()[0];
       if (track?.readyState !== "live" || !track || !video) throw new Error("webcam tidak aktif");
       const blob = stillIsLarger ? await takeStill(track, video) : await grabFrame(video);
@@ -97,6 +116,7 @@ export function createWebcamCamera(storage: BoothStorage, deviceId?: string): Bo
       return { path, width, height };
     },
     async reconnect() {
+      cancelAnimationFrame(raf);
       close();
       await open();
     },

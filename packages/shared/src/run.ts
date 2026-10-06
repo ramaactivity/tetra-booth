@@ -163,6 +163,38 @@ export const localHhmm = (iso: string | number, timeZone?: string) =>
     hourCycle: "h23",
     ...(timeZone && { timeZone }),
   }).format(new Date(iso));
+/** Tanggal "YYYY-MM-DD" sebuah waktu di zona `timeZone` (tanpa = zona laptop). */
+export const localYmd = (iso: string | number, timeZone?: string) =>
+  new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    ...(timeZone && { timeZone }),
+  }).format(new Date(iso));
+
+/**
+ * Jam rekap "23.51"; kalau harinya beda dengan `refYmd` (hari acara) ditulis dengan tanggal pendek
+ * "27 Sep 23.51" (#170: sesi uji hari lain tidak terbaca seolah satu malam).
+ */
+export function clockOn(iso: string, refYmd: string | null, timeZone?: string) {
+  const clock = clockId(localHhmm(iso, timeZone));
+  if (!refYmd || localYmd(iso, timeZone) === refYmd) return clock;
+  const day = new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "short",
+    ...(timeZone && { timeZone }),
+  }).format(new Date(iso));
+  return `${day} ${clock}`;
+}
+
+/** Sesi di luar waktu acara (#170): sebelum timer pertama mulai atau setelah acara dihentikan. */
+export function outsideRun(run: EventRun, times: string[]) {
+  const start = run.segments[0]?.start;
+  if (!start) return 0;
+  const from = Date.parse(start);
+  const to = run.finishedAt ? Date.parse(run.finishedAt) : Number.POSITIVE_INFINITY;
+  return times.filter((x) => Date.parse(x) < from || Date.parse(x) > to).length;
+}
 
 /**
  * Jadwal vs nyata (#152): selisih menit jam nyata terhadap jam jadwal (positif = telat), dibungkus ke ±12 jam

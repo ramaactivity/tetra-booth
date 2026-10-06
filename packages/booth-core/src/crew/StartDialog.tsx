@@ -32,19 +32,21 @@ const STEP_ICON = [Pause, Flag, Play] as const;
 
 /**
  * Pop-up "Buka untuk Tamu" (#152): Mulai acara (timer mulai di sesi tamu pertama) atau Tes dulu (sesi ditandai tes),
- * plus pengingat cara masuk mode crew dan letak Jeda / Hentikan / Rekap. `paused` = acara dijeda: Lanjutkan.
+ * plus pengingat cara masuk mode crew dan letak Jeda / Hentikan / Rekap. Dijeda / sudah dihentikan (#170):
+ * Lanjutkan acara (timer jalan lagi mulai sekarang).
  */
 export function StartDialog({
-  paused,
+  state,
   onStart,
   onTest,
   onClose,
 }: {
-  paused: boolean;
+  state: "idle" | "paused" | "finished";
   onStart: () => void;
   onTest: () => void;
   onClose: () => void;
 }) {
+  const resume = state !== "idle";
   return (
     <div
       role="dialog"
@@ -60,10 +62,14 @@ export function StartDialog({
               id="go-title"
               className="text-[52px] leading-none font-extrabold tracking-[-0.03em]"
             >
-              {paused ? t.titlePaused : t.title}
+              {state === "paused"
+                ? t.titlePaused
+                : state === "finished"
+                  ? t.titleFinished
+                  : t.title}
             </h2>
             <p className="mt-4 text-2xl font-semibold text-text-2">
-              {paused ? t.subPaused : t.sub}
+              {state === "paused" ? t.subPaused : state === "finished" ? t.subFinished : t.sub}
             </p>
           </div>
           <button
@@ -87,10 +93,10 @@ export function StartDialog({
             </span>
             <span>
               <span className="block text-[40px] leading-tight font-extrabold tracking-[-0.02em]">
-                {paused ? t.resume : t.start}
+                {resume ? t.resume : t.start}
               </span>
               <span className="mt-1.5 block text-xl font-semibold text-text-3">
-                {paused ? t.resumeNote : t.startNote}
+                {resume ? t.resumeNote : t.startNote}
               </span>
             </span>
           </button>

@@ -21,6 +21,7 @@ import { app, safeStorage, screen } from "electron";
 import type { Alerts } from "./alerts";
 import { installBundle } from "./bundle-sync";
 import { cameraHealth, request } from "./camera-client";
+import { CloudError, cloudErrorText } from "./cloud-error";
 import { config, printerName } from "./config";
 import type { BoothDb } from "./db";
 import { createRunQueue } from "./run-queue";
@@ -139,7 +140,7 @@ export function createCloud(
       headers: { authorization: `Bearer ${t}` },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    if (!res.ok) throw new Error(`${path}: server ${res.status}`);
+    if (!res.ok) throw new CloudError(`${path}: server ${res.status}`, res.status);
     return res.json() as Promise<unknown>;
   };
   const download = async (url: string) => {
@@ -150,14 +151,14 @@ export function createCloud(
 
   const api = async (path: string, body: unknown) => {
     const t = token();
-    if (!t) throw new Error("booth belum dipasangkan");
+    if (!t) throw new CloudError("booth belum dipasangkan", 401);
     const res = await fetch(`${baseUrl}${path}`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${t}` },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    if (!res.ok) throw new Error(`${path}: server ${res.status}`);
+    if (!res.ok) throw new CloudError(`${path}: server ${res.status}`, res.status);
     return res.json() as Promise<unknown>;
   };
   const uploader = createUploader({
@@ -255,7 +256,7 @@ export function createCloud(
       if (!cloudEvent(eventId) || !token()) return;
       api(`/api/booth/events/${eventId}/storage`, local).catch((e: unknown) =>
         log(
-          `[cloud] ukuran folder event belum terkirim: ${e instanceof Error ? e.message : String(e)}`,
+          `[cloud] ukuran folder event belum terkirim: ${e instanceof Error ? e.message : String(e)} (${cloudErrorText(e, "offline")})`,
         ),
       );
     },

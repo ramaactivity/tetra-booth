@@ -36,6 +36,9 @@ import { initialSession, type Photo, type SessionEvent, sessionReducer } from ".
 import { isBlurry, sharpNotes } from "./sharpness";
 
 const RECONNECT_EVERY_MS = 2000;
+/** Setelah 15 percobaan gagal (±30 dtk), coba tiap 10 dtk saja: kamera yang dicabut tidak dibombardir (#170). */
+const RECONNECT_SLOW_AFTER = 15;
+const RECONNECT_SLOW_MS = 10_000;
 /** Layar "Pembayaran berhasil" sebelum sesi foto mulai (A4a). */
 const PAID_SEC = 3;
 /** Fase yang dibatasi timer sesi photobox. */
@@ -274,14 +277,20 @@ export function SessionRunner({
     let live = true;
     setReconnects(0);
     let timer: ReturnType<typeof setTimeout>;
+    let failed = 0;
     const tryReconnect = () =>
       p.camera
         .reconnect()
         .then(() => live && dispatch({ type: "CAMERA_READY" }))
         .catch((e: unknown) => {
-          console.warn(`[session] reconnect gagal: ${errText(e)}`);
-          if (live) setReconnects((n) => n + 1);
-          if (live) timer = setTimeout(tryReconnect, RECONNECT_EVERY_MS);
+          failed++;
+          console.warn(`[session] reconnect gagal (${failed}×): ${errText(e)}`);
+          if (!live) return;
+          setReconnects(failed);
+          timer = setTimeout(
+            tryReconnect,
+            failed < RECONNECT_SLOW_AFTER ? RECONNECT_EVERY_MS : RECONNECT_SLOW_MS,
+          );
         });
     timer = setTimeout(tryReconnect, RECONNECT_EVERY_MS);
     return () => {
@@ -574,7 +583,7 @@ export function SessionRunner({
           <PhotoPreview url={photo.url} index={s.index} total={s.slots} cheer={cheer.text} />
         ) : null;
       case "camera_error":
-        return <CameraError attempt={reconnects + 1} />;
+        return <CameraError attempt={reconnects + 1} onCrew={onCrew} />;
       case "filter":
         return (
           <FilterSelect

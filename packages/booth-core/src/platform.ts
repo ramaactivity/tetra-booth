@@ -98,6 +98,8 @@ export type BoothRecap = {
   tests: number;
   firstAt: string | null;
   lastAt: string | null;
+  /** Sesi asli sebelum timer mulai / setelah acara dihentikan (#170). */
+  outside: number;
   /** Timer menurut laptop ini; null = event lokal (bukan cloud). */
   run: EventRun | null;
   /** Jadwal, paket, slug dari bundle cloud. */

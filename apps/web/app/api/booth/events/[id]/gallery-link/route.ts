@@ -1,6 +1,6 @@
 import { type GalleryLinkResponse, newAccessToken } from "@tetra/shared";
 import { z } from "zod";
-import { apiError, authDevice, deviceEvents } from "@/lib/booth";
+import { apiError, authDevice, deviceMayUseEvent } from "@/lib/booth";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /**
@@ -12,8 +12,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   if (!device) return apiError("unauthorized", 401);
   const eventId = z.uuid().safeParse((await ctx.params).id).data;
   if (!eventId) return apiError("bad_request", 400);
-  if (!(await deviceEvents(device, { eventId, includeArchived: true }).catch(() => [])).length)
-    return apiError("not_found", 404);
+  if (!(await deviceMayUseEvent(device, eventId))) return apiError("not_found", 404);
   const db = createServiceClient();
   const { data: ev } = await db
     .from("events")

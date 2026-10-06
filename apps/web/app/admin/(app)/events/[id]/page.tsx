@@ -2,6 +2,7 @@ import {
   hhmm,
   LAYOUT_PRESETS,
   type LayoutPaper,
+  outsideRun,
   type PresetId,
   paperLabel,
   parseRun,
@@ -221,6 +222,10 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     photos: photoCount ?? 0,
     firstAt: list.at(-1)?.started_at ?? null,
     lastAt: list[0]?.started_at ?? null,
+    outside: outsideRun(
+      run,
+      list.map((s) => s.started_at),
+    ),
     run,
     scheduledStart: hhmm(ev.scheduled_start),
     scheduledEnd: hhmm(ev.scheduled_end),

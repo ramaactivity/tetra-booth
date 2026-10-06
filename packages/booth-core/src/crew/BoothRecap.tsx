@@ -1,9 +1,10 @@
 import {
-  clockId,
+  clockOn,
   compareSchedule,
   durationText,
   fileSize,
   localHhmm,
+  localYmd,
   runElapsedMs,
   runPausedMs,
   runState,
@@ -34,7 +35,6 @@ const TONE = {
   under: ["var(--coral)", ClockArrowDown],
   none: ["var(--neutral)", Clock],
 } as const;
-const clock = (iso: string | null) => (iso ? clockId(localHhmm(iso)) : "–");
 
 /** Hitung tampilan rekap dari data laptop (timer lokal, atau perkiraan sesi pertama → terakhir). */
 function view(d: RecapData, now: number) {
@@ -56,8 +56,12 @@ function view(d: RecapData, now: number) {
   const hours = d.info.packageHours;
   const verdict = startAt && hours ? runVerdict(ms, hours) : null;
   const dur = durationText(ms / 60_000);
+  // Hari acara = hari timer mulai (atau sesi pertama); jam di hari lain ditulis dengan tanggal (#170).
+  const ref = startAt ? localYmd(startAt) : null;
+  const clock = (iso: string | null) => (iso ? clockOn(iso, ref) : "–");
   return {
     run,
+    clock,
     startAt,
     endAt,
     running: st === "running",
@@ -158,8 +162,8 @@ export function BoothRecap({ event, onClose }: { event: BoothEvent; onClose: () 
               <dl className="grid grid-cols-3 gap-4 border-t-2 border-dashed border-ink pt-4">
                 {(
                   [
-                    [t.start, clock(v.startAt)],
-                    [t.end, v.running ? t.running : clock(v.endAt)],
+                    [t.start, v.clock(v.startAt)],
+                    [t.end, v.running ? t.running : v.clock(v.endAt)],
                     [t.paused, v.run ? durationText(v.pausedMs / 60_000) : "–"],
                   ] as const
                 ).map(([k, val]) => (
@@ -196,15 +200,15 @@ export function BoothRecap({ event, onClose }: { event: BoothEvent; onClose: () 
                 [
                   [t.sessions, String(data.sessions)],
                   [t.prints, String(data.prints)],
-                  [t.first, clock(data.firstAt)],
-                  [t.last, clock(data.lastAt)],
+                  [t.first, v.clock(data.firstAt)],
+                  [t.last, v.clock(data.lastAt)],
                 ] as const
               ).map(([k, val]) => (
                 <div key={k} className="rounded-[20px] border-[2.5px] border-ink px-6 py-4">
                   <dt className="text-lg font-bold text-text-2">{k}</dt>
                   <dd
                     data-testid={`booth-recap-${k}`}
-                    className="text-[38px] leading-tight font-extrabold tracking-[-0.02em]"
+                    className={`${val.length > 6 ? "text-[28px]" : "text-[38px]"} leading-tight font-extrabold tracking-[-0.02em]`}
                   >
                     {val}
                   </dd>
@@ -212,6 +216,9 @@ export function BoothRecap({ event, onClose }: { event: BoothEvent; onClose: () 
               ))}
             </dl>
             <p className="text-lg font-semibold text-text-2">
+              {data.outside > 0 && (
+                <span data-testid="booth-recap-outside">{t.outside(data.outside)} · </span>
+              )}
               {data.tests > 0 && <>{t.tests(data.tests)} · </>}
               {t.thisLaptop}
             </p>
