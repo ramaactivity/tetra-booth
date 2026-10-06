@@ -58,6 +58,7 @@ public sealed class Dispatcher(IPrinterAdapter printer, ICameraSource? camera = 
                     model = camera?.Model,
                     battery = (int?)null,
                     shotsRemaining = (int?)null,
+                    tapFocus = camera?.CanFocusAt == true,
                 }),
                 "liveview.start" => await LiveView(id, type, true),
                 "liveview.stop" => await LiveView(id, type, false),

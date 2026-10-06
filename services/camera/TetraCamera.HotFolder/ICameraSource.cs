@@ -31,6 +31,8 @@ public interface ICameraSource
     /// me-restart Camera Service; proses baru memulai SDK dari nol.
     /// </summary>
     bool Stuck => false;
+    /// <summary>Tap to focus didukung kamera yang tersambung sekarang (Sony: hanya bodi v3, DECISIONS #171).</summary>
+    bool CanFocusAt => false;
 }
 
 public sealed record CameraProp(string Name, string Label, string Value, string[] Options);

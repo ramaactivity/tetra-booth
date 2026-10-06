@@ -1,6 +1,6 @@
 import { newSessionId } from "@tetra/shared";
 import { Button } from "@tetra/ui";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { crewText as errText } from "../errors";
 import { previewUrl } from "../finalize";
@@ -117,9 +117,17 @@ export function CameraCheck({
   const lastMeter = useRef(0);
   const frameSize = useRef<{ w: number; h: number } | undefined>(undefined);
   const [reticle, setReticle] = useState<{ x: number; y: number }>();
+  // Sony A7 II/III tidak punya tap to focus (#171): ditanyakan lagi saat frame pertama datang & tiap Tes Jepret.
+  const [hasFrame, setHasFrame] = useState(false);
+  const [tapOk, setTapOk] = useState(!p.crew.canFocusAt);
+  useEffect(() => {
+    if (!hasFrame) return;
+    p.crew.canFocusAt?.().then(setTapOk, () => setTapOk(false));
+  }, [p, hasFrame]);
+  const focusAt = tapOk ? p.crew.focusAt : undefined;
   const tap = async (e: React.PointerEvent<HTMLDivElement>) => {
     const f = frameSize.current;
-    if (!f || !p.crew.focusAt) return;
+    if (!f || !focusAt) return;
     const r = e.currentTarget.getBoundingClientRect();
     const at = { x: e.clientX - r.left, y: e.clientY - r.top };
     // Stage diskalakan ke jendela: posisi klik dalam piksel layar, kotak digambar dalam piksel Stage (W-034, jendela
@@ -128,7 +136,7 @@ export function CameraCheck({
     setReticle({ x: at.x / k, y: at.y / k });
     const pt = tapToFrame(at, { w: r.width, h: r.height }, f, p.mirrorLiveView ?? true);
     try {
-      await p.crew.focusAt(pt.x, pt.y);
+      await focusAt(pt.x, pt.y);
       setMeter((m) => m && { now: m.now, peak: m.now });
     } catch (err) {
       setError(errText(err));
@@ -138,6 +146,7 @@ export function CameraCheck({
   };
   const onFrame = ({ source, width, height }: LiveFrame) => {
     frameSize.current = { w: width, h: height };
+    setHasFrame(true);
     const t = performance.now();
     if (t - lastMeter.current < METER_MS) return;
     lastMeter.current = t;
@@ -189,6 +198,7 @@ export function CameraCheck({
       setError(errText(e));
     } finally {
       setBusy(false);
+      setHasFrame(false);
       setLiveRun((n) => n + 1);
     }
   };
@@ -229,7 +239,7 @@ export function CameraCheck({
           guide={guides ? slot : undefined}
           overlay={guides ? { grid: true, safe: SAFE } : undefined}
         />
-        {p.crew.focusAt && (
+        {focusAt && (
           <div
             data-testid="tap-focus"
             className="absolute inset-0"
@@ -257,7 +267,7 @@ export function CameraCheck({
             {guides ? copy.crew.on : copy.crew.off}
           </span>
         </button>
-        {p.crew.focusAt && (
+        {focusAt && (
           <p className="pointer-events-none absolute top-6 left-6 rounded-full border-2 border-ink bg-white/90 px-5 py-2 text-lg font-semibold">
             {copy.crew.tapToFocus}
           </p>

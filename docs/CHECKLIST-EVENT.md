@@ -36,6 +36,16 @@ LumaBooth disiapkan sebagai cadangan, tapi **jangan dipakai kecuali booth benar-
 - [ ] Baterai penuh + cadangan (atau dummy battery). Auto power off = **Off**.
 - [ ] Mode crew → **Tes Jepret**: foto muncul.
 
+### Kamera Sony (belum diverifikasi dengan kamera asli, W-038…W-041)
+Nama menu dari dokumen Sony & manual; bisa beda per firmware. Bagian ini dirapikan setelah W-038/W-039.
+- [ ] USB Connection = **PC Remote** (A7 IV/A7 V: USB Connection Mode = Remote Shooting, PC Remote Function = **On**, Cnct Method **USB**).
+- [ ] Still Img. Save Dest. = **PC Only** (bawaan disarankan; PC+Camera hanya kalau ada kartu sehat). A7 II: tidak ada pilihan, selalu ke PC.
+- [ ] File Format **JPEG** (RAW+J PC Save Img = **JPEG Only**), ukuran L, 3:2. A7 IV: Still Image Trans. Size = **Original**.
+- [ ] Dial **M**, AF-S. A7 IV ke atas: Focus Area **Spot / Expand Flexible Spot** supaya tap to focus jalan (A7 II/III tidak punya tap to focus).
+- [ ] Power Save Start Time **30 min**; USB Power Supply **On** atau dummy battery (A7 II: dummy battery).
+- [ ] Wi-Fi/Bluetooth off, Audio signals off. Imaging Edge **ditutup**; jangan pasang driver dari paket Sony SDK. Di Device Manager kamera = **MTP USB Device**.
+- [ ] Kabel USB langsung ke laptop (bukan hub). Mode crew → Kamera & Printer → **Kamera Sony** → Tes Jepret: live view, AF, foto muncul; "Simpan foto ke · PC saja".
+
 ### Internet & halaman tamu
 - [ ] Modem/HP hotspot untuk venue, kuota cukup.
 - [ ] Dari HP **pakai data seluler (bukan Wi-Fi)**: buka satu link halaman tamu hasil sesi uji. Foto harus tampil.

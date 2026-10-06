@@ -350,10 +350,20 @@ export const copy = {
     cameraKind: {
       webcam: "Webcam",
       canon: "Kamera DSLR Canon",
+      sony: "Kamera Sony (A7 II/III/IV/V, A7C, A6100/6400/6600/6700)",
       simulated: "Latihan tanpa kamera",
     },
     canonNote:
       "Sambungkan kamera lewat USB, putar ke mode M, kualitas JPEG. File pendukung Canon diunduh otomatis saat booth online.",
+    /** Hapus isinya (jadikan "") setelah W-038…W-041 lulus dengan kamera Sony asli (#171). */
+    sonyUntested: "Belum diuji dengan kamera asli" as string,
+    sonyTips: [
+      "Menu kamera: USB Connection = PC Remote (A7 IV ke atas: PC Remote Function = On, sambungan USB).",
+      "Still Img. Save Dest. = PC Only, format file JPEG (RAW+J PC Save Img = JPEG Only), ukuran L.",
+      "Putar dial ke M. Power Save Start Time 30 menit, USB Power Supply On atau baterai dummy.",
+      "Kabel USB langsung ke laptop, bukan hub. Tutup Imaging Edge sebelum booth dibuka.",
+      "Tap to focus hanya A7 IV ke atas (Focus Area: Spot / Expand Flexible Spot).",
+    ],
     noWebcam: "Tidak ada webcam terdeteksi.",
     on: "Nyala",
     off: "Mati",

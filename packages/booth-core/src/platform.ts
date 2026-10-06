@@ -219,8 +219,10 @@ export interface BoothCrew {
   resetDesign(eventId: string, layoutId: string | null): Promise<void>;
   /** Fokus DSLR lewat live view (#88); tidak ada = kamera tanpa live view (webcam, hot folder). */
   focus?(step: FocusStep): Promise<void>;
-  /** Tap to focus (#114, Canon EDSDK): titik 0–1 di frame kamera (tanpa cermin). */
+  /** Tap to focus (#114, Canon EDSDK, Sony v3): titik 0–1 di frame kamera (tanpa cermin). */
   focusAt?(x: number, y: number): Promise<void>;
+  /** Kamera yang tersambung sekarang mendukung tap to focus (Sony A7 II/III tidak, #171). Tidak ada = ikut `focusAt`. */
+  canFocusAt?(): Promise<boolean>;
   /** Bandingkan versi terpasang dengan rilis terbaru di cloud (DECISIONS #80). */
   checkUpdate(): Promise<UpdateCheck>;
   /** Unduh & pasang versi terbaru; aplikasi tertutup lalu terbuka lagi. Hanya booth Windows. */

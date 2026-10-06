@@ -40,8 +40,11 @@ public static class Ptp
     public const ushort GetDeviceInfo = 0x1001, GetObjectInfo = 0x1008, GetObject = 0x1009;
     public const ushort SdioConnect = 0x9201, SdioGetExtDeviceInfo = 0x9202, SdioSetExtDevicePropValue = 0x9205,
         SdioControlDevice = 0x9207, SdioGetAllExtDevicePropInfo = 0x9209;
-    public const ushort Ok = 0x2001, InvalidObjectHandle = 0x2009, AccessDenied = 0x200F, DeviceBusy = 0x2019;
-    public const ushort AuthenticationFailed = 0xA101;
+    public const ushort Ok = 0x2001, OperationNotSupported = 0x2005, ParameterNotSupported = 0x2006,
+        InvalidObjectHandle = 0x2009, AccessDenied = 0x200F, DeviceBusy = 0x2019;
+    public const ushort AuthenticationFailed = 0xA101, TemporaryStorageFull = 0xA105, CameraStatusError = 0xA106;
+    /// <summary>ObjectFormat di ObjectInfo: JPEG (Exif / JFIF); RAW 0xB101 & HEIF 0xB110 dibuang.</summary>
+    public const ushort FormatJpeg = 0x3801, FormatJfif = 0x3808, FormatRaw = 0xB101;
     /// <summary>Handle khusus: file jepretan di buffer kamera / frame live view.</summary>
     public const uint ShotHandle = 0xFFFFC001, LiveViewHandle = 0xFFFFC002;
     /// <summary>Opcode vendor yang wajib diteruskan driver (W-037).</summary>
@@ -136,6 +139,8 @@ public sealed class PtpWriter
     public PtpWriter U32(uint v) { Span<byte> b = stackalloc byte[4]; BinaryPrimitives.WriteUInt32LittleEndian(b, v); _s.Write(b); return this; }
     public PtpWriter U64(ulong v) { Span<byte> b = stackalloc byte[8]; BinaryPrimitives.WriteUInt64LittleEndian(b, v); _s.Write(b); return this; }
 
+    public PtpWriter Raw(byte[] v) { _s.Write(v); return this; }
+
     public PtpWriter Str(string v)
     {
         if (v.Length == 0) return U8(0);
@@ -184,6 +189,31 @@ public sealed record PtpDeviceInfo(
         r.U16Array(); // ImageFormats
         return new(r.Str(), r.Str(), r.Str(), r.Str(), ops, props);
     }
+}
+
+/// <summary>ObjectInfo (GetObjectInfo 0x1008, PIMA 15740), field yang dipakai saja.</summary>
+public sealed record PtpObjectInfo(ushort Format, uint Size, string FileName)
+{
+    public bool IsJpeg => Format is Ptp.FormatJpeg or Ptp.FormatJfif;
+
+    public static PtpObjectInfo Parse(ReadOnlySpan<byte> data)
+    {
+        var r = new PtpReader(data);
+        r.U32(); // StorageID
+        var format = r.U16();
+        r.U16(); // ProtectionStatus
+        var size = r.U32();
+        r.U16(); // ThumbFormat
+        r.Skip(7 * 4); // ThumbCompressedSize … ParentObject
+        r.U16(); // AssociationType
+        r.Skip(2 * 4); // AssociationDesc, SequenceNumber
+        return new(format, size, r.Str());
+    }
+
+    public byte[] ToBytes() => new PtpWriter()
+        .U32(0x00010001).U16(Format).U16(0).U32(Size).U16(0)
+        .U32(0).U32(0).U32(0).U32(0).U32(0).U32(0).U32(0).U16(0).U32(0).U32(0)
+        .Str(FileName).Str("").Str("").Str("").ToArray();
 }
 
 /// <summary>Dataset SDIO_GetExtDeviceInfo (0x9202): versi protokol + properti & kontrol yang benar-benar ada di bodi.</summary>

@@ -74,6 +74,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     public string? Model => _info?.Model;
     public string Serial => _info?.Serial ?? "";
     public byte[]? LatestFrame => _live ? _frame : null;
+    public bool CanFocusAt => Connected;
     public bool Stuck => Environment.TickCount64 - Interlocked.Read(ref _beat) > _stuckAfter.TotalMilliseconds;
 
     private void Loop()

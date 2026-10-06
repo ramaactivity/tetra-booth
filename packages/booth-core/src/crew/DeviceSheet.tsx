@@ -7,8 +7,8 @@ import { usePlatform } from "../PlatformContext";
 import type { DeviceInfo, DeviceSettings } from "../platform";
 import { Sheet } from "./Sheet";
 
-/** DSLR Canon = EDSDK (#141, #168); hot folder hanya lewat flag teknisi `--camera=hotfolder`. */
-const CAMERAS = ["canon", "webcam", "simulated"] as const;
+/** DSLR Canon = EDSDK (#141, #168), Sony = Camera Remote Command (#171); hot folder hanya flag teknisi. */
+const CAMERAS = ["canon", "sony", "webcam", "simulated"] as const;
 
 const choice = (on: boolean) =>
   `pressable flex min-h-[72px] items-center justify-center rounded-[18px] border-[2.5px] border-ink px-6 py-2 text-center text-xl leading-tight font-bold disabled:opacity-40 ${on ? "bg-mint-soft" : "bg-white"}`;
@@ -73,6 +73,11 @@ export function DeviceSheet({
                 onClick={() => set({ camera: c })}
               >
                 {copy.crew.cameraKind[c]}
+                {c === "sony" && copy.crew.sonyUntested && (
+                  <span className="mt-1 block text-base font-semibold text-text-2">
+                    {copy.crew.sonyUntested}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -81,6 +86,25 @@ export function DeviceSheet({
             <div className="flex flex-col gap-3">
               <p className="text-lg text-text-2">{copy.crew.canonNote}</p>
               {/* AF sebelum jepret; setelan eksposur ada di halaman Kamera & Tes Jepret. */}
+              <button
+                type="button"
+                aria-pressed={!!draft.afBeforeCapture}
+                disabled={!info}
+                className={choice(!!draft.afBeforeCapture)}
+                onClick={() => set({ afBeforeCapture: !draft.afBeforeCapture })}
+              >
+                {copy.crew.afBeforeCapture} · {draft.afBeforeCapture ? copy.crew.on : copy.crew.off}
+              </button>
+            </div>
+          )}
+
+          {camera === "sony" && (
+            <div className="flex flex-col gap-3">
+              <ul className="flex list-disc flex-col gap-1.5 pl-6 text-lg text-text-2">
+                {copy.crew.sonyTips.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
               <button
                 type="button"
                 aria-pressed={!!draft.afBeforeCapture}

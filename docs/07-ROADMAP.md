@@ -84,7 +84,7 @@ Prinsip:
 **Selesai jika:** 100 transaksi nyata dengan ≥ 98% sukses tanpa bantuan crew dan rekonsiliasi cocok dengan dashboard Xendit.
 
 ## Fase 5 — Ekspansi
-- [ ] Sony via **Camera Remote Command** (PTP, bukan Camera Remote SDK: SDK tidak mendukung A7 II/A7 III). Command mendukung A7 II, A7 III, A7 IV, A7 V, A7C, A6100/A6400/A6600/A6700; A6300/A6500 tidak didukung Sony (tetap hot folder). _(4 Okt 2026: Rama mendaftar akses Sony Asia Pacific; menunggu email unduhan.)_
+- [ ] Sony via **Camera Remote Command** (PTP, bukan Camera Remote SDK: SDK tidak mendukung A7 II/A7 III). Command mendukung A7 II, A7 III, A7 IV, A7 V, A7C, A6100/A6400/A6600/A6700; A6300/A6500 tidak didukung Sony (tetap hot folder). _(6 Okt 2026: S1–S5 selesai di Mac dengan kamera palsu, DECISIONS #169/#171, `docs/PLAN-SONY.md`; sisa uji hardware W-037…W-041, menunggu kamera Sony.)_
 - [ ] Animasi (GIF/boomerang) di booth, halaman tamu, galeri. _(GIF foto sesi di booth + halaman tamu sudah dimajukan 2026-09-25, DECISIONS #62; galeri L3 2026-09-25, DECISIONS #72; sisa: boomerang/video live view, butuh kamera asli)_
 - [x] Lead capture (gate/optional + consent) + export CSV dari admin. _(L1, 2026-09-25, DECISIONS #71)_
 - [x] Galeri event publik untuk tamu. _(L2, 2026-09-25: `/s/{id}/galeri`, DECISIONS #72; QR di live slideshow → `/l/{token}`, DECISIONS #75)_

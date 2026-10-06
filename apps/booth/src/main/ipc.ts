@@ -161,11 +161,14 @@ export function registerIpc(
     return { ...r, path: inSessions(r.path) };
   });
   ipcMain.handle("cameraStatus", () => request({ id: crypto.randomUUID(), type: "camera.status" }));
-  // Canon EDSDK (#111): live view & fokus lewat Camera Service; frame JPEG terbaru dari /liveview.jpg.
+  // Canon EDSDK (#111) & Sony (#171): live view & fokus lewat Camera Service; frame JPEG terbaru dari /liveview.jpg.
   // Diambil di main supaya CSP renderer tetap 'self'.
-  const canonOn = config.camera === "canon";
+  const canonOn = config.camera === "canon" || config.camera === "sony";
   ipcMain.handle("liveViewStart", async () => {
     if (!canonOn) return;
+    // Frame pertama setelah live view dinyalakan ulang selalu dikirim, walau sama dengan frame terakhir sebelum jepret
+    // (adegan diam / kamera palsu): tanpa ini LiveView yang baru dipasang tidak pernah mendapat frame.
+    lastCanonFrame = undefined;
     await request({ id: crypto.randomUUID(), type: "liveview.start" }, 5000);
     if (deviceNow.afBeforeCapture)
       void request({ id: crypto.randomUUID(), type: "camera.focus", payload: { step: "af" } }, 5000)
@@ -571,22 +574,23 @@ export function registerIpc(
   });
   ipcMain.handle("crewFocusAt", async (_e, x: unknown, y: unknown) => {
     crewOnly();
-    if (!canonOn) throw new Error("Tap to focus hanya untuk DSLR Canon (EDSDK)");
+    if (!canonOn) throw new Error("Tap to focus hanya untuk kamera Canon / Sony");
     const at = { x: z.number().min(0).max(1).parse(x), y: z.number().min(0).max(1).parse(y) };
-    await request({ id: crypto.randomUUID(), type: "camera.focusAt", payload: at }, 8000);
+    const r = await request({ id: crypto.randomUUID(), type: "camera.focusAt", payload: at }, 8000);
+    if (!r.ok) throw new Error("Kamera ini tidak mendukung tap to focus");
     console.info(`[camera] fokus di ${at.x.toFixed(2)},${at.y.toFixed(2)}`);
   });
   ipcMain.handle("crewFocus", async (_e, step: unknown) => {
     crewOnly();
-    if (!canonOn) throw new Error("Kontrol fokus hanya untuk DSLR Canon (EDSDK)");
+    if (!canonOn) throw new Error("Kontrol fokus hanya untuk kamera Canon / Sony");
     const s = z.enum(["af", "near3", "near2", "near1", "far1", "far2", "far3"]).parse(step);
     await request({ id: crypto.randomUUID(), type: "camera.focus", payload: { step: s } }, 5000);
     console.info(`[camera] fokus ${s}`);
   });
   ipcMain.handle("crewSetCameraProp", async (_e, name: unknown, value: unknown) => {
     crewOnly();
-    if (!canonOn) throw new Error("Setelan kamera hanya untuk DSLR Canon (EDSDK)");
-    // Canon (#113): eksposur live view + ISO/shutter jepret (flash) & kualitas JPEG.
+    if (!canonOn) throw new Error("Setelan kamera hanya untuk kamera Canon / Sony");
+    // Canon (#113): eksposur live view + ISO/shutter jepret (flash) & kualitas JPEG. Sony (#171): + EV.
     const n = z
       .enum([
         "iso",
@@ -596,6 +600,7 @@ export function registerIpc(
         "iso_capture",
         "shutter_capture",
         "quality",
+        "exposurecomp",
       ])
       .parse(name);
     const v = z.string().min(1).max(64).parse(value);

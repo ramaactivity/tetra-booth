@@ -102,7 +102,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
     cfg.camera === "simulated"
       ? createSimulatedCamera(storage)
       : cfg.camera === "hotfolder" || cfg.camera === "canon" || cfg.camera === "sony"
-        ? serviceCamera(bridge, !!cfg.liveView, cfg.camera === "canon")
+        ? serviceCamera(bridge, !!cfg.liveView, cfg.camera === "canon" || cfg.camera === "sony")
         : createWebcamCamera(storage, cfg.webcamId);
   return {
     camera: cfg.mirrorPhoto ? withMirroredPhotos(camera, storage) : camera,
@@ -151,8 +151,18 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       saveDesign: (id, l, f) => bridge.crewSaveDesign(id, l, f),
       resetDesign: (id, l) => bridge.crewResetDesign(id, l),
       ...(cfg.liveView ? { focus: (s: FocusStep) => bridge.crewFocus(s) } : {}),
-      ...(cfg.camera === "canon"
+      ...(cfg.camera === "canon" || cfg.camera === "sony"
         ? { focusAt: (x: number, y: number) => bridge.crewFocusAt(x, y) }
+        : {}),
+      // Sony: tap to focus hanya bodi v3 (A7 IV dst.), ditanyakan ke kamera yang sedang tersambung (#171).
+      ...(cfg.camera === "sony"
+        ? {
+            canFocusAt: () =>
+              bridge.cameraStatus().then(
+                (s) => !!s.tapFocus,
+                () => false,
+              ),
+          }
         : {}),
       installUpdate: () => bridge.crewInstallUpdate(),
       onUpdateProgress: (cb) => bridge.onUpdateProgress(cb),

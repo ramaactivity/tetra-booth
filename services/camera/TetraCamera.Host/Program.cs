@@ -15,8 +15,9 @@ Uri? hotFolderTrigger = null;
 // Canon EDSDK (DECISIONS #111): folder berisi EDSDK.dll, atau "fake" (kamera simulasi untuk dev/e2e).
 string? canon = null, canonSettings = null;
 // Sony Camera Remote Command (DECISIONS #169): `wpd` (Windows), `fake` (A7 III v2) / `fake-v3` (A7 IV) untuk dev/e2e.
-// `--sony-probe <wpd|fake|fake-v3>` = diagnostik W-037 lalu keluar; `--sony-force 2|3` memaksa versi protokol.
-string? sony = null, sonyProbe = null, sonyForce = null;
+// `--sony-probe <wpd|fake|fake-v3>` = diagnostik W-037 lalu keluar; `--sony-force 2|3` memaksa versi protokol;
+// `--sony-settings <file>` = setelan crew yang dipasang ulang tiap sambung (#113, #171).
+string? sony = null, sonyProbe = null, sonyForce = null, sonySettings = null;
 for (var i = 0; i + 1 < args.Length; i++)
 {
     switch (args[i])
@@ -41,6 +42,7 @@ for (var i = 0; i + 1 < args.Length; i++)
         case "--sony": sony = args[i + 1]; break;
         case "--sony-probe": sonyProbe = args[i + 1]; break;
         case "--sony-force": sonyForce = args[i + 1]; break;
+        case "--sony-settings": sonySettings = Path.GetFullPath(args[i + 1]); break;
     }
 }
 if (sonyProbe is not null)
@@ -84,7 +86,7 @@ if (canon is not null)
 }
 if (camera is null && sony is not null && SonyTransport(sony) is { } sonyTransport)
 {
-    var cam = new TetraCamera.Sony.SonyCamera(sonyTransport);
+    var cam = new TetraCamera.Sony.SonyCamera(sonyTransport, settingsPath: sonySettings);
     cam.ConnectionChanged += on => events.Publish(Dispatcher.CameraEvent(cam, on));
     camera = cam;
 }
@@ -120,8 +122,10 @@ return 0;
 
 static TetraCamera.Sony.IPtpTransport? SonyTransport(string kind)
 {
-    if (kind == "fake") return TetraCamera.Sony.FakeSonyTransport.A7III();
-    if (kind == "fake-v3") return TetraCamera.Sony.FakeSonyTransport.A7IV();
+    // e2e booth: file di TETRA_SONY_FAKE_UNPLUG ada = kabel kamera palsu dicabut.
+    var unplug = Environment.GetEnvironmentVariable("TETRA_SONY_FAKE_UNPLUG");
+    if (kind == "fake") return new TetraCamera.Sony.FakeSonyTransport("ILCE-7M3", 0x00C8, false) { UnplugFile = unplug };
+    if (kind == "fake-v3") return new TetraCamera.Sony.FakeSonyTransport("ILCE-7M4", 0x012C, true) { UnplugFile = unplug };
     if (kind == "wpd" && OperatingSystem.IsWindows()) return new TetraCamera.Sony.WpdTransport();
     Console.Error.WriteLine($"--sony '{kind}' tidak dipakai (fake | fake-v3 | wpd di Windows)");
     return null;

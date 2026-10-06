@@ -77,6 +77,23 @@ public static class SonyProtocol
     /// <summary>SDIO_GetAllExtDevicePropInfo: status & setelan terkini (dipanggil berkala saat idle).</summary>
     public static PropSet Poll(IPtpTransport t) =>
         SonyProp.ParseAll(t.Call(Ptp.SdioGetAllExtDevicePropInfo, [], read: true).Data);
+
+    /// <summary>
+    /// LiveView dataset (GetObject 0xFFFFC002): offset (u32) + ukuran (u32) gambar, lalu (v3) offset/ukuran Focal Frame
+    /// Info + cadangan; JPEG diambil dari offset. Ukuran 0 = belum ada frame baru (null). Rusak = FormatException.
+    /// </summary>
+    public static byte[]? LiveViewJpeg(ReadOnlySpan<byte> data)
+    {
+        var r = new PtpReader(data);
+        var offset = r.U32();
+        var size = r.U32();
+        if (size == 0) return null;
+        if (offset < 8 || offset + (ulong)size > (ulong)data.Length)
+            throw new FormatException($"live view: gambar {offset}+{size} di luar dataset {data.Length} byte");
+        var jpeg = data.Slice((int)offset, (int)size);
+        if (jpeg.Length < 4 || jpeg[0] != 0xFF || jpeg[1] != 0xD8) throw new FormatException("live view: bukan JPEG");
+        return jpeg.ToArray();
+    }
 }
 
 /// <summary>Kamera menolak versi protokol yang diminta.</summary>

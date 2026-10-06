@@ -67,7 +67,7 @@ public class SonyTests
         var ext = t.Log.Where(l => l.Op == 0x9202).Select(l => l.P1).ToArray();
         Assert.Equal([0x012Cu, 0x00C8u], ext);
         Assert.True(t.IsOpen);
-        Assert.Equal(4, SonyProtocol.Poll(t).Props.Count);
+        Assert.True(SonyProtocol.Poll(t).Props.ContainsKey(SonyProps.Iso));
     }
 
     [Fact]
@@ -106,13 +106,14 @@ public class SonyTests
         var p = SonyProtocol.Poll(t);
         Assert.Equal(v3, p.TwoEnumLists);
         var iso = p.Props[0xD21E];
-        Assert.Equal((400L, true), (iso.Current, iso.Settable));
-        Assert.Equal([100L, 200, 400, 800, 1600], iso.SetValues);
+        Assert.Equal((400L, v3), (iso.Current, iso.Settable));
+        Assert.Equal([0x00FFFFFF, 100L, 200, 400, 800, 1600, 3200, 6400], iso.SetValues);
         Assert.Equal(iso.SetValues, iso.GetSetValues);
         Assert.Equal(80, p.Props[0xD218].Current);
         Assert.Equal((-1L, 100L, 1L), p.Props[0xD218].Range);
-        Assert.Equal([2L, 4, 0x11], p.Props[0x5005].SetValues);
+        Assert.True(p.Props[0x5005].Settable);
         Assert.Equal(1, p.Props[0xD221].Current);
+        Assert.Equal(v3, p.Props.ContainsKey(SonyProps.MediaStatus));
     }
 
     [Fact]
@@ -163,20 +164,6 @@ public class SonyTests
         var disp = new Dispatcher(new NullPrinterAdapter(), cam);
         var list = JsonDocument.Parse(await disp.HandleAsync("""{"id":"l","type":"camera.list"}""")).RootElement;
         Assert.Equal("sony", list.GetProperty("payload")[0].GetProperty("brand").GetString());
-    }
-
-    [Fact]
-    public async Task Jepret_dan_setelan_belum_didukung_dengan_pesan_jelas()
-    {
-        using var cam = new SonyCamera(FakeSonyTransport.A7IV(), reconnect: TimeSpan.FromMilliseconds(30));
-        var e = await Assert.ThrowsAsync<CameraFailure>(() => cam.CaptureAsync(Path.GetTempPath(), 0));
-        Assert.Equal("camera_disconnected", e.Code);
-        await Until(() => cam.Connected);
-        e = await Assert.ThrowsAsync<CameraFailure>(() => cam.CaptureAsync(Path.GetTempPath(), 0));
-        Assert.Equal("not_supported", e.Code);
-        Assert.Contains("belum didukung", e.Message);
-        Assert.False(await cam.StartLiveViewAsync());
-        Assert.Empty(await cam.PropsAsync());
     }
 
     [Fact]

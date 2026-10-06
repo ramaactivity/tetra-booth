@@ -1,6 +1,6 @@
 # Rencana Sony: Camera Remote Command (PTP) di Camera Service
 
-Status: **rencana, belum ada kode** (5 Okt 2026). Bahan Sony (Camera Remote Command 2.02.00 + Camera Remote SDK 2.02.00) sudah diunduh ke `services/camera/TetraCamera.Sony/sdk/` (tidak di-commit, lihat README di sana). Roadmap: Fase 5, baris "Sony via Camera Remote Command". Dokumen ini hanya memuat kesimpulan dan identifier (opcode/kode properti); teks dan kode Sony tidak disalin.
+Status (6 Okt 2026): **S1–S5 selesai di Mac, semuanya teruji dengan kamera palsu tingkat PTP** (xUnit `SonyTests`/`SonyCameraTests`, e2e `apps/booth/e2e/sony.spec.ts`; DECISIONS #169, #171). **Belum pernah jalan di kamera Sony asli**: tinggal S6 = W-037…W-041 di `docs/HANDOFF.md` (menunggu kamera Sony dibeli). Bahan Sony (Camera Remote Command 2.02.00 + Camera Remote SDK 2.02.00) sudah diunduh ke `services/camera/TetraCamera.Sony/sdk/` (tidak di-commit, lihat README di sana). Roadmap: Fase 5, baris "Sony via Camera Remote Command". Dokumen ini hanya memuat kesimpulan dan identifier (opcode/kode properti); teks dan kode Sony tidak disalin.
 
 Target selesai: A7 III dan A7 IV dipakai di event nyata lewat booth (live view, jepret, unduh JPEG penuh ke laptop, setelan crew, sambung ulang) setara Canon EDSDK (DECISIONS #111).
 
@@ -110,7 +110,7 @@ Laptop: Device Manager → Portable Devices → kamera dengan driver **MTP USB D
 
 Urutan kerja Mac dulu (S1–S5 di `main`, semuanya teruji dengan transport palsu), uji Windows lewat W-task di `docs/HANDOFF.md` (branch `win`). Spike transport W-037 dikirim **segera setelah S1**, sebelum S2–S5, karena menentukan WPD vs WIA.
 
-### S1 — Transport + handshake + palsu (Mac) · ±2 hari
+### S1 — Transport + handshake + palsu (Mac) · ±2 hari · ✅ selesai (a31f83b, #169)
 - Proyek `TetraCamera.Sony` (masuk `TetraCamera.slnx`, referensi `TetraCamera.HotFolder` untuk `ICameraSource`/`CameraFailure`).
 - `PtpCodes` (konstanta di atas), `IPtpTransport`, `SonyProtocol` (handshake v2/v3, parser `SDIExtDeviceInfo` dan dataset properti `0x9209`: tipe int8–u64, STR, form Range/Enum dengan dua daftar enum).
 - `FakeSonyTransport` (model v2 & v3, `Plugged`, `HangMs`, JPEG contoh dari `fake.jpg` yang sudah ada) + xUnit: handshake kedua versi, fallback v3→v2, parser, cabut kabel.
@@ -118,24 +118,31 @@ Urutan kerja Mac dulu (S1–S5 di `main`, semuanya teruji dengan transport palsu
 - Thread SDK: ekstrak antrean/detak/sambung-ulang dari `CanonCamera` ke helper kecil bersama **hanya kalau** duplikasinya > ±100 baris; kalau tidak, salin pola. Semua panggilan transport (termasuk COM, MTA) di satu thread antrean.
 - Host: flag `--sony <fake|wpd|wia>`; booth `config.ts`: `camera: "sony"`, `--camera=sony` (mode crew "Kamera Mirrorless Sony"). DECISIONS + TSD §2.2 diperbarui.
 
-### S2 — Jepret + unduh · ±1 hari
+### S2 — Jepret + unduh · ±1 hari · ✅ selesai di palsu (#171), verifikasi W-038/W-039
 - `CaptureAsync`: S1 → (tunggu fokus, batas waktu) → S2 Down/Up → S1 Up → polling `0xD215` → `GetObjectInfo/GetObject 0xFFFFC001` sampai kosong → JPEG ke `<outputDir>/<n>.jpg`, RAW dibuang. Batas waktu 10 s seperti Canon; `0xA105` → kosongkan buffer dulu.
 - Uji: palsu (sukses, RAW+JPEG, tidak ada file → `capture_timeout`, kabel dicabut di tengah). e2e booth dengan `--sony fake` (sesi penuh sampai cetak ke PDF).
 
-### S3 — Live view · ±1 hari
+### S3 — Live view · ±1 hari · ✅ selesai di palsu (#171), fps diukur W-038
 - Tunggu `0xD221`, `GetObjectInfo(0xFFFFC002)` sekali, loop `GetObject(0xFFFFC002)` ≥ 33 ms, parse offset/ukuran, `0x200F` = lewati frame. Polling `0x9209` diselipkan tiap ±200 ms di thread yang sama. Live view dijeda saat jepret, dinyalakan ulang setelahnya. v3: `0xD26A` = High.
 - Target ≥ 20 fps di laptop booth (TSD §2); diukur di W-038.
 
-### S4 — Setelan & AF · ±2 hari
+### S4 — Setelan & AF · ±2 hari · ✅ selesai di palsu (#171), langkah v2 diverifikasi W-040
 - `PropsAsync/SetPropAsync` ISO/shutter/aperture/WB/EV: label dari kode (tabel kecil `SonyProps`, ditulis sendiri dari nilai dataset, bukan salinan tabel Sony), opsi dari daftar enum dataset. v3 absolut (`0x9205`); v2 langkah (`0x9207` ±1, baca ulang sampai target, maks N langkah). Setelan crew tersimpan & dipasang ulang saat sambung (pola #113).
 - `FocusAsync("af")` = S1 Down/Up; near/far = `0xD2D1`; `FocusAtAsync` (v3) = `0xD2DC` dengan koordinat 0–639 × 0–479 dari titik 0–1 di frame, lalu S1; v2 → false (UI booth sudah menangani "tidak didukung").
 - Status: baterai `0xD218` ke `camera.status`.
 
-### S5 — Sambung ulang & error · ±1 hari
+### S5 — Sambung ulang & error · ±1 hari · ✅ selesai di palsu (#171), verifikasi W-041
 - Kabel dicabut / kamera tidur → `camera.disconnected`, enumerasi ulang tiap 2 s, handshake + `0xD25A` + setelan crew dipasang ulang → `camera.connected`. `Stuck` saat panggilan transport tidak kembali (supervisor restart Camera Service, seperti #111).
 - Pesan crew (copy booth): kartu tidak ada/penuh/terkunci (v3 `0xD248/0xD249`), baterai lemah, kamera panas (`0xD251`), kamera bukan mode PC Remote (handshake gagal), driver salah (perangkat tidak muncul sebagai MTP), Imaging Edge masih terbuka (perangkat sibuk).
 
-### S6 — Uji hardware Windows (W-task, laptop booth + A7 III + A7 IV) · ±2–3 hari kalender
+### Hasil S2–S5 & yang berbeda dari rencana (#171)
+- **Simpan ke tidak bisa diubah dari PC**: `0xD222` hanya-baca di PTP 2 dan PTP 3. "PC saja" (disarankan) / "PC + kartu" dipilih di menu kamera; booth menampilkan nilainya dan menolak jepret dengan pesan jelas kalau "kartu saja" atau kartu bermasalah (v3).
+- **Tanpa cabang per profil di adapter**: cara ubah setelan (absolut / langkah / hanya-baca) dan fitur (tap-to-focus, Near/Far, kartu, panas) dibaca dari dataset `0x9202`/`0x9209` bodi itu. v2 = langkah notch dengan selisih indeks daftar enum (W-040 memastikan urutan daftar = urutan dial).
+- **Jepret per profil sama**: S1 Down → Focus Indication (maks 1,5 s) → S2 Down/Up → S1 Up, polling Shooting File Info, unduh sampai kosong. `0xD2E6` (S1&S2 sekali jalan, v3) tidak dipakai; cukup satu jalur.
+- **Tap-to-focus v3** lewat `0xD2DC` (bukan Remote Touch `0xD2E4`); booth menanyakan `camera.status.tapFocus`, v2 = lapisan ketuk tidak tampil.
+- **Pesan crew & kode error**: lihat DECISIONS #171 (6).
+
+### S6 — Uji hardware Windows (W-task, laptop booth + A7 III + A7 IV) · ±2–3 hari kalender · ⏳ menunggu kamera Sony
 - **W-037 (setelah S1):** `--sony-probe` dengan A7 III dan A7 IV: driver = MTP USB Device, `GET_SUPPORTED_VENDOR_OPCODES` memuat `0x9201/0x9202/0x9205/0x9207/0x9209`, handshake v2 (A7 III) & v3 (A7 IV) OK, `GetObjectInfo(0xFFFFC002)` lewat WPD tidak ditolak. Gagal → aktifkan `WiaTransport` dan ulang.
 - **W-038 (setelah S3):** A7 III: 50 jepret berturut-turut (semua JPEG penuh tersimpan, waktu jepret→file), live view fps & jeda saat jepret, sesi booth penuh sampai cetak.
 - **W-039 (setelah S3):** sama untuk A7 IV + tap-to-focus + simpan PC Only vs PC+Kamera.

@@ -172,9 +172,9 @@ export const canon =
     : undefined;
 
 /**
- * `--camera=sony`: mirrorless Sony lewat Camera Remote Command (PTP) di Camera Service (DECISIONS #169). Driver MTP
- * bawaan Windows (`--sony wpd`, bawaan); `--sony fake` (A7 III) / `--sony fake-v3` (A7 IV) = kamera simulasi (dev/e2e).
- * Tahap S1: tersambung + model saja, jepret & live view menyusul (docs/PLAN-SONY.md).
+ * `--camera=sony`: mirrorless Sony lewat Camera Remote Command (PTP) di Camera Service (DECISIONS #169, #171). Driver
+ * MTP bawaan Windows (`--sony wpd`, bawaan); `--sony fake` (A7 III) / `--sony fake-v3` (A7 IV) = kamera simulasi
+ * (dev/e2e). Jepret, live view, setelan, & fokus seperti Canon; belum diuji dengan kamera asli (W-037…W-041).
  */
 export const sony = flags.value("camera") === "sony" ? (flags.value("sony") ?? "wpd") : undefined;
 
@@ -185,7 +185,7 @@ export const config: BoothConfig = {
       ? "sony"
       : ((["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ??
         "webcam"),
-  liveView: !!canon,
+  liveView: !!canon || !!sony,
   demo: flags.has("demo"),
   fast: flags.has("fast"),
   guestUrl: process.env.TETRA_GUEST_URL ?? "https://booth.tetraphoto.com",

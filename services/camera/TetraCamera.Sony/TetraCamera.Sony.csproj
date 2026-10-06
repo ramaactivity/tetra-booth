@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- Sony Camera Remote Command (DECISIONS #169): protokol PTP saja, tanpa DLL Sony. sdk/ = dokumen Sony (tidak di-commit). -->
   <ItemGroup>
+    <EmbeddedResource Include="fake-sony.jpg" LogicalName="TetraCamera.Sony.fake-sony.jpg" />
+    <EmbeddedResource Include="fake-sony-lv.jpg" LogicalName="TetraCamera.Sony.fake-sony-lv.jpg" />
     <ProjectReference Include="../TetraCamera.HotFolder/TetraCamera.HotFolder.csproj" />
   </ItemGroup>
 </Project>

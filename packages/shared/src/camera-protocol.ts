@@ -68,6 +68,8 @@ export const ResultSchemas = {
     model: z.string().nullable(),
     battery: z.number().int().min(0).max(100).nullable(),
     shotsRemaining: z.number().int().nullable(),
+    /** Tap to focus didukung kamera yang tersambung (Sony: hanya bodi v3, #171). Opsional untuk service lama. */
+    tapFocus: z.boolean().optional(),
   }),
   "liveview.start": z.object({ ok: z.boolean() }),
   "liveview.stop": z.object({ ok: z.boolean() }),
