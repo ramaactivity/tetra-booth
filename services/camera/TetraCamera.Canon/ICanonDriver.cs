@@ -14,6 +14,11 @@ public interface ICanonDriver : IDisposable
     void Pump();
     /// <summary>Jepret lalu unduh JPEG hasilnya ke memori (menunggu transfer maks. <paramref name="timeout"/>).</summary>
     byte[] Capture(TimeSpan timeout);
+    /// <summary>
+    /// Photo Stage (#178): file yang dikirim kamera tanpa diminta (rana fotografer) diunduh ke memori;
+    /// null = tidak ada. Dipanggil dari loop thread SDK setelah <see cref="Pump"/>.
+    /// </summary>
+    byte[]? TakeUnsolicited();
     void SetLiveView(bool on);
     /// <summary>Satu frame live view JPEG; null = belum siap.</summary>
     byte[]? LiveViewFrame();

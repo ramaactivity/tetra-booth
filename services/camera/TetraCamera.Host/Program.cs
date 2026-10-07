@@ -91,7 +91,7 @@ if (camera is null && sony is not null && SonyTransport(sony) is { } sonyTranspo
     camera = cam;
 }
 camera ??= hotFolder is null ? null : new TetraCamera.HotFolder.HotFolderCamera(hotFolder, trigger: hotFolderTrigger);
-var dispatcher = new Dispatcher(printer, camera);
+var dispatcher = new Dispatcher(printer, camera, events.Publish);
 
 // Frame live view terbaru (Canon): diambil berulang oleh Electron main.
 app.MapGet("/liveview.jpg", (HttpContext ctx) =>

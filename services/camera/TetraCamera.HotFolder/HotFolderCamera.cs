@@ -78,13 +78,54 @@ public sealed class HotFolderCamera : ICameraSource
                 if (next is not null)
                 {
                     _consumed.Add(next.FullName);
-                    return await TakeAsync(next.FullName, outputDir, index, deadline, ct);
+                    return await TakeAsync(next.FullName, Path.Combine(outputDir, $"{index + 1}.jpg"), deadline, ct);
                 }
                 await Task.Delay(Poll, ct);
             }
             throw new CameraFailure("capture_timeout", $"Tidak ada foto baru di hot folder dalam {_timeout.TotalSeconds:0} detik");
         }
         finally { _one.Release(); }
+    }
+
+    private CancellationTokenSource? _listenStop;
+    private int _shotSeq;
+
+    /// <summary>
+    /// Photo Stage (#178): setiap JPEG baru di folder (aplikasi tether pabrikan / transfer WiFi kamera) disalin ke
+    /// <paramref name="outputDir"/> lalu dilaporkan. File yang sudah ada saat mulai diabaikan.
+    /// </summary>
+    public void Listen(string? outputDir, Action<CaptureResult>? onShot)
+    {
+        Interlocked.Exchange(ref _listenStop, null)?.Cancel();
+        if (outputDir is null || onShot is null) return;
+        var stop = new CancellationTokenSource();
+        _listenStop = stop;
+        var since = DateTime.UtcNow;
+        _ = Task.Run(async () =>
+        {
+            while (!stop.IsCancellationRequested)
+            {
+                try
+                {
+                    await _one.WaitAsync(stop.Token);
+                    try
+                    {
+                        foreach (var f in Candidates()
+                                     .Where(f => !_consumed.Contains(f.FullName) && f.LastWriteTimeUtc >= since)
+                                     .OrderBy(f => f.LastWriteTimeUtc).ToList())
+                        {
+                            _consumed.Add(f.FullName);
+                            var dst = Path.Combine(outputDir, $"shot-{DateTime.Now:yyyyMMdd-HHmmss}-{++_shotSeq:D4}.jpg");
+                            try { onShot(await TakeAsync(f.FullName, dst, DateTime.UtcNow + _timeout, stop.Token)); }
+                            catch (CameraFailure e) { Console.Error.WriteLine($"[hotfolder] {e.Message}"); }
+                        }
+                    }
+                    finally { _one.Release(); }
+                    await Task.Delay(Poll, stop.Token);
+                }
+                catch (OperationCanceledException) { break; }
+            }
+        });
     }
 
     private async Task TriggerAsync(CancellationToken ct)
@@ -102,7 +143,7 @@ public sealed class HotFolderCamera : ICameraSource
     }
 
     /// <summary>Tunggu file selesai ditulis (bisa dibuka eksklusif & ukurannya stabil), salin ke folder sesi.</summary>
-    private static async Task<CaptureResult> TakeAsync(string src, string outputDir, int index, DateTime deadline, CancellationToken ct)
+    private static async Task<CaptureResult> TakeAsync(string src, string dst, DateTime deadline, CancellationToken ct)
     {
         long last = -1;
         while (true)
@@ -114,8 +155,7 @@ public sealed class HotFolderCamera : ICameraSource
                 {
                     await using var fs = new FileStream(src, FileMode.Open, FileAccess.Read, FileShare.None);
                     var dims = JpegInfo.ReadSize(fs) ?? throw new CameraFailure("capture_unreadable", $"{Path.GetFileName(src)} bukan JPEG yang valid");
-                    Directory.CreateDirectory(outputDir);
-                    var dst = Path.Combine(outputDir, $"{index + 1}.jpg");
+                    Directory.CreateDirectory(Path.GetDirectoryName(dst)!);
                     fs.Seek(0, SeekOrigin.Begin);
                     await using (var o = new FileStream(dst, FileMode.Create, FileAccess.Write))
                         await fs.CopyToAsync(o, ct);

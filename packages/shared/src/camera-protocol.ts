@@ -35,6 +35,8 @@ export const CommandSchema = z.discriminatedUnion("type", [
       outputDir: z.string().min(1),
     }),
   ),
+  /** Photo Stage (#178): jepretan rana fotografer disimpan ke `outputDir` → event `capture.shot`; null = berhenti. */
+  cmd("capture.listen", z.object({ outputDir: z.string().min(1).nullable() })),
   cmd(
     "print.submit",
     z.object({
@@ -85,6 +87,7 @@ export const ResultSchemas = {
   ),
   "camera.setProp": z.object({ ok: z.boolean() }),
   capture: z.object({ path: z.string(), width: z.number().int(), height: z.number().int() }),
+  "capture.listen": z.object({ ok: z.boolean() }),
   "print.submit": z.object({ accepted: z.boolean() }),
   "print.status": z.object({ status: PrintJobStatusSchema, error: z.string().optional() }),
   "system.health": z.object({
@@ -128,6 +131,11 @@ export const EventSchema = z.discriminatedUnion("type", [
       code: z.string(),
       message: z.string(),
     }),
+  ),
+  /** Photo Stage (#178): jepretan yang tidak diminta booth, sudah tersimpan di folder `capture.listen`. */
+  evt(
+    "capture.shot",
+    z.object({ path: z.string(), width: z.number().int(), height: z.number().int() }),
   ),
   evt("print.done", z.object({ jobId: z.string() })),
   evt("print.failed", z.object({ jobId: z.string(), code: z.string(), message: z.string() })),

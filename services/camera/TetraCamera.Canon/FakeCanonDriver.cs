@@ -55,6 +55,15 @@ public sealed class FakeCanonDriver : ICanonDriver
         return Jpeg;
     }
 
+    /// <summary>Jepretan rana fotografer yang menunggu diambil (uji Photo Stage #178).</summary>
+    public volatile int PendingShots;
+    public byte[]? TakeUnsolicited()
+    {
+        if (PendingShots <= 0 || !IsOpen) return null;
+        PendingShots--;
+        return Jpeg;
+    }
+
     public void SetLiveView(bool on) => LiveView = on;
     public byte[]? LiveViewFrame() => LiveView && IsOpen ? Jpeg : null;
     public void Focus(string step) => FocusSteps.Add(step);
