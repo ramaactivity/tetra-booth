@@ -16,6 +16,7 @@ import { presignGet } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 import { opsBookingNow } from "@/lib/tetra-ops";
 import { loadDesignOptions } from "./design-options";
+import { GuestLinkPanel } from "./GuestLinkPanel";
 import { LinksPanel } from "./LinksPanel";
 import { SettingsForm, type SettingsValues } from "./SettingsForm";
 
@@ -162,9 +163,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           allDevices: ev.all_devices,
           hasClientLink: !!ev.client_token,
         }}
-        guestLinks={
-          <LinksPanel eventId={ev.id} origin={origin} slug={ev.slug} guestOn={!!ev.guest_token} />
-        }
+        guestLinks={<GuestLinkPanel eventId={ev.id} origin={origin} token={ev.guest_token} />}
         links={
           <LinksPanel
             eventId={ev.id}

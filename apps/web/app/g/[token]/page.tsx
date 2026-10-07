@@ -35,8 +35,12 @@ export default async function GalleryPage({ params }: { params: Promise<{ token:
       </main>
     );
   // Cover lebar = foto original (2400 px), bukan strip sempit yang di-crop & diperbesar (buram, Rama 30 Sep).
+  // Foto tamu Guest Cam (#203) bukan sampul: bisa buram/acak; booth & Photo Stage dulu.
+  const own = g.photos.filter((p) => p.source !== "guest");
   const cover =
-    g.photos.find((p) => p.kind === "original") ?? g.photos.find((p) => p.kind === "strip");
+    own.find((p) => p.kind === "original") ??
+    own.find((p) => p.kind === "strip") ??
+    g.photos.find((p) => p.kind === "original");
   const left = g.expiresAt
     ? Math.max(0, Math.ceil((new Date(g.expiresAt).getTime() - Date.now()) / 86_400_000))
     : null;

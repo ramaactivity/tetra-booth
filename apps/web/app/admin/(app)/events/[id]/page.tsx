@@ -7,6 +7,7 @@ import {
   paperLabel,
   parseRun,
 } from "@tetra/shared";
+
 import {
   ChevronLeft,
   CloudUpload,
@@ -28,6 +29,7 @@ import { presignDownload, presignGet } from "@/lib/r2";
 import type { RecapData } from "@/lib/recap";
 import { requireMember } from "@/lib/supabase/server";
 import { approvedDesign, OPS_PAPER_OF, opsBookingNow, opsDriftOf } from "@/lib/tetra-ops";
+import { GuestCamSection } from "./GuestCamSection";
 import { OpsDesignInstall } from "./OpsDesignInstall";
 import { RecapDialog } from "./RecapDialog";
 import { RunPanel } from "./RunPanel";
@@ -61,7 +63,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, slug, name, event_date, location, mode, settings, client_token, live_token, run, package_name, package_hours, scheduled_start, scheduled_end, local_bytes, local_files, created_at, ops_sync, ops_project_id",
+      "id, slug, name, event_date, location, mode, settings, client_token, live_token, run, package_name, package_hours, scheduled_start, scheduled_end, local_bytes, local_files, created_at, ops_sync, ops_project_id, guest_revealed_at",
     )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
@@ -80,6 +82,8 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
       .select("id, started_at, print_count, upload_status, hidden_at, device_id, is_test")
       .eq("event_id", ev.id)
       .eq("organization_id", orgId)
+      // Guest Cam (#197) punya hitungan & moderasi sendiri (GuestCamPanel).
+      .neq("source", "guest")
       .is("deleted_at", null)
       .order("started_at", { ascending: false })
       .limit(5000),
@@ -102,6 +106,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
       .eq("kind", "original")
       .eq("sessions.event_id", ev.id)
       .eq("sessions.is_test", false)
+      .neq("sessions.source", "guest")
       .is("sessions.deleted_at", null),
     // Ukuran di cloud (rekap #166): jumlah assets.bytes sesi asli.
     db.rpc("event_cloud_storage", { org: orgId, ev: ev.id }),
@@ -390,6 +395,8 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
           </Link>
         )}
       </section>
+
+      <GuestCamSection db={db} orgId={orgId} ev={ev} canEdit={role !== "crew"} />
 
       {/* Link untuk dibagikan ke klien (galeri & slideshow) tanpa membuka Pengaturan. */}
       {role !== "crew" && (

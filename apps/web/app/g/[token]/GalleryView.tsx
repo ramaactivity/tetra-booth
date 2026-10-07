@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { PhotoViewer } from "@/components/PhotoViewer";
 import type { GalleryPhoto } from "@/lib/gallery";
+import { GuestRows, VoiceList } from "./GuestTabs";
 
 type Filter = "strip" | "original" | "animation" | "stage" | "guest" | "ucapan" | "favorit";
 const CHIPS: [Filter, string][] = [
@@ -123,7 +124,7 @@ export function GalleryView({
     return [...m.values()];
   }, [filter, sections, shown]);
   const grouped = filter === "stage" || filter === "guest";
-  const hours = grouped ? stageHours : sections;
+  const hours = filter === "guest" || filter === "ucapan" ? [] : grouped ? stageHours : sections;
   const [zipped, setZipped] = useState<Set<string>>(new Set());
   const favCount = photos.filter((p) => p.favorite).length;
   const chips = CHIPS.filter(([k]) =>
@@ -236,7 +237,7 @@ export function GalleryView({
             {filter === "stage"
               ? "Unduh semua Photo Stage"
               : filter === "guest"
-                ? "Unduh semua Guest Cam"
+                ? "Unduh Guest Cam"
                 : "↓ Download Semua"}
           </a>
         )}
@@ -313,9 +314,17 @@ export function GalleryView({
               className={`${btn} ${filter === k ? "bg-lavender" : "bg-white"}`}
             >
               {k === "favorit" ? `${t} (${favCount})` : t}
-              {(k === "stage" || k === "guest") && (
+              {(k === "stage" || k === "guest" || k === "ucapan") && (
                 <span className="ml-1.5 font-mono text-[11px] font-normal text-text-2">
-                  {new Set(photos.filter((p) => p.source === k).map((p) => p.sessionId)).size}
+                  {k === "stage"
+                    ? new Set(photos.filter((p) => p.source === k).map((p) => p.sessionId)).size
+                    : photos
+                        .filter((p) =>
+                          k === "ucapan"
+                            ? p.kind === "audio"
+                            : p.source === "guest" && p.kind === "original",
+                        )
+                        .length.toLocaleString("id-ID")}
                 </span>
               )}
             </button>
@@ -366,24 +375,9 @@ export function GalleryView({
       </div>
 
       {filter === "ucapan" ? (
-        <ul className="flex flex-col gap-2">
-          {shown.map((p) => (
-            <li
-              key={p.id}
-              className="flex flex-col gap-2 rounded-[14px] border-[1.5px] border-ink bg-white p-3 md:flex-row md:items-center md:gap-4"
-            >
-              <div className="min-w-0 md:w-56">
-                <p className="truncate font-extrabold">{p.group}</p>
-                <p className="font-mono text-xs text-text-2">{p.time}</p>
-              </div>
-              {/* biome-ignore lint/a11y/useMediaCaption: ucapan suara tamu, tanpa teks */}
-              <audio controls preload="none" src={p.full} className="w-full md:flex-1" />
-              <button type="button" onClick={() => download(p)} className={`${btn} bg-white`}>
-                ↓ Unduh
-              </button>
-            </li>
-          ))}
-        </ul>
+        <VoiceList items={shown} onDownload={download} />
+      ) : filter === "guest" ? (
+        <GuestRows shown={shown} all={photos} token={token} readOnly={readOnly} onOpen={setOpen} />
       ) : grouped ? (
         stageHours.map((h) => (
           <section
@@ -395,9 +389,7 @@ export function GalleryView({
               <span className="rounded-full border-[1.5px] border-ink bg-lavender px-3 py-1 text-[13px] font-extrabold">
                 {h.title} – {hh((Number(h.id.slice(4)) + 1) % 24)}
               </span>
-              <span className="font-mono text-xs text-text-2">
-                {h.groups.length} {filter === "guest" ? "tamu" : "rombongan"}
-              </span>
+              <span className="font-mono text-xs text-text-2">{h.groups.length} rombongan</span>
             </div>
             {h.groups.map((g) => groupSection(g))}
           </section>

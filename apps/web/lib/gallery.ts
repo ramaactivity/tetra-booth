@@ -64,8 +64,6 @@ const clockWib = (ts: string) =>
 export const LINK = /^[\w-]{1,80}$/;
 export const byLink = (col: "client_token" | "live_token", v: string) =>
   `${col}.eq.${v},slug.eq.${v}`;
-/** Link Guest Cam `/c/<slug>` (#197): sama dengan galeri/live, kolom aktif `guest_token`. */
-export const byLinkGuest = (v: string) => `guest_token.eq.${v},slug.eq.${v}`;
 
 /** Event dari link klien (slug atau token); kedaluwarsa/purge/link dicabut → gone. */
 export async function eventByClientToken(token: string) {

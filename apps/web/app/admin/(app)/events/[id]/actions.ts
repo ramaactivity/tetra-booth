@@ -106,3 +106,62 @@ export async function correctRun(
   revalidatePath("/admin/(app)/events/[id]", "layout");
   return { ok: true, run };
 }
+
+/**
+ * Moderasi Guest Cam (desain E15, #203): setujui (review_status null → tampil di album & TV) atau tolak foto/strip
+ * tamu. Banyak sekaligus (Shift+klik / pilih semua). Owner/admin; masuk audit_logs.
+ */
+export async function reviewGuest(
+  eventId: string,
+  assetIds: string[],
+  decision: "approve" | "reject",
+) {
+  const { db, orgId, user } = await requireMember(["owner", "admin"]);
+  const ids = z.array(z.uuid()).max(500).safeParse(assetIds).data;
+  if (!ids?.length || !z.uuid().safeParse(eventId).success) return;
+  const { data: rows } = await db
+    .from("assets")
+    .select("id, kind, idx, session_id, sessions!inner(event_id, source)")
+    .eq("organization_id", orgId)
+    .eq("sessions.event_id", eventId)
+    .eq("sessions.source", "guest")
+    .in("id", ids);
+  const review_status = decision === "approve" ? null : "rejected";
+  // Thumb ikut status asetnya (galeri memakai thumb).
+  for (const a of rows ?? []) {
+    const thumb = a.kind === "strip_web" ? "thumb_strip" : "thumb_original";
+    await db
+      .from("assets")
+      .update({ review_status })
+      .eq("organization_id", orgId)
+      .eq("session_id", a.session_id)
+      .eq("idx", a.idx)
+      .in("kind", [a.kind, thumb]);
+  }
+  await db.from("audit_logs").insert({
+    organization_id: orgId,
+    actor_user_id: user.id,
+    action: `guest.${decision}`,
+    target: eventId,
+    meta: { count: rows?.length ?? 0 },
+  });
+  revalidatePath("/admin/(app)/events/[id]", "layout");
+}
+
+/** "Buka foto sekarang" (E15): reveal Guest Cam mode setelah acara dibuka sebelum acara dihentikan. */
+export async function revealGuest(eventId: string) {
+  const { db, orgId, user } = await requireMember(["owner", "admin"]);
+  if (!z.uuid().safeParse(eventId).success) return;
+  await db
+    .from("events")
+    .update({ guest_revealed_at: new Date().toISOString() })
+    .eq("id", eventId)
+    .eq("organization_id", orgId);
+  await db.from("audit_logs").insert({
+    organization_id: orgId,
+    actor_user_id: user.id,
+    action: "guest.reveal",
+    target: eventId,
+  });
+  revalidatePath("/admin/(app)/events/[id]", "layout");
+}

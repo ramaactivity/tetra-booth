@@ -12,12 +12,12 @@ import { cookies } from "next/headers";
 import { sha256 } from "@/lib/booth";
 import type { EventBranding } from "@/lib/event-bundle";
 import { eventPhase, guestPhotosVisible, ymdWib } from "@/lib/events";
-import { byLinkGuest, LINK } from "@/lib/gallery";
+import { LINK } from "@/lib/gallery";
 import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /**
- * Guest Cam (#197): event dari link QR `/c/{slug atau guest_token}`. Aktif = `guest_token` terisi + setelan
+ * Guest Cam (#197): event dari link QR `/c/{guest_token}` (token acak, #203). Aktif = `guest_token` terisi + setelan
  * guestCam.enabled + belum purge/kedaluwarsa. Browser tamu diikat ke sesinya lewat cookie berisi kunci acak;
  * server hanya menyimpan hash-nya (`sessions.guest_key_hash`).
  */
@@ -26,10 +26,10 @@ export async function guestEvent(token: string) {
   const { data } = await createServiceClient()
     .from("events")
     .select(
-      "id, organization_id, slug, name, event_date, branding, settings, bundle, run, guest_revealed_at, guest_expires_at, purged_at, public_gallery, live_token",
+      "id, organization_id, slug, name, event_date, branding, settings, bundle, run, guest_revealed_at, guest_expires_at, purged_at, public_gallery, live_token, guest_token",
     )
-    .or(byLinkGuest(token))
-    .not("guest_token", "is", null)
+    // Token acak, bukan slug: "Cabut & buat ulang" harus mematikan QR yang sudah dicetak (#203).
+    .eq("guest_token", token)
     .limit(1)
     .maybeSingle();
   if (!data || data.purged_at) return null;
@@ -133,7 +133,7 @@ export async function guestInfo(ev: GuestEvent) {
     eventGallery: ev.public_gallery && ev.live_token ? `/l/${ev.slug}` : null,
     galleryUntil: ev.guest_expires_at,
     /** Isi elemen QR di desain strip: halaman Guest Cam acara ini. */
-    link: `/c/${ev.slug}`,
+    link: `/c/${ev.guest_token}`,
   };
 }
 export type GuestInfo = Awaited<ReturnType<typeof guestInfo>>;

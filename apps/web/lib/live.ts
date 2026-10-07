@@ -1,4 +1,5 @@
 import "server-only";
+import { EventSettingsSchema } from "@tetra/shared";
 import { guestPhotosVisible } from "@/lib/events";
 import { byLink, LINK } from "@/lib/gallery";
 import { presignGet } from "@/lib/r2";
@@ -13,6 +14,8 @@ export type LiveEvent = {
   tagline: string | null;
   date: string;
   publicGallery: boolean;
+  /** Guest Cam (#197/#203): link /c untuk kartu ajakan TV + hitungan; null = Guest Cam mati. */
+  guest: { path: string; photos: number; guests: number } | null;
 };
 
 export async function loadLive(token: string, limit = 24) {
@@ -21,7 +24,7 @@ export async function loadLive(token: string, limit = 24) {
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, organization_id, name, event_date, branding, purged_at, public_gallery, settings, run, guest_revealed_at",
+      "id, organization_id, name, event_date, branding, purged_at, public_gallery, settings, run, guest_revealed_at, guest_token",
     )
     .or(byLink("live_token", token))
     .not("live_token", "is", null)
@@ -66,12 +69,34 @@ export async function loadLive(token: string, limit = 24) {
     }),
   );
   const branding = (ev.branding ?? {}) as { tagline?: string };
+  const cam = EventSettingsSchema.safeParse(ev.settings ?? {}).data?.guestCam;
+  let guest: LiveEvent["guest"] = null;
+  if (cam?.enabled && ev.guest_token) {
+    const [{ count: guests }, { count: photos }] = await Promise.all([
+      db
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", ev.organization_id)
+        .eq("event_id", ev.id)
+        .eq("source", "guest")
+        .is("deleted_at", null),
+      db
+        .from("assets")
+        .select("id, sessions!inner(event_id, source)", { count: "exact", head: true })
+        .eq("organization_id", ev.organization_id)
+        .eq("kind", "original")
+        .eq("sessions.event_id", ev.id)
+        .eq("sessions.source", "guest"),
+    ]);
+    guest = { path: `/c/${ev.guest_token}`, photos: photos ?? 0, guests: guests ?? 0 };
+  }
   return {
     event: {
       name: ev.name,
       tagline: branding.tagline ?? null,
       date: ev.event_date,
       publicGallery: ev.public_gallery,
+      guest,
     } satisfies LiveEvent,
     strips,
   };

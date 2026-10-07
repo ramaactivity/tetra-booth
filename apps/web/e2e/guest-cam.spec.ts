@@ -47,7 +47,7 @@ test("guest cam: join → unggah sampai jatah habis → batas ukuran → approva
     .select("id, slug")
     .single();
   expect(error).toBeNull();
-  const base = `/api/c/${ev?.slug}`;
+  const base = `/api/c/${token}`;
   try {
     const info = await request.get(base);
     expect(info.status()).toBe(200);
@@ -177,7 +177,7 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
         process.env.GC_SHOTS
           ? page.screenshot({ path: `${process.env.GC_SHOTS}/${n}.png` })
           : Promise.resolve();
-      await page.goto(`/c/${ev?.slug}`);
+      await page.goto(`/c/${token}`);
       await expect(page.getByRole("button", { name: "Mulai motret" })).toBeDisabled();
       await shot("A1");
       await page.getByLabel("Namamu").fill("Sari");
@@ -274,7 +274,7 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       .select("id, slug")
       .single();
     try {
-      await page.goto(`/c/${ev?.slug}`);
+      await page.goto(`/c/${token}`);
       await expect(page.getByText("Terbuka setelah acara")).toBeVisible();
       await page.getByLabel("Namamu").fill("Andi");
       await page.getByLabel("WhatsApp").fill("0812 3456 7890");
