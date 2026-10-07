@@ -219,6 +219,8 @@ export type StageTvState = {
   previous: { id: string; no: number; label: string }[];
   /** Foto terbaru acara untuk galeri berjalan saat idle (satu per rombongan). */
   recent: { path: string; label: string; time: string }[];
+  /** "Cari fotomu" di TV sentuh (#200): rombongan terbaru dulu (maks. 60), foto yang tampil saja. */
+  groups?: { id: string; no: string; label: string; time: string; shots: string[] }[];
   /** Lama tampilan aktif setelah jepretan terakhir (detik). */
   activeSec: number;
   /** Layar uji dari wizard persiapan (#188). */
@@ -230,9 +232,14 @@ export type StageTvState = {
 /** Ringkasan untuk TV dari keadaan rombongan. */
 export function tvState(
   s: StageState,
-  base: Omit<StageTvState, "active" | "previous" | "recent">,
+  base: Omit<StageTvState, "active" | "previous" | "recent" | "groups">,
 ): StageTvState {
-  const withShots = s.groups.filter((g) => g.shots.length);
+  // Rombongan yang digabung & foto yang disembunyikan (#195) tidak tampil di TV.
+  const shown = (g: StageGroup) => g.shots.filter((_, i) => !g.hidden?.includes(i + 1));
+  const withShots = s.groups
+    .filter((g) => !g.merged)
+    .map((g) => ({ ...g, shots: shown(g) }))
+    .filter((g) => g.shots.length);
   const a = withShots.at(-1);
   return {
     ...base,
@@ -253,6 +260,16 @@ export function tvState(
     recent: withShots
       .slice(-12)
       .map((g) => ({ path: g.shots[0]?.path ?? "", label: groupLabel(g), time: hm(g.startedAt) })),
+    groups: withShots
+      .slice(-60)
+      .reverse()
+      .map((g) => ({
+        id: g.id,
+        no: groupNo(g),
+        label: groupLabel(g),
+        time: hm(g.startedAt),
+        shots: g.shots.map((x) => x.path),
+      })),
   };
 }
 

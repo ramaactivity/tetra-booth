@@ -121,6 +121,16 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   // Lapisan aktif (B4): 1 foto rombongan #2; galeri idle tetap ter-mount di belakang (#189).
   await expect(tvWin.locator('[aria-hidden="false"] img')).toHaveCount(1, { timeout: 10_000 });
   await tvWin.screenshot({ path: "test-results/stage-tv.png" });
+  // "Cari fotomu" (#200): tamu menyentuh TV → daftar rombongan → foto + QR → tutup.
+  await tvWin.getByRole("button", { name: "Cari fotomu" }).click();
+  await expect(tvWin.getByRole("heading", { name: "Cari fotomu" })).toBeVisible();
+  await tvWin.getByRole("button", { name: /Keluarga Besar Bpk\. Hadi/ }).click();
+  const find = tvWin.getByTestId("stage-tv-find");
+  await expect(find.getByRole("button", { name: "Semua rombongan" })).toBeVisible();
+  await expect(find.getByRole("img", { name: /\/s\// })).toBeVisible();
+  await tvWin.screenshot({ path: "test-results/stage-tv-find.png" });
+  await tvWin.getByRole("button", { name: "Tutup" }).click();
+  await expect(tvWin.getByRole("heading", { name: "Cari fotomu" })).toHaveCount(0);
 
   // Cetak instan 4R (#183): foto landscape → lembar 4R lewat antrean print booth.
   await w.locator("section").getByRole("button", { name: "Cetak 4R" }).click();
