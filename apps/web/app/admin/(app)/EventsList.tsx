@@ -11,6 +11,7 @@ import {
   ReceiptText,
 } from "lucide-react";
 import Link from "next/link";
+import { eventPhase, ymdWib } from "@/lib/events";
 import type { PhotoboxSettings } from "@/lib/payments";
 import { requireMember } from "@/lib/supabase/server";
 import { EventFilters } from "./EventFilters";
@@ -34,8 +35,6 @@ export type ListParams = {
 
 const DAY = 86_400_000;
 type Stat = { l: string; v: number | string; sub?: string; I: LucideIcon; bg: string };
-const ymdWib = (ms: number) =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date(ms));
 const STATUS: Record<Phase, [string, string]> = {
   berlangsung: ["Berlangsung", "bg-mint-soft"],
   mendatang: ["Mendatang", "bg-lavender"],
@@ -138,13 +137,7 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
   const rows = (data ?? []).map((e) => {
     const run = parseRun(e.run);
     const rs = runState(run);
-    // Timer yang sedang jalan/dijeda = berlangsung walau tanggalnya lewat (event lewat tengah malam).
-    const phase: Phase =
-      rs === "running" || rs === "paused" || e.event_date === today
-        ? "berlangsung"
-        : e.event_date > today
-          ? "mendatang"
-          : "selesai";
+    const phase: Phase = eventPhase(e.event_date, rs, today);
     const prices = (
       (e.settings as { photobox?: PhotoboxSettings } | null)?.photobox?.layouts ?? []
     ).map((l) => l.price);

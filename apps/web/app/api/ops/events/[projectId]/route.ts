@@ -1,5 +1,10 @@
+import { parseRun, runState } from "@tetra/shared";
+import { eventPhase, ymdWib } from "@/lib/events";
 import { bearerOk, opsOrgId } from "@/lib/ops-sync";
 import { createServiceClient } from "@/lib/supabase/service";
+
+/** Fase event yang sama dengan daftar admin; `status` Booth tidak pernah menjadi `completed`. */
+const PHASE = { mendatang: "upcoming", berlangsung: "live", selesai: "done" } as const;
 
 /**
  * Bagian "Acara & Galeri" di portal klien Tetra Ops (kontrak v0.2 §5, DECISIONS #173): semua event Booth yang
@@ -19,7 +24,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ projectId: stri
   const { data: events, error } = await db
     .from("events")
     .select(
-      "id, slug, name, event_date, status, client_token, client_expires_at, purge_at, purged_at",
+      "id, slug, name, event_date, status, run, client_token, client_expires_at, purge_at, purged_at",
     )
     .eq("organization_id", org)
     .eq("ops_project_id", projectId)
@@ -32,6 +37,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ projectId: stri
     : { data: [] };
   const byId = new Map((stats ?? []).map((s) => [s.event_id, s]));
   const origin = new URL(req.url).origin;
+  const today = ymdWib(Date.now());
 
   return Response.json({
     ops_project_id: projectId,
@@ -40,6 +46,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ projectId: stri
       name: e.name,
       event_date: e.event_date,
       status: e.status,
+      phase: PHASE[eventPhase(e.event_date, runState(parseRun(e.run)), today)],
       modules: ["photobooth"],
       gallery_url: e.client_token && !e.purged_at ? `${origin}/g/${e.slug}` : null,
       client_expires_at: e.client_expires_at,
