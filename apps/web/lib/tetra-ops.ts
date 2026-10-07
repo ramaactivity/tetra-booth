@@ -27,6 +27,8 @@ export const OpsBooking = z.object({
   frame_size: str,
   package_name: str,
   package_duration_hours: z.number().positive().max(48).nullable(),
+  // Usulan Booth #182 (aditif): daftar grup Photo Stage dari portal klien/WO.
+  stage_groups: z.array(z.string().max(120)).max(300).nullable().optional(),
   // Kontrak v0.5 §2.2 (aditif): desain frame dari modul desain Ops.
   design: z
     .looseObject({

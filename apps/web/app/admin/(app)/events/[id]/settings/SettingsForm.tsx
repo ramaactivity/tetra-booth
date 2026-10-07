@@ -54,6 +54,8 @@ export type SettingsValues = {
   promptsAfter: string[];
   /** Daftar grup Photo Stage (#181). */
   stageGroups: string[];
+  /** Usulan daftar grup dari portal Ops saat daftar masih kosong (#182). */
+  opsStageGroups: string[];
   /** Suara per cue (#104): nyala/mati + URL file pengganti (presigned) kalau ada. */
   sounds: { cue: string; on: boolean; custom: string | null }[];
   /** Header halaman tamu. */
@@ -1160,14 +1162,18 @@ export function SettingsForm({
               id="stage_groups"
               label="Daftar grup"
               optional
-              hint="Satu grup per baris, urut sesuai rundown foto. Bisa tempel dari WhatsApp atau Excel (kolom pertama), atau impor file CSV/TXT."
+              hint={
+                v.opsStageGroups.length
+                  ? `Diisi dari daftar klien di Tetra Ops (${v.opsStageGroups.length} grup). Periksa, lalu Simpan supaya terkirim ke laptop stage.`
+                  : "Satu grup per baris, urut sesuai rundown foto. Bisa tempel dari WhatsApp atau Excel (kolom pertama), atau impor file CSV/TXT."
+              }
             >
               <textarea
                 id="stage_groups"
                 name="stage_groups"
                 rows={8}
                 ref={groupsRef}
-                defaultValue={v.stageGroups.join("\n")}
+                defaultValue={(v.stageGroups.length ? v.stageGroups : v.opsStageGroups).join("\n")}
                 placeholder={
                   "Keluarga Inti\nKeluarga Besar Bpk. Hadi\nTeman Kantor PT ABC\nSahabat SMA Mempelai Wanita"
                 }

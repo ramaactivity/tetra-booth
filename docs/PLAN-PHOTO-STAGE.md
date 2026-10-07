@@ -36,7 +36,7 @@ Crew: Basic 2 (fotografer + operator), Standard 3 (+ helper QR di jalur turun), 
 | **S2. TV + QR** ✅ (7 Okt, #179; UI sementara) | Jendela TV di layar kedua, QR sesi terbaru + foto + nama grup, idle galeri, pengaturan durasi tampil | Uji dua layar di laptop Windows: QR terbaca HP, TV kembali ke galeri |
 | **S3. Web** ✅ (7 Okt, #180) | Halaman tamu untuk sesi stage, galeri klien bertab Photobooth/Photo Stage + cari nama grup + per jam, live slideshow campur, ZIP per sumber | E2E web lulus, dicek di HP |
 | **S4. Daftar grup** ✅ (7 Okt, #181; dari portal Ops menyusul) | Daftar grup dari admin (tempel/CSV) tersinkron ke laptop stage | Daftar grup muncul di laptop stage |
-| **S5. Lanjutan** | Cetak instan 4R dari stage, helper HP mengganti nama grup, LUT `.cube`, daftar grup dari portal Ops, Temukan Foto Saya (Fase 5, #76) | Dipilih owner sesuai prioritas |
+| **S5. Lanjutan** | Cetak instan 4R dari stage, helper HP mengganti nama grup, LUT `.cube`, daftar grup dari portal Ops (sisi Booth siap, #182), Temukan Foto Saya (Fase 5, #76) | Dipilih owner sesuai prioritas |
 
 Urutan rilis: S1–S3 cukup untuk **menjual paket Photo Stage pertama**. S4–S5 menyusul.
 

@@ -14,6 +14,7 @@ import type { PhotoboxSettings } from "@/lib/payments";
 import { photoboxKey } from "@/lib/payments";
 import { presignGet } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
+import { opsBookingNow } from "@/lib/tetra-ops";
 import { loadDesignOptions } from "./design-options";
 import { LinksPanel } from "./LinksPanel";
 import { SettingsForm, type SettingsValues } from "./SettingsForm";
@@ -27,7 +28,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, all_devices, package_name, package_hours, ops_frame_size, scheduled_start, scheduled_end, event_devices(device_id)",
+      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, all_devices, package_name, package_hours, ops_frame_size, scheduled_start, scheduled_end, ops_project_id, event_devices(device_id)",
     )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
@@ -58,6 +59,11 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const pinned = { ...tpl.versions, ...(tpl.layoutId && { [tpl.layoutId]: tpl.layoutVersion }) };
   const { designOptions, layouts } = await loadDesignOptions(db, orgId, pinned);
   const known = new Set(designOptions.map((o) => o.value));
+  // #182: daftar grup kosong → usulkan daftar yang diisi klien/WO di portal Ops (admin tetap menyimpan sendiri).
+  const opsGroups =
+    ev.mode === "event" && !s.stageGroups.length
+      ? ((await opsBookingNow(ev))?.booking?.stage_groups?.filter(Boolean) ?? [])
+      : [];
 
   return (
     <>
@@ -108,6 +114,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           promptsBefore: s.promptsBefore,
           promptsAfter: s.promptsAfter,
           stageGroups: s.stageGroups,
+          opsStageGroups: opsGroups,
           sounds: await Promise.all(
             SOUND_CUES.map(async (cue) => {
               const f = bundle.success
