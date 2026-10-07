@@ -90,6 +90,25 @@ export function LinksPanel({
     <div className="flex flex-col gap-4">
       {row("client", "Galeri klien", "g", !!clientOn)}
       {row("live", "Live slideshow", "live", !!liveOn)}
+      {liveOn && (
+        <p
+          className="-mt-2 flex flex-wrap items-center gap-x-2 text-xs text-text-2"
+          data-testid="link-stage"
+        >
+          Layar Photo Stage untuk device kedua (laptop / tablet / smart TV):
+          <span className="font-mono text-ink">{`${origin}/stage/${slug}`}</span>
+          <button
+            type="button"
+            className="font-bold text-ink underline"
+            onClick={async () => {
+              await navigator.clipboard.writeText(`${origin}/stage/${slug}`).catch(() => {});
+              setCopied("stage");
+            }}
+          >
+            {copied === "stage" ? "Tersalin" : "Salin"}
+          </button>
+        </p>
+      )}
       <p className="text-xs text-text-2">
         Link memakai nama event. Ganti nama atau tanggal event = alamat link ikut berubah.
       </p>

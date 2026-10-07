@@ -134,6 +134,20 @@ test("Photo Stage di galeri klien, halaman tamu, dan live", async ({ browser, re
     await expect(s.getByRole("heading", { name: "Keluarga Inti" })).toHaveCount(0);
     await db.from("assets").update({ hidden_at: null }).eq("session_id", inti);
 
+    // #203: layar galeri Photo Stage di device kedua (link live yang sama).
+    const tv = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+    const issues: string[] = [];
+    tv.on("console", (m) => m.type() === "error" && issues.push(m.text().slice(0, 200)));
+    await tv.goto(`/stage/e2e-stage-live-${tag}`);
+    await expect(tv.getByRole("heading", { name: /^Tamu · 12\.20$/ })).toBeVisible();
+    await tv.getByRole("button", { name: "Cari fotomu" }).first().click();
+    const find = tv.getByTestId("stage-display-find");
+    await find.getByRole("button", { name: /Keluarga Inti/ }).click();
+    await expect(find.getByRole("img", { name: new RegExp(`/s/${inti}$`) })).toBeVisible();
+    await tv.screenshot({ path: "test-results/stage-display.png" });
+    expect(issues.filter((x) => /hydrat|Hydrat/.test(x))).toEqual([]);
+    await tv.close();
+
     const live = await (await request.get(`/api/live/e2e-stage-live-${tag}`)).json();
     expect((live as { id: string }[]).map((x) => x.id).sort()).toEqual([booth, inti, tamu].sort());
 

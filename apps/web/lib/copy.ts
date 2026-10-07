@@ -90,6 +90,21 @@ export const copy = {
     goneBody: "Link ini sudah tidak aktif atau acaranya sudah lewat.",
   },
   /** Halaman tamu Photo Stage (#190, desain C7–C7b). */
+  /** Layar galeri Photo Stage di device kedua (#204), sama dengan TV laptop stage. */
+  stageDisplay: {
+    group: (time: string) => `Rombongan · ${time}`,
+    scan: "Scan untuk ambil fotomu",
+    prev: "Rombongan sebelumnya",
+    idle: "Foto dari pelaminan akan tampil di sini",
+    galleryQr: "Belum dapat\nfotomu?",
+    galleryQrSub: "Cari di sini",
+    find: "Cari fotomu",
+    findSub: "Ketuk rombonganmu untuk melihat foto & QR-nya",
+    close: "Tutup",
+    all: "Semua rombongan",
+    none: "Belum ada rombongan yang difoto",
+    photos: (n: number) => `${n} foto`,
+  },
   stageGuest: {
     meta: (time: string, n: number) => `Rombongan · ${time}${n ? ` · ${n} foto` : ""}`,
     of: (i: number, n: number) => `${i} / ${n}`,
