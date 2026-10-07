@@ -176,6 +176,7 @@ test("Pengaturan event: daftar grup Photo Stage (tempel + impor CSV) masuk bundl
     await expect(page.getByText("1 nama ganda:")).toBeHidden();
     await expect(page.getByText("3 grup", { exact: true })).toBeVisible();
     await page.locator("#stageTvSec").fill("20");
+    await page.locator("#ops_project_id").fill("PRJ-E2E-LINK"); // #193
     await page.locator("#photo-stage").screenshot({ path: "test-results/admin-photo-stage.png" });
     await page.getByRole("button", { name: "Simpan", exact: true }).click();
     await expect(page.getByRole("status").filter({ hasText: "Tersimpan" })).toBeVisible({
@@ -183,12 +184,13 @@ test("Pengaturan event: daftar grup Photo Stage (tempel + impor CSV) masuk bundl
     });
     const { data: ev } = await db
       .from("events")
-      .select("settings, bundle")
+      .select("settings, bundle, ops_project_id")
       .eq("slug", slug)
       .single();
     const groups = ["Keluarga Inti", "Keluarga Besar Bpk. Hadi", "Teman Kantor PT ABC"];
     expect((ev?.settings as { stageGroups?: string[] } | undefined)?.stageGroups).toEqual(groups);
     expect((ev?.settings as { stageTvSec?: number } | undefined)?.stageTvSec).toBe(20);
+    expect(ev?.ops_project_id).toBe("PRJ-E2E-LINK");
     expect(
       (ev?.bundle as { config?: { settings?: { stageGroups?: string[] } } } | undefined)?.config
         ?.settings?.stageGroups,

@@ -69,6 +69,16 @@ const Form = z.object({
   client_name: z.string().trim().max(120),
   /** Paket (#150). Tidak dikirim = tidak diubah; kosong = dihapus. */
   package_name: z.string().trim().max(80).optional(),
+  /** Tautan booking Tetra Ops (#193), mis. PRJ-20261004-9023; kosong = tidak ditautkan. Tidak dikirim = tidak diubah. */
+  ops_project_id: z
+    .union([
+      z.literal(""),
+      z
+        .string()
+        .trim()
+        .regex(/^[\w-]{1,64}$/),
+    ])
+    .optional(),
   package_hours: z
     .union([z.literal(""), z.coerce.number().min(0.5).max(48).multipleOf(0.5)])
     .optional(),
@@ -408,6 +418,7 @@ export async function applySettings(
       event_date: f.event_date,
       location: f.location || null,
       ...(f.package_name !== undefined && { package_name: f.package_name || null }),
+      ...(f.ops_project_id !== undefined && { ops_project_id: f.ops_project_id || null }),
       ...(f.package_hours !== undefined && {
         package_hours: f.package_hours === "" ? null : f.package_hours,
       }),

@@ -88,6 +88,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           tagline: branding.tagline ?? "",
           client_name: branding.clientName ?? "",
           package_name: ev.package_name ?? "",
+          opsProjectId: ev.ops_project_id ?? "",
           package_hours: ev.package_hours ? String(ev.package_hours) : "",
           scheduled_start: ev.scheduled_start?.slice(0, 5) ?? "",
           scheduled_end: ev.scheduled_end?.slice(0, 5) ?? "",

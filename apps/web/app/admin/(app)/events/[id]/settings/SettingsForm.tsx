@@ -34,6 +34,8 @@ export type SettingsValues = {
   client_name: string;
   /** Paket yang dijual (#150): nama + durasi jam, untuk rekap durasi. */
   package_name: string;
+  /** Booking Tetra Ops yang ditautkan (#193); "" = belum. */
+  opsProjectId: string;
   package_hours: string;
   /** Jadwal booking (#152) "HH:MM", kosong = tidak diisi. */
   scheduled_start: string;
@@ -705,6 +707,23 @@ export function SettingsForm({
                 defaultValue={v.package_name}
                 aria-describedby="package_name-hint"
                 className={input}
+              />
+            </Field>
+            <Field
+              id="ops_project_id"
+              label="ID booking Tetra Ops"
+              optional
+              hint="Event yang tidak dibuat dari impor Ops bisa ditautkan di sini (mis. PRJ-20261004-9023), supaya galeri muncul di dashboard klien Ops."
+            >
+              <input
+                id="ops_project_id"
+                name="ops_project_id"
+                maxLength={64}
+                pattern="[A-Za-z0-9_\-]+"
+                defaultValue={v.opsProjectId}
+                placeholder="PRJ-…"
+                aria-describedby="ops_project_id-hint"
+                className={`${input} font-mono`}
               />
             </Field>
             <Field
