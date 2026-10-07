@@ -56,8 +56,22 @@ test("polaroid dua sisi berbeda: 2 foto, 2 potong, GIF ada", async () => {
     await expect(start).toBeVisible();
     await w.waitForTimeout(1000);
     await start.click();
-    await w.getByRole("button", { name: /pakai semua foto/i }).click({ timeout: 45_000 });
-    await w.getByRole("button", { name: /cetak sekarang/i }).click({ timeout: 15_000 });
+    const next = w.getByRole("button", { name: /pakai semua foto/i });
+    await expect(next).toBeVisible({ timeout: 45_000 });
+    // Foto ulang: kartu sisi kiri & kanan sama ukurannya (foto ke-2 dulu jatuh ke rasio bawaan 3:2).
+    const cards = w.locator("main img").locator("..");
+    const box = async (i: number) => (await cards.nth(i).boundingBox())?.width;
+    expect(await box(1)).toBeCloseTo((await box(0)) ?? 0, 1);
+    await next.click();
+    // Pilih jumlah cetak: pratinjau = lembar utuh (dua sisi), bukan satu potong.
+    const cetak = w.getByRole("button", { name: /cetak sekarang/i });
+    await expect(cetak).toBeVisible({ timeout: 15_000 });
+    const nat = await w
+      .locator("main img")
+      .first()
+      .evaluate((i: HTMLImageElement) => [i.naturalWidth, i.naturalHeight]);
+    expect(nat).toEqual([1200, 1800]);
+    await cetak.click();
     await w.getByRole("button", { name: "Selesai" }).click({ timeout: 60_000 });
     const sid = readdirSync(join(data, "sessions")).find((d) => !d.startsWith("_")) ?? "";
     const out = join(data, "sessions", sid, "out");

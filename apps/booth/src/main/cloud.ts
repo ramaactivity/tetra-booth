@@ -18,10 +18,11 @@ import {
   type RunAction,
 } from "@tetra/shared";
 import { app, safeStorage, screen } from "electron";
+import { ZodError } from "zod";
 import type { Alerts } from "./alerts";
 import { installBundle } from "./bundle-sync";
 import { cameraHealth, request } from "./camera-client";
-import { CloudError, cloudErrorText } from "./cloud-error";
+import { BundleSkipped, CloudError, cloudErrorText } from "./cloud-error";
 import { config, printerName } from "./config";
 import type { BoothDb } from "./db";
 import { createRunQueue } from "./run-queue";
@@ -211,14 +212,27 @@ export function createCloud(
       if (!t) return 0;
       const { events } = BoothEventsResponse.parse(await get("/api/booth/events", t));
       let updated = 0;
+      const broken: string[] = [];
       for (const e of events) {
         if (!force && db.kv.get(`bundle_version:${e.id}`) === String(e.bundleVersion)) continue;
         const m = BundleManifest.parse(await get(`/api/booth/events/${e.id}/bundle`, t));
-        await installBundle(join(app.getPath("userData"), "events", e.id), m, download);
+        try {
+          await installBundle(join(app.getPath("userData"), "events", e.id), m, download);
+        } catch (err) {
+          // Satu bundle tidak lengkap tidak boleh menggagalkan event lain (W-043 temuan 0.6.7); jaringan tetap gagal total.
+          if (!(err instanceof ZodError)) throw err;
+          log(`[cloud] bundle ${e.name} (${e.id}) tidak valid, dilewati: ${err.message}`);
+          broken.push(e.name);
+          continue;
+        }
         db.kv.set(`bundle_version:${e.id}`, String(m.bundleVersion));
         log(`[cloud] bundle ${e.name} v${m.bundleVersion} terpasang`);
         updated++;
       }
+      if (broken.length)
+        throw new BundleSkipped(
+          `Event ${broken.map((n) => `"${n}"`).join(", ")} dari cloud tidak lengkap, dilewati. Buka pengaturan event di admin lalu Simpan, kemudian sync lagi`,
+        );
       return updated;
     })().finally(() => {
       syncing = null;

@@ -1,6 +1,7 @@
 import { type BundleManifest, type EventInfo, hhmm, StoredBundle } from "@tetra/shared";
 import { z } from "zod";
 import { apiError, authDevice, deviceEvents } from "@/lib/booth";
+import { longDate } from "@/lib/guest";
 import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -16,7 +17,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const { data: ev, error } = await createServiceClient()
     .from("events")
     .select(
-      "id, bundle_version, bundle, slug, scheduled_start, scheduled_end, package_name, package_hours, public_gallery, live_token",
+      "id, name, event_date, bundle_version, bundle, slug, scheduled_start, scheduled_end, package_name, package_hours, public_gallery, live_token",
     )
     .eq("id", id)
     .eq("organization_id", device.organizationId)
@@ -38,7 +39,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   // URL GET bertanda tangan 15 menit (TSD §4.1); r2.dev diblokir ISP Indonesia (DECISIONS #63).
   return Response.json({
     bundleVersion: ev.bundle_version,
-    config: { ...stored.data.config, id: ev.id, info },
+    // Nama & tanggal dari baris event bila config tersimpan tidak memuatnya (sync 0.6.7 gagal karena ini).
+    config: {
+      name: ev.name,
+      date: longDate(ev.event_date),
+      ...stored.data.config,
+      id: ev.id,
+      info,
+    },
     files: await Promise.all(
       stored.data.files.map(async (f) => ({
         file: f.file,

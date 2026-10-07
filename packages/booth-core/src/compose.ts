@@ -28,7 +28,13 @@ export async function renderEvent(
   qrUrl?: string,
   /** Skala versi web (`web`); 1 = sama dengan potongan cetak. */
   webScale = 1,
-): Promise<{ piece: OffscreenCanvas; sheet: OffscreenCanvas; web: OffscreenCanvas }> {
+): Promise<{
+  piece: OffscreenCanvas;
+  sheet: OffscreenCanvas;
+  web: OffscreenCanvas;
+  /** Dua sisi lembar beda foto (#207): layar menampilkan lembar utuh, bukan satu potong. */
+  pair: boolean;
+}> {
   const fonts = event.render?.fonts ?? {};
   if (event.layout.texts.some((t) => !fonts[t.fontAssetId]))
     await document.fonts.load(`40px "${FONT}"`);
@@ -54,6 +60,7 @@ export async function renderEvent(
     piece: piece as unknown as OffscreenCanvas,
     sheet: sheet as unknown as OffscreenCanvas,
     web: web as unknown as OffscreenCanvas,
+    pair,
   };
 }
 
@@ -95,7 +102,7 @@ export async function composeStrip(
     photos.map(async (p) => createImageBitmap(new Blob([await storage.readFile(p.path)]))),
   );
   try {
-    const { piece, sheet } = await renderEvent(event, bitmaps, photoFilter, qrUrl);
+    const { piece, sheet, pair } = await renderEvent(event, bitmaps, photoFilter, qrUrl);
     const dir = `${await storage.sessionDir(sessionId)}/out`;
     const write = async (c: OffscreenCanvas, name: string) => {
       // Lembar cetak DNP (juga diunggah sebagai aset `strip`): 0.95, detail foto DSLR tidak lembek di cetakan.
@@ -112,7 +119,9 @@ export async function composeStrip(
     return {
       path: `${dir}/strip.jpg`,
       piecePath: `${dir}/${same ? "strip" : "piece"}.jpg`,
-      url: URL.createObjectURL(pieceBlob),
+      url: URL.createObjectURL(
+        pair ? await sheet.convertToBlob({ type: "image/jpeg", quality: 0.9 }) : pieceBlob,
+      ),
     };
   } finally {
     for (const b of bitmaps) b.close();

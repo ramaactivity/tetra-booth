@@ -8,11 +8,15 @@ export class CloudError extends Error {
   }
 }
 
+/** Sync selesai tapi ada event cloud yang bundle-nya tidak lengkap dan dilewati; `message` sudah kalimat crew. */
+export class BundleSkipped extends Error {}
+
 /**
  * Pesan untuk crew dari kegagalan aksi cloud (#170): hanya offline yang disebut "butuh internet"; ditolak server
  * dijelaskan apa yang harus dilakukan. `offline` = kalimat khusus aksi itu.
  */
 export function cloudErrorText(e: unknown, offline: string): string {
+  if (e instanceof BundleSkipped) return e.message;
   const s = e instanceof CloudError ? e.status : undefined;
   if (s === undefined) return offline;
   if (s === 401)
