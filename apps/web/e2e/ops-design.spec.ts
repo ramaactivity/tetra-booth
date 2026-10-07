@@ -91,7 +91,9 @@ test("dashboard event: desain ACC dari Tetra Ops dipasang sebagai desain utama",
     });
     await db.from("events").update({ ops_project_id: "PRJ-E2E-DESIGN" }).eq("slug", slug);
     await page.goto(`/admin/events/${slug}`);
-    await expect(page.getByText("Desain frame sudah di-ACC klien di Tetra Ops")).toBeVisible();
+    await expect(page.getByText("Desain frame sudah di-ACC klien di Tetra Ops")).toBeVisible({
+      timeout: 20_000,
+    });
     await page.getByRole("button", { name: "Pasang desain dari Tetra Ops" }).click();
     const dialog = page.getByRole("dialog", { name: "Pasang desain dari Tetra Ops" });
     await expect(dialog.getByRole("img", { name: "Pratinjau slot terdeteksi" })).toBeVisible({

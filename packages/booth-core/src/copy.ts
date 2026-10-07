@@ -216,6 +216,8 @@ export const copy = {
     noPhoto: "Jepret satu foto tes dulu untuk melihat hasilnya.",
     crew: "Crew",
     keys: "⏎ rombongan baru · Spasi jeda/lanjut",
+    next: "Berikutnya:",
+    doneCount: (done: number, all: number) => `${done}/${all} grup sudah`,
     tvOn: "TV tersambung",
     tvOff: "TV tidak tersambung",
     tvScan: "Scan untuk ambil fotomu",

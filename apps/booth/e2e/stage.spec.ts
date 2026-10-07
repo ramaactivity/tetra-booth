@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -106,5 +106,69 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   await w.screenshot({ path: "test-results/stage-color.png" });
   await dlg.getByRole("button", { name: "Selesai" }).click();
   await expect(dlg).toBeHidden();
+  await app.close();
+});
+
+test("stage: daftar grup dari klien jadi pilihan cepat nama rombongan (#181)", async () => {
+  test.skip(!existsSync(serviceBin), "Camera Service belum di-build");
+  test.setTimeout(90_000);
+  const data = mkdtempSync(join(tmpdir(), "tb-stage-list-"));
+  const hot = join(data, "hot");
+  const dir = join(data, "events", "rina-dimas", "bundle");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, "config.json"),
+    JSON.stringify({
+      id: "rina-dimas",
+      name: "Rina & Dimas",
+      date: "12 Desember 2026",
+      layout: {
+        id: "l",
+        version: 1,
+        paper: "4R",
+        canvas: { width: 1200, height: 1800, dpi: 300 },
+        background: { color: "#ffffff" },
+        slots: [{ id: "s", x: 0, y: 0, w: 1200, h: 1800, fit: "cover", z: "below_overlay" }],
+        texts: [],
+      },
+      settings: {
+        stageGroups: ["Keluarga Inti", "Keluarga Besar Bpk. Hadi", "Teman Kantor PT ABC"],
+      },
+    }),
+  );
+  const env = { ...process.env };
+  delete env.ELECTRON_RUN_AS_NODE;
+  const app = await electron.launch({
+    executablePath: electronPath,
+    args: [
+      appDir,
+      "--camera=hotfolder",
+      "--hot-folder",
+      hot,
+      "--role",
+      "stage",
+      "--start-screen",
+      "--data",
+      data,
+    ],
+    env: env as Record<string, string>,
+  });
+  const w = await app.firstWindow();
+  await w.getByRole("button", { name: /Mode Event/ }).click();
+  await w.getByRole("button", { name: /Rina & Dimas/ }).click();
+  const next = w.getByTestId("stage-next");
+  await expect(next).toContainText("0/3 grup sudah");
+  await next.getByRole("button", { name: "Keluarga Inti" }).click();
+  await expect(w.getByLabel("Nama grup (boleh kosong)", { exact: true })).toHaveValue(
+    "Keluarga Inti",
+  );
+  await expect(next.getByRole("button", { name: "Keluarga Inti" })).toHaveCount(0);
+  await expect(next).toContainText("1/3 grup sudah");
+  // Rombongan kedua dari daftar: rombongan aktif masih kosong → nama diganti, bukan rombongan baru.
+  await next.getByRole("button", { name: "Keluarga Besar Bpk. Hadi" }).click();
+  await expect(w.getByLabel("Nama grup (boleh kosong)", { exact: true })).toHaveValue(
+    "Keluarga Besar Bpk. Hadi",
+  );
+  await w.screenshot({ path: "test-results/stage-list.png" });
   await app.close();
 });

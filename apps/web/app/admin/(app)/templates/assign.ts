@@ -117,6 +117,7 @@ export async function assignToEvent(
   for (const x of s.filters) f.set(`filter_${x}`, "on");
   set("prompts_before", s.promptsBefore.join("\n"));
   set("prompts_after", s.promptsAfter.join("\n"));
+  set("stage_groups", s.stageGroups.join("\n"));
   for (const cue of SOUND_CUES) {
     const cfg = bundle.success
       ? (bundle.data.config as { sounds?: Record<string, string> }).sounds?.[cue]

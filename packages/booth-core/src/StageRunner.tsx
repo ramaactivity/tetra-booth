@@ -231,6 +231,16 @@ export function StageRunner({
   };
 
   const cur = activeGroup(s);
+  // Daftar grup dari klien/WO (#181): yang belum dipakai rombongan mana pun, urut rundown.
+  const list = event.settings.stageGroups;
+  const used = new Set(s.groups.flatMap((g) => (g.name ? [g.name.toLowerCase()] : [])));
+  const next = list.filter((n) => !used.has(n.toLowerCase()));
+  const pickName = (name: string) => {
+    if (cur && (!cur.shots.length || !cur.name)) return rename(cur, name);
+    const id = newSessionId();
+    dispatch({ type: "NEW_GROUP", id, now: Date.now() });
+    dispatch({ type: "RENAME", id, name });
+  };
   const qrGroup = cur?.shots.length ? cur : [...s.groups].reverse().find((g) => g.shots.length);
   const lastThumb = Object.values(thumbs).at(-1);
   const css = stagePresetCss(preset);
@@ -282,6 +292,24 @@ export function StageRunner({
                   {t.assignLoose}
                 </button>
               )}
+            </div>
+          )}
+          {!!list.length && (
+            <div className="flex items-center gap-3 overflow-hidden" data-testid="stage-next">
+              <span className="flex-none text-xl font-bold text-text-2">{t.next}</span>
+              {next.slice(0, 5).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => pickName(n)}
+                  className="pressable max-w-[320px] flex-none truncate rounded-full border-2 border-ink bg-lavender px-4 py-1.5 text-xl font-bold"
+                >
+                  {n}
+                </button>
+              ))}
+              <span className="flex-none text-lg text-text-2">
+                {t.doneCount(list.length - next.length, list.length)}
+              </span>
             </div>
           )}
           {cur ? (

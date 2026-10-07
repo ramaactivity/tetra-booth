@@ -28,6 +28,7 @@ import { copyLayout, StoredLayout } from "@/lib/layouts";
 import { consentVersion, LEAD_FIELDS } from "@/lib/leads";
 import type { PhotoboxLayoutSetting, PhotoboxSettings } from "@/lib/payments";
 import { putObject } from "@/lib/r2";
+import { groupLines } from "@/lib/stage-groups";
 import { requireMember } from "@/lib/supabase/server";
 
 const DAY = 86_400_000;
@@ -264,6 +265,7 @@ export async function applySettings(
     ).map((x) => x.id),
     promptsBefore: lines(form.get("prompts_before")),
     promptsAfter: lines(form.get("prompts_after")),
+    stageGroups: groupLines(form.get("stage_groups")),
   };
   /** Versi terbaru template editor (dikunci ke event saat simpan). */
   const latest = async (layoutId: string) => {

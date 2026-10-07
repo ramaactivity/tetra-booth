@@ -107,6 +107,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           filters: s.filters,
           promptsBefore: s.promptsBefore,
           promptsAfter: s.promptsAfter,
+          stageGroups: s.stageGroups,
           sounds: await Promise.all(
             SOUND_CUES.map(async (cue) => {
               const f = bundle.success

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { db, hasDb } from "./admin-helpers";
+import { createEventViaWizard, db, hasDb, login, makeUser } from "./admin-helpers";
 
 /**
  * Photo Stage S3 (#180): galeri klien bertab Photo Stage (per rombongan + cari nama grup), Original hanya booth,
@@ -94,5 +94,45 @@ test("Photo Stage di galeri klien, halaman tamu, dan live", async ({ browser, re
     expect((live as { id: string }[]).map((x) => x.id).sort()).toEqual([booth, inti, tamu].sort());
   } finally {
     await db.from("events").delete().eq("id", eventId);
+  }
+});
+
+test("Pengaturan event: daftar grup Photo Stage (tempel + impor CSV) masuk bundle (#181)", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const u = await makeUser("owner");
+  const name = `e2e stage grup ${Date.now()}`;
+  try {
+    await login(page, u);
+    const slug = await createEventViaWizard(page, {
+      name,
+      date: "2026-12-20",
+      paper: /Foto 4R/,
+      design: "auto",
+    });
+    await page.goto(`/admin/events/${slug}/settings`);
+    await page.getByLabel(/^Daftar grup/).fill("1. Keluarga Inti\nKeluarga Besar Bpk. Hadi\tBogor");
+    await page.locator('label:has-text("Impor CSV / TXT") input[type=file]').setInputFiles({
+      name: "grup.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from("Teman Kantor PT ABC;20 orang\r\nKeluarga Inti\r\n"),
+    });
+    await page.getByRole("button", { name: "Simpan" }).click();
+    await expect(page.getByRole("status")).toContainText("Tersimpan", { timeout: 30_000 });
+    const { data: ev } = await db
+      .from("events")
+      .select("settings, bundle")
+      .eq("slug", slug)
+      .single();
+    const groups = ["Keluarga Inti", "Keluarga Besar Bpk. Hadi", "Teman Kantor PT ABC"];
+    expect((ev?.settings as { stageGroups?: string[] } | undefined)?.stageGroups).toEqual(groups);
+    expect(
+      (ev?.bundle as { config?: { settings?: { stageGroups?: string[] } } } | undefined)?.config
+        ?.settings?.stageGroups,
+    ).toEqual(groups);
+  } finally {
+    await db.from("events").delete().eq("name", name);
+    await u.cleanup();
   }
 });

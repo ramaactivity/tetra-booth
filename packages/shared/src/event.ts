@@ -23,6 +23,8 @@ export const EventSettingsSchema = z.object({
   filters: z.array(z.enum(PHOTO_FILTER_IDS)).max(5).default([]),
   promptsBefore: z.array(z.string().min(1).max(40)).max(10).default([]),
   promptsAfter: z.array(z.string().min(1).max(40)).max(10).default([]),
+  /** Photo Stage (#181): daftar grup foto dari klien/WO (urutan foto pelaminan), pilihan cepat di laptop stage. */
+  stageGroups: z.array(z.string().min(1).max(120)).max(300).default([]),
 });
 export type EventSettings = z.infer<typeof EventSettingsSchema>;
 export const DEFAULT_SETTINGS: EventSettings = EventSettingsSchema.parse({});

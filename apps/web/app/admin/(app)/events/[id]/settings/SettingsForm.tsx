@@ -15,6 +15,7 @@ import {
   startTransition,
   useActionState,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { OPS_PAPER, OpsPaperWarning } from "../../OpsPaperWarning";
@@ -51,6 +52,8 @@ export type SettingsValues = {
   filters: string[];
   promptsBefore: string[];
   promptsAfter: string[];
+  /** Daftar grup Photo Stage (#181). */
+  stageGroups: string[];
   /** Suara per cue (#104): nyala/mati + URL file pengganti (presigned) kalau ada. */
   sounds: { cue: string; on: boolean; custom: string | null }[];
   /** Header halaman tamu. */
@@ -399,6 +402,7 @@ export function SettingsForm({
   }, [r]);
   useLeaveGuard(dirty, "Ada perubahan belum disimpan. Tinggalkan halaman ini?");
   const pb = mode === "photobox";
+  const groupsRef = useRef<HTMLTextAreaElement>(null);
 
   // Bagian yang sedang terbaca → disorot di navigasi kiri.
   useEffect(() => {
@@ -501,6 +505,15 @@ export function SettingsForm({
       label: "Sesi & pembayaran",
       items: [
         ["sesi", "Sesi", "ok"],
+        ...(!pb
+          ? [
+              ["photo-stage", "Photo Stage", v.stageGroups.length ? "ok" : "opsional"] as [
+                string,
+                string,
+                Badge,
+              ],
+            ]
+          : []),
         ...(pb
           ? [["photobox", "Photobox", ok.photobox ? "ok" : "wajib"] as [string, string, Badge]]
           : []),
@@ -1133,6 +1146,53 @@ export function SettingsForm({
                 className={textarea}
               />
             </Field>
+          </Section>
+
+          {/* Photo Stage (#181): daftar grup dari klien/WO; disembunyikan di photobox tapi tetap di form. */}
+          <Section
+            id="photo-stage"
+            title="Photo Stage"
+            hidden={pb}
+            badge={v.stageGroups.length ? "ok" : "opsional"}
+            desc="Daftar grup foto pelaminan dari klien atau WO. Muncul di laptop stage sebagai pilihan cepat nama rombongan."
+          >
+            <Field
+              id="stage_groups"
+              label="Daftar grup"
+              optional
+              hint="Satu grup per baris, urut sesuai rundown foto. Bisa tempel dari WhatsApp atau Excel (kolom pertama), atau impor file CSV/TXT."
+            >
+              <textarea
+                id="stage_groups"
+                name="stage_groups"
+                rows={8}
+                ref={groupsRef}
+                defaultValue={v.stageGroups.join("\n")}
+                placeholder={
+                  "Keluarga Inti\nKeluarga Besar Bpk. Hadi\nTeman Kantor PT ABC\nSahabat SMA Mempelai Wanita"
+                }
+                aria-describedby="stage_groups-hint"
+                className={textarea}
+              />
+            </Field>
+            <div className="flex items-start md:col-span-2">
+              <label className="pressable flex h-10 cursor-pointer items-center rounded-[10px] border-[1.5px] border-ink bg-white px-3.5 text-[13px] font-bold has-focus-visible:outline-2">
+                Impor CSV / TXT
+                <input
+                  type="file"
+                  accept=".csv,.txt,text/csv,text/plain"
+                  className="sr-only"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f || !groupsRef.current) return;
+                    const text = await f.text();
+                    const cur = groupsRef.current.value.trim();
+                    groupsRef.current.value = cur ? `${cur}\n${text}` : text;
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
           </Section>
 
           {/* Disembunyikan di Mode Event, tapi tetap di form: harga photobox tidak hilang saat simpan. */}
