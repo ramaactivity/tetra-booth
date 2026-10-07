@@ -179,6 +179,10 @@ export const SessionUpsert = z.object({
   assetCount: z.number().int().min(1).max(50),
   /** Sesi mode "Tes dulu" crew (#153): tidak dihitung di statistik, rekap, galeri. Booth lama = tidak dikirim. */
   isTest: z.boolean().optional(),
+  /** Photo Stage (#178): sumber sesi; tidak dikirim = booth. */
+  source: z.enum(["booth", "stage"]).optional(),
+  /** Photo Stage: nama grup rombongan (null = tanpa nama). Upsert ulang = ganti nama. */
+  groupName: z.string().trim().max(120).nullable().optional(),
 });
 export type SessionUpsert = z.infer<typeof SessionUpsert>;
 

@@ -8,3 +8,4 @@ export * from "./paper";
 export * from "./presets";
 export * from "./run";
 export * from "./size";
+export * from "./stage";

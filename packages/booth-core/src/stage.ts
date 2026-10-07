@@ -1,0 +1,120 @@
+import { STAGE_MAX_SHOTS } from "@tetra/shared";
+
+/**
+ * Photo Stage (#178, docs/PLAN-PHOTO-STAGE.md): pengelompokan jepretan fotografer menjadi rombongan (= satu sesi).
+ * Reducer murni: rombongan baru lewat tombol (Enter), jeda otomatis (bisa dimatikan), atau batas foto. Saat Jeda,
+ * jepretan ditampung "belum dikelompokkan" sampai operator memasukkannya ke rombongan.
+ */
+export type StageShot = { path: string; width: number; height: number; at: number };
+export type StageGroup = {
+  /** ID sesi (dibuat runner, sama dengan sesi booth). */
+  id: string;
+  no: number;
+  name: string | null;
+  startedAt: number;
+  shots: StageShot[];
+  /** null = rombongan aktif. */
+  closedAt: number | null;
+};
+export type StageState = {
+  groups: StageGroup[];
+  nextNo: number;
+  paused: boolean;
+  loose: StageShot[];
+  lastShotAt: number | null;
+  /** Jeda pemisah otomatis (detik); null = mati. */
+  gapSec: number | null;
+};
+export type StageAction =
+  /** `id` = ID sesi kalau jepretan ini membuka rombongan baru. */
+  | { type: "SHOT"; shot: StageShot; id: string }
+  | { type: "NEW_GROUP"; id: string; now: number }
+  | { type: "TICK"; now: number }
+  | { type: "PAUSE" }
+  | { type: "RESUME" }
+  | { type: "RENAME"; id: string; name: string }
+  | { type: "ASSIGN_LOOSE"; id: string; now: number }
+  | { type: "SET_GAP"; gapSec: number | null };
+
+export const initialStage = (gapSec: number | null, nextNo = 1): StageState => ({
+  groups: [],
+  nextNo,
+  paused: false,
+  loose: [],
+  lastShotAt: null,
+  gapSec,
+});
+
+export const activeGroup = (s: StageState) => {
+  const g = s.groups.at(-1);
+  return g && g.closedAt === null ? g : null;
+};
+
+/** Tutup rombongan aktif; yang kosong dibuang (tidak pernah jadi sesi). */
+const closeActive = (s: StageState, at: number): StageState => {
+  const a = activeGroup(s);
+  if (!a) return s;
+  const groups = s.groups.slice(0, -1);
+  return { ...s, groups: a.shots.length ? [...groups, { ...a, closedAt: at }] : groups };
+};
+
+const open = (s: StageState, id: string, at: number): StageState => ({
+  ...s,
+  groups: [...s.groups, { id, no: s.nextNo, name: null, startedAt: at, shots: [], closedAt: null }],
+  nextNo: s.nextNo + 1,
+});
+
+const addShots = (s: StageState, shots: StageShot[]): StageState => {
+  const a = activeGroup(s);
+  if (!a) return s;
+  return { ...s, groups: [...s.groups.slice(0, -1), { ...a, shots: [...a.shots, ...shots] }] };
+};
+
+export function stageReducer(s: StageState, a: StageAction): StageState {
+  switch (a.type) {
+    case "SHOT": {
+      if (s.paused) return { ...s, loose: [...s.loose, a.shot] };
+      const cur = activeGroup(s);
+      const gapOver =
+        s.gapSec !== null && s.lastShotAt !== null && a.shot.at - s.lastShotAt > s.gapSec * 1000;
+      const needNew =
+        !cur || (cur.shots.length > 0 && (gapOver || cur.shots.length >= STAGE_MAX_SHOTS));
+      const next = needNew ? open(closeActive(s, s.lastShotAt ?? a.shot.at), a.id, a.shot.at) : s;
+      return { ...addShots(next, [a.shot]), lastShotAt: a.shot.at };
+    }
+    case "NEW_GROUP": {
+      const cur = activeGroup(s);
+      if (cur && !cur.shots.length) return s;
+      return open(closeActive(s, a.now), a.id, a.now);
+    }
+    case "TICK": {
+      const cur = activeGroup(s);
+      if (!cur?.shots.length || s.gapSec === null || s.lastShotAt === null) return s;
+      return a.now - s.lastShotAt > s.gapSec * 1000 ? closeActive(s, a.now) : s;
+    }
+    case "PAUSE":
+      return s.paused ? s : { ...s, paused: true };
+    case "RESUME":
+      return s.paused ? { ...s, paused: false } : s;
+    case "RENAME": {
+      const name = a.name.trim().slice(0, 120) || null;
+      return {
+        ...s,
+        groups: s.groups.map((g) => (g.id === a.id ? { ...g, name } : g)),
+      };
+    }
+    case "ASSIGN_LOOSE": {
+      if (!s.loose.length) return s;
+      const cur = activeGroup(s);
+      const base = cur ? s : open(s, a.id, a.now);
+      return { ...addShots(base, s.loose), loose: [], lastShotAt: a.now };
+    }
+    case "SET_GAP":
+      return { ...s, gapSec: a.gapSec };
+  }
+}
+
+/** Label rombongan tanpa nama: "Tamu · 19.42" (jam mulai, WIB laptop). */
+export const groupLabel = (g: StageGroup) =>
+  g.name ??
+  `Tamu · ${new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(g.startedAt)}`;

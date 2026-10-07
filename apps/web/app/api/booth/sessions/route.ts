@@ -42,6 +42,8 @@ export async function POST(req: Request) {
     print_count: s.printCount,
     asset_count: s.assetCount,
     is_test: s.isTest ?? false,
+    ...(s.source && { source: s.source }),
+    ...(s.groupName !== undefined && { group_name: s.groupName || null }),
     ...(paid && { payment_id: paid.id }),
   });
   if (error) return apiError("server_error", 500);

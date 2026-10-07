@@ -863,6 +863,7 @@ export type Database = {
           deleted_at: string | null
           device_id: string
           event_id: string
+          group_name: string | null
           hidden_at: string | null
           id: string
           is_test: boolean
@@ -872,6 +873,7 @@ export type Database = {
           photo_count: number
           print_count: number
           retake_count: number
+          source: string
           started_at: string
           upload_status: string
         }
@@ -882,6 +884,7 @@ export type Database = {
           deleted_at?: string | null
           device_id: string
           event_id: string
+          group_name?: string | null
           hidden_at?: string | null
           id: string
           is_test?: boolean
@@ -891,6 +894,7 @@ export type Database = {
           photo_count?: number
           print_count?: number
           retake_count?: number
+          source?: string
           started_at: string
           upload_status?: string
         }
@@ -901,6 +905,7 @@ export type Database = {
           deleted_at?: string | null
           device_id?: string
           event_id?: string
+          group_name?: string | null
           hidden_at?: string | null
           id?: string
           is_test?: boolean
@@ -910,6 +915,7 @@ export type Database = {
           photo_count?: number
           print_count?: number
           retake_count?: number
+          source?: string
           started_at?: string
           upload_status?: string
         }
