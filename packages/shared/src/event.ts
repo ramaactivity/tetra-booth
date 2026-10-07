@@ -114,6 +114,8 @@ export const EventInfoSchema = z.object({
     .string()
     .regex(/^[\w-]{1,80}$/)
     .optional(),
+  /** Galeri acara `/l/{slug}` bisa dibuka tamu (galeri publik dinyalakan klien + link live aktif, #199). */
+  publicGallery: z.boolean().optional(),
 });
 export type EventInfo = z.infer<typeof EventInfoSchema>;
 

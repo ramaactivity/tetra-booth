@@ -16,7 +16,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const { data: ev, error } = await createServiceClient()
     .from("events")
     .select(
-      "id, bundle_version, bundle, slug, scheduled_start, scheduled_end, package_name, package_hours",
+      "id, bundle_version, bundle, slug, scheduled_start, scheduled_end, package_name, package_hours, public_gallery, live_token",
     )
     .eq("id", id)
     .eq("organization_id", device.organizationId)
@@ -33,6 +33,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     ...(ev.package_name && { packageName: ev.package_name }),
     ...(ev.package_hours && { packageHours: ev.package_hours }),
     slug: ev.slug,
+    publicGallery: ev.public_gallery && !!ev.live_token,
   };
   // URL GET bertanda tangan 15 menit (TSD §4.1); r2.dev diblokir ISP Indonesia (DECISIONS #63).
   return Response.json({

@@ -66,6 +66,15 @@ test("animasi di galeri, toggle galeri publik, tamu melihat read-only", async ({
     await expect(guest.getByRole("heading", { name: "Galeri acara tidak tersedia" })).toBeVisible();
 
     // Klien: filter Animasi, lalu aktifkan galeri publik dari Pengaturan (C4).
+    const version = async () =>
+      (
+        await db
+          .from("events")
+          .select("bundle_version")
+          .eq("id", ev?.id ?? "")
+          .single()
+      ).data?.bundle_version ?? 0;
+    const before = await version();
     await page.goto(`/g/${token}`);
     await page.getByRole("button", { name: "Animasi" }).click();
     await expect(page.getByTestId("gallery-photo")).toHaveCount(2);
@@ -86,6 +95,8 @@ test("animasi di galeri, toggle galeri publik, tamu melihat read-only", async ({
           ).data?.public_gallery,
       )
       .toBe(true);
+    // #199: booth ikut tahu (QR galeri di TV Photo Stage) lewat versi bundle baru.
+    expect(await version()).toBe(before + 1);
 
     await guest.goto(guestUrl);
     await guest.getByRole("link", { name: /Lihat galeri acara/ }).click();

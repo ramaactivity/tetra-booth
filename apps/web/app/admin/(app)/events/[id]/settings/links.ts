@@ -1,6 +1,7 @@
 "use server";
 import { newAccessToken } from "@tetra/shared";
 import { revalidatePath } from "next/cache";
+import { bumpBundle } from "@/lib/bundle-bump";
 import { requireMember } from "@/lib/supabase/server";
 
 /**
@@ -15,6 +16,8 @@ export async function setLink(eventId: string, kind: "client" | "live", action: 
     .update(kind === "client" ? { client_token: value } : { live_token: value })
     .eq("id", eventId)
     .eq("organization_id", orgId);
+  // Link live = syarat galeri acara dari QR TV Photo Stage (#199).
+  if (kind === "live") await bumpBundle(db, orgId, eventId);
   await db.from("audit_logs").insert({
     organization_id: orgId,
     actor_user_id: user.id,
