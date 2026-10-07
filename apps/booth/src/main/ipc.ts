@@ -110,6 +110,8 @@ export function registerIpc(
   alerts: Alerts,
   cloud: Cloud,
   onPhaseChanged: (phase: string) => void = () => {},
+  /** Setelah pairing berhasil (#198): mis. unduh DLL Canon yang belum ada lalu buka ulang booth. */
+  onPaired: () => void = () => {},
 ) {
   const pins = createPinGuard({
     get: () => db.kv.get("crew_pin_hash"),
@@ -507,9 +509,11 @@ export function registerIpc(
     allowQuit();
     app.quit();
   });
-  ipcMain.handle("crewPair", (_e, code: unknown) => {
+  ipcMain.handle("crewPair", async (_e, code: unknown) => {
     crewOnly();
-    return cloud.pair(PairRequest.shape.code.parse(code));
+    const d = await cloud.pair(PairRequest.shape.code.parse(code));
+    onPaired();
+    return d;
   });
   ipcMain.handle("crewResetPaper", (_e, capacity: unknown) => {
     crewOnly();

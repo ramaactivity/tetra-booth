@@ -90,7 +90,8 @@ export type CrewStatus = {
   device: CloudDevice | null;
 };
 
-export type CloudDevice = { name: string; shortCode: string };
+/** `revoked` = server menolak token (booth dicabut/dihapus di admin): harus dipasangkan ulang. */
+export type CloudDevice = { name: string; shortCode: string; revoked?: boolean };
 /** Timer event menurut booth: `waiting` = Mulai acara ditekan, menunggu sesi tamu pertama (#152). */
 export type BoothRunState = RunState | "waiting";
 /** Rekap booth (#154), dihitung dari data laptop ini (jalan offline). */

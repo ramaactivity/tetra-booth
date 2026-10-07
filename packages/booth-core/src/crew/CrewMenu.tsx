@@ -461,10 +461,11 @@ export function CrewMenu({
       {copy.crew.printerState(status.printer.status)}
     </Pill>
   );
+  const revoked = !!status?.device?.revoked;
   const onlinePill = status && (
-    <Pill tone={status.online ? "mint" : "peach"}>
+    <Pill tone={revoked ? "coral" : status.online ? "mint" : "peach"}>
       {dot}
-      {status.online ? copy.crew.online : copy.crew.offline}
+      {revoked ? copy.crew.revokedPill : status.online ? copy.crew.online : copy.crew.offline}
     </Pill>
   );
 
@@ -714,9 +715,11 @@ export function CrewMenu({
               {status?.uploadPending ? copy.crew.unsent(status.uploadPending) : copy.crew.allSent}
             </div>
             <div className={`${sub} truncate`} data-testid="cloud-device">
-              {status?.device
-                ? copy.crew.paired(status.device.name, status.device.shortCode)
-                : copy.crew.unpaired}
+              {revoked
+                ? copy.crew.revoked
+                : status?.device
+                  ? copy.crew.paired(status.device.name, status.device.shortCode)
+                  : copy.crew.unpaired}
             </div>
           </Tile>
           <Tile
@@ -867,20 +870,24 @@ export function CrewMenu({
       <>
         <Group title={copy.crew.cloudTitle} pill={onlinePill}>
           <p className="col-span-full text-2xl font-bold">
-            {status?.device
-              ? copy.crew.paired(status.device.name, status.device.shortCode)
-              : copy.crew.unpaired}
-            <span className="text-text-2">
-              {" "}
-              ·{" "}
-              {status?.uploadError ??
-                (status?.uploadPending
-                  ? copy.crew.unsent(status.uploadPending)
-                  : copy.crew.allSent)}
-            </span>
+            {revoked
+              ? copy.crew.revoked
+              : status?.device
+                ? copy.crew.paired(status.device.name, status.device.shortCode)
+                : copy.crew.unpaired}
+            {!revoked && (
+              <span className="text-text-2">
+                {" "}
+                ·{" "}
+                {status?.uploadError ??
+                  (status?.uploadPending
+                    ? copy.crew.unsent(status.uploadPending)
+                    : copy.crew.allSent)}
+              </span>
+            )}
           </p>
           <Button variant="plain" className={action} onClick={onPair}>
-            {status?.device ? copy.crew.pairAgain : copy.crew.pair}
+            {revoked ? copy.crew.pairNew : status?.device ? copy.crew.pairAgain : copy.crew.pair}
           </Button>
           {!!status?.uploadPending && status.device && (
             <Button variant="plain" className={action} onClick={act(() => p.crew.retryUploads())}>

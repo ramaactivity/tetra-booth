@@ -66,6 +66,7 @@ export type Database = {
           kind: string
           organization_id: string
           r2_key: string
+          review_status: string | null
           session_id: string
           width: number | null
         }
@@ -79,6 +80,7 @@ export type Database = {
           kind: string
           organization_id: string
           r2_key: string
+          review_status?: string | null
           session_id: string
           width?: number | null
         }
@@ -92,6 +94,7 @@ export type Database = {
           kind?: string
           organization_id?: string
           r2_key?: string
+          review_status?: string | null
           session_id?: string
           width?: number | null
         }
@@ -313,6 +316,8 @@ export type Database = {
           created_by: string | null
           event_date: string
           guest_expires_at: string | null
+          guest_revealed_at: string | null
+          guest_token: string | null
           id: string
           lead_capture: NonNullable<Json>
           live_token: string | null
@@ -351,6 +356,8 @@ export type Database = {
           created_by?: string | null
           event_date: string
           guest_expires_at?: string | null
+          guest_revealed_at?: string | null
+          guest_token?: string | null
           id?: string
           lead_capture?: NonNullable<Json>
           live_token?: string | null
@@ -389,6 +396,8 @@ export type Database = {
           created_by?: string | null
           event_date?: string
           guest_expires_at?: string | null
+          guest_revealed_at?: string | null
+          guest_token?: string | null
           id?: string
           lead_capture?: NonNullable<Json>
           live_token?: string | null
@@ -864,9 +873,10 @@ export type Database = {
           completed_at: string | null
           created_at: string
           deleted_at: string | null
-          device_id: string
+          device_id: string | null
           event_id: string
           group_name: string | null
+          guest_key_hash: string | null
           hidden_at: string | null
           id: string
           is_test: boolean
@@ -885,9 +895,10 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           deleted_at?: string | null
-          device_id: string
+          device_id?: string | null
           event_id: string
           group_name?: string | null
+          guest_key_hash?: string | null
           hidden_at?: string | null
           id: string
           is_test?: boolean
@@ -906,9 +917,10 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           deleted_at?: string | null
-          device_id?: string
+          device_id?: string | null
           event_id?: string
           group_name?: string | null
+          guest_key_hash?: string | null
           hidden_at?: string | null
           id?: string
           is_test?: boolean

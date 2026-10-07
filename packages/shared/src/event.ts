@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PHOTO_FILTER_IDS } from "./filters";
+import { GuestCamSettingsSchema } from "./guest-cam";
 import { LayoutSpecSchema } from "./layout";
 
 /** Pengaturan pengalaman per event (FSD §5.4 "Pengalaman"). Field kosong = default. */
@@ -29,6 +30,8 @@ export const EventSettingsSchema = z.object({
   stageGapSec: z.number().int().min(15).max(180).default(45),
   /** Photo Stage (#192): lama rombongan tampil di TV setelah jepretan terakhir (dtk). */
   stageTvSec: z.number().int().min(10).max(120).default(30),
+  /** Guest Cam (#197): kamera HP tamu lewat /c/{slug}. */
+  guestCam: GuestCamSettingsSchema.default(GuestCamSettingsSchema.parse({})),
 });
 export type EventSettings = z.infer<typeof EventSettingsSchema>;
 export const DEFAULT_SETTINGS: EventSettings = EventSettingsSchema.parse({});

@@ -102,9 +102,11 @@ export function createCloud(
   baseUrl: string,
   log: (m: string) => void,
 ) {
+  // Token ditolak server (401, booth dicabut/dihapus di admin): ditampilkan di mode crew, bukan "Online" (W-Win 7 Okt).
+  let revoked = false;
   const device = (): CloudDevice | null => {
     const v = db.kv.get("cloud_device");
-    return v ? (JSON.parse(v) as CloudDevice) : null;
+    return v ? { ...(JSON.parse(v) as CloudDevice), ...(revoked && { revoked: true }) } : null;
   };
   const token = (): string | null => {
     const v = db.kv.get("cloud_token");
@@ -127,8 +129,8 @@ export function createCloud(
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
-      if (res.status === 401)
-        log("[cloud] token ditolak server (dicabut?), pasangkan ulang dari mode crew");
+      revoked = res.status === 401;
+      if (revoked) log("[cloud] token ditolak server (dicabut?), pasangkan ulang dari mode crew");
       else if (!res.ok) log(`[cloud] heartbeat gagal ${res.status}`);
     } catch {
       // offline: diam, coba lagi di putaran berikutnya
@@ -335,6 +337,7 @@ export function createCloud(
       db.kv.set("cloud_token", safeStorage.encryptString(p.token).toString("base64"));
       const d = { name: p.name, shortCode: p.shortCode };
       db.kv.set("cloud_device", JSON.stringify(d));
+      revoked = false;
       log(`[cloud] dipasangkan sebagai ${d.name} (${d.shortCode}) ke ${baseUrl}`);
       void heartbeat();
       syncQuiet();

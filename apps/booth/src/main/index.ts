@@ -1,5 +1,7 @@
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { init as sentryInit } from "@sentry/electron/main";
+import { EDSDK_FILES } from "@tetra/shared";
 import { app, BrowserWindow } from "electron";
 import { createAlerts } from "./alerts";
 import { startCameraService, watchPrintEvents } from "./camera-service";
@@ -139,7 +141,19 @@ const createWindow = () => {
 
 // Cloud (Fase 2): server = app web yang sama dengan halaman tamu.
 const cloud = createCloud(db, alerts, config.guestUrl, (m) => console.info(m));
-registerIpc(db, alerts, cloud, (p) => gpu.phase(p));
+// Pairing baru di laptop Canon yang belum punya DLL (booth dicabut lalu dipasangkan ulang, laporan 7 Okt):
+// unduh DLL lalu buka ulang booth supaya Camera Service memuatnya, tanpa crew menutup aplikasi manual.
+const onPaired = () => {
+  const dir = canon;
+  if (!dir || dir === "fake" || EDSDK_FILES.every((f) => existsSync(join(dir, f)))) return;
+  const log = (m: string) => console.info(m);
+  void ensureEdsdk(dir, () => cloud.edsdk(), log).then((ok) => {
+    if (!ok) return;
+    log("[edsdk] DLL Canon siap setelah pairing, booth dibuka ulang");
+    relaunch();
+  });
+};
+registerIpc(db, alerts, cloud, (p) => gpu.phase(p), onPaired);
 app.on("will-quit", () => db.close());
 app.whenReady().then(async () => {
   const log = (m: string) => console.info(m);

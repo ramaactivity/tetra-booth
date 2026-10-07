@@ -205,7 +205,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     "flex h-10 items-center gap-2 rounded-[11px] border-[1.5px] border-ink px-3.5 text-[13px] font-bold no-underline";
 
   // Rekap event (#148): booth yang memotret sesi event ini, sesi pertama/terakhir.
-  const deviceIds = [...new Set(list.map((s) => s.device_id))];
+  const deviceIds = [...new Set(list.flatMap((s) => (s.device_id ? [s.device_id] : [])))];
   const { data: boothRows } = deviceIds.length
     ? await db.from("devices").select("id, name").eq("organization_id", orgId).in("id", deviceIds)
     : { data: [] };

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { WhatsappSchema } from "@tetra/shared";
 import { z } from "zod";
 
 /**
@@ -26,14 +27,8 @@ export const leadCapture = (raw: unknown): LeadCapture | null => {
 export const consentVersion = (text: string) =>
   createHash("sha256").update(text).digest("hex").slice(0, 10);
 
-/** 0812-3456-7890 / +62 812… / 812… → 628123456789. */
-const whatsapp = z
-  .string()
-  .transform((s) => s.replace(/\D/g, "").replace(/^0/, "62").replace(/^8/, "628"))
-  .pipe(z.string().regex(/^62\d{8,13}$/));
-
 export const LEAD_VALUE: Record<LeadField, z.ZodType<string>> = {
   name: z.string().trim().min(2).max(80),
-  whatsapp,
+  whatsapp: WhatsappSchema,
   email: z.string().trim().toLowerCase().pipe(z.email()),
 };

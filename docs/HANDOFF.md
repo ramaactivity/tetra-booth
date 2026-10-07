@@ -244,6 +244,16 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 3. Booth dev dari source: `electron apps/booth --camera=canon` (atau mode crew → Kamera & Printer → **DSLR Canon (EDSDK)** → Simpan). Cek log `[canon] tersambung: Canon EOS 60D`.
 4. Uji: fps live view (target ≥ 20), 3 sesi jepret + cetak DNP, AF & fokus manual di Tes Jepret, "AF sebelum jepret", cabut USB di attract & di tengah countdown (harus `[canon] kamera terputus, menyambung ulang` lalu tersambung lagi), matikan-nyalakan kamera. Laporan `docs/reports/windows/<tanggal>-edsdk-60d.md`, kalau ada error sertakan kode `0x…` dari log.
 
+## Untuk Windows: W-042 uji Photo Stage 0.6.0 tanpa perangkat (Mac, 2026-10-07)
+Booth **0.6.0** (UI final Photo Stage dari Claude Design, DECISIONS #186–#195). Bisa diuji **tanpa kamera/TV/printer** memakai folder pantau:
+1. Update dari menu crew ke 0.6.0 (atau `update.cmd`). Pastikan laptop booth biasa tetap normal: 1 sesi mode event + Galeri (regresi).
+2. Mode crew → Perangkat → peran **Stage**, kamera **Folder pantau** (folder mis. `C:\Tetra\Stage\Masuk`). Untuk jendela TV tanpa layar kedua: jalankan dari source dengan `--tv-window`.
+3. Wizard persiapan muncul: salin 1 JPEG ke folder pantau → "Foto tes masuk"; Tampilkan uji di TV; Warna (coba LUT .cube); Mulai.
+4. Salin beberapa JPEG (landscape) ke folder: foto masuk ke rombongan, Enter = rombongan baru, Spasi = jeda (foto masuk baki "Belum dikelompokkan"), Tab = nama dari daftar grup (isi daftar di admin → Pengaturan event → Photo Stage).
+5. Riwayat: pilih foto → Sembunyikan, Pisah, Gabung. Cek halaman tamu `/s/{id}` dan galeri klien ikut berubah setelah upload.
+6. Cetak 4R ke "Microsoft Print to PDF": frame **Lengkung** (lengkung putih + nama serif) untuk event tanpa frame 4R sendiri. Ukur waktu proses rombongan dengan LUT 33 (log `[stage]`), UI operator tidak tersendat.
+Laporan `docs/reports/windows/<tanggal>-w042-photo-stage.md` + screenshot layar operator/TV, kabari di issue #1.
+
 ## Untuk Windows: uji Photo Stage (#178–#184) — menunggu perangkat (Rama, 2026-10-07)
 Butuh: laptop Windows, kamera (Canon via EDSDK atau merek lain via aplikasi tether ke folder pantau), TV lewat HDMI/HDMI nirkabel, printer DNP 4R. Jalankan booth `--role stage`.
 1. Jepretan fotografer masuk & terkelompok per rombongan (Enter, jeda otomatis, Jeda/Lanjut), nama grup + daftar "Berikutnya:" dari pengaturan event.
