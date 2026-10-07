@@ -78,14 +78,21 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
 
   const { data: rows } = await db
     .from("assets")
-    .select("kind, idx, r2_key")
+    .select("kind, idx, r2_key, hidden_at")
     .eq("session_id", s.id)
     .eq("organization_id", s.organization_id)
     .order("kind")
     .order("idx");
+  // Photo Stage (#195): rombongan yang semua fotonya disembunyikan (mis. digabung ke rombongan lain) = dihapus.
+  if (
+    rows?.length &&
+    rows.every((a) => a.hidden_at || !a.kind.endsWith("original")) &&
+    s.source === "stage"
+  )
+    return { state: "removed", event };
   // Kunci "…#x" (data uji) → objek tanpa fragmen.
   const assets = await Promise.all(
-    (locked ? [] : (rows ?? [])).map(async (a) => ({
+    (locked ? [] : (rows ?? []).filter((a) => !a.hidden_at)).map(async (a) => ({
       kind: a.kind,
       idx: a.idx,
       url: await presignGet(a.r2_key.split("#")[0] ?? a.r2_key),

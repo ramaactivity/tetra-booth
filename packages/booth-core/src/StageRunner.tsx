@@ -3,11 +3,12 @@ import {
   newSessionId,
   PHOTO_FILTERS,
   STAGE_GAP,
+  STAGE_MAX_SHOTS,
   type StagePreset,
   StagePresetSchema,
   stagePresetCss,
 } from "@tetra/shared";
-import { Check } from "lucide-react";
+import { Check, EyeOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { renderEvent } from "./compose";
@@ -23,6 +24,7 @@ import { StageSetup } from "./StageSetup";
 import {
   activeGroup,
   groupLabel,
+  groupNo,
   initialStage,
   STAGE_ARCH,
   STAGE_SERIF,
@@ -102,6 +104,7 @@ export function StageRunner({
   const [toast, setToast] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [openHist, setOpenHist] = useState<string | null>(null);
+  const [sel, setSel] = useState<number[]>([]);
   const [status, setStatus] = useState<StageStatus | null | undefined>(undefined);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const say = useCallback((m: string) => {
@@ -358,6 +361,68 @@ export function StageRunner({
       setPrints((x) => ({ ...x, [sh.path]: { st: "failed", n } }));
     }
   };
+  // Riwayat (#195): sembunyikan, pisah, gabung. Cloud diperbarui lewat metadata sesi (hiddenIdx) & aset baru.
+  const sync = (g: StageGroup, hidden: number[]) =>
+    void started.current
+      .get(g.id)
+      ?.then(() => stage?.hide(g.id, hidden))
+      .catch((e: unknown) => console.warn(`[stage] sembunyikan gagal: ${errText(e)}`));
+  const hidePhotos = (g: StageGroup) => {
+    if (!sel.length) return say(t.toastPickHide);
+    const allHidden = sel.every((i) => g.hidden?.includes(i));
+    dispatch({ type: "HIDE", id: g.id, idx: sel, hidden: !allHidden });
+    const h = new Set(g.hidden ?? []);
+    for (const i of sel) allHidden ? h.delete(i) : h.add(i);
+    sync(g, [...h]);
+    setSel([]);
+    say(allHidden ? t.toastShown : t.toastHidden(sel.length));
+  };
+  const splitPhotos = (g: StageGroup) => {
+    if (!sel.length) return say(t.toastPickSplit);
+    const visible = g.shots.filter((_, i) => !g.hidden?.includes(i + 1)).length;
+    if (sel.filter((i) => !g.hidden?.includes(i)).length >= visible) return say(t.toastKeepOne);
+    dispatch({ type: "SPLIT", id: g.id, idx: sel, newId: newSessionId(), now: Date.now() });
+    sync(g, [...new Set([...(g.hidden ?? []), ...sel])]);
+    const part = String.fromCharCode(98 + s.groups.filter((x) => x.no === g.no && x.part).length);
+    say(t.toastSplit(sel.length, `${g.no}${part}`));
+    setSel([]);
+    setOpenHist(null);
+  };
+  const mergePhotos = async (g: StageGroup, into: StageGroup) => {
+    if (saves[g.id] !== "saved" || saves[into.id] !== "saved") return say(t.toastWaitSave);
+    const moved = g.shots.filter((_, i) => !g.hidden?.includes(i + 1));
+    if (into.shots.length + moved.length > STAGE_MAX_SHOTS) return say(t.toastTooMany);
+    try {
+      const dir = await p.storage.sessionDir(into.id);
+      const css = stagePresetCss(presetRef.current);
+      const assets: SessionAsset[] = [];
+      for (const [k, shot] of moved.entries()) {
+        const raw = await p.storage.readFile(shot.path);
+        const idx = into.shots.length + k + 1;
+        for (const [kind, max, q] of [
+          ["original", ORIGINAL_LONG_SIDE, 0.92],
+          ["thumb_original", THUMB_LONG_SIDE, 0.85],
+        ] as const) {
+          const bytes = await renderJpeg(raw, max, css, q, lutRef.current?.lut ?? null);
+          const path = `${dir}/out/${kind}_${idx}.jpg`;
+          await p.storage.writeFile(path, bytes);
+          assets.push({ kind, idx, path, bytes: bytes.length });
+        }
+      }
+      await stage?.append(into.id, into.shots.length + moved.length, assets);
+      await stage?.hide(
+        g.id,
+        g.shots.map((_, i) => i + 1),
+      );
+      dispatch({ type: "MERGE", id: g.id, into: into.id });
+      setSel([]);
+      setOpenHist(null);
+      say(t.toastMerged(groupNo(g), groupNo(into)));
+    } catch (e) {
+      console.error(`[stage] gabung gagal: ${errText(e)}`);
+      say(errText(e));
+    }
+  };
   const setGap = (gapSec: number | null) => {
     localStorage.setItem(GAP_KEY, gapSec === null ? "off" : String(gapSec));
     dispatch({ type: "SET_GAP", gapSec });
@@ -434,7 +499,7 @@ export function StageRunner({
   }, [colorOpen, newGroup, togglePause]);
 
   // Status bar: kamera, internet, antrean upload rombongan (polling 3 dtk).
-  const closed = s.groups.filter((g) => g.closedAt !== null).reverse();
+  const closed = s.groups.filter((g) => g.closedAt !== null && !g.merged).reverse();
   const idsKey = closed
     .slice(0, 12)
     .map((g) => g.id)
@@ -834,16 +899,26 @@ export function StageRunner({
             <span className="mb-1 text-xl font-extrabold tracking-[-0.02em]">{t.history}</span>
             {histRows.map((g) => {
               const [label, bg] = histStatus(g);
-              const last = g.shots.at(-1);
+              const last = [...g.shots]
+                .reverse()
+                .find((_, i) => !g.hidden?.includes(g.shots.length - i));
               const open = openHist === g.id;
+              const hiddenN = g.hidden?.length ?? 0;
+              const into = closed[closed.indexOf(g) + 1];
+              const selHidden = sel.length > 0 && sel.every((i) => g.hidden?.includes(i));
+              const act = `h-8 flex-1 whitespace-nowrap rounded-[10px] border-[1.5px] border-ink bg-white text-[13px] font-bold ${sel.length ? "" : "opacity-45"}`;
               return (
                 <div
                   key={g.id}
+                  data-testid="stage-history-row"
                   className="flex flex-none flex-col border-b-[1.5px] border-dashed border-line-soft"
                 >
                   <button
                     type="button"
-                    onClick={() => setOpenHist(open ? null : g.id)}
+                    onClick={() => {
+                      setOpenHist(open ? null : g.id);
+                      setSel([]);
+                    }}
                     className="flex h-[52px] items-center gap-3.5 text-left"
                   >
                     <span className="h-[38px] w-[57px] flex-none overflow-hidden rounded-[7px] border-[1.5px] border-ink bg-neutral">
@@ -858,8 +933,9 @@ export function StageRunner({
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate text-base font-bold">{groupLabel(g)}</span>
-                      <span className="font-mono text-[13px] text-text-2">
-                        #{g.no} · {t.photos(g.shots.length)} · {hm(g.startedAt)}
+                      <span className="truncate font-mono text-[13px] text-text-2">
+                        #{groupNo(g)} · {t.histCount(g.shots.length - hiddenN, hiddenN)} ·{" "}
+                        {hm(g.startedAt)}
                       </span>
                     </span>
                     <span
@@ -872,7 +948,7 @@ export function StageRunner({
                     <div className="flex flex-col gap-1.5 pt-0.5 pb-2.5">
                       <input
                         key={`${g.id}:${g.name ?? ""}`}
-                        aria-label={`${t.namePlaceholder} #${g.no}`}
+                        aria-label={`${t.namePlaceholder} #${groupNo(g)}`}
                         defaultValue={g.name ?? ""}
                         placeholder={groupLabel(g)}
                         onBlur={(e) =>
@@ -881,22 +957,61 @@ export function StageRunner({
                         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
                         className="h-9 rounded-xl border-2 border-ink bg-white px-3 text-base font-bold shadow-[0_0_0_3px_var(--mint-soft)] outline-none"
                       />
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {g.shots.map((sh, i) => {
+                          const idx = i + 1;
+                          const on = sel.includes(idx);
+                          const hid = g.hidden?.includes(idx);
+                          return (
+                            <button
+                              key={sh.path}
+                              type="button"
+                              aria-pressed={on}
+                              aria-label={`Foto ${idx}${hid ? ` (${t.histHidden})` : ""}`}
+                              onClick={() =>
+                                setSel((x) => (on ? x.filter((k) => k !== idx) : [...x, idx]))
+                              }
+                              className={`relative h-8 w-12 flex-none overflow-hidden rounded-lg bg-neutral ${on ? "border-2 border-ink shadow-[0_0_0_3px_var(--mint)]" : "border-[1.5px] border-ink"}`}
+                            >
+                              {thumbs[sh.path] && (
+                                <img
+                                  src={thumbs[sh.path]}
+                                  alt=""
+                                  style={{ filter: css, opacity: hid ? 0.35 : 1 }}
+                                  className="size-full object-cover"
+                                />
+                              )}
+                              {hid && (
+                                <span className="absolute inset-0 flex items-center justify-center">
+                                  <EyeOff className="size-4" strokeWidth={2.5} aria-hidden />
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                        <span className="ml-1 text-xs leading-[1.3] text-text-2">
+                          {sel.length ? t.histPicked(sel.length) : t.histPick}
+                        </span>
+                      </div>
                       <div className="flex gap-1.5">
-                        {g.shots.map((sh) => (
-                          <span
-                            key={sh.path}
-                            className="h-8 w-12 flex-none overflow-hidden rounded-lg border-[1.5px] border-ink bg-neutral"
-                          >
-                            {thumbs[sh.path] && (
-                              <img
-                                src={thumbs[sh.path]}
-                                alt=""
-                                style={{ filter: css }}
-                                className="size-full object-cover"
-                              />
-                            )}
-                          </span>
-                        ))}
+                        <button
+                          type="button"
+                          disabled={!into}
+                          onClick={() => into && void mergePhotos(g, into)}
+                          className="h-8 flex-1 whitespace-nowrap rounded-[10px] border-[1.5px] border-ink bg-white text-[13px] font-bold disabled:opacity-45"
+                        >
+                          {into ? t.mergeInto(groupNo(into)) : t.merge}
+                        </button>
+                        <button type="button" onClick={() => splitPhotos(g)} className={act}>
+                          {sel.length ? t.splitN(sel.length) : t.split}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => hidePhotos(g)}
+                          className={`${act} flex-[1.3] border-dashed`}
+                        >
+                          {selHidden ? t.showPhotos : t.hidePhotos}
+                        </button>
                       </div>
                     </div>
                   )}

@@ -15,6 +15,12 @@ export type StageGroup = {
   shots: StageShot[];
   /** null = rombongan aktif. */
   closedAt: number | null;
+  /** Riwayat (#195): idx foto (1 = foto pertama) yang disembunyikan dari tamu & galeri. */
+  hidden?: number[];
+  /** Hasil Pisah: "b", "c", … di belakang nomor (#46b). */
+  part?: string;
+  /** Sudah digabung ke rombongan lain: tidak tampil di riwayat. */
+  merged?: boolean;
 };
 export type StageState = {
   groups: StageGroup[];
@@ -37,6 +43,12 @@ export type StageAction =
   /** Baki jeda (#186): foto tertampung jadi rombongan baru (yang aktif ditutup dulu), atau dibuang dari layar. */
   | { type: "LOOSE_TO_NEW"; id: string; now: number }
   | { type: "DROP_LOOSE" }
+  /** Riwayat (#195): sembunyikan / tampilkan lagi foto (idx 1-based). */
+  | { type: "HIDE"; id: string; idx: number[]; hidden: boolean }
+  /** Foto terpilih jadi rombongan baru (sudah ditutup → diproses); di rombongan asal disembunyikan. */
+  | { type: "SPLIT"; id: string; idx: number[]; newId: string; now: number }
+  /** Foto yang tampil di `id` dipindah ke rombongan lama `into`; `id` ditandai digabung. */
+  | { type: "MERGE"; id: string; into: string }
   | { type: "SET_GAP"; gapSec: number | null };
 
 export const initialStage = (gapSec: number | null, nextNo = 1): StageState => ({
@@ -119,6 +131,58 @@ export function stageReducer(s: StageState, a: StageAction): StageState {
     }
     case "DROP_LOOSE":
       return { ...s, loose: [] };
+    case "HIDE":
+      return {
+        ...s,
+        groups: s.groups.map((g) => {
+          if (g.id !== a.id) return g;
+          const h = new Set(g.hidden ?? []);
+          for (const i of a.idx) a.hidden ? h.add(i) : h.delete(i);
+          return { ...g, hidden: [...h].sort((x, y) => x - y) };
+        }),
+      };
+    case "SPLIT": {
+      const src = s.groups.find((g) => g.id === a.id);
+      if (!src || src.closedAt === null) return s;
+      const pick = new Set(a.idx);
+      const shots = src.shots.filter((_, i) => pick.has(i + 1));
+      const left = src.shots.filter((_, i) => !pick.has(i + 1) && !src.hidden?.includes(i + 1));
+      if (!shots.length || !left.length) return s;
+      const parts = s.groups.filter((g) => g.no === src.no && g.part).length;
+      const part = String.fromCharCode(98 + parts);
+      const nb: StageGroup = {
+        id: a.newId,
+        no: src.no,
+        part,
+        name: null,
+        startedAt: src.startedAt,
+        shots,
+        closedAt: a.now,
+      };
+      const at = s.groups.indexOf(src) + 1;
+      const groups = s.groups.map((g) =>
+        g === src
+          ? { ...g, hidden: [...new Set([...(g.hidden ?? []), ...a.idx])].sort((x, y) => x - y) }
+          : g,
+      );
+      return { ...s, groups: [...groups.slice(0, at), nb, ...groups.slice(at)] };
+    }
+    case "MERGE": {
+      const src = s.groups.find((g) => g.id === a.id);
+      const dst = s.groups.find((g) => g.id === a.into);
+      if (!src || !dst || src.closedAt === null || dst.closedAt === null) return s;
+      const moved = src.shots.filter((_, i) => !src.hidden?.includes(i + 1));
+      return {
+        ...s,
+        groups: s.groups.map((g) =>
+          g === dst
+            ? { ...g, shots: [...g.shots, ...moved] }
+            : g === src
+              ? { ...g, merged: true, hidden: src.shots.map((_, i) => i + 1) }
+              : g,
+        ),
+      };
+    }
     case "SET_GAP":
       return { ...s, gapSec: a.gapSec };
   }
@@ -128,6 +192,8 @@ const hm = (ms: number) =>
   new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(ms);
 /** Label rombongan tanpa nama: "Tamu · 19.42" (jam mulai, WIB laptop). */
 export const groupLabel = (g: StageGroup) => g.name ?? `Tamu · ${hm(g.startedAt)}`;
+/** Nomor tampil: "#46", hasil Pisah "#46b". */
+export const groupNo = (g: StageGroup) => `${g.no}${g.part ?? ""}`;
 
 /** Keadaan yang dikirim layar operator ke jendela TV (#179). Foto = path file kamera di laptop. */
 export type StageTvState = {

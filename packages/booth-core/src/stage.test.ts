@@ -152,3 +152,40 @@ describe("tvMosaic (#189)", () => {
     );
   });
 });
+
+describe("riwayat: sembunyikan, pisah, gabung (#195)", () => {
+  const closed = () =>
+    run(
+      initialStage(null),
+      { type: "SHOT", shot: shot(1000), id: "a" },
+      { type: "NEW_GROUP", id: "x", now: 1500 },
+      { type: "SHOT", shot: shot(2000), id: "y" },
+      { type: "SHOT", shot: shot(2100), id: "y" },
+      { type: "SHOT", shot: shot(2200), id: "y" },
+      { type: "NEW_GROUP", id: "z", now: 3000 },
+    );
+  it("sembunyikan / tampilkan lagi per idx", () => {
+    let s = run(closed(), { type: "HIDE", id: "x", idx: [2, 3], hidden: true });
+    expect(s.groups[1]?.hidden).toEqual([2, 3]);
+    s = run(s, { type: "HIDE", id: "x", idx: [3], hidden: false });
+    expect(s.groups[1]?.hidden).toEqual([2]);
+  });
+  it("pisah: foto terpilih jadi #2b (sudah ditutup), di asal disembunyikan; minimal 1 foto tersisa", () => {
+    const s = run(closed(), { type: "SPLIT", id: "x", idx: [2, 3], newId: "n", now: 4000 });
+    const b = s.groups[2];
+    expect([b?.id, b?.no, b?.part, b?.shots.length, b?.closedAt]).toEqual(["n", 2, "b", 2, 4000]);
+    expect(s.groups[1]?.hidden).toEqual([2, 3]);
+    expect(
+      run(closed(), { type: "SPLIT", id: "x", idx: [1, 2, 3], newId: "n", now: 4000 }),
+    ).toEqual(closed());
+  });
+  it("gabung: foto tampil pindah ke rombongan lama, asal ditandai digabung", () => {
+    const s = run(
+      closed(),
+      { type: "HIDE", id: "x", idx: [1], hidden: true },
+      { type: "MERGE", id: "x", into: "a" },
+    );
+    expect(s.groups[0]?.shots.map((x) => x.at)).toEqual([1000, 2100, 2200]);
+    expect([s.groups[1]?.merged, s.groups[1]?.hidden]).toEqual([true, [1, 2, 3]]);
+  });
+});

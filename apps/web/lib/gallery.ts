@@ -150,7 +150,8 @@ async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gall
       .select("id, session_id, kind, idx, r2_key")
       .eq("organization_id", ev.organization_id)
       .in("session_id", ids.slice(i, i + 200))
-      .in("kind", ["strip_web", "thumb_strip", "original", "thumb_original", "animation"]);
+      .in("kind", ["strip_web", "thumb_strip", "original", "thumb_original", "animation"])
+      .is("hidden_at", null);
     assets.push(...(data ?? []));
   }
   const { data: favs } = withFavorites

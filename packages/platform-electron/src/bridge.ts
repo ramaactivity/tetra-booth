@@ -4,6 +4,7 @@ import type {
   BoothEvents,
   BoothPayments,
   BoothPlatform,
+  SessionAsset,
   StageStatus,
 } from "@tetra/booth-core";
 import type { CommandResult, Paper } from "@tetra/shared";
@@ -111,6 +112,8 @@ export type TetraBridge = {
   onStageShot(cb: (s: { path: string; width: number; height: number }) => void): () => void;
   stageRename(sessionId: string, name: string | null): Promise<void>;
   stageStatus(ids: string[]): Promise<StageStatus>;
+  stageHide(sessionId: string, idx: number[]): Promise<void>;
+  stageAppend(sessionId: string, photoCount: number, assets: SessionAsset[]): Promise<void>;
   stageTvPublish(state: unknown): Promise<void>;
   stageTvLast(): Promise<unknown>;
   onStageTv(cb: (state: unknown) => void): () => void;

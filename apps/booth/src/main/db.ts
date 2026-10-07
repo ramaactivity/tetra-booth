@@ -71,6 +71,7 @@ export type SessionMeta = {
   /** Photo Stage (#178). */
   source?: "stage";
   groupName?: string | null;
+  hiddenIdx?: number[];
 };
 /** Rekap booth (#154): sesi asli (bukan tes) yang selesai di laptop ini. */
 export type LocalRecap = {
@@ -155,6 +156,8 @@ export function openDb(file: string) {
     db.exec("alter table sessions add column is_test int not null default 0");
   if (!cols.has("source")) db.exec("alter table sessions add column source text");
   if (!cols.has("group_name")) db.exec("alter table sessions add column group_name text");
+  // Photo Stage (#195): idx foto yang disembunyikan (JSON array), dikirim sebagai `hiddenIdx`.
+  if (!cols.has("hidden_idx")) db.exec("alter table sessions add column hidden_idx text");
   // Sesi yang masih berjalan saat app mati tidak akan pernah selesai.
   const abandoned = db
     .prepare("update sessions set status = 'abandoned' where status = 'in_progress'")
@@ -398,25 +401,27 @@ export function openDb(file: string) {
     },
     /** Metadata sesi untuk upsert cloud (POST /api/booth/sessions). */
     sessionMeta(id: string): SessionMeta & { paymentId?: string } {
-      const { paymentId, isTest, source, groupName, ...m } = db
+      const { paymentId, isTest, source, groupName, hiddenIdx, ...m } = db
         .prepare(
           `select id, event_id eventId, started_at startedAt, completed_at completedAt,
              photo_count photoCount, retake_count retakeCount, print_count printCount,
              (select count(*) from assets where session_id = sessions.id) assetCount,
-             payment_id paymentId, is_test isTest, source, group_name groupName
+             payment_id paymentId, is_test isTest, source, group_name groupName, hidden_idx hiddenIdx
            from sessions where id = ?`,
         )
-        .get(id) as Omit<SessionMeta, "isTest" | "source" | "groupName"> & {
+        .get(id) as Omit<SessionMeta, "isTest" | "source" | "groupName" | "hiddenIdx"> & {
         paymentId: string | null;
         isTest: number;
         source: string | null;
         groupName: string | null;
+        hiddenIdx: string | null;
       };
       return {
         ...m,
         ...(paymentId && { paymentId }),
         ...(isTest && { isTest: true }),
         ...(source === "stage" && { source: "stage" as const, groupName }),
+        ...(hiddenIdx !== null && { hiddenIdx: JSON.parse(hiddenIdx) as number[] }),
       };
     },
     /** Photo Stage (#178): ganti nama grup; metadata dikirim ulang ke cloud (dueMeta). */
@@ -424,6 +429,33 @@ export function openDb(file: string) {
       db.prepare(
         "update sessions set group_name = ?, synced_meta = 0 where id = ? and source = 'stage'",
       ).run(groupName, id);
+    },
+    /** Photo Stage (#195): foto tersembunyi (idx original); metadata dikirim ulang ke cloud. */
+    stageHide(id: string, idx: number[]) {
+      db.prepare(
+        "update sessions set hidden_idx = ?, synced_meta = 0 where id = ? and source = 'stage'",
+      ).run(JSON.stringify([...new Set(idx)].sort((a, b) => a - b)), id);
+    },
+    /** Photo Stage (#195): tambah foto ke rombongan yang sudah selesai (Gabung); aset baru ikut antrean upload. */
+    stageAppend(id: string, photoCount: number, assets: SessionDone["assets"]) {
+      tx(() => {
+        const row = db
+          .prepare(
+            "select event_id from sessions where id = ? and source = 'stage' and status = 'completed'",
+          )
+          .get(id) as { event_id: string } | undefined;
+        if (!row) throw new Error(`rombongan ${id} belum selesai`);
+        const now = new Date().toISOString();
+        db.prepare("update sessions set photo_count = ?, synced_meta = 0 where id = ?").run(
+          photoCount,
+          id,
+        );
+        for (const a of assets) {
+          const assetId = `${id}:${a.kind}:${a.idx}`;
+          insertAsset.run(assetId, id, a.kind, a.idx, a.path, a.bytes);
+          if (UUID.test(row.event_id)) enqueue.run(assetId, UPLOAD_PRIORITY[a.kind], now);
+        }
+      });
     },
     /**
      * Sesi selesai di event cloud yang metadatanya belum terkirim padahal tidak ada aset yang antre (mis. nama grup
@@ -458,6 +490,13 @@ export function openDb(file: string) {
           assetId,
         );
         db.prepare("delete from upload_queue where asset_id = ?").run(assetId);
+        // Photo Stage (#195): foto tersembunyi baru bisa ditandai di cloud setelah asetnya ada → kirim ulang
+        // metadata setelah aset terakhir rombongan itu terunggah.
+        db.prepare(
+          `update sessions set synced_meta = 0 where id = (select session_id from assets where id = ?)
+             and hidden_idx is not null and hidden_idx != '[]'
+             and not exists (select 1 from assets a join upload_queue q on q.asset_id = a.id where a.session_id = sessions.id)`,
+        ).run(assetId);
       });
     },
     uploadFailed(assetId: string, error: string, nextAt: string) {

@@ -47,5 +47,28 @@ export async function POST(req: Request) {
     ...(paid && { payment_id: paid.id }),
   });
   if (error) return apiError("server_error", 500);
+  // Photo Stage (#195): foto tersembunyi per idx (original + thumb). Aset yang belum terunggah ikut saat upsert
+  // berikutnya (laptop mengirim ulang metadata setelah asetnya masuk).
+  if (s.hiddenIdx) {
+    const at = new Date().toISOString();
+    const base = () =>
+      db
+        .from("assets")
+        .update({ hidden_at: at })
+        .eq("session_id", s.id)
+        .eq("organization_id", device.organizationId)
+        .in("kind", ["original", "thumb_original"]);
+    const hide = s.hiddenIdx.length
+      ? await base().in("idx", s.hiddenIdx).is("hidden_at", null)
+      : { error: null };
+    const show = await db
+      .from("assets")
+      .update({ hidden_at: null })
+      .eq("session_id", s.id)
+      .eq("organization_id", device.organizationId)
+      .not("idx", "in", `(${s.hiddenIdx.join(",") || 0})`)
+      .not("hidden_at", "is", null);
+    if (hide.error || show.error) return apiError("server_error", 500);
+  }
   return Response.json({ ok: true });
 }

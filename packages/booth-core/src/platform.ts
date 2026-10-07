@@ -301,6 +301,10 @@ export interface BoothStage {
   /** Ganti nama grup rombongan; tersinkron ke cloud walau fotonya sudah terunggah. */
   rename(sessionId: string, name: string | null): Promise<void>;
   status(ids: string[]): Promise<StageStatus>;
+  /** Riwayat (#195): sembunyikan foto rombongan per idx (sisanya tampil); tersinkron ke cloud. */
+  hide(sessionId: string, idx: number[]): Promise<void>;
+  /** Riwayat (#195): tambah foto yang sudah diproses ke rombongan yang sudah selesai (Gabung). */
+  append(sessionId: string, photoCount: number, assets: SessionAsset[]): Promise<void>;
   /** Jendela TV di layar kedua (#179). */
   tv: {
     publish(state: StageTvState): void;

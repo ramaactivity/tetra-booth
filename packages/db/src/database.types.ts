@@ -60,6 +60,7 @@ export type Database = {
           bytes: number | null
           created_at: string
           height: number | null
+          hidden_at: string | null
           id: string
           idx: number
           kind: string
@@ -72,6 +73,7 @@ export type Database = {
           bytes?: number | null
           created_at?: string
           height?: number | null
+          hidden_at?: string | null
           id?: string
           idx?: number
           kind: string
@@ -84,6 +86,7 @@ export type Database = {
           bytes?: number | null
           created_at?: string
           height?: number | null
+          hidden_at?: string | null
           id?: string
           idx?: number
           kind?: string

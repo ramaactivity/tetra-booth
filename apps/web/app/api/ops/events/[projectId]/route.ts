@@ -39,6 +39,7 @@ async function preview(db: Db, org: string, eventId: string, withPhotos: boolean
         .eq("organization_id", org)
         .in("session_id", ids)
         .in("kind", ["original", "strip_web", "thumb_original", "thumb_strip"])
+        .is("hidden_at", null)
         .order("idx")
     : { data: [] };
   const first = (sid: string, kind: string) =>

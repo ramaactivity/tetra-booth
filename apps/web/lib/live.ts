@@ -34,6 +34,7 @@ export async function loadLive(token: string, limit = 24) {
     .is("deleted_at", null)
     // Booth: strip; Photo Stage (#180): foto pertama rombongan.
     .in("assets.kind", ["strip_web", "original"])
+    .is("assets.hidden_at", null)
     .order("started_at", { ascending: false })
     .limit(limit);
   const pick = (s: NonNullable<typeof rows>[number]) =>

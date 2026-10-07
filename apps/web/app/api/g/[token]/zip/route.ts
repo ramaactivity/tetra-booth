@@ -30,6 +30,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
     )
     .eq("organization_id", ev.organization_id)
     .eq("kind", KINDS[kind])
+    .is("hidden_at", null)
     .eq("sessions.event_id", ev.id)
     .eq("sessions.source", kind === "stage" ? "stage" : "booth")
     .is("sessions.hidden_at", null)

@@ -85,7 +85,7 @@ Belum dibangun (ikuti PNG saat fasenya tiba): A2–A4 & A7 photobox (Fase 4), B 
 | Layar | Kode | Penyimpangan yang disengaja |
 |---|---|---|
 | A1 Persiapan | `booth-core/src/StageSetup.tsx` | Peran, event, jenis kamera diganti lewat Crew (aplikasi dibuka ulang); langkah 1 & kartu kamera hanya menampilkan pilihan aktif. Nama monitor TV tidak tersedia. |
-| A2–A3 Operator | `booth-core/src/StageRunner.tsx` | Maks. 20 foto/rombongan (grid menampilkan 5 terbaru). Pisah otomatis menutup rombongan; rombongan baru dibuka jepretan berikutnya. Riwayat: ganti nama saja (gabung/pisah/sembunyikan foto menyusul, butuh dukungan cloud). |
+| A2–A3 Operator | `booth-core/src/StageRunner.tsx` | Maks. 20 foto/rombongan (grid menampilkan 5 terbaru). Pisah otomatis menutup rombongan; rombongan baru dibuka jepretan berikutnya. Riwayat lengkap (#195); thumbnail tersembunyi memakai ikon mata dicoret (label teks tidak muat di 48 px). |
 | A4 Warna | `booth-core/src/StageColor.tsx` | Tanpa "Simpan preset" (preset tersimpan otomatis per event). |
 | B4–B6 TV | `booth-core/src/StageTv.tsx` | Mosaik maks. 5 foto terbaru; kartu QR galeri idle hanya untuk event cloud (slug). |
 | C7–C7b HP tamu | `apps/web/app/s/[sessionId]/StageGuest.tsx`, `page.tsx` | Tanpa nomor rombongan (nomor laptop tidak stabil); Simpan semua tanpa ZIP (fallback unduh per file). |

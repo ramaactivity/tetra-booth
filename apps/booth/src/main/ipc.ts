@@ -832,6 +832,20 @@ export function registerIpc(
     cloud.kickUpload();
   });
 
+  // Riwayat laptop stage (#195): sembunyikan foto per idx, tambah foto ke rombongan lama (Gabung).
+  ipcMain.handle("stageHide", (_e, id: unknown, idx: unknown) => {
+    db.stageHide(SessionId.parse(id), z.array(Count.min(1)).max(20).parse(idx));
+    cloud.kickUpload();
+  });
+  ipcMain.handle("stageAppend", (_e, id: unknown, photoCount: unknown, assets: unknown) => {
+    db.stageAppend(
+      SessionId.parse(id),
+      z.number().int().min(1).max(20).parse(photoCount),
+      SessionCompleted.shape.assets.parse(assets),
+    );
+    cloud.kickUpload();
+  });
+
   // Status bar layar operator (#186): kamera, internet, rombongan yang belum terunggah. Tanpa crew.
   ipcMain.handle("stageStatus", async (_e, ids: unknown) => {
     const list = z.array(SessionId).max(50).parse(ids);

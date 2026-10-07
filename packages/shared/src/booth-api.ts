@@ -181,6 +181,11 @@ export const SessionUpsert = z.object({
   isTest: z.boolean().optional(),
   /** Photo Stage (#178): sumber sesi; tidak dikirim = booth. */
   source: z.enum(["booth", "stage"]).optional(),
+  /**
+   * Photo Stage (#195): nomor foto (idx original) yang disembunyikan dari tamu & galeri (riwayat laptop stage:
+   * Sembunyikan / Pisah / Gabung). Tidak dikirim = tidak diubah; [] = semua tampil.
+   */
+  hiddenIdx: z.array(z.number().int().min(1).max(20)).max(20).optional(),
   /** Photo Stage: nama grup rombongan (null = tanpa nama). Upsert ulang = ganti nama. */
   groupName: z.string().trim().max(120).nullable().optional(),
 });

@@ -119,6 +119,21 @@ test("Photo Stage di galeri klien, halaman tamu, dan live", async ({ browser, re
     await expect(s.getByRole("button", { name: "Simpan semua" })).toBeDisabled();
     await s.screenshot({ path: "test-results/guest-stage-sending.png", fullPage: true });
 
+    // #195: foto tersembunyi tidak tampil; semua tersembunyi (digabung) = rombongan tidak tersedia.
+    const hideIdx = (sid: string, idx: number[]) =>
+      db
+        .from("assets")
+        .update({ hidden_at: new Date().toISOString() })
+        .eq("session_id", sid)
+        .in("idx", idx);
+    await hideIdx(inti, [2]);
+    await s.goto(`/s/${inti}`);
+    await expect(s.getByText("1 / 1")).toBeVisible();
+    await hideIdx(inti, [1]);
+    await s.goto(`/s/${inti}`);
+    await expect(s.getByRole("heading", { name: "Keluarga Inti" })).toHaveCount(0);
+    await db.from("assets").update({ hidden_at: null }).eq("session_id", inti);
+
     const live = await (await request.get(`/api/live/e2e-stage-live-${tag}`)).json();
     expect((live as { id: string }[]).map((x) => x.id).sort()).toEqual([booth, inti, tamu].sort());
 

@@ -70,6 +70,9 @@ const bridge: TetraBridge = {
   stageListen: (on) => ipcRenderer.invoke("stageListen", on),
   stageRename: (id, name) => ipcRenderer.invoke("stageRename", id, name),
   stageStatus: (ids) => ipcRenderer.invoke("stageStatus", ids),
+  stageHide: (id, idx) => ipcRenderer.invoke("stageHide", id, idx),
+  stageAppend: (id, photoCount, assets) =>
+    ipcRenderer.invoke("stageAppend", id, photoCount, assets),
   stageTvPublish: (st) => ipcRenderer.invoke("stageTvPublish", st),
   stageTvLast: () => ipcRenderer.invoke("stageTvLast"),
   stageTvStatus: () => ipcRenderer.invoke("stageTvStatus"),

@@ -181,6 +181,43 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
     expect(
       (await db.from("sessions").select("source, group_name").eq("id", sessionId).single()).data,
     ).toEqual({ source: "booth", group_name: null });
+    // #195: hiddenIdx menandai original + thumb idx itu; [] = tampil semua; tidak dikirim = tidak berubah.
+    await db.from("assets").insert(
+      ["original", "thumb_original"].flatMap((kind) =>
+        [1, 2].map((idx) => ({
+          organization_id: org?.id ?? "",
+          session_id: stageId,
+          kind,
+          idx,
+          r2_key: `e2e/${stageId}/${kind}_${idx}.jpg`,
+        })),
+      ),
+    );
+    const hiddenRows = async () =>
+      (
+        await db
+          .from("assets")
+          .select("kind, idx")
+          .eq("session_id", stageId)
+          .not("hidden_at", "is", null)
+          .order("kind")
+      ).data;
+    await request.post("/api/booth/sessions", {
+      headers: auth,
+      data: { ...stageSession, hiddenIdx: [2] },
+    });
+    expect(await hiddenRows()).toEqual([
+      { kind: "original", idx: 2 },
+      { kind: "thumb_original", idx: 2 },
+    ]);
+    await request.post("/api/booth/sessions", { headers: auth, data: stageSession });
+    expect(await hiddenRows()).toHaveLength(2);
+    await request.post("/api/booth/sessions", {
+      headers: auth,
+      data: { ...stageSession, hiddenIdx: [] },
+    });
+    expect(await hiddenRows()).toEqual([]);
+    await db.from("assets").delete().eq("session_id", stageId);
     await db.from("sessions").delete().eq("id", stageId);
 
     const sign = await request.post("/api/booth/uploads/sign", {

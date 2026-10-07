@@ -193,6 +193,26 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   );
   // Asal [120,120,200] → invers [135,135,55]; urutan kanal bitmap tergantung OS.
   expect([...px].sort((a, b) => (a ?? 0) - (b ?? 0))[0]).toBeLessThan(80);
+
+  // Riwayat (#195): sembunyikan foto #1, penjaga "sisakan 1 foto", gabung #2 ke #1.
+  const hist = w.getByTestId("stage-history-row");
+  await hist.filter({ hasText: "#1 ·" }).getByRole("button").first().click();
+  const row1 = hist.filter({ hasText: "#1 ·" });
+  await row1.getByRole("button", { name: "Foto 2" }).click();
+  await row1.getByRole("button", { name: "Sembunyikan" }).click();
+  await expect(w.getByText("1 foto disembunyikan dari tamu & galeri")).toBeVisible();
+  await expect(row1).toContainText("1 foto · 1 disembunyikan");
+  await row1.getByRole("button", { name: "Foto 1" }).click();
+  await row1.getByRole("button", { name: "Pisah 1 foto" }).click();
+  await expect(w.getByText("Sisakan minimal 1 foto di rombongan ini")).toBeVisible();
+  await w.screenshot({ path: "test-results/stage-history.png" });
+  await w.keyboard.press("Escape");
+  await hist.filter({ hasText: "#2 ·" }).getByRole("button").first().click();
+  await hist.filter({ hasText: "#2 ·" }).getByRole("button", { name: "Gabung ke #1" }).click();
+  await expect(w.getByText("#2 digabung ke #1")).toBeVisible({ timeout: 15_000 });
+  await expect(hist.filter({ hasText: "#2 ·" })).toHaveCount(0);
+  await expect(hist.filter({ hasText: "#1 ·" })).toContainText("2 foto · 1 disembunyikan");
+  expect(readdirSync(join(data, "sessions", sessions[0] ?? "", "out"))).toContain("original_3.jpg");
   await app.close();
 });
 

@@ -253,6 +253,30 @@ describe("log harian", () => {
     expect(db.dueMeta(10)).toEqual([]);
   });
 
+  it("Photo Stage (#195): sembunyikan foto & tambah foto (Gabung) = metadata dikirim ulang", () => {
+    const db = openDb(":memory:");
+    db.sessionStarted({ ...start, source: "stage" });
+    db.sessionCompleted({ ...done, assets: [done.assets[2], done.assets[3]].filter((a) => !!a) });
+    for (const u of db.dueUploads("9999", 10))
+      db.uploadDone(u.assetId, `k/${u.assetId}`, "2026-09-24T10:02:00Z");
+    db.sessionMetaSynced(start.id);
+    expect("hiddenIdx" in db.sessionMeta(start.id)).toBe(false);
+    db.stageHide(start.id, [2, 1, 2]);
+    expect(db.sessionMeta(start.id).hiddenIdx).toEqual([1, 2]);
+    expect(db.dueMeta(10)).toEqual([start.id]);
+    db.sessionMetaSynced(start.id);
+    const before = db.sessionMeta(start.id).assetCount;
+    db.stageAppend(start.id, 5, [
+      { kind: "original", idx: 5, path: "/s/original_5.jpg", bytes: 10 },
+    ]);
+    expect(db.sessionMeta(start.id)).toMatchObject({ photoCount: 5, assetCount: before + 1 });
+    // Aset baru antre dulu; setelah terunggah dan ada foto tersembunyi, metadata dikirim ulang.
+    expect(db.dueMeta(10)).toEqual([]);
+    for (const u of db.dueUploads("9999", 10))
+      db.uploadDone(u.assetId, `k/${u.assetId}`, "2026-09-24T10:03:00Z");
+    expect(db.dueMeta(10)).toEqual([start.id]);
+  });
+
   it("sesi booth biasa tidak membawa field Photo Stage dan tidak bisa diganti nama", () => {
     const db = openDb(":memory:");
     db.sessionStarted(start);
