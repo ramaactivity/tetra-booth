@@ -5,6 +5,8 @@ import {
   createSimulatedCamera,
   createWebcamCamera,
   type FocusStep,
+  type SessionAsset,
+  type StageTvState,
   withMirroredPhotos,
 } from "@tetra/booth-core";
 import type { BoothConfig, TetraBridge } from "./bridge";
@@ -13,8 +15,8 @@ export type { BoothConfig, TetraBridge } from "./bridge";
 
 /**
  * Kamera di Camera Service (hot folder M7, Canon EDSDK Fase 1b): capture lewat main → WebSocket.
- * Tanpa live view (hot folder biasa) layar countdown menampilkan ajakan melihat ke kamera. Dengan
- * `cfg.liveView` (digiCamControl) frame JPEG diambil berulang lewat main, satu permintaan pada satu waktu.
+ * Tanpa live view (hot folder) layar countdown menampilkan ajakan melihat ke kamera. Dengan `cfg.liveView`
+ * (Canon) frame JPEG diambil berulang lewat main, satu permintaan pada satu waktu.
  */
 const LIVE_VIEW_IDLE_MS = 60_000;
 
@@ -101,13 +103,16 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
   const camera =
     cfg.camera === "simulated"
       ? createSimulatedCamera(storage)
-      : cfg.camera === "hotfolder" || cfg.camera === "canon"
-        ? serviceCamera(bridge, !!cfg.liveView, cfg.camera === "canon")
+      : cfg.camera === "hotfolder" || cfg.camera === "canon" || cfg.camera === "sony"
+        ? serviceCamera(bridge, !!cfg.liveView, cfg.camera === "canon" || cfg.camera === "sony")
         : createWebcamCamera(storage, cfg.webcamId);
   return {
     camera: cfg.mirrorPhoto ? withMirroredPhotos(camera, storage) : camera,
     mirrorLiveView: cfg.mirrorLiveView ?? true,
-    printer: { submit: (job) => bridge.printSubmit(job) },
+    printer: {
+      submit: (job) => bridge.printSubmit(job),
+      reprint: (req) => bridge.printReprint(req),
+    },
     storage,
     db: {
       sessionStarted: (x) => bridge.sessionStarted(x),
@@ -129,6 +134,14 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       pair: (code) => bridge.crewPair(code),
       syncEvents: () => bridge.crewSyncEvents(),
       retryUploads: () => bridge.crewRetryUploads(),
+      runState: (id) => bridge.crewRunState(id),
+      eventRun: (id, a) => bridge.crewEventRun(id, a),
+      recap: (id) => bridge.crewRecap(id),
+      openEventFolder: (id) => bridge.crewOpenEventFolder(id),
+      eventSize: (id) => bridge.crewEventSize(id),
+      galleryLink: (id) => bridge.crewGalleryLink(id),
+      oldSessions: () => bridge.crewOldSessions(),
+      reupload: (id, a) => bridge.crewReupload(id, a),
       checkUpdate: () => bridge.crewCheckUpdate(),
       device: () => bridge.crewDevice(),
       saveDevice: (s) => bridge.crewSaveDevice(s),
@@ -140,8 +153,18 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       saveDesign: (id, l, f) => bridge.crewSaveDesign(id, l, f),
       resetDesign: (id, l) => bridge.crewResetDesign(id, l),
       ...(cfg.liveView ? { focus: (s: FocusStep) => bridge.crewFocus(s) } : {}),
-      ...(cfg.camera === "canon"
+      ...(cfg.camera === "canon" || cfg.camera === "sony"
         ? { focusAt: (x: number, y: number) => bridge.crewFocusAt(x, y) }
+        : {}),
+      // Sony: tap to focus hanya bodi v3 (A7 IV dst.), ditanyakan ke kamera yang sedang tersambung (#171).
+      ...(cfg.camera === "sony"
+        ? {
+            canFocusAt: () =>
+              bridge.cameraStatus().then(
+                (s) => !!s.tapFocus,
+                () => false,
+              ),
+          }
         : {}),
       installUpdate: () => bridge.crewInstallUpdate(),
       onUpdateProgress: (cb) => bridge.onUpdateProgress(cb),
@@ -156,6 +179,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       active: () => bridge.eventsActive(),
       setActive: (id) => bridge.eventsSetActive(id),
       asset: (e, a) => bridge.eventAsset(e, a),
+      recentPieces: (e, n, before) => bridge.eventsRecentPieces(e, n, before),
     },
     payments: {
       create: (req) => bridge.paymentCreate(req),
@@ -163,5 +187,26 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
     },
     health: () => bridge.health(),
     phaseChanged: (phase) => bridge.phaseChanged(phase),
+    ...(cfg.role === "stage"
+      ? {
+          stage: {
+            listen: (on: boolean) => bridge.stageListen(on),
+            onShot: (cb: Parameters<TetraBridge["onStageShot"]>[0]) => bridge.onStageShot(cb),
+            rename: (id: string, name: string | null) => bridge.stageRename(id, name),
+            status: (ids: string[]) => bridge.stageStatus(ids),
+            hide: (id: string, idx: number[]) => bridge.stageHide(id, idx),
+            append: (id: string, photoCount: number, assets: SessionAsset[]) =>
+              bridge.stageAppend(id, photoCount, assets),
+            tv: {
+              publish: (st: StageTvState) => void bridge.stageTvPublish(st),
+              last: () => bridge.stageTvLast() as Promise<StageTvState | null>,
+              onState: (cb: (st: StageTvState) => void) =>
+                bridge.onStageTv((st) => cb(st as StageTvState)),
+              connected: () => bridge.stageTvStatus(),
+              onConnected: (cb: (on: boolean) => void) => bridge.onStageTvStatus(cb),
+            },
+          },
+        }
+      : {}),
   };
 };

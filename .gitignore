@@ -44,3 +44,6 @@ next-env.d.ts
 test-results/
 playwright-report/
 apps/booth/test-results/
+
+# Claude Code: pengaturan lokal per mesin
+.claude/settings.local.json

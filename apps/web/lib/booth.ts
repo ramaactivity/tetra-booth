@@ -61,6 +61,23 @@ export async function deviceEvents(
   );
 }
 
+/**
+ * Booth boleh melapor timer/ukuran & membagikan galeri event ini (#170): event ditugaskan ke booth ini, atau booth
+ * ini sudah mengunggah sesi event tersebut (penugasan dipindah ke booth lain, tapi booth ini yang memotret dan masih
+ * menyimpan bundle-nya). Arsip tetap boleh (sesi offline terkirim belakangan).
+ */
+export async function deviceMayUseEvent(device: Device, eventId: string): Promise<boolean> {
+  if ((await deviceEvents(device, { eventId, includeArchived: true }).catch(() => [])).length)
+    return true;
+  const { count } = await createServiceClient()
+    .from("sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", eventId)
+    .eq("device_id", device.id)
+    .eq("organization_id", device.organizationId);
+  return !!count;
+}
+
 /** IP klien untuk rate limit (Vercel mengisi x-forwarded-for). */
 export const clientIp = (req: Request) =>
   req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";

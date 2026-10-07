@@ -2,13 +2,18 @@ import type {
   AssetKindName,
   CommandResult,
   EventBundle,
+  EventInfo,
+  EventRun,
   EventSettings,
   LayoutSpec,
   Paper,
   PaymentCreateRequest,
   PaymentCreateResponse,
   PaymentStatus,
+  RunAction,
+  RunState,
 } from "@tetra/shared";
+import type { StageTvState } from "./stage";
 
 /**
  * Satu-satunya pintu booth-core ke perangkat. TSD §0.
@@ -21,6 +26,10 @@ export type CaptureRequest = { sessionId: string; index: number };
 /** File foto sudah tersimpan di disk lokal. */
 export type CaptureResult = CommandResult<"capture">;
 export type PrintJob = { jobId: string; path: string; copies: number; paper: Paper };
+/** Cetak lagi dari galeri tamu (#145): lembar cetak sesi (out/strip.jpg), dibatasi `max` lembar per sesi. */
+export type ReprintRequest = { sessionId: string; copies: number; max: number; paper: Paper };
+/** `jobId` null = batas tercapai, tidak dicetak. `reprinted` = total lembar cetak ulang galeri sesi ini. */
+export type ReprintResult = { jobId: string | null; reprinted: number };
 
 export interface BoothCamera {
   startLiveView(onFrame: (frame: LiveFrame) => void): Promise<void>;
@@ -51,6 +60,11 @@ export interface BoothDb {
     startedAt: string;
     /** Photobox: pembayaran paket yang lunas. */
     paymentId?: string;
+    /** Sesi mode "Tes dulu" crew (#153): tidak dihitung, tidak tampil di galeri. */
+    isTest?: boolean;
+    /** Photo Stage (#178): sesi = rombongan; nama grup boleh kosong. */
+    source?: "stage";
+    groupName?: string | null;
   }): Promise<void>;
   /** Sesi + aset + antrean upload dalam satu transaksi (TSD §4.2). */
   sessionCompleted(s: {
@@ -77,9 +91,33 @@ export type CrewStatus = {
 };
 
 export type CloudDevice = { name: string; shortCode: string };
+/** Timer event menurut booth: `waiting` = Mulai acara ditekan, menunggu sesi tamu pertama (#152). */
+export type BoothRunState = RunState | "waiting";
+/** Rekap booth (#154), dihitung dari data laptop ini (jalan offline). */
+export type BoothRecap = {
+  /** Sesi asli selesai (tanpa sesi tes). */
+  sessions: number;
+  /** Lembar dicetak, termasuk cetak lagi dari galeri. */
+  prints: number;
+  tests: number;
+  firstAt: string | null;
+  lastAt: string | null;
+  /** Sesi asli sebelum timer mulai / setelah acara dihentikan (#170). */
+  outside: number;
+  /** Timer menurut laptop ini; null = event lokal (bukan cloud). */
+  run: EventRun | null;
+  /** Jadwal, paket, slug dari bundle cloud. */
+  info: EventInfo;
+};
+/** Ukuran folder event di laptop ini (#166). `drives` = flashdisk terpasang, ruang dalam byte. */
+export type EventSize = {
+  bytes: number;
+  files: number;
+  drives: { name: string; free: number; total: number }[];
+};
 /** Kamera & printer dari mode crew (DECISIONS #85). */
 export type DeviceSettings = {
-  camera?: "webcam" | "simulated" | "hotfolder" | "canon";
+  camera?: "webcam" | "simulated" | "hotfolder" | "canon" | "sony";
   webcamId?: string;
   /** Live view seperti cermin (bawaan nyala, FSD §1.7). */
   mirrorLiveView?: boolean;
@@ -90,6 +128,8 @@ export type DeviceSettings = {
   hotFolder?: string;
   hotFolderTrigger?: string;
   printer?: string;
+  /** Peran laptop (#178): `stage` = Photo Stage; bawaan booth. */
+  role?: "booth" | "stage";
 };
 /** `locked` = flag yang dipaksa baris perintah (tidak bisa diubah dari mode crew). */
 export type DeviceInfo = { now: DeviceSettings; locked: string[]; printers: string[] };
@@ -102,7 +142,7 @@ export type EventSettingsInfo = { cloud: EventSettings; override: EventOverride 
 export type DesignFile = { assetId: string; ext: string; bytes: Uint8Array<ArrayBuffer> };
 /** AF, atau geser fokus manual kecil/sedang/besar ke dekat / jauh. */
 export type FocusStep = "af" | "near3" | "near2" | "near1" | "far1" | "far2" | "far3";
-/** Setelan eksposur kamera DSLR (sementara lewat digiCamControl). */
+/** Setelan eksposur kamera DSLR (Canon EDSDK, #113). */
 export type CameraProp = { name: string; label: string; value: string; options: string[] };
 /** `ready` = installer versi terbaru sudah terunduh di latar belakang (tinggal dipasang). */
 export type UpdateCheck = {
@@ -116,6 +156,9 @@ export type UpdateResult = { ok: boolean; from: string; to: string; now: string 
 export type FailedPrint = { id: string; copies: number; error: string | null; createdAt: string };
 /** Peringatan kecil untuk crew di pojok layar (printer error, cetak gagal, kertas menipis). */
 export type PrinterAlert = { message: string } | null;
+
+/** Sesi lama tanpa potongan web 2× (#140): foto raw urut & potongan 1× tersimpan (null = tidak ada). */
+export type OldSession = { id: string; eventId: string; photos: string[]; piece: string | null };
 
 export type PrintUpdate = { jobId: string; ok: boolean; message?: string };
 
@@ -140,12 +183,34 @@ export interface BoothCrew {
   pair(code: string): Promise<CloudDevice>;
   /** Tarik bundle event yang ditugaskan dari cloud; kembalikan jumlah event yang diperbarui. */
   syncEvents(): Promise<number>;
+  /** Sesi selesai event cloud yang strip_web-nya masih 1× (belum ada out/piece@2x.jpg), urut per event (#140). */
+  oldSessions(): Promise<OldSession[]>;
+  /** Tandai aset sesi yang ditulis ulang (strip_web/thumb_strip) untuk diunggah lagi lewat antrean upload. */
+  reupload(sessionId: string, assets: SessionAsset[]): Promise<void>;
+  /** Timer event (#149) menurut booth ini; null = event lokal (bukan dari cloud). */
+  runState(eventId: string): Promise<BoothRunState | null>;
+  /**
+   * Catat aksi timer (jam laptop saat ditekan) dan kirim ke cloud lewat antrean (offline aman).
+   * `open` = Buka untuk Tamu: mulai/lanjutkan kalau belum selesai. Balas state baru; null = event lokal.
+   */
+  eventRun(eventId: string, action: RunAction | "arm"): Promise<BoothRunState | null>;
+  /** Rekap acara di booth (#154). */
+  recap(eventId: string): Promise<BoothRecap>;
+  /**
+   * Ukuran isi Buka Folder Event (#166, dihitung dari file sumber) + flashdisk terpasang (Windows; kosong kalau
+   * tidak terdeteksi). Online = sekalian dilaporkan ke cloud.
+   */
+  eventSize(eventId: string): Promise<EventSize>;
+  /** Kumpulkan file sesi event ini ke satu folder lalu buka di Explorer (#155). Balas path folder. */
+  openEventFolder(eventId: string): Promise<string>;
+  /** Aktifkan link galeri klien & salin alamatnya ke clipboard (#155). Offline = Error berpesan. */
+  galleryLink(eventId: string): Promise<string>;
   /** Unggah antrean sekarang juga, lewati jeda backoff (FSD §1.3 "coba sekarang"). */
   retryUploads(): Promise<void>;
   device(): Promise<DeviceInfo>;
   /** Simpan pengaturan perangkat; booth dibuka ulang supaya kamera & printer baru dipakai. */
   saveDevice(s: DeviceSettings): Promise<void>;
-  /** Setelan eksposur DSLR yang tersedia (kosong = bukan DSLR / digiCamControl tidak menjawab). */
+  /** Setelan eksposur DSLR yang tersedia (kosong = bukan DSLR Canon / kamera belum tersambung). */
   cameraProps(): Promise<CameraProp[]>;
   setCameraProp(name: string, value: string): Promise<void>;
   /** Pengaturan event: nilai cloud + override lokal booth (DECISIONS #100). */
@@ -158,10 +223,12 @@ export interface BoothCrew {
   saveDesign(eventId: string, layout: LayoutSpec, files: DesignFile[]): Promise<string>;
   /** Kembalikan desain ke versi cloud: satu layout.id, atau semua (null). */
   resetDesign(eventId: string, layoutId: string | null): Promise<void>;
-  /** Fokus DSLR lewat live view (#88); tidak ada = kamera tanpa live view (webcam, hot folder biasa). */
+  /** Fokus DSLR lewat live view (#88); tidak ada = kamera tanpa live view (webcam, hot folder). */
   focus?(step: FocusStep): Promise<void>;
-  /** Tap to focus (#114, Canon EDSDK): titik 0–1 di frame kamera (tanpa cermin). */
+  /** Tap to focus (#114, Canon EDSDK, Sony v3): titik 0–1 di frame kamera (tanpa cermin). */
   focusAt?(x: number, y: number): Promise<void>;
+  /** Kamera yang tersambung sekarang mendukung tap to focus (Sony A7 II/III tidak, #171). Tidak ada = ikut `focusAt`. */
+  canFocusAt?(): Promise<boolean>;
   /** Bandingkan versi terpasang dengan rilis terbaru di cloud (DECISIONS #80). */
   checkUpdate(): Promise<UpdateCheck>;
   /** Unduh & pasang versi terbaru; aplikasi tertutup lalu terbuka lagi. Hanya booth Windows. */
@@ -178,12 +245,35 @@ export interface BoothCrew {
   onPrintUpdated(cb: (u: PrintUpdate) => void): Unsubscribe;
 }
 
+/** Satu sesi selesai: `path` = potongan kecil (layar awal), `full` = potongan paling tajam (galeri). */
+export type SessionPiece = {
+  sessionId: string;
+  path: string;
+  full: string;
+  completedAt: string;
+  /** layout.id desain yang dipakai sesi ini (kertas cetak ulang). */
+  layoutId: string;
+  printCount: number;
+  reprinted: number;
+};
+/** `hours` = jam UTC "YYYY-MM-DDTHH" yang punya sesi, terbaru dulu; `total` = semua sesi selesai event. */
+export type PiecePage = {
+  total: number;
+  hours: { hour: string; n: number }[];
+  pieces: SessionPiece[];
+};
+
 /** Event dari bundle lokal (M6; Fase 2 lewat sync). */
 export interface BoothEvents {
   list(): Promise<EventBundle[]>;
   active(): Promise<string | null>;
   setActive(id: string): Promise<void>;
   asset(eventId: string, assetId: string): Promise<Uint8Array<ArrayBuffer>>;
+  /**
+   * Hasil desain sesi selesai event ini di laptop ini, terbaru dulu (layar awal #143, galeri #145).
+   * `before` = `completedAt` kartu terakhir halaman sebelumnya.
+   */
+  recentPieces(eventId: string, limit: number, before?: string): Promise<PiecePage>;
 }
 
 /** QRIS photobox lewat cloud (TSD §8). Satu-satunya langkah yang butuh internet; gagal = reject. */
@@ -192,10 +282,49 @@ export interface BoothPayments {
   status(paymentId: string): Promise<PaymentStatus>;
 }
 
+/** Jepretan fotografer yang sudah tersimpan di laptop (Photo Stage #178). */
+export type StageShotEvent = { path: string; width: number; height: number };
+/** Status bar laptop stage (#186). `camera` null = Camera Service tidak menjawab. */
+export type StageStatus = {
+  online: boolean;
+  camera: { connected: boolean; model: string | null } | null;
+  /** Rombongan yang asetnya masih antre upload. */
+  pendingGroups: number;
+  /** Dari id yang ditanyakan: yang masih antre. */
+  pending: string[];
+};
+/** Photo Stage (#178): ada hanya di laptop berperan `stage`. */
+export interface BoothStage {
+  /** Mulai/berhenti menerima jepretan rana fotografer (Canon, atau folder pantau aplikasi tether). */
+  listen(on: boolean): Promise<void>;
+  onShot(cb: (s: StageShotEvent) => void): Unsubscribe;
+  /** Ganti nama grup rombongan; tersinkron ke cloud walau fotonya sudah terunggah. */
+  rename(sessionId: string, name: string | null): Promise<void>;
+  status(ids: string[]): Promise<StageStatus>;
+  /** Riwayat (#195): sembunyikan foto rombongan per idx (sisanya tampil); tersinkron ke cloud. */
+  hide(sessionId: string, idx: number[]): Promise<void>;
+  /** Riwayat (#195): tambah foto yang sudah diproses ke rombongan yang sudah selesai (Gabung). */
+  append(sessionId: string, photoCount: number, assets: SessionAsset[]): Promise<void>;
+  /** Jendela TV di layar kedua (#179). */
+  tv: {
+    publish(state: StageTvState): void;
+    /** Keadaan terakhir (TV yang baru tersambung). */
+    last(): Promise<StageTvState | null>;
+    onState(cb: (s: StageTvState) => void): Unsubscribe;
+    /** TV tersambung (jendela TV terbuka). */
+    connected(): Promise<boolean>;
+    onConnected(cb: (on: boolean) => void): Unsubscribe;
+  };
+}
+
 export interface BoothPlatform {
   camera: BoothCamera;
   /** Gagal = reject. Sesi tetap selesai walau print gagal (FSD §1.10). */
-  printer: { submit(job: PrintJob): Promise<void> };
+  printer: {
+    submit(job: PrintJob): Promise<void>;
+    /** Cetak lagi dari galeri lewat antrean & tabel print_jobs yang sama (#145). */
+    reprint(req: ReprintRequest): Promise<ReprintResult>;
+  };
   storage: BoothStorage;
   db: BoothDb;
   crew: BoothCrew;
@@ -208,4 +337,6 @@ export interface BoothPlatform {
   phaseChanged(phase: string): void;
   /** Live view di-mirror (bawaan true); false = seperti yang dilihat kamera. */
   mirrorLiveView?: boolean;
+  /** Laptop Photo Stage (#178); tidak ada = booth biasa. */
+  stage?: BoothStage;
 }

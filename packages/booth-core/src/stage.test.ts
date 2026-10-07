@@ -1,0 +1,191 @@
+import { LayoutSpecSchema } from "@tetra/shared";
+import { FIXTURES } from "@tetra/template-engine";
+import { describe, expect, it } from "vitest";
+import {
+  activeGroup,
+  initialStage,
+  type StageState,
+  stagePrintLayout,
+  stageReducer,
+  tvMosaic,
+} from "./stage";
+
+const shot = (at: number) => ({ path: `/s/${at}.jpg`, width: 6000, height: 4000, at });
+const run = (s: StageState, ...as: Parameters<typeof stageReducer>[1][]) =>
+  as.reduce(stageReducer, s);
+const S = 1000;
+
+describe("Photo Stage: pengelompokan rombongan (#178)", () => {
+  it("jepretan beruntun = satu rombongan; jeda > batas = rombongan baru", () => {
+    const s = run(
+      initialStage(45),
+      { type: "SHOT", shot: shot(0), id: "a" },
+      { type: "SHOT", shot: shot(10 * S), id: "x" },
+      { type: "SHOT", shot: shot(70 * S), id: "b" },
+    );
+    expect(s.groups.map((g) => [g.id, g.no, g.shots.length, g.closedAt])).toEqual([
+      ["a", 1, 2, 10 * S],
+      ["b", 2, 1, null],
+    ]);
+  });
+
+  it("jeda otomatis mati: hanya tombol Rombongan baru yang memisahkan", () => {
+    const s = run(
+      initialStage(null),
+      { type: "SHOT", shot: shot(0), id: "a" },
+      { type: "SHOT", shot: shot(600 * S), id: "x" },
+      { type: "TICK", now: 900 * S },
+    );
+    expect(s.groups).toHaveLength(1);
+    expect(activeGroup(s)?.shots).toHaveLength(2);
+  });
+
+  it("Rombongan baru: nama bisa diisi sebelum foto masuk; rombongan kosong tidak ditutup jadi sesi", () => {
+    let s = run(
+      initialStage(45),
+      { type: "SHOT", shot: shot(0), id: "a" },
+      { type: "NEW_GROUP", id: "b", now: 5 * S },
+      { type: "NEW_GROUP", id: "c", now: 6 * S },
+      { type: "RENAME", id: "b", name: "  Keluarga Besar Bpk. Hadi " },
+    );
+    expect(s.groups.map((g) => [g.id, g.name, g.closedAt])).toEqual([
+      ["a", null, 5 * S],
+      ["b", "Keluarga Besar Bpk. Hadi", null],
+    ]);
+    s = run(s, { type: "SHOT", shot: shot(100 * S), id: "z" });
+    expect(activeGroup(s)?.id).toBe("b");
+    expect(activeGroup(s)?.shots).toHaveLength(1);
+  });
+
+  it("TICK menutup rombongan aktif setelah jeda", () => {
+    const s = run(
+      initialStage(45),
+      { type: "SHOT", shot: shot(0), id: "a" },
+      { type: "TICK", now: 46 * S },
+    );
+    expect(s.groups[0]?.closedAt).toBe(46 * S);
+    expect(activeGroup(s)).toBeNull();
+  });
+
+  it("Jeda menampung jepretan, lalu dimasukkan ke rombongan", () => {
+    let s = run(
+      initialStage(45),
+      { type: "PAUSE" },
+      { type: "SHOT", shot: shot(0), id: "x" },
+      { type: "SHOT", shot: shot(1 * S), id: "y" },
+    );
+    expect(s.groups).toHaveLength(0);
+    expect(s.loose).toHaveLength(2);
+    s = run(s, { type: "RESUME" }, { type: "ASSIGN_LOOSE", id: "a", now: 2 * S });
+    expect(s.loose).toHaveLength(0);
+    expect(activeGroup(s)?.shots).toHaveLength(2);
+  });
+
+  it("lebih dari 20 foto = rombongan baru otomatis", () => {
+    const shots = Array.from({ length: 21 }, (_, i) => ({
+      type: "SHOT" as const,
+      shot: shot(i * S),
+      id: `g${i}`,
+    }));
+    const s = run(initialStage(null), ...shots);
+    expect(s.groups.map((g) => g.shots.length)).toEqual([20, 1]);
+  });
+});
+
+describe("stagePrintLayout (#183, #194)", () => {
+  it("frame 4R satu slot dipakai; landscape tanpa frame = Lengkung; portrait = foto penuh", () => {
+    const one = { ...FIXTURES["4R"], slots: FIXTURES["4R"].slots.slice(0, 1) };
+    const ev = (layout: typeof one) => ({
+      layout,
+      name: "Rina & Dimas",
+      tagline: "The Wedding of",
+      date: "12 Desember 2026",
+    });
+    expect(stagePrintLayout(ev(one), { width: 6000, height: 4000 })).toBe(one);
+    const arch = stagePrintLayout(ev(FIXTURES["2x6x2"]), { width: 6000, height: 4000 });
+    expect([arch.id, arch.canvas.width, arch.overlay?.w]).toEqual(["stage-lengkung", 1800, 988]);
+    expect(arch.texts.map((x) => x.value)).toEqual([
+      "The Wedding of",
+      "Rina & Dimas",
+      "12 · 12 · 2026",
+    ]);
+    expect(LayoutSpecSchema.safeParse(arch).success).toBe(true);
+    expect(
+      stagePrintLayout(ev(FIXTURES["2x6x2"]), { width: 4000, height: 6000 }).canvas.width,
+    ).toBe(1200);
+  });
+});
+
+describe("baki jeda (#186)", () => {
+  it("jadi rombongan baru menutup yang aktif; sembunyikan membuang dari layar", () => {
+    const base = run(
+      initialStage(null),
+      { type: "SHOT", shot: shot(1000), id: "a" },
+      { type: "PAUSE" },
+    );
+    const s = run(
+      base,
+      { type: "SHOT", shot: shot(2000), id: "x" },
+      { type: "LOOSE_TO_NEW", id: "b", now: 3000 },
+    );
+    expect(s.groups.map((g) => [g.id, g.shots.length, g.closedAt !== null])).toEqual([
+      ["a", 1, true],
+      ["b", 1, false],
+    ]);
+    expect(s.loose).toEqual([]);
+    const d = run(base, { type: "SHOT", shot: shot(2000), id: "x" }, { type: "DROP_LOOSE" });
+    expect([d.loose.length, d.groups.length]).toEqual([0, 1]);
+  });
+});
+
+describe("tvMosaic (#189)", () => {
+  it("1–5 foto 3:2 muat di area foto TV tanpa tumpang tindih", () => {
+    for (const n of [1, 2, 3, 4, 5]) {
+      const m = tvMosaic(n, 1220, 600, 32);
+      expect(m.boxes).toHaveLength(n);
+      expect(m.w).toBeLessThanOrEqual(1220 + 1);
+      expect(m.h).toBeLessThanOrEqual(600 + 1);
+      for (const b of m.boxes) expect(Math.abs(b.w / b.h - 1.5)).toBeLessThan(0.02);
+    }
+    expect(tvMosaic(3, 1220, 600, 32).boxes[0]?.w).toBeGreaterThan(
+      tvMosaic(3, 1220, 600, 32).boxes[1]?.w ?? 0,
+    );
+  });
+});
+
+describe("riwayat: sembunyikan, pisah, gabung (#195)", () => {
+  const closed = () =>
+    run(
+      initialStage(null),
+      { type: "SHOT", shot: shot(1000), id: "a" },
+      { type: "NEW_GROUP", id: "x", now: 1500 },
+      { type: "SHOT", shot: shot(2000), id: "y" },
+      { type: "SHOT", shot: shot(2100), id: "y" },
+      { type: "SHOT", shot: shot(2200), id: "y" },
+      { type: "NEW_GROUP", id: "z", now: 3000 },
+    );
+  it("sembunyikan / tampilkan lagi per idx", () => {
+    let s = run(closed(), { type: "HIDE", id: "x", idx: [2, 3], hidden: true });
+    expect(s.groups[1]?.hidden).toEqual([2, 3]);
+    s = run(s, { type: "HIDE", id: "x", idx: [3], hidden: false });
+    expect(s.groups[1]?.hidden).toEqual([2]);
+  });
+  it("pisah: foto terpilih jadi #2b (sudah ditutup), di asal disembunyikan; minimal 1 foto tersisa", () => {
+    const s = run(closed(), { type: "SPLIT", id: "x", idx: [2, 3], newId: "n", now: 4000 });
+    const b = s.groups[2];
+    expect([b?.id, b?.no, b?.part, b?.shots.length, b?.closedAt]).toEqual(["n", 2, "b", 2, 4000]);
+    expect(s.groups[1]?.hidden).toEqual([2, 3]);
+    expect(
+      run(closed(), { type: "SPLIT", id: "x", idx: [1, 2, 3], newId: "n", now: 4000 }),
+    ).toEqual(closed());
+  });
+  it("gabung: foto tampil pindah ke rombongan lama, asal ditandai digabung", () => {
+    const s = run(
+      closed(),
+      { type: "HIDE", id: "x", idx: [1], hidden: true },
+      { type: "MERGE", id: "x", into: "a" },
+    );
+    expect(s.groups[0]?.shots.map((x) => x.at)).toEqual([1000, 2100, 2200]);
+    expect([s.groups[1]?.merged, s.groups[1]?.hidden]).toEqual([true, [1, 2, 3]]);
+  });
+});

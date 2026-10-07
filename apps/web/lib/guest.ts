@@ -2,13 +2,13 @@ import "server-only";
 import { SESSION_ID_PATTERN } from "@tetra/shared";
 import type { EventBranding } from "@/lib/event-bundle";
 import { type LeadField, leadCapture } from "@/lib/leads";
-import { presignGet } from "@/lib/r2";
+import { presignDownload, presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /** Data halaman tamu `/s/{id}` (FSD §2). Dibaca di server; service role tidak pernah ke browser. */
 /** `color`/`logoUrl` = branding header (admin → Halaman tamu). */
 export type GuestEvent = { name: string; date: string; color?: string; logoUrl?: string };
-export type GuestAsset = { kind: string; idx: number; url: string };
+export type GuestAsset = { kind: string; idx: number; url: string; download: string };
 /** Form lead yang harus/boleh diisi tamu ini (belum pernah mengisi untuk sesi ini). */
 export type GuestLead = { mode: "gate" | "optional"; fields: LeadField[]; consentText: string };
 export type GuestState =
@@ -22,6 +22,8 @@ export type GuestState =
       assets: GuestAsset[];
       total: number;
       lead: GuestLead | null;
+      /** Photo Stage (#190): nama rombongan; null = sesi booth. */
+      group: string | null;
     }
   | {
       state: "ready";
@@ -31,6 +33,9 @@ export type GuestState =
       lead: GuestLead | null;
       /** Klien mengaktifkan galeri publik → link "Lihat galeri acara". */
       publicGallery: boolean;
+      /** Photo Stage (#180): nama rombongan (sesi fotografer pelaminan); null = sesi booth. */
+      group: string | null;
+      startedAt: string;
     };
 
 export async function loadGuest(sessionId: string, now = new Date()): Promise<GuestState> {
@@ -39,7 +44,7 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
   const { data: s } = await db
     .from("sessions")
     .select(
-      "id, organization_id, started_at, upload_status, asset_count, hidden_at, deleted_at, events!inner(name, event_date, guest_expires_at, client_expires_at, purged_at, lead_capture, public_gallery, branding)",
+      "id, organization_id, started_at, upload_status, asset_count, hidden_at, deleted_at, source, group_name, events!inner(name, event_date, guest_expires_at, client_expires_at, purged_at, lead_capture, public_gallery, branding)",
     )
     .eq("id", sessionId)
     .maybeSingle();
@@ -73,19 +78,31 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
 
   const { data: rows } = await db
     .from("assets")
-    .select("kind, idx, r2_key")
+    .select("kind, idx, r2_key, hidden_at")
     .eq("session_id", s.id)
     .eq("organization_id", s.organization_id)
     .order("kind")
     .order("idx");
+  // Photo Stage (#195): rombongan yang semua fotonya disembunyikan (mis. digabung ke rombongan lain) = dihapus.
+  if (
+    rows?.length &&
+    rows.every((a) => a.hidden_at || !a.kind.endsWith("original")) &&
+    s.source === "stage"
+  )
+    return { state: "removed", event };
   // Kunci "…#x" (data uji) → objek tanpa fragmen.
   const assets = await Promise.all(
-    (locked ? [] : (rows ?? [])).map(async (a) => ({
+    (locked ? [] : (rows ?? []).filter((a) => !a.hidden_at)).map(async (a) => ({
       kind: a.kind,
       idx: a.idx,
       url: await presignGet(a.r2_key.split("#")[0] ?? a.r2_key),
+      download: await presignDownload(
+        a.r2_key.split("#")[0] ?? a.r2_key,
+        `tetra-${sessionId}-${a.kind}-${a.idx}.${a.kind === "animation" ? "gif" : a.kind === "video" ? "mp4" : "jpg"}`,
+      ),
     })),
   );
+  const group = s.source === "stage" ? (s.group_name ?? `Tamu · ${clock(s.started_at)}`) : null;
   if (s.upload_status !== "complete")
     return {
       state: "pending",
@@ -94,8 +111,18 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
       assets,
       total: s.asset_count ?? 0,
       lead,
+      group,
     };
-  return { state: "ready", event, assets, expiresAt, lead, publicGallery: e.public_gallery };
+  return {
+    state: "ready",
+    event,
+    assets,
+    expiresAt,
+    lead,
+    publicGallery: e.public_gallery,
+    group,
+    startedAt: s.started_at,
+  };
 }
 
 const tz = { timeZone: "Asia/Jakarta" } as const;

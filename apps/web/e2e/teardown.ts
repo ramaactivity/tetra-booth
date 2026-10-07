@@ -34,4 +34,14 @@ export default async function teardown() {
     .eq("organization_id", org)
     .ilike("name", "e2e %");
   for (const d of devices ?? []) await db.from("devices").delete().eq("id", d.id);
+  // User uji (makeUser / undangan) yang cleanup()-nya tidak sempat jalan karena tes di-kill/timeout.
+  const { data: users } = await db.auth.admin.listUsers({ perPage: 1000 });
+  for (const u of users?.users ?? []) {
+    if (!/^e2e-.*@example\.com$/.test(u.email ?? "")) continue;
+    await db.from("members").delete().eq("user_id", u.id);
+    // FK tanpa on delete: lepas jejak user uji dari event asli & audit log supaya user bisa dihapus.
+    await db.from("events").update({ created_by: null }).eq("created_by", u.id);
+    await db.from("audit_logs").update({ actor_user_id: null }).eq("actor_user_id", u.id);
+    await db.auth.admin.deleteUser(u.id);
+  }
 }

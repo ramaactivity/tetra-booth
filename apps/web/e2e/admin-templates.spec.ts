@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
 import { deflateSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
-import { db, hasDb, login, makeUser } from "./admin-helpers";
+import { createEventViaWizard, db, hasDb, login, makeUser } from "./admin-helpers";
+import { createTemplateViaWizard } from "./template-helpers";
 
 /** Editor template E4 (DECISIONS #74): buat → ubah slot/teks/overlay → versi baru → dipakai event → bundle booth. */
 test.skip(!hasDb, "butuh Supabase dev (apps/web/.env.local)");
@@ -63,12 +64,8 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
   try {
     await login(page, u);
     await page.getByRole("link", { name: "Template" }).click();
-    await page.getByRole("button", { name: "+ Buat Template" }).click();
-    await page.getByPlaceholder(/Nama template/).fill(tplName);
-    // Bawaan: 4R portrait, 4R Grid.
-    await expect(page.getByRole("combobox", { name: "Tata letak" })).toHaveText(/4R Grid/);
-    await page.getByRole("button", { name: "Buat", exact: true }).click();
-    await expect(page.getByLabel("Nama template")).toHaveValue(tplName);
+    // Bawaan wizard: 4R portrait, 4R Grid.
+    await createTemplateViaWizard(page, { name: tplName });
 
     // Foto 1: posisi lewat panel Posisi + undo/redo, lalu paling depan (di atas overlay).
     await page.getByRole("button", { name: "Foto 1", exact: true }).click();
@@ -166,25 +163,12 @@ test("editor template: versi baru, dipakai event, booth menerima layout + aset",
       )
       .toBe("206,200,246");
 
-    // Pakai di event.
-    await page.goto("/admin");
-    await page.getByRole("button", { name: "+ Buat Event" }).click();
-    await page.getByPlaceholder(/Nama event/).fill(evName);
-    await page.getByLabel("Tanggal event").fill("2026-10-12");
-    await page.getByRole("button", { name: "Buat", exact: true }).click();
-    // Desain frame (#125): event baru = Strip Klasik; ganti ke template ini.
-    const frames = page.getByRole("group", { name: "Desain frame" });
-    await frames.getByRole("button", { name: "Lepas Strip Klasik" }).click();
-    await frames.getByRole("button", { name: /Tambah desain/ }).click();
-    const picker = page.getByRole("dialog", { name: "Tambah desain frame" });
-    await picker.getByRole("textbox", { name: "Cari nama desain" }).fill(tplName);
-    await picker.getByRole("button", { name: new RegExp(`^${tplName}`) }).click();
-    await picker.getByRole("button", { name: "Pakai desain ini" }).click();
-    await page.getByLabel(/Pilih booth/).check();
-    await page.getByLabel(dev?.name ?? "").check();
-    await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("Tersimpan · bundle v2", {
-      timeout: 30_000,
+    // Pakai di event lewat wizard Buat event: kertas 4R → template ini → booth uji.
+    await createEventViaWizard(page, {
+      name: evName,
+      paper: /Foto 4R/,
+      designs: [tplName],
+      devices: [dev?.name ?? ""],
     });
 
     const auth = { Authorization: `Bearer ${token}` };
@@ -252,15 +236,12 @@ test("format polaroid landscape: kanvas, label, dan tata letak cepat sesuai form
   try {
     await login(page, u);
     await page.goto("/admin/templates");
-    await page.getByRole("button", { name: "+ Buat Template" }).click();
-    await page.getByPlaceholder(/Nama template/).fill(tplName);
-    await page.getByRole("combobox", { name: "Format" }).click();
-    await page.getByRole("option", { name: "Polaroid" }).click();
-    await page.getByRole("button", { name: "Landscape" }).click();
-    await page.getByRole("combobox", { name: "Tata letak" }).click();
-    await expect(page.getByRole("option")).toHaveCount(2);
-    await page.getByRole("option", { name: /Polaroid Duo/ }).click();
-    await page.getByRole("button", { name: "Buat", exact: true }).click();
+    await createTemplateViaWizard(page, {
+      name: tplName,
+      paper: "Polaroid",
+      landscape: true,
+      source: /Polaroid Duo/,
+    });
     await expect(page.getByText(/Polaroid 4x3 landscape · 1200×900 px/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Foto 2", exact: true })).toBeVisible();
     // Tata letak cepat hanya polaroid landscape.

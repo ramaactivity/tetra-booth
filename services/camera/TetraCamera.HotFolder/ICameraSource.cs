@@ -31,6 +31,14 @@ public interface ICameraSource
     /// me-restart Camera Service; proses baru memulai SDK dari nol.
     /// </summary>
     bool Stuck => false;
+    /// <summary>Tap to focus didukung kamera yang tersambung sekarang (Sony: hanya bodi v3, DECISIONS #171).</summary>
+    bool CanFocusAt => false;
+    /// <summary>
+    /// Photo Stage (#178): jepretan yang tidak diminta booth (rana fotografer, file baru di folder) disimpan ke
+    /// <paramref name="outputDir"/> lalu dilaporkan lewat <paramref name="onShot"/>. null = berhenti; perilaku booth
+    /// (jepretan liar dibuang) tidak berubah. Bawaan: tidak didukung (Sony menyusul).
+    /// </summary>
+    void Listen(string? outputDir, Action<CaptureResult>? onShot) { }
 }
 
 public sealed record CameraProp(string Name, string Label, string Value, string[] Options);

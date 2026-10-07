@@ -2,29 +2,30 @@
 import { useState, useTransition } from "react";
 import { setLink } from "./links";
 
-/** Link galeri klien & slideshow (bagian "Galeri klien" E3): salin, buat ulang, cabut. */
+/**
+ * Link galeri klien & slideshow (bagian "Galeri klien" E3): `/g/<slug>` dan `/live/<slug>` (nama event, #147).
+ * Buat Link = aktifkan, Cabut = matikan (link slug & token lama tidak bisa dibuka).
+ */
 export function LinksPanel({
   eventId,
   origin,
-  clientToken,
-  liveToken,
+  slug,
+  clientOn,
+  liveOn,
 }: {
   eventId: string;
   origin: string;
-  clientToken: string | null;
-  liveToken: string | null;
+  slug: string;
+  clientOn: boolean;
+  liveOn: boolean;
 }) {
   const [pending, start] = useTransition();
   const [copied, setCopied] = useState<string | null>(null);
-  const row = (kind: "client" | "live", label: string, path: string, token: string | null) => {
-    const url = token ? `${origin}/${path}/${token}` : null;
+  const row = (kind: "client" | "live", label: string, path: string, on: boolean) => {
+    const url = on ? `${origin}/${path}/${slug}` : null;
     const run = (a: "new" | "revoke") => () =>
       start(async () => {
-        if (
-          a === "new" &&
-          token &&
-          !confirm(`Buat ulang ${label}? Link lama langsung tidak bisa dibuka.`)
-        )
+        if (a === "revoke" && !confirm(`Cabut ${label}? Link ini langsung tidak bisa dibuka.`))
           return;
         await setLink(eventId, kind, a);
       });
@@ -36,7 +37,9 @@ export function LinksPanel({
             className="flex h-[42px] min-w-0 flex-1 items-center justify-between gap-2 rounded-[11px] border-[1.5px] border-ink bg-white px-3 font-mono text-[13px]"
             data-testid={`link-${kind}`}
           >
-            <span className="truncate">{url ?? "Belum ada link"}</span>
+            <span className={`truncate ${url ? "" : "font-sans text-text-2"}`}>
+              {url ?? "Link belum aktif"}
+            </span>
             {url && (
               <button
                 type="button"
@@ -50,15 +53,17 @@ export function LinksPanel({
               </button>
             )}
           </div>
-          <button
-            type="button"
-            disabled={pending}
-            onClick={run("new")}
-            className="h-[42px] rounded-[11px] border-[1.5px] border-ink bg-white px-3 text-xs font-bold"
-          >
-            {token ? "Cabut & Buat Ulang" : "Buat Link"}
-          </button>
-          {token && (
+          {!on && (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={run("new")}
+              className="h-[42px] rounded-[11px] border-[1.5px] border-ink bg-butter px-3 text-xs font-bold"
+            >
+              Buat Link
+            </button>
+          )}
+          {on && (
             <button
               type="button"
               disabled={pending}
@@ -74,8 +79,11 @@ export function LinksPanel({
   };
   return (
     <div className="flex flex-col gap-4">
-      {row("client", "Galeri klien", "g", clientToken)}
-      {row("live", "Live slideshow", "live", liveToken)}
+      {row("client", "Galeri klien", "g", clientOn)}
+      {row("live", "Live slideshow", "live", liveOn)}
+      <p className="text-xs text-text-2">
+        Link memakai nama event. Ganti nama atau tanggal event = alamat link ikut berubah.
+      </p>
     </div>
   );
 }

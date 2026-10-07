@@ -1,6 +1,6 @@
 import { Button } from "@tetra/ui";
 import { Delete } from "lucide-react";
-import { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import { copy } from "../copy";
 
 /** Keypad angka layar crew (A09a): dipakai PIN crew dan kode pairing. */
@@ -12,7 +12,9 @@ export function DigitPad({
   maxLength,
   masked,
   status,
+  error = false,
   locked = false,
+  aside,
   onSubmit,
   onCancel,
 }: {
@@ -25,7 +27,11 @@ export function DigitPad({
   /** PIN: titik; kode pairing: angkanya tampil. */
   masked: boolean;
   status?: string | null;
+  /** Status berupa error: tinta tebal di kotak coral, bukan abu-abu. */
+  error?: boolean;
   locked?: boolean;
+  /** Panel penjelasan di samping keypad (layar sambungkan ke akun Tetra). */
+  aside?: ReactNode;
   onSubmit: () => void;
   onCancel: () => void;
 }) {
@@ -60,7 +66,8 @@ export function DigitPad({
     </button>
   );
   return (
-    <main className="flex h-full w-full items-center justify-center bg-paper">
+    <main className="flex h-full w-full items-center justify-center gap-16 bg-paper portrait:flex-col portrait:gap-10">
+      {aside}
       <div className="layered flex flex-col items-center gap-8 rounded-[40px] border-[3px] border-ink bg-white px-[72px] py-14 [--lb:3px] [--lx:14px]">
         <span className="rounded-full border-2 border-ink bg-lavender px-[18px] py-2 text-xl font-bold">
           {copy.crew.title}
@@ -86,7 +93,11 @@ export function DigitPad({
         </div>
         {/* Di bawah kotak digit, bukan absolute: pesan terkunci 2 baris dulu menimpa baris keypad (audit #12). */}
         <p
-          className="-mt-4 min-h-[56px] max-w-[560px] text-center text-xl font-semibold text-text-2"
+          className={`-mt-4 min-h-[56px] max-w-[560px] text-center text-xl font-semibold ${
+            error
+              ? "rounded-[18px] border-[2.5px] border-ink bg-coral px-5 py-3 text-ink"
+              : "text-text-2"
+          }`}
           role="status"
         >
           {status}

@@ -69,6 +69,7 @@ export function Countdown({
   prompt = "",
   cue = "foto-1",
   live = true,
+  belowTimer = false,
 }: {
   seconds: number;
   index: number;
@@ -82,6 +83,8 @@ export function Countdown({
   cue?: Cue | null;
   /** Live view sudah menampilkan frame. Angka baru jalan setelahnya (maks. LIVE_WAIT_MS): EVF DSLR dingin ±1,6 s. */
   live?: boolean;
+  /** Pil sisa waktu photobox ada di pojok kanan atas: angka turun ke bawahnya. */
+  belowTimer?: boolean;
 }) {
   const { camera } = usePlatform();
   const [waited, setWaited] = useState(() => !waitsForLive(camera));
@@ -135,27 +138,30 @@ export function Countdown({
       <ShotProgress index={index} total={photos.length} />
       <Thumbs photos={photos} index={index} />
       {prompt && (
-        <p className="absolute top-40 left-1/2 -translate-x-1/2 animate-[tick_300ms_ease-out] rounded-[28px] border-[3px] border-ink bg-butter px-12 py-5 text-[64px] leading-none font-extrabold tracking-[-0.03em] whitespace-nowrap">
+        // Bawah tengah, bukan di area wajah (masukan crew DSO): wajah tamu umumnya di sepertiga atas-tengah.
+        <p className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-[tick_300ms_ease-out] rounded-[22px] border-[2.5px] border-ink bg-butter/85 px-9 py-3.5 text-[40px] leading-none font-extrabold tracking-[-0.02em] whitespace-nowrap">
           {prompt}
         </p>
       )}
-      <div className="absolute inset-0 flex items-center justify-center">
-        {!ready && (
-          <p className="animate-[enter_250ms_ease-out_400ms_both] rounded-full bg-ink/70 px-8 py-3.5 text-[28px] font-bold text-white">
-            {copy.countdown.preparing}
-          </p>
-        )}
-        {go && ready && left > 0 && (
-          <div className="layered flex size-[340px] items-center justify-center rounded-full border-4 border-ink bg-white [--lb:4px] [--lx:14px] [--under:var(--mint)]">
-            <span
-              key={left}
-              className="animate-[tick_300ms_ease-out] text-[230px] leading-none font-extrabold tracking-[-0.05em]"
-            >
-              {left}
-            </span>
-          </div>
-        )}
-      </div>
+      {!ready && (
+        <p className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-[enter_250ms_ease-out_400ms_both] rounded-full bg-ink/70 px-8 py-3.5 text-[28px] font-bold whitespace-nowrap text-white">
+          {copy.countdown.preparing}
+        </p>
+      )}
+      {/* Pojok kanan atas, semi-transparan: tidak menutupi wajah tamu di live view (masukan crew DSO). */}
+      {go && ready && left > 0 && (
+        <div
+          data-testid="countdown-number"
+          className={`absolute right-10 flex size-[190px] ${belowTimer ? "top-[150px]" : "top-10"} items-center justify-center rounded-full border-[3px] border-ink/80 bg-white/70`}
+        >
+          <span
+            key={left}
+            className="animate-[tick_300ms_ease-out] text-[130px] leading-none font-extrabold tracking-[-0.05em]"
+          >
+            {left}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

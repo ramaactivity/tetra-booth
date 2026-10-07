@@ -1,6 +1,6 @@
 # Checklist event (percontohan & event berikutnya)
 
-Untuk Rama dan crew. Booth = laptop Windows + Canon 60D (digiCamControl) + DNP DS-RX1HS. Centang dari atas ke bawah.
+Untuk Rama dan crew. Booth = laptop Windows + Canon 60D/700D (Canon EDSDK, bawaan booth) + DNP DS-RX1HS. Centang dari atas ke bawah.
 LumaBooth disiapkan sebagai cadangan, tapi **jangan dipakai kecuali booth benar-benar macet** (kriteria Fase 1b: satu event penuh tanpa pindah).
 
 ## A. H-3 sampai H-1 (di rumah)
@@ -14,7 +14,7 @@ LumaBooth disiapkan sebagai cadangan, tapi **jangan dipakai kecuali booth benar-
 
 ### Laptop booth
 - [ ] Aplikasi versi terbaru: mode crew → **Update Aplikasi**, atau pasang dari **https://booth.tetraphoto.com/download/booth** (SmartScreen: *More info → Run anyway*).
-- [ ] Mode crew → **Kamera & Printer**: kamera **DSLR (digiCamControl)** (folder `C:\TetraBooth\hot`, pemicu `http://localhost:5513/?CMD=Capture`), printer **DS-RX1** → Simpan & Mulai Ulang (sekali per laptop, tersimpan).
+- [ ] Mode crew → **Kamera & Printer**: kamera **Kamera DSLR Canon**, printer **DS-RX1** → Simpan & Mulai Ulang (sekali per laptop, tersimpan). File pendukung Canon (EDSDK) diunduh sendiri saat booth online pertama kali.
 - [ ] Offset kalibrasi DNP: file `booth-flags.txt` (bagian E), sekali per laptop.
 - [ ] Booth sudah dipasangkan (mode crew → kartu Koneksi menunjukkan nama booth, bukan "Belum dipasangkan").
 - [ ] Mode crew → **Ganti Event → Sync dari Cloud** → pilih event. Layar awal menampilkan nama event.
@@ -30,11 +30,21 @@ LumaBooth disiapkan sebagai cadangan, tapi **jangan dipakai kecuali booth benar-
 - [ ] Roll baru dipasang? Mode crew → **Ganti Roll Kertas** → isi jumlah lembar roll.
 - [ ] Bawa roll + ribbon cadangan. Polaroid: kertas berperforasi.
 
-### Kamera 60D
-- [ ] ISO/shutter/aperture/white balance: mode crew → Kamera & Printer (saat digiCamControl menyala), atau langsung di kamera (dial **M**).
+### Kamera 60D/700D
+- [ ] Dial **M**, kualitas **JPEG** (bukan RAW). 60D: menu **Live View shoot: Enable**.
+- [ ] ISO/shutter/aperture/white balance: mode crew → **Kamera & Tes Jepret** (kamera menyala & tersambung USB).
 - [ ] Baterai penuh + cadangan (atau dummy battery). Auto power off = **Off**.
-- [ ] digiCamControl: folder sesi `C:\TetraBooth\hot`, hanya JPG, web server port 5513 aktif.
 - [ ] Mode crew → **Tes Jepret**: foto muncul.
+
+### Kamera Sony (belum diverifikasi dengan kamera asli, W-038…W-041)
+Nama menu dari dokumen Sony & manual; bisa beda per firmware. Bagian ini dirapikan setelah W-038/W-039.
+- [ ] USB Connection = **PC Remote** (A7 IV/A7 V: USB Connection Mode = Remote Shooting, PC Remote Function = **On**, Cnct Method **USB**).
+- [ ] Still Img. Save Dest. = **PC Only** (bawaan disarankan; PC+Camera hanya kalau ada kartu sehat). A7 II: tidak ada pilihan, selalu ke PC.
+- [ ] File Format **JPEG** (RAW+J PC Save Img = **JPEG Only**), ukuran L, 3:2. A7 IV: Still Image Trans. Size = **Original**.
+- [ ] Dial **M**, AF-S. A7 IV ke atas: Focus Area **Spot / Expand Flexible Spot** supaya tap to focus jalan (A7 II/III tidak punya tap to focus).
+- [ ] Power Save Start Time **30 min**; USB Power Supply **On** atau dummy battery (A7 II: dummy battery).
+- [ ] Wi-Fi/Bluetooth off, Audio signals off. Imaging Edge **ditutup**; jangan pasang driver dari paket Sony SDK. Di Device Manager kamera = **MTP USB Device**.
+- [ ] Kabel USB langsung ke laptop (bukan hub). Mode crew → Kamera & Printer → **Kamera Sony** → Tes Jepret: live view, AF, foto muncul; "Simpan foto ke · PC saja".
 
 ### Internet & halaman tamu
 - [ ] Modem/HP hotspot untuk venue, kuota cukup.
@@ -43,7 +53,7 @@ LumaBooth disiapkan sebagai cadangan, tapi **jangan dipakai kecuali booth benar-
 ## B. Hari-H: setup (datang ±90 menit sebelum mulai)
 
 - [ ] Rakit, colok charger laptop & printer, kabel USB kamera & printer langsung ke laptop.
-- [ ] Urutan nyala: **kamera → digiCamControl (tunggu "Camera is connected") → Tetra Booth** (shortcut Desktop).
+- [ ] Urutan nyala: **kamera → Tetra Booth** (shortcut Desktop). Jangan buka EOS Utility: booth menutupnya sendiri karena hanya satu aplikasi boleh memegang kamera.
 - [ ] Sambungkan internet venue.
 - [ ] Mode crew (ketuk pojok kanan atas layar awal **5× dalam 3 detik**, masukkan PIN): semua kartu hijau
   - Kamera: Terhubung · Printer: Siap · Koneksi: Online, **0 file** · Kertas sesuai roll.
@@ -56,7 +66,7 @@ LumaBooth disiapkan sebagai cadangan, tapi **jangan dipakai kecuali booth benar-
 
 - Pantau **sisa kertas** (peringatan muncul otomatis saat menipis). Ganti roll → mode crew → Ganti Roll Kertas.
 - **Cetak gagal** → mode crew → kartu Cetak gagal → **Cetak ulang**.
-- Layar "kamera sedang disiapkan ulang": cek digiCamControl masih terbuka dan kamera menyala. Kalau perlu, cabut-colok kabel USB kamera. Booth pulih sendiri (±30 detik).
+- Layar "kamera sedang disiapkan ulang": cek kamera menyala dan baterai tidak habis. Kalau perlu, cabut-colok kabel USB kamera. Booth pulih sendiri (±30 detik).
 - Internet putus: **biarkan**, booth tetap jalan, foto dikirim otomatis saat online lagi.
 - Jangan menutup aplikasi selain lewat mode crew. Jangan update apa pun.
 - Catat di HP: jam mulai/selesai, masalah + jamnya, apakah sempat pindah ke LumaBooth.

@@ -47,6 +47,21 @@ export const presignGet = (key: string, expiresIn = 60 * 60) =>
     expiresIn,
   });
 
+/**
+ * URL GET bertanda tangan yang memaksa browser MENGUNDUH (Content-Disposition: attachment), bukan membuka gambar.
+ * Dipakai tombol Download/Simpan saat fetch lintas origin ke R2 tidak bisa (CORS) atau di desktop.
+ */
+export const presignDownload = (key: string, filename: string, expiresIn = 60 * 60) =>
+  getSignedUrl(
+    client(),
+    new GetObjectCommand({
+      Bucket: env("R2_BUCKET"),
+      Key: key,
+      ResponseContentDisposition: `attachment; filename="${filename.replace(/[^\w.-]/g, "_")}"`,
+    }),
+    { expiresIn },
+  );
+
 /** Tulis objek dari server (overlay template admin). */
 export const putObject = (key: string, body: Uint8Array, contentType: string) =>
   client().send(

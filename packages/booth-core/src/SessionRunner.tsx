@@ -8,6 +8,7 @@ import type { BoothEvent } from "./event";
 import { buildOutputs, previewUrl } from "./finalize";
 import { mmss, rupiah } from "./format";
 import { usePlatform } from "./PlatformContext";
+import type { SessionPiece } from "./platform";
 import {
   after,
   beforeCue,
@@ -22,6 +23,7 @@ import { Bumper } from "./screens/Bumper";
 import { Capturing } from "./screens/Capturing";
 import { Countdown } from "./screens/Countdown";
 import { FilterSelect } from "./screens/FilterSelect";
+import { Gallery } from "./screens/Gallery";
 import { LayoutSelect } from "./screens/LayoutSelect";
 import { LiveView, slotAspect } from "./screens/LiveView";
 import { CameraError, Message } from "./screens/Message";
@@ -34,6 +36,9 @@ import { initialSession, type Photo, type SessionEvent, sessionReducer } from ".
 import { isBlurry, sharpNotes } from "./sharpness";
 
 const RECONNECT_EVERY_MS = 2000;
+/** Setelah 15 percobaan gagal (±30 dtk), coba tiap 10 dtk saja: kamera yang dicabut tidak dibombardir (#170). */
+const RECONNECT_SLOW_AFTER = 15;
+const RECONNECT_SLOW_MS = 10_000;
 /** Layar "Pembayaran berhasil" sebelum sesi foto mulai (A4a). */
 const PAID_SEC = 3;
 /** Fase yang dibatasi timer sesi photobox. */
@@ -74,6 +79,7 @@ export function SessionRunner({
   demo = false,
   fast = false,
   bumper = false,
+  test = false,
   onCrew,
 }: {
   event: BoothEvent;
@@ -83,6 +89,8 @@ export function SessionRunner({
   fast?: boolean;
   /** Booth terpasang: putar bumper saat event ini dibuka (#105). */
   bumper?: boolean;
+  /** Mode "Tes dulu" crew (#153): sesi ditandai tes, lencana kecil di pojok. */
+  test?: boolean;
   onCrew?: (intent?: "exit") => void;
 }) {
   const p = usePlatform();
@@ -98,6 +106,8 @@ export function SessionRunner({
   /** Percobaan sambung ulang kamera yang gagal, untuk layar A10. */
   const [reconnects, setReconnects] = useState(0);
   const send = (e: SessionEvent) => () => dispatch(e);
+  // Galeri tamu (#145): layar di atas attract, bukan fase sesi; selama terbuka tidak ada sesi baru yang mulai.
+  const [gallery, setGallery] = useState<{ at?: SessionPiece | undefined } | null>(null);
   useEffect(() => setSoundOverrides(event.sounds), [event.sounds]);
   // Bumper (#105): play → leave (memudar, layar awal mulai dibangun di bawahnya) → done.
   const [bumperState, setBumperState] = useState<"play" | "leave" | "done">(
@@ -192,7 +202,7 @@ export function SessionRunner({
     };
     switch (s.phase) {
       case "attract":
-        return demo ? after(tapMs, startEvent(event)) : undefined;
+        return demo && !gallery ? after(tapMs, startEvent(event)) : undefined;
       case "paid":
         return s.draftId
           ? after(PAID_SEC * 1000, {
@@ -220,7 +230,7 @@ export function SessionRunner({
       default:
         return undefined;
     }
-  }, [s.phase, s.draftId, demo, fast, cfg, event, ev]);
+  }, [s.phase, s.draftId, demo, fast, cfg, event, ev, gallery]);
 
   // Timer sesi photobox (FSD §1.5): habis → slot kosong diisi, lanjut compose / cetak 1 lembar.
   useEffect(() => {
@@ -267,14 +277,20 @@ export function SessionRunner({
     let live = true;
     setReconnects(0);
     let timer: ReturnType<typeof setTimeout>;
+    let failed = 0;
     const tryReconnect = () =>
       p.camera
         .reconnect()
         .then(() => live && dispatch({ type: "CAMERA_READY" }))
         .catch((e: unknown) => {
-          console.warn(`[session] reconnect gagal: ${errText(e)}`);
-          if (live) setReconnects((n) => n + 1);
-          if (live) timer = setTimeout(tryReconnect, RECONNECT_EVERY_MS);
+          failed++;
+          console.warn(`[session] reconnect gagal (${failed}×): ${errText(e)}`);
+          if (!live) return;
+          setReconnects(failed);
+          timer = setTimeout(
+            tryReconnect,
+            failed < RECONNECT_SLOW_AFTER ? RECONNECT_EVERY_MS : RECONNECT_SLOW_MS,
+          );
         });
     timer = setTimeout(tryReconnect, RECONNECT_EVERY_MS);
     return () => {
@@ -283,6 +299,9 @@ export function SessionRunner({
     };
   }, [p, s.phase]);
 
+  // Mode tes dibaca saat sesi mulai saja: berganti mode tidak mencatat ulang sesi yang sudah ada.
+  const testRef = useRef(test);
+  testRef.current = test;
   // Catat sesi mulai (untuk deteksi sesi terputus saat app mati).
   useEffect(() => {
     if (!s.sessionId) return;
@@ -293,6 +312,7 @@ export function SessionRunner({
         layoutVersionId: `${ev.layout.id}@${ev.layout.version}`,
         startedAt: new Date().toISOString(),
         ...(s.paymentId && { paymentId: s.paymentId }),
+        ...(testRef.current && { isTest: true }),
       })
       .catch((e: unknown) => console.error(`[session] gagal mencatat sesi: ${errText(e)}`));
   }, [p, s.sessionId, s.paymentId, ev]);
@@ -409,7 +429,7 @@ export function SessionRunner({
       )}
       {/* printing → qr satu layar (A8): jangan animasi masuk dua kali. */}
       <div
-        key={s.phase === "printing" ? "qr" : s.phase}
+        key={s.phase === "printing" ? "qr" : gallery && s.phase === "attract" ? "gallery" : s.phase}
         className="absolute inset-0 animate-[enter_250ms_ease-out]"
       >
         {screen()}
@@ -420,6 +440,15 @@ export function SessionRunner({
           className={`absolute top-[52px] right-[72px] z-10 rounded-full border-[2.5px] border-ink px-8 py-4 font-mono text-[30px] font-bold ${s.deadline - now <= 60_000 ? "bg-peach" : "bg-white"}`}
         >
           {copy.photobox.timeLeft} {mmss(s.deadline - now)}
+        </span>
+      )}
+      {test && (
+        <span
+          data-testid="test-badge"
+          title={copy.crew.testHint}
+          className="pointer-events-none absolute right-5 bottom-5 z-20 rounded-full border-2 border-ink bg-butter px-3.5 py-1 font-mono text-base font-bold tracking-[0.08em]"
+        >
+          {copy.crew.testBadge}
         </span>
       )}
       {bumperState !== "done" && s.phase === "attract" && (
@@ -439,12 +468,24 @@ export function SessionRunner({
       case "attract":
         // Selama bumper: kertas polos; layar awal baru dibangun (animasi masuk) saat bumper selesai.
         if (bumperState === "play") return null;
+        if (gallery)
+          return (
+            <Gallery
+              event={event}
+              guestBaseUrl={guestBaseUrl}
+              at={gallery.at}
+              onClose={() => setGallery(null)}
+            />
+          );
         return (
           <Attract
             eventName={event.name}
             tagline={event.tagline}
             date={event.date}
             theme={event.attract}
+            layout={event.layout}
+            photosOf={event.photobox ? undefined : event.id}
+            onGallery={event.photobox ? undefined : (at) => setGallery({ at })}
             onStart={() => {
               // Sapaan hanya kalau ada layar pilih dulu; kalau langsung foto, "gaya pertama" sudah menyapa.
               if (cfg.countdownSound && (event.photobox || event.designs)) void play("mulai");
@@ -528,6 +569,7 @@ export function SessionRunner({
             index={s.index}
             photos={s.photos}
             onDone={send({ type: "COUNTDOWN_DONE" })}
+            belowTimer={s.deadline !== null}
             sound={cfg.countdownSound}
             prompt={beforeText(s.index, s.slots, before)}
             cue={cfg.promptsBefore.length ? null : beforeCue(s.index, s.slots)}
@@ -541,7 +583,7 @@ export function SessionRunner({
           <PhotoPreview url={photo.url} index={s.index} total={s.slots} cheer={cheer.text} />
         ) : null;
       case "camera_error":
-        return <CameraError attempt={reconnects + 1} />;
+        return <CameraError attempt={reconnects + 1} onCrew={onCrew} />;
       case "filter":
         return (
           <FilterSelect

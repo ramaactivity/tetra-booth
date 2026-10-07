@@ -1,16 +1,24 @@
-import type { BoothCrew, BoothDb, BoothEvents, BoothPayments } from "@tetra/booth-core";
+import type {
+  BoothCrew,
+  BoothDb,
+  BoothEvents,
+  BoothPayments,
+  BoothPlatform,
+  SessionAsset,
+  StageStatus,
+} from "@tetra/booth-core";
 import type { CommandResult, Paper } from "@tetra/shared";
 
 export type BoothConfig = {
   /** Sumber kamera Fase 1 (DECISIONS #26). */
-  camera: "webcam" | "simulated" | "hotfolder" | "canon";
+  camera: "webcam" | "simulated" | "hotfolder" | "canon" | "sony";
   /** Sesi berjalan sendiri tanpa sentuhan. */
   demo: boolean;
   /** Demo dipercepat untuk stress test (M8): countdown 1 s, jeda pendek. */
   fast?: boolean;
   /** Base URL halaman tamu untuk QR, mis. https://booth.tetraphoto.com. */
   guestUrl: string;
-  /** Kamera Camera Service punya live view (digiCamControl, `--digicam`). */
+  /** Kamera Camera Service punya live view (Canon EDSDK, Sony). */
   liveView?: boolean;
   /** Mode kiosk aktif (M5): kursor disembunyikan di luar mode crew. */
   kiosk?: boolean;
@@ -24,6 +32,8 @@ export type BoothConfig = {
   mirrorLiveView?: boolean;
   /** Opsi crew: hasil foto ikut dibalik (bawaan mati). */
   mirrorPhoto?: boolean;
+  /** Peran laptop (#178): `stage` = Photo Stage (fotografer pelaminan); bawaan booth. */
+  role?: "booth" | "stage";
 };
 
 /**
@@ -44,6 +54,7 @@ export type TetraBridge = {
   liveViewFrame(): Promise<Uint8Array<ArrayBuffer>>;
   liveViewStop(): Promise<void>;
   printSubmit(job: { jobId: string; path: string; copies: number; paper: Paper }): Promise<void>;
+  printReprint: BoothPlatform["printer"]["reprint"];
   phaseChanged(phase: string): void;
   sessionStarted: BoothDb["sessionStarted"];
   sessionCompleted: BoothDb["sessionCompleted"];
@@ -62,6 +73,14 @@ export type TetraBridge = {
   crewPair: BoothCrew["pair"];
   crewSyncEvents: BoothCrew["syncEvents"];
   crewRetryUploads: BoothCrew["retryUploads"];
+  crewRunState: BoothCrew["runState"];
+  crewEventRun: BoothCrew["eventRun"];
+  crewRecap: BoothCrew["recap"];
+  crewOpenEventFolder: BoothCrew["openEventFolder"];
+  crewEventSize: BoothCrew["eventSize"];
+  crewGalleryLink: BoothCrew["galleryLink"];
+  crewOldSessions: BoothCrew["oldSessions"];
+  crewReupload: BoothCrew["reupload"];
   crewCheckUpdate: BoothCrew["checkUpdate"];
   crewDevice: BoothCrew["device"];
   crewSaveDevice: BoothCrew["saveDevice"];
@@ -85,8 +104,21 @@ export type TetraBridge = {
   eventsActive: BoothEvents["active"];
   eventsSetActive: BoothEvents["setActive"];
   eventAsset: BoothEvents["asset"];
+  eventsRecentPieces: BoothEvents["recentPieces"];
   paymentCreate: BoothPayments["create"];
   paymentStatus: BoothPayments["status"];
+  /** Photo Stage (#178). */
+  stageListen(on: boolean): Promise<void>;
+  onStageShot(cb: (s: { path: string; width: number; height: number }) => void): () => void;
+  stageRename(sessionId: string, name: string | null): Promise<void>;
+  stageStatus(ids: string[]): Promise<StageStatus>;
+  stageHide(sessionId: string, idx: number[]): Promise<void>;
+  stageAppend(sessionId: string, photoCount: number, assets: SessionAsset[]): Promise<void>;
+  stageTvPublish(state: unknown): Promise<void>;
+  stageTvLast(): Promise<unknown>;
+  onStageTv(cb: (state: unknown) => void): () => void;
+  stageTvStatus(): Promise<boolean>;
+  onStageTvStatus(cb: (on: boolean) => void): () => void;
 };
 
 declare global {

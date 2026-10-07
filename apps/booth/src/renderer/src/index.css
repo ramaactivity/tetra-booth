@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "@tetra/ui/tokens.css";
 @import "@tetra/ui/color-picker.css";
+/* Frame cetak 4R "Lengkung" Photo Stage (#194): serif khusus cetakan, offline. */
+@import "@fontsource/cormorant-garamond/500.css";
 @source "../../../../../packages/booth-core/src";
 @source "../../../../../packages/ui/src";
 @source "../../../../../packages/editor/src";

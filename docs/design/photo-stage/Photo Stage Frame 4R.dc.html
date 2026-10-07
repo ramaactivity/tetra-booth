@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#EDECE8}*{box-sizing:border-box}</style>
+</helmet>
+<div data-screen-label="Frame 4R Lengkung" style="width:1800px;height:1200px;background:#FFFFFF;position:relative;overflow:hidden">
+<div style="position:absolute;left:44px;top:44px;right:44px;bottom:150px;overflow:hidden;background:#EFEDE8"><img src="{{ photo }}" style="width:100%;height:100%;object-fit:cover;object-position:50% 35%;display:block"></div>
+<div style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:{{ archW }}px;height:300px;background:#FFFFFF;border-radius:{{ archR }}px {{ archR }}px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;padding-bottom:48px;font-family:'Cormorant Garamond',serif;color:#2A2926;white-space:nowrap">
+<span style="font-size:36px;font-style:italic;color:#6B6862">{{ tagline }}</span>
+<span style="font-size:96px;font-weight:500;line-height:1.02">{{ name1 }} <span style="font-style:italic;font-weight:400;color:#8A8578">&amp;</span> {{ name2 }}</span>
+<span style="font-size:28px;font-weight:500;letter-spacing:.32em;padding-left:.32em;margin-top:8px">{{ date }}</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1800,&quot;height&quot;:1200},&quot;tagline&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;The Wedding of&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;name1&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Rina&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;name2&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Dimas&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;date&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;12 · 12 · 2026&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;photo&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;foto/stage/a3.png&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const n1 = this.props.name1 ?? 'Rina', n2 = this.props.name2 ?? 'Dimas';
+    const len = (n1 + n2).length;
+    const archW = Math.min(1300, Math.max(820, 520 + len * 52));
+    return { photo: this.props.photo ?? 'foto/stage/a3.png', tagline: this.props.tagline ?? 'The Wedding of', name1: n1, name2: n2, date: this.props.date ?? '12 · 12 · 2026', archW, archR: archW / 2 };
+  }
+}
+</script>
+</body>
+</html>

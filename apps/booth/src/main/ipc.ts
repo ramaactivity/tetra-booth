@@ -1,24 +1,28 @@
 import { execFile } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import {
   AssetKindSchema,
   LayoutSpecSchema,
   newerVersion,
+  outsideRun,
   PairRequest,
   PaperSchema,
   PaymentCreateRequest,
+  RUN_ACTIONS,
   SESSION_ID_PATTERN,
 } from "@tetra/shared";
-import { app, BrowserWindow, ipcMain, net, shell } from "electron";
+import { app, BrowserWindow, clipboard, ipcMain, net, shell } from "electron";
 import { z } from "zod";
 import type { Alerts } from "./alerts";
 import { cameraHealth, liveViewUrl, request, ServiceUnavailable } from "./camera-client";
 import type { Cloud } from "./cloud";
+import { cloudErrorText } from "./cloud-error";
 import {
   config,
   DeviceSettings,
+  dataDir,
   deviceFile,
   deviceNow,
   lockedByArgv,
@@ -28,7 +32,6 @@ import {
 } from "./config";
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
 import type { BoothDb } from "./db";
-import { CAMERA_PROPS, dcc, dccBase, dccProp } from "./dcc";
 import {
   applyDesignOverride,
   assetRefs,
@@ -38,7 +41,7 @@ import {
   resetDesign,
   saveDesign,
 } from "./design-override";
-import { FOCUS_STEPS, focus, liveViewFrame, liveViewStart, liveViewStop } from "./digicam";
+import { buildEventFolder, eventFolderSize, folderName, removableDrives } from "./event-folder";
 import {
   applyOverride,
   diffOverride,
@@ -48,6 +51,7 @@ import {
 } from "./event-override";
 import { allowQuit, autoStart, setAutoStart, setKioskOn } from "./kiosk";
 import { onPhase } from "./shots";
+import { stageInbox, stageListen } from "./stage";
 import { downloadInstaller, runInstaller } from "./update";
 
 /** %APPDATA%/TetraBooth/sessions (TSD §3). Renderer hanya boleh baca/tulis di bawah folder ini. */
@@ -79,6 +83,9 @@ const SessionStarted = z.object({
   layoutVersionId: z.string().min(1).max(128),
   startedAt: Iso,
   paymentId: z.uuid().optional(),
+  isTest: z.boolean().optional(),
+  source: z.literal("stage").optional(),
+  groupName: z.string().trim().max(120).nullable().optional(),
 });
 const SessionCompleted = z.object({
   id: z.string().regex(SESSION_ID_PATTERN),
@@ -142,7 +149,7 @@ export function registerIpc(
     async (_e, path: unknown) => new Uint8Array(await readFile(inSessions(Path.parse(path)))),
   );
 
-  // Kamera lewat Camera Service (hot folder M7; nanti Canon EDSDK): foto ditulis service ke raw/ sesi.
+  // Kamera lewat Camera Service (Canon EDSDK, hot folder teknisi): foto ditulis service ke raw/ sesi.
   const CAPTURE_TIMEOUT_MS = 15_000;
   ipcMain.handle("cameraCapture", async (_e, req: unknown) => {
     const { sessionId, index } = z
@@ -157,65 +164,51 @@ export function registerIpc(
     return { ...r, path: inSessions(r.path) };
   });
   ipcMain.handle("cameraStatus", () => request({ id: crypto.randomUUID(), type: "camera.status" }));
-  // Live view DSLR lewat digiCamControl (--digicam). Diambil di main supaya CSP renderer tetap 'self'.
-  // Canon EDSDK (#111): live view & fokus lewat Camera Service; frame JPEG terbaru dari /liveview.jpg.
-  const canonOn = config.camera === "canon";
+  // Canon EDSDK (#111) & Sony (#171): live view & fokus lewat Camera Service; frame JPEG terbaru dari /liveview.jpg.
+  // Diambil di main supaya CSP renderer tetap 'self'.
+  const canonOn = config.camera === "canon" || config.camera === "sony";
   ipcMain.handle("liveViewStart", async () => {
-    if (!config.liveView) return;
-    if (canonOn) {
-      await request({ id: crypto.randomUUID(), type: "liveview.start" }, 5000);
-      if (deviceNow.afBeforeCapture)
-        void request(
-          { id: crypto.randomUUID(), type: "camera.focus", payload: { step: "af" } },
-          5000,
-        )
-          .then(() => console.info("[camera] AF sebelum jepret"))
-          .catch((e: unknown) => console.warn(`[camera] AF sebelum jepret gagal: ${String(e)}`));
-      return;
-    }
-    await liveViewStart(!!deviceNow.afBeforeCapture);
-    if (deviceNow.afBeforeCapture) console.info("[camera] AF sebelum jepret");
+    if (!canonOn) return;
+    // Frame pertama setelah live view dinyalakan ulang selalu dikirim, walau sama dengan frame terakhir sebelum jepret
+    // (adegan diam / kamera palsu): tanpa ini LiveView yang baru dipasang tidak pernah mendapat frame.
+    lastCanonFrame = undefined;
+    await request({ id: crypto.randomUUID(), type: "liveview.start" }, 5000);
+    if (deviceNow.afBeforeCapture)
+      void request({ id: crypto.randomUUID(), type: "camera.focus", payload: { step: "af" } }, 5000)
+        .then(() => console.info("[camera] AF sebelum jepret"))
+        .catch((e: unknown) => console.warn(`[camera] AF sebelum jepret gagal: ${String(e)}`));
   });
   let lastCanonFrame: Buffer | undefined;
   ipcMain.handle("liveViewFrame", async () => {
-    if (!config.liveView) throw new Error("live view tidak aktif");
-    if (canonOn) {
-      const r = await fetch(liveViewUrl(), { signal: AbortSignal.timeout(3000) });
-      if (r.status !== 200) return new Uint8Array(0);
-      // Camera Service selalu mengirim frame terakhir; renderer meminta lebih cepat dari 60D (±18 fps) sehingga tiap
-      // frame di-decode ±4×. Frame yang sama = kosong, renderer menunggu 40 ms (sama seperti digiCamControl).
-      const b = Buffer.from(await r.arrayBuffer());
-      if (lastCanonFrame?.equals(b)) return new Uint8Array(0);
-      lastCanonFrame = b;
-      return new Uint8Array(b);
-    }
-    return liveViewFrame();
+    if (!canonOn) throw new Error("live view tidak aktif");
+    const r = await fetch(liveViewUrl(), { signal: AbortSignal.timeout(3000) });
+    if (r.status !== 200) return new Uint8Array(0);
+    // Camera Service selalu mengirim frame terakhir; renderer meminta lebih cepat dari 60D (±18 fps) sehingga tiap
+    // frame di-decode ±4×. Frame yang sama = kosong, renderer menunggu 40 ms.
+    const b = Buffer.from(await r.arrayBuffer());
+    if (lastCanonFrame?.equals(b)) return new Uint8Array(0);
+    lastCanonFrame = b;
+    return new Uint8Array(b);
   });
   ipcMain.handle("liveViewStop", async () => {
-    if (!config.liveView) return;
     if (canonOn) await request({ id: crypto.randomUUID(), type: "liveview.stop" }, 5000);
-    else await liveViewStop();
   });
 
-  ipcMain.handle("printSubmit", async (_e, job: unknown) => {
-    const j = PrintJob.parse(job);
-    const path = inSessions(j.path);
+  /** Jalur cetak sesi & galeri: write-ahead, Camera Service mati = tetap queued (dikirim ulang begitu pulih). */
+  const sendPrint = async (j: {
+    jobId: string;
+    sessionId: string;
+    path: string;
+    copies: number;
+    paper: z.infer<typeof PaperSchema>;
+  }) => {
     // Write-ahead: baris queued ada sebelum event hasil bisa datang (M-012).
-    if (
-      !db.printSubmitting({
-        id: j.jobId,
-        sessionId: j.jobId,
-        path,
-        copies: j.copies,
-        paper: j.paper,
-      })
-    )
-      return;
+    if (!db.printSubmitting({ ...j, id: j.jobId })) return;
     try {
       const r = await request({
         id: crypto.randomUUID(),
         type: "print.submit",
-        payload: { ...j, path },
+        payload: { jobId: j.jobId, path: j.path, copies: j.copies, paper: j.paper },
       });
       if (!r.accepted) db.printJobResult(j.jobId, "failed", "print ditolak Camera Service");
     } catch (e) {
@@ -228,6 +221,30 @@ export function registerIpc(
       db.printJobResult(j.jobId, "failed", e instanceof Error ? e.message : String(e));
       throw e;
     }
+  };
+  ipcMain.handle("printSubmit", async (_e, job: unknown) => {
+    const j = PrintJob.parse(job);
+    await sendPrint({ ...j, sessionId: j.jobId, path: inSessions(j.path) });
+  });
+  // Galeri tamu (#145): cetak lagi lembar cetak sesi selesai, maks. `max` lembar per sesi dari galeri.
+  const Reprint = z.object({
+    sessionId: SessionId,
+    copies: z.number().int().min(1).max(10),
+    max: z.number().int().min(1).max(10),
+    paper: PaperSchema,
+  });
+  ipcMain.handle("printReprint", async (_e, req: unknown) => {
+    const r = Reprint.parse(req);
+    const used = db.reprinted(r.sessionId);
+    if (used === undefined) throw new Error("sesi belum selesai");
+    if (used + r.copies > r.max) return { jobId: null, reprinted: used };
+    const path = join(sessionsRoot(), r.sessionId, "out", "strip.jpg");
+    if (!existsSync(path)) throw new Error("lembar cetak sesi tidak ada");
+    const jobId = `${r.sessionId}-g${Date.now().toString(36)}`;
+    db.addPrints(r.sessionId, r.copies);
+    console.info(`[gallery] cetak lagi ${jobId}: ${r.copies} lembar`);
+    await sendPrint({ jobId, sessionId: r.sessionId, path, copies: r.copies, paper: r.paper });
+    return { jobId, reprinted: used + r.copies };
   });
 
   // Mode crew (FSD §1.3). Semua aksi selain PIN butuh crew sudah masuk.
@@ -252,9 +269,134 @@ export function registerIpc(
       device: cloud.device(),
     };
   });
+  // Timer event (#149): Buka untuk Tamu / Jeda / Lanjutkan / Selesai → antrean ke cloud, jam saat ditekan.
+  const EventId = z.string().min(1).max(64);
+  ipcMain.handle("crewRunState", (_e, id: unknown) => {
+    crewOnly();
+    return cloud.runState(EventId.parse(id));
+  });
+  ipcMain.handle("crewEventRun", async (_e, id: unknown, action: unknown) => {
+    crewOnly();
+    const eventId = EventId.parse(id);
+    const a = z.enum([...RUN_ACTIONS, "arm"]).parse(action);
+    // Hentikan Acara: ukuran folder event ikut terkirim (#166).
+    const local = a === "finish" ? await eventFolderSize(db.eventFiles(eventId)) : undefined;
+    return cloud.runAction(eventId, a, local);
+  });
+  // Rekap booth (#154): dihitung dari SQLite & timer lokal, jalan offline.
+  ipcMain.handle("crewRecap", (_e, id: unknown) => {
+    crewOnly();
+    const eventId = EventId.parse(id);
+    const run = cloud.runState(eventId) ? cloud.localRun(eventId) : null;
+    return {
+      ...db.recap(eventId),
+      outside: run ? outsideRun(run, db.sessionTimes(eventId)) : 0,
+      run,
+      info: bundles.find((b) => b.id === eventId)?.info ?? {},
+    };
+  });
+  // Ukuran isi "Buka Folder Event" + flashdisk terpasang (#166); dilaporkan ke cloud kalau online.
+  ipcMain.handle("crewEventSize", async (_e, id: unknown) => {
+    crewOnly();
+    const eventId = EventId.parse(id);
+    const [size, drives] = await Promise.all([
+      eventFolderSize(db.eventFiles(eventId)),
+      removableDrives(),
+    ]);
+    cloud.reportStorage(eventId, size);
+    return { ...size, drives };
+  });
+  // "Buka folder event" (#155): kumpulkan file sesi asli event ini lalu buka di Explorer untuk disalin crew.
+  ipcMain.handle("crewOpenEventFolder", async (e, id: unknown) => {
+    crewOnly();
+    const eventId = EventId.parse(id);
+    const name = bundles.find((b) => b.id === eventId)?.name ?? eventId;
+    // --data (dev/e2e) = folder data sendiri, supaya Dokumen laptop tidak terisi data uji.
+    const root = dataDir
+      ? join(dataDir, "Foto Event")
+      : join(app.getPath("documents"), "Tetra Booth");
+    const dest = join(root, folderName(name));
+    const added = await buildEventFolder(dest, db.eventFiles(eventId));
+    console.info(`[crew] folder event ${dest} (+${added} file)`);
+    // Uji otomatis: jangan membuka Explorer/Finder.
+    if (process.env.TETRA_NO_SHELL_OPEN !== "1") {
+      const win = BrowserWindow.fromWebContents(e.sender);
+      if (win?.isKiosk()) {
+        setKioskOn(win, false);
+        win.once("focus", () => {
+          if (!win.isDestroyed()) setKioskOn(win, true);
+        });
+      }
+      // Jendela booth tidak diperkecil (#170): Explorer muncul di depan, mode crew tetap terbuka di belakangnya.
+      // Dulu diperkecil → kembali ke booth, webcam bisa sudah mati dan tamu tertahan di layar kamera bermasalah.
+      const err = await shell.openPath(dest);
+      if (err) throw new Error(`Folder tidak bisa dibuka: ${err}`);
+    }
+    return dest;
+  });
+  // "Salin link galeri" (#155): aktifkan link galeri klien di cloud, salin alamatnya ke clipboard.
+  ipcMain.handle("crewGalleryLink", async (_e, id: unknown) => {
+    crewOnly();
+    let slug: string;
+    try {
+      slug = await cloud.galleryLink(EventId.parse(id));
+    } catch (err) {
+      console.warn(
+        `[cloud] link galeri gagal: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      throw new Error(
+        cloudErrorText(
+          err,
+          "Link galeri butuh internet. Sambungkan booth ke internet lalu coba lagi",
+        ),
+      );
+    }
+    const url = `${config.guestUrl}/g/${slug}`;
+    clipboard.writeText(url);
+    return url;
+  });
   ipcMain.handle("crewRetryUploads", async () => {
     crewOnly();
     await cloud.retryUploads();
+  });
+  // "Tajamkan foto lama" (#140): sesi yang belum punya potongan web 2×, foto raw urut nomor.
+  ipcMain.handle("crewOldSessions", () => {
+    crewOnly();
+    return db.webSessions().flatMap(({ id, eventId }) => {
+      const dir = join(sessionsRoot(), id);
+      const out = (f: string) => join(dir, "out", f);
+      if (!existsSync(dir) || existsSync(out("piece@2x.jpg"))) return [];
+      const raw = existsSync(join(dir, "raw")) ? readdirSync(join(dir, "raw")) : [];
+      const photos = raw
+        .filter((f) => /^\d+\.jpg$/.test(f))
+        .sort((a, b) => Number.parseInt(a, 10) - Number.parseInt(b, 10))
+        .map((f) => join(dir, "raw", f));
+      const piece = [out("piece.jpg"), out("strip.jpg")].find((f) => existsSync(f)) ?? null;
+      return [{ id, eventId, photos, piece }];
+    });
+  });
+  const Reupload = z
+    .array(
+      z.object({
+        kind: z.enum(["strip_web", "thumb_strip"]),
+        idx: z.literal(0),
+        path: Path,
+        bytes: z.number().int().min(1),
+      }),
+    )
+    .min(1)
+    .max(2);
+  ipcMain.handle("crewReupload", (_e, id: unknown, assets: unknown) => {
+    crewOnly();
+    const sessionId = SessionId.parse(id);
+    const dir = join(sessionsRoot(), sessionId) + sep;
+    const list = Reupload.parse(assets).map((a) => {
+      const path = inSessions(a.path);
+      if (!path.startsWith(dir)) throw new Error("path di luar folder sesi");
+      return { ...a, path };
+    });
+    db.reupload(sessionId, list, new Date().toISOString());
+    cloud.kickUpload();
   });
   ipcMain.handle("crewSyncEvents", async () => {
     crewOnly();
@@ -262,7 +404,12 @@ export function registerIpc(
       return await cloud.syncEvents(true);
     } catch (e) {
       console.warn(`[cloud] sync event gagal: ${e instanceof Error ? e.message : String(e)}`);
-      throw new Error("Tidak bisa mengunduh event dari cloud. Cek koneksi internet lalu coba lagi");
+      throw new Error(
+        cloudErrorText(
+          e,
+          "Tidak bisa mengunduh event dari cloud. Cek koneksi internet lalu coba lagi",
+        ),
+      );
     }
   });
   // Update aplikasi (aturan 7: hanya dari mode crew, DECISIONS #80).
@@ -290,7 +437,7 @@ export function registerIpc(
     return x;
   };
   const getInstaller = (version: string) =>
-    (inflight ??= downloadInstaller(fresh, app.getPath("temp"), (p) => {
+    (inflight ??= downloadInstaller(fresh, join(app.getPath("userData"), "updates"), (p) => {
       // Progress ke layar crew paling sering tiap 500 ms.
       const now = Date.now();
       if (now - sent < 500 && p.received < p.total) return;
@@ -409,7 +556,9 @@ export function registerIpc(
   ipcMain.handle("crewDevice", async (e) => {
     crewOnly();
     const printers = (await e.sender.getPrintersAsync()).map((p) => p.name);
-    const locked = ["camera", "printer", "hot-folder", "hot-folder-trigger"].filter(lockedByArgv);
+    const locked = ["camera", "printer", "hot-folder", "hot-folder-trigger", "role"].filter(
+      lockedByArgv,
+    );
     return { now: deviceNow, locked, printers };
   });
   ipcMain.handle("crewSaveDevice", async (_e, s: unknown) => {
@@ -426,56 +575,44 @@ export function registerIpc(
   });
   ipcMain.handle("crewCameraProps", async () => {
     crewOnly();
-    if (canonOn) return request({ id: crypto.randomUUID(), type: "camera.props" }, 8000);
-    const base = dccBase();
-    if (!base) return [];
-    return (
-      await Promise.all(CAMERA_PROPS.map(([name, label]) => dccProp(base, name, label)))
-    ).filter((p) => p !== null);
+    return canonOn ? request({ id: crypto.randomUUID(), type: "camera.props" }, 8000) : [];
   });
   ipcMain.handle("crewFocusAt", async (_e, x: unknown, y: unknown) => {
     crewOnly();
-    if (!canonOn) throw new Error("Tap to focus hanya untuk DSLR Canon (EDSDK)");
+    if (!canonOn) throw new Error("Tap to focus hanya untuk kamera Canon / Sony");
     const at = { x: z.number().min(0).max(1).parse(x), y: z.number().min(0).max(1).parse(y) };
-    await request({ id: crypto.randomUUID(), type: "camera.focusAt", payload: at }, 8000);
+    const r = await request({ id: crypto.randomUUID(), type: "camera.focusAt", payload: at }, 8000);
+    if (!r.ok) throw new Error("Kamera ini tidak mendukung tap to focus");
     console.info(`[camera] fokus di ${at.x.toFixed(2)},${at.y.toFixed(2)}`);
   });
   ipcMain.handle("crewFocus", async (_e, step: unknown) => {
     crewOnly();
-    if (!config.liveView) throw new Error("Kontrol fokus hanya untuk DSLR dengan live view");
-    const s = z.enum(FOCUS_STEPS).parse(step);
-    if (canonOn) {
-      await request({ id: crypto.randomUUID(), type: "camera.focus", payload: { step: s } }, 5000);
-      console.info(`[camera] fokus ${s}`);
-      return;
-    }
-    await focus(s).catch(() => {
-      throw new Error("digiCamControl tidak menjawab. Cek kamera menyala & live view jalan");
-    });
+    if (!canonOn) throw new Error("Kontrol fokus hanya untuk kamera Canon / Sony");
+    const s = z.enum(["af", "near3", "near2", "near1", "far1", "far2", "far3"]).parse(step);
+    await request({ id: crypto.randomUUID(), type: "camera.focus", payload: { step: s } }, 5000);
     console.info(`[camera] fokus ${s}`);
   });
   ipcMain.handle("crewSetCameraProp", async (_e, name: unknown, value: unknown) => {
     crewOnly();
-    const base = dccBase();
-    // Canon punya setelan tambahan: ISO jepret (flash) & kualitas JPEG (#113).
+    if (!canonOn) throw new Error("Setelan kamera hanya untuk kamera Canon / Sony");
+    // Canon (#113): eksposur live view + ISO/shutter jepret (flash) & kualitas JPEG. Sony (#171): + EV.
     const n = z
       .enum([
-        ...CAMERA_PROPS.map(([k]) => k),
-        ...(canonOn ? ["iso_capture", "shutter_capture", "quality"] : []),
-      ] as [string, ...string[]])
+        "iso",
+        "shutterspeed",
+        "aperture",
+        "whitebalance",
+        "iso_capture",
+        "shutter_capture",
+        "quality",
+        "exposurecomp",
+      ])
       .parse(name);
     const v = z.string().min(1).max(64).parse(value);
-    if (canonOn) {
-      await request(
-        { id: crypto.randomUUID(), type: "camera.setProp", payload: { name: n, value: v } },
-        8000,
-      );
-      console.info(`[camera] ${n} = ${v}`);
-      return;
-    }
-    if (!base) throw new Error("Kamera DSLR (digiCamControl) belum dipakai");
-    const res = await dcc(base, { slc: "set", param1: n, param2: v }).catch(() => null);
-    if (!res?.ok) throw new Error("digiCamControl menolak setelan. Cek kamera menyala & dial di M");
+    await request(
+      { id: crypto.randomUUID(), type: "camera.setProp", payload: { name: n, value: v } },
+      8000,
+    );
     console.info(`[camera] ${n} = ${v}`);
   });
 
@@ -564,6 +701,27 @@ export function registerIpc(
       applyDesignOverride(applyOverride(b, overrideOf(b.id)), designOf(b.id)),
     ),
   );
+  // Layar awal (#143): hasil desain sesi selesai event ini; thumb (960 px) dulu, lalu potongan web/cetak.
+  // Tanpa PIN (layar tamu), hanya path di folder sesi; renderer membacanya lewat readFile.
+  ipcMain.handle("eventsRecentPieces", (_e, id: unknown, limit: unknown, before: unknown) => {
+    const eventId = z.string().min(1).max(64).parse(id);
+    const pick = (sid: string, names: string[]) =>
+      names.map((n) => join(sessionsRoot(), sid, "out", n)).find((p) => existsSync(p));
+    const hours = db.sessionHours(eventId);
+    const pieces = db
+      .recentSessions(
+        eventId,
+        z.number().int().min(1).max(48).parse(limit),
+        Iso.optional().parse(before),
+      )
+      .flatMap(({ id: sessionId, ...s }) => {
+        const path = pick(sessionId, ["thumb_strip.jpg", "piece@2x.jpg", "piece.jpg", "strip.jpg"]);
+        // Galeri (#145): sumber paling tajam; strip.jpg (lembar cetak) hanya kalau potongan tidak ada.
+        const full = pick(sessionId, ["piece@2x.jpg", "piece.jpg", "strip.jpg", "thumb_strip.jpg"]);
+        return path && full ? [{ ...s, sessionId, path, full }] : [];
+      });
+    return { total: hours.reduce((a, h) => a + h.n, 0), hours, pieces };
+  });
   // Desain diedit di booth (DECISIONS #128/#131): layout.id → waktu simpan, hanya layout yang masih ada di bundle.
   ipcMain.handle("crewDesigns", (_e, id: unknown) => {
     crewOnly();
@@ -661,7 +819,49 @@ export function registerIpc(
     return new Uint8Array(await readFile(local ? join(localDir(b.id), local) : assetPath(b, a)));
   });
 
-  ipcMain.handle("sessionStarted", (_e, x: unknown) => db.sessionStarted(SessionStarted.parse(x)));
+  // Photo Stage (#178): dengar rana fotografer; jepretan masuk ke _stage-inbox (di dalam folder sesi, jadi bisa
+  // dibaca renderer lewat readFile). Ganti nama grup tersinkron ke cloud lewat uploader (dueMeta).
+  ipcMain.handle("stageListen", (_e, on: unknown) =>
+    stageListen(z.boolean().parse(on) ? stageInbox(sessionsRoot()) : null),
+  );
+  ipcMain.handle("stageRename", (_e, id: unknown, name: unknown) => {
+    db.sessionRename(
+      SessionId.parse(id),
+      z.string().trim().max(120).nullable().parse(name) || null,
+    );
+    cloud.kickUpload();
+  });
+
+  // Riwayat laptop stage (#195): sembunyikan foto per idx, tambah foto ke rombongan lama (Gabung).
+  ipcMain.handle("stageHide", (_e, id: unknown, idx: unknown) => {
+    db.stageHide(SessionId.parse(id), z.array(Count.min(1)).max(20).parse(idx));
+    cloud.kickUpload();
+  });
+  ipcMain.handle("stageAppend", (_e, id: unknown, photoCount: unknown, assets: unknown) => {
+    db.stageAppend(
+      SessionId.parse(id),
+      z.number().int().min(1).max(20).parse(photoCount),
+      SessionCompleted.shape.assets.parse(assets),
+    );
+    cloud.kickUpload();
+  });
+
+  // Status bar layar operator (#186): kamera, internet, rombongan yang belum terunggah. Tanpa crew.
+  ipcMain.handle("stageStatus", async (_e, ids: unknown) => {
+    const list = z.array(SessionId).max(50).parse(ids);
+    const camera = await request({ id: crypto.randomUUID(), type: "camera.status" }).then(
+      (r) => ({ connected: r.connected, model: r.model }),
+      () => null,
+    );
+    return { online: net.isOnline(), camera, ...db.stageUploads(list) };
+  });
+
+  ipcMain.handle("sessionStarted", (_e, x: unknown) => {
+    const s = SessionStarted.parse(x);
+    db.sessionStarted(s);
+    // "Mulai acara" (#152): sesi tamu pertama memulai timer; sesi tes tidak.
+    if (!s.isTest) cloud.sessionStarted(s.eventId, s.startedAt);
+  });
   ipcMain.handle("sessionCompleted", (_e, x: unknown) => {
     const s = SessionCompleted.parse(x);
     db.sessionCompleted({

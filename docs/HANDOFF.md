@@ -123,6 +123,47 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
   - Laporan `docs/reports/windows/<tanggal>-m8-stress.md`.
   - **Status (Windows, 2026-09-24): langkah 1 dua kali, belum lulus** → `docs/reports/windows/2026-09-24-m8-stress.md`. Run ke-1 macet di 350 (Windows Update memasang driver Intel → GPU process hilang, main macet). Run ke-2 501/500, stabilitas lulus, memori GAGAL (total akhir 1.277 MB; GPU iGPU ±1,1–1,2 GB). Langkah 2 (waktu normal) belum dijalankan, menunggu keputusan M-017.
   → Ditutup 2026-09-25 atas keputusan Rama (DECISIONS #53): langkah 1 cukup (W-024), langkah 2 tidak dijalankan.
+- [ ] **W-035 digiCamControl dihapus (DECISIONS #168), cek di laptop booth.** Update booth ke versi berikutnya. (1) Laptop yang `device.json`/`booth-flags.txt`-nya masih memakai digiCamControl (hot folder + pemicu port 5513, atau `--digicam`): booth terbuka tanpa crash, log `[config] digiCamControl sudah dihapus (#168): kamera pindah ke Canon EDSDK` lalu `[canon] tersambung`, admin Device menampilkan kamera **Canon**. Mode crew → Kamera & Printer → Simpan sekali supaya `device.json` ditulis ulang tanpa hot folder. (2) Kamera & Tes Jepret: ISO/shutter/aperture/WB, AF, tap to focus tetap jalan. (3) Opsional (tanya Rama): uninstall digiCamControl lewat Settings → Apps; tidak wajib, booth menutup `CameraControl.exe` sendiri sebelum EDSDK. Lapor di issue #1.
+- [ ] **W-037 ⏳ menunggu kamera Sony. Sony: apakah driver MTP Windows meneruskan perintah vendor Sony (DECISIONS #169, `docs/PLAN-SONY.md` §2, S6).** Penentu WPD vs WIA; S2–S5 sudah selesai di Mac dengan kamera palsu (#171), jadi gagal di sini = hanya transport yang diganti. ±30 menit, tanpa printer. Butuh Rama + A7 III (wajib) dan A7 IV (kalau ada).
+  1. `git merge origin/main` di `win` → `dotnet build services/camera`. Binary: `services\camera\TetraCamera.Host\bin\Debug\net10.0\TetraCamera.exe` (disebut `$T`). Booth tidak perlu dibuka. Tutup Imaging Edge Desktop/Remote kalau ada. **Jangan** memasang driver dari paket Sony SDK (`Driver.zip`, libusbK).
+  2. Minta Rama: A7 III → MENU → Setup → **USB Connection = PC Remote**; colok USB langsung ke laptop (bukan hub); kamera nyala. Catat nama menu persis yang terlihat & versi firmware (MENU → Setup → Version).
+  3. Driver: `Get-PnpDevice -PresentOnly | Where-Object { $_.FriendlyName -match 'ILCE|Sony|α' } | Format-List FriendlyName,Class,Status,InstanceId` dan untuk tiap baris `Get-PnpDeviceProperty -InstanceId '<id>' DEVPKEY_Device_DriverDesc`. Diharapkan kelas **WPD**, driver **MTP USB Device**. Kalau bukan (mis. "Imaging devices"/libusbK), catat apa adanya lalu tanya Rama sebelum mengganti driver.
+  4. Probe (cetak satu baris per langkah, akhiran `HASIL: LULUS` / `HASIL: ADA YANG GAGAL`; exit 0/1). Simpan semua keluaran:
+     - `& $T --sony-probe wpd *> a7iii-auto.txt` (profil otomatis: A7 III → v2)
+     - `& $T --sony-probe wpd --sony-force 3 *> a7iii-v3.txt` (sengaja v3 di bodi v2, **tanpa** fallback: dicatat apakah kamera menjawab `0xA101` atau versi `0x00C8`; `GAGAL handshake` di sini wajar)
+     - `& $T --sony-probe wpd *> a7iii-auto-2.txt` sekali lagi setelah langkah di atas (kamera masih mau handshake normal tanpa dicabut?)
+  5. Sambung terus + cabut-colok: `& $T --sony wpd` (Camera Service biasa). Tunggu log `[sony] tersambung: ILCE-7M3 (v2)`. Biarkan 1 menit (polling 200 ms tidak boleh memunculkan `status gagal dibaca` berulang), lalu minta Rama cabut USB → harus muncul `[sony] kamera terputus` → colok lagi → `[sony] tersambung` dalam ±5 s. Ctrl+C. Simpan log.
+  6. Kalau A7 IV ada: USB Connection Mode = **Remote Shooting (PC Remote)**, Network → Transfer/Remote → PC Remote Function: PC Remote **On**, Cnct Method **USB**. Ulangi langkah 3, `--sony-probe wpd` (harus profil v3, versi `0x012C`) dan langkah 5.
+  - **Lulus** per bodi: baris `OK opcode vendor dari driver` memuat `0x9201 0x9202 0x9205 0x9207 0x9209`; `OK handshake` dengan profil yang benar; `OK SDIO_GetAllExtDevicePropInfo` (catat jumlah properti dan "enum satu/dua daftar"); dua baris `GetObjectInfo 0xFFFFC00x diteruskan driver` berstatus OK (kode jawaban kamera apa pun, mis. `0x2009`/`0x200F`, berarti diteruskan). Baris GAGAL berisi `COMException`/HRESULT = driver menolak.
+  - **Kalau gagal:** `WpdTransport.cs` belum pernah jalan di hardware. Kesalahan interop yang jelas (GUID/urutan vtable/`E_NOINTERFACE`/`E_INVALIDARG` di langkah buka) boleh diperbaiki di `win` di file itu saja, lalu ulangi; catat diff-nya. Kalau driver memang tidak meneruskan opcode vendor/handle khusus → berhenti dan laporkan; Mac membuat `WiaTransport` (WIA Escape, jalur contoh Sony, driver sama).
+  - Laporan `docs/reports/windows/<tanggal>-w037-sony-wpd.md`: keluaran probe & log utuh (bukan ringkasan), keluaran langkah 3, firmware, nama menu kamera yang benar (bahan CHECKLIST-EVENT), dan perbaikan interop (kalau ada). Kabar di issue #1.
+- [ ] **W-038 ⏳ menunggu kamera Sony. A7 III (v2) di booth: jepret, unduh, live view, sesi penuh (DECISIONS #171, PLAN-SONY S2/S3).** Setelah W-037 lulus; ±1 jam, butuh DNP. Booth dari `win` (`git merge origin/main` → `dotnet build services/camera` → `pnpm --filter booth build`).
+  1. Kamera (CHECKLIST-EVENT bagian Sony): USB Connection = PC Remote, PC Remote Settings → Still Img. Save Dest. = **PC Only**, RAW+J PC Save Img = **JPEG Only**, File Format **JPEG**, ukuran L 3:2, dial **M**, AF-S, Power Save 30 min. Catat nama menu persis + firmware.
+  2. Booth: mode crew → Kamera & Printer → **Kamera Sony** → Simpan & Mulai Ulang (atau `--camera=sony`). Log harus `[sony] tersambung: ILCE-7M3 (v2)`; admin Device = Sony. Tips Sony tampil di sheet.
+  3. Tes Jepret: live view tampil (catat fps: hitung frame di log/`liveview.jpg` selama 10 s, target ≥ 20, terima ≥ 15), meter ketajaman bergerak, **tidak** ada tulisan "Ketuk subjek…" (A7 III tanpa tap to focus). AF berbunyi/kotak hijau di kamera. 10× Tes Jepret: catat waktu jepret→foto (log `[sony] jepret → file … ms`), ukuran file (harus JPEG L penuh, bukan 2M), foto tidak tertukar.
+  4. 50 jepret beruntun lewat sesi tamu (`--fast` boleh): semua JPEG penuh di `raw/`, 0 `capture_timeout`, live view kembali tiap countdown. 2 sesi penuh dengan cetak DNP.
+  5. Uji simpan ganda: Still Img. Save Dest. = PC+Camera dengan kartu → foto tetap ke booth; tanpa kartu → catat apa yang dilakukan kamera (pesan booth / tetap jepret). Kembalikan ke PC Only.
+  - Lulus: semua langkah di atas. Laporan `docs/reports/windows/<tanggal>-w038-sony-a7iii.md` (log `[sony]` utuh, fps, waktu jepret, nama menu). Gagal di urutan S1/S2 atau polling file: catat log, jangan ubah kode di `win` selain interop transport.
+- [ ] **W-039 ⏳ menunggu kamera Sony. A7 IV (v3): sama dengan W-038 + tap to focus + kartu (DECISIONS #171).** Kalau bodi ada.
+  1. Kamera: USB Connection Mode = Remote Shooting (PC Remote), PC Remote Function = On (USB), Still Img. Save Dest. = PC Only, Still Image Trans. Size = **Original**, Focus Area = **Spot / Expand Flexible Spot**, USB Power Supply On.
+  2. Langkah 2–4 W-038 (log `(v3)`). Setelan crew langsung terlihat di layar kamera (Position Key = PC Remote dipasang booth).
+  3. Tap to focus: "Ketuk subjek di live view untuk fokus" tampil; ketuk kiri-atas, tengah, kanan-bawah (cermin nyala & mati) → kotak AF kamera pindah ke titik yang sama. Geser fokus Near/Far (log/`camera.focus near1`) di mode MF: catat arah (negatif = dekat?).
+  4. Kartu: Save Dest. = PC+Camera tanpa kartu → booth menolak dengan "Tidak ada kartu memori…"; kartu terkunci → "Kartu memori error atau terkunci…"; dengan kartu sehat → foto di booth **dan** di kartu. Kembalikan ke PC Only.
+  - Laporan `docs/reports/windows/<tanggal>-w039-sony-a7iv.md`.
+- [ ] **W-040 ⏳ menunggu kamera Sony. Setelan dari mode crew: A7 III (langkah v2) & A7 IV (absolut v3) (DECISIONS #171, PLAN-SONY S4).** Dial M. Mode crew → Kamera: ISO, Shutter, Aperture, White balance, Kompensasi eksposur, Baterai, Simpan foto ke.
+  1. A7 III: ubah ISO 400→1600, shutter 1/125→1/60, aperture 2 langkah, EV −0.7, WB Teduh. Tiap perubahan: nilai di layar kamera = nilai di booth (booth mengirim langkah = selisih posisi di daftar; **inilah yang diuji**: urutan daftar kamera = urutan dial). Kalau ditolak (`kamera tidak menerima perubahan…`) atau meleset: catat dataset (`--sony-probe wpd` baris ISO) dan nilai sebelum/sesudah.
+  2. A7 IV: sama, harus langsung tepat (nilai absolut).
+  3. Cabut-colok USB / matikan-nyalakan kamera: setelan crew terakhir dipasang ulang (log `[sony] setelan … tidak dipasang` tidak boleh muncul).
+  - Laporan `docs/reports/windows/<tanggal>-w040-sony-setelan.md`. Kalau A7 III tidak menerima langkah sama sekali: cukup crew mengatur di kamera (PLAN-SONY §7 pertanyaan 5), Mac menandai setelan v2 hanya-baca.
+- [ ] **W-041 ⏳ menunggu kamera Sony. Sambung ulang & error (DECISIONS #171, PLAN-SONY S5).** Booth jalan, Tes Jepret / sesi tamu terbuka. Tiap langkah: booth pulih **tanpa** restart aplikasi, pesan crew sesuai.
+  1. Cabut USB saat live view → log `[sony] kamera terputus` → colok → `[sony] tersambung` ≤ 5 s, live view jalan lagi.
+  2. Cabut USB tepat setelah rana (saat unduh) → pesan "kamera Sony terputus…" → colok → jepret berikutnya normal (file lama di buffer dibuang, log `file lama di buffer dibuang`).
+  3. Kamera tidur (Power Save 1 min sementara) lalu bangun dengan tombol rana → tersambung lagi sendiri.
+  4. Cabut baterai (tanpa USB power) → nyalakan → tersambung lagi.
+  5. Imaging Edge Desktop dibuka sebelum booth → pesan "sedang dipakai aplikasi lain" / `camera_busy`; ditutup → tersambung.
+  6. USB Connection = Mass Storage/MTP → pesan "atur USB Connection ke PC Remote".
+  7. A7 IV: kartu dicabut dengan Save Dest. PC+Camera → pesan kartu; kamera panas (kalau sempat, video 4K lama) → "terlalu panas".
+  - Lulus → Mac mengosongkan `copy.crew.sonyUntested` dan menandai bagian Sony CHECKLIST-EVENT terverifikasi. Laporan `docs/reports/windows/<tanggal>-w041-sony-pulih.md`, nama menu kamera yang benar ke CHECKLIST-EVENT.
 - [ ] **W-030 Tombol Setel Printer di mode crew (DECISIONS #82).** `git merge origin/main` → build booth, jalankan dengan `--kiosk --printer "DS-RX1"`. Mode crew → **Setel Printer**: dialog Printing Preferences DS-RX1 harus tampil di depan (kiosk dilepas), ubah 2inch cut → OK → booth kembali layar penuh kiosk, catatan crew "Dialog printer ditutup…". Cek juga Cancel (tidak error) dan tanpa `--printer` (pesan "Printer belum dikonfigurasi"). Lalu admin di Chrome laptop booth → Template → editor → **Tes cetak**: dialog cetak Chrome, pilih DS-RX1, "Cetak menggunakan dialog sistem" → Preferences terbuka. Tanpa cetak fisik kecuali Rama minta. Lapor di issue #1.
 
 ## Untuk Mac
@@ -197,11 +238,19 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 
 ## Untuk Windows: uji Canon EDSDK (#111) — saat laptop, 60D, dan DNP kembali
 1. DLL Canon **otomatis**: pastikan booth sudah dipasangkan & online, pilih DSLR Canon (EDSDK) → booth mengunduh sendiri ke `%APPDATA%\TetraBooth\edsdk\` (log `[edsdk] DLL Canon 13.20.21 diunduh`, #112). Jangan tulis link/password Canon di issue/repo (public).
-2. Tutup digiCamControl / EOS Utility (hanya satu aplikasi boleh memegang kamera). 60D: USB, mode M, kualitas JPEG (bukan RAW), auto power off terserah (diperpanjang tiap jepret).
+2. Booth menutup sendiri EOS Utility (hanya satu aplikasi boleh memegang kamera). 60D: USB, mode M, kualitas JPEG (bukan RAW), auto power off terserah (diperpanjang tiap jepret).
    - 60D (bodi lama): menu **Live View shoot: Enable** harus aktif, kalau tidak frame EVF tidak pernah siap (log berulang `frame live view gagal` / tidak ada gambar). AF lewat live view mengikuti **AF mode Live** di menu kamera; fokus manual butuh lensa di posisi AF.
    - Setelan ISO/shutter/aperture/WB muncul di Kamera & Printer (dial di M supaya semuanya bisa diubah).
 3. Booth dev dari source: `electron apps/booth --camera=canon` (atau mode crew → Kamera & Printer → **DSLR Canon (EDSDK)** → Simpan). Cek log `[canon] tersambung: Canon EOS 60D`.
 4. Uji: fps live view (target ≥ 20), 3 sesi jepret + cetak DNP, AF & fokus manual di Tes Jepret, "AF sebelum jepret", cabut USB di attract & di tengah countdown (harus `[canon] kamera terputus, menyambung ulang` lalu tersambung lagi), matikan-nyalakan kamera. Laporan `docs/reports/windows/<tanggal>-edsdk-60d.md`, kalau ada error sertakan kode `0x…` dari log.
+
+## Untuk Windows: uji Photo Stage (#178–#184) — menunggu perangkat (Rama, 2026-10-07)
+Butuh: laptop Windows, kamera (Canon via EDSDK atau merek lain via aplikasi tether ke folder pantau), TV lewat HDMI/HDMI nirkabel, printer DNP 4R. Jalankan booth `--role stage`.
+1. Jepretan fotografer masuk & terkelompok per rombongan (Enter, jeda otomatis, Jeda/Lanjut), nama grup + daftar "Berikutnya:" dari pengaturan event.
+2. TV di layar kedua muncul sendiri saat HDMI dicolok, QR rombongan terbaca HP, halaman tamu menampilkan foto rombongan, TV kembali ke galeri.
+3. Cetak 4R: tombol Cetak 4R di foto (frame event 4R satu slot dan foto penuh), hasil di DNP tidak terpotong/terputar salah.
+4. Warna + LUT `.cube` 33: ukur waktu proses rombongan (log `[stage]`), pastikan UI operator tidak tersendat saat rombongan diproses.
+Laporan `docs/reports/windows/<tanggal>-photo-stage.md`.
 
 ## Untuk Rama (diperbarui 2026-09-25 pagi)
 Selesai: kata sandi admin, CORS R2, `CRON_SECRET` (cron menolak tanpa secret: 401), Sentry 2 DSN (terpasang, DECISIONS #68).
@@ -220,6 +269,7 @@ Selesai: kata sandi admin, CORS R2, `CRON_SECRET` (cron menolak tanpa secret: 40
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-10-06 | Mac | Sony S2–S5 selesai dengan kamera palsu tingkat PTP (#171): jepret S1/S2 + unduh JPEG, live view ≤ 30 fps, setelan v2 langkah / v3 absolut, AF & tap to focus v3, kartu/panas/sibuk/cabut-colok. Sony masuk pilihan crew dengan catatan "Belum diuji dengan kamera asli". W-037…W-041 menunggu kamera Sony. |
 | 2026-09-30 | Windows | Malam: capture 60D (retry BUSY), garis bantu Tes Jepret, kiosk selalu di atas (0.5.37 terpasang, topmost terverifikasi), pemilih desain tamu dirombak, editor desain di booth (#131, override lokal + Kembalikan ke cloud, e2e). W-036/uji 2 desain menunggu kamera & printer. Laporan: `docs/reports/windows/2026-09-30-malam-editor-booth.md`. |
 | 2026-09-29 | Windows | W-034 Canon 60D EDSDK: update 0.5.20→0.5.22→0.5.24→0.5.25 lulus (unduh paralel 19–31 s). Perbaikan: tutup digiCamControl sebelum EDSDK + frame kembar (`0ba943b`), tap to focus 60D dari EvfImage (`4433d43`), ENOENT video.mp4 (`f987c18`), EVF dipanaskan setelah jepret (`3f3d2ed`). #113/#114/#116/#117 lulus, stress 20 sesi 0 gagal, memori datar. Laporan: `docs/reports/windows/2026-09-29-w034-edsdk-60d.md`. |
 | 2026-09-26 | Windows | 60D: fokus AF/◀▶ lulus optik tapi shutter digiCamControl selalu AF (◀▶ hanya live view); live view Tes Jepret membeku setelah jepret → diperbaiki. #88 pengingat buram LULUS (lensa MF diputar: 3/3 lencana ×2 sesi + banner crew, 0 alarm palsu). Update terpasang 0.5.12 → 0.5.16 → 0.5.17 lulus; #100 di build terpasang lulus (tahan Sync). Suara webcam: jepret terpotong sorakan → `playAfter` (`eca75e9`). Bumper 0.5.16 mulus. |

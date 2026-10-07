@@ -1,5 +1,4 @@
 "use server";
-import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Json } from "@tetra/db";
@@ -16,23 +15,83 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { copyLayout, StoredLayout } from "@/lib/layouts";
-import { putObject } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
+import { layoutFromUpload, MAX_UPLOAD, pngSize, storeAsset } from "@/lib/template-upload";
+import { assignToEvent } from "./assign";
 
-const MAX_TOTAL = 4 * 1024 * 1024; // batas request Vercel 4,5 MB
 const NewTemplate = z.object({
   name: z.string().trim().min(1).max(80),
-  preset: z.enum(Object.keys(LAYOUT_PRESETS) as [keyof typeof LAYOUT_PRESETS]),
+  mode: z.enum(["event", "photobox"]),
+  /** Preset, "Tata letak saya" (`lp:<id>`), salinan template lain (`tpl:<id>`), atau desain PNG unggahan (#161). */
+  source: z.union([
+    z.literal("upload"),
+    z.enum(Object.keys(LAYOUT_PRESETS) as [keyof typeof LAYOUT_PRESETS]),
+    z.string().regex(/^(lp|tpl):[0-9a-f-]{36}$/),
+  ]),
+  event: z.union([z.literal(""), z.uuid()]).default(""),
+  price: z.coerce.number().int().min(1500).max(10_000_000).optional(),
 });
 
-/** Template baru dari preset (versi 1), lalu buka editornya. */
+/** Wizard Buat Template (#160): mode → kertas → mulai dari → nama → (opsional) pasang ke event → editor. */
 export async function createTemplate(_prev: string | null, form: FormData): Promise<string | null> {
   const { db, orgId } = await requireMember(["owner", "admin"]);
   const p = NewTemplate.safeParse(Object.fromEntries(form));
   if (!p.success) return "Isi nama template";
-  const id = await copyLayout(db, orgId, p.data.preset, () => p.data.name);
+  const { name, mode, source, event, price } = p.data;
+  let id: string | null;
+  if (source === "upload") {
+    const r = await layoutFromUpload(db, orgId, form, name, mode);
+    if ("error" in r) return r.error;
+    id = r.id;
+  } else id = await copyLayout(db, orgId, source, () => name, mode);
   if (!id) return "Gagal membuat template, coba lagi";
+  if (event) {
+    const { data: l } = await db.from("layouts").select("id, paper").eq("id", id).single();
+    const r = l && (await assignToEvent(db, orgId, l, event, price));
+    if (!r?.ok) {
+      revalidatePath("/admin/templates");
+      return `Template dibuat, tapi belum terpasang ke event: ${r?.message ?? "coba lagi"}. Pasang lewat menu template.`;
+    }
+  }
   redirect(`/admin/templates/${id}`);
+}
+
+export type AssignResult = { ok: boolean; message: string; slug?: string } | null;
+
+/** "Pasang ke event…" dari menu template (#160). */
+export async function assignTemplate(
+  layoutId: string,
+  _prev: AssignResult,
+  form: FormData,
+): Promise<AssignResult> {
+  const { db, orgId } = await requireMember(["owner", "admin"]);
+  const ev = z.uuid().safeParse(form.get("event"));
+  if (!ev.success) return { ok: false, message: "Pilih event dulu" };
+  const price = form.get("price");
+  const pr =
+    price === null ? undefined : z.coerce.number().int().min(1500).max(10_000_000).safeParse(price);
+  if (pr && !pr.success) return { ok: false, message: "Harga minimal Rp 1.500" };
+  const { data: l } = await db
+    .from("layouts")
+    .select("id, paper")
+    .eq("id", layoutId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (!l) return { ok: false, message: "Template tidak ditemukan" };
+  const r = await assignToEvent(db, orgId, l, ev.data, pr?.data);
+  revalidatePath("/admin/templates");
+  return r;
+}
+
+/** Pindah template ke tab Event / Photobox (#160). */
+export async function setTemplateMode(id: string, mode: "event" | "photobox") {
+  const { db, orgId } = await requireMember(["owner", "admin"]);
+  await db
+    .from("layouts")
+    .update({ mode: mode === "photobox" ? "photobox" : "event" })
+    .eq("id", id)
+    .eq("organization_id", orgId);
+  revalidatePath("/admin/templates");
 }
 
 /** Duplikat: versi terbaru jadi template baru "<nama> (salinan)" versi 1, lalu buka editornya. */
@@ -46,33 +105,11 @@ export async function duplicateTemplate(id: string) {
 
 export type SaveTemplateResult = { ok: boolean; message: string; version?: number } | null;
 
-async function store(prefix: string, id: string, bytes: Uint8Array, ext: string) {
-  const sha256 = createHash("sha256").update(bytes).digest("hex");
-  const key = `${prefix}/${sha256}.${ext}`;
-  await putObject(key, bytes, MIME[ext] ?? "application/octet-stream");
-  return { file: `${id}.${ext}`, sha256, key };
-}
-
-/** Ukuran PNG dari header IHDR (byte 16–23). */
-const pngSize = (b: Uint8Array) => {
-  const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
-  return b.length > 24 && v.getUint32(0) === 0x89504e47
-    ? { w: v.getUint32(16), h: v.getUint32(20) }
-    : null;
-};
 const extOf = (id: AssetId, f: File) => {
   const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
   if (id === "ov") return ext === "png" ? "png" : null;
   if (id === "bg") return ["png", "jpg", "jpeg"].includes(ext) ? ext : null;
   return ["ttf", "otf", "woff2"].includes(ext) ? ext : null;
-};
-const MIME: Record<string, string> = {
-  png: "image/png",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  ttf: "font/ttf",
-  otf: "font/otf",
-  woff2: "font/woff2",
 };
 
 /**
@@ -118,7 +155,7 @@ export async function saveTemplate(
     const f = form.get(id);
     return f instanceof File && f.size > 0 ? [[id, f] as const] : [];
   });
-  if (uploads.reduce((n, [, f]) => n + f.size, 0) > MAX_TOTAL)
+  if (uploads.reduce((n, [, f]) => n + f.size, 0) > MAX_UPLOAD)
     return { ok: false, message: "Total file baru maksimal 4 MB per simpan" };
   for (const [id, f] of uploads) {
     const ext = extOf(id, f);
@@ -141,7 +178,7 @@ export async function saveTemplate(
           message: `Overlay harus PNG ${layout.canvas.width}×${layout.canvas.height} px`,
         };
     }
-    files[id] = await store(`${orgId}/layouts/${layoutId}`, id, bytes, ext);
+    files[id] = await storeAsset(`${orgId}/layouts/${layoutId}`, id, bytes, ext);
   }
 
   const refs = new Set(
@@ -156,7 +193,7 @@ export async function saveTemplate(
     const lib = libFont(id);
     if (lib && !files[id]) {
       const bytes = new Uint8Array(await readFile(join(process.cwd(), "public/fonts", lib.file)));
-      files[id] = await store(`${orgId}/layouts/${layoutId}`, id, bytes, "woff2");
+      files[id] = await storeAsset(`${orgId}/layouts/${layoutId}`, id, bytes, "woff2");
     }
   }
   for (const id of refs)

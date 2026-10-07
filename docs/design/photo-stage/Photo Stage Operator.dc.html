@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#F8F7F4;font-family:'Plus Jakarta Sans',sans-serif;color:#1D1D1B;-webkit-font-smoothing:antialiased}a{color:#1D1D1B}a:hover{color:#5F5E5A}*{box-sizing:border-box}input::placeholder{color:#8A8883}</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:18px;font-family:'Plus Jakarta Sans',sans-serif;color:#1D1D1B">
+<sc-if value="{{ demo }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:2px dashed #8A8883;border-radius:16px;padding:12px 16px;background:#FFFFFF;max-width:1920px">
+<span style="font-family:'Geist Mono',monospace;font-size:14px;color:#5F5E5A;margin-right:6px">SIMULASI</span>
+<button onClick="{{ shoot }}" style="height:44px;padding:0 16px;border:2px solid #1D1D1B;border-radius:12px;background:#F8D98B;font:700 16px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">Jepret dari kamera (J)</button>
+<sc-for list="{{ toggles }}" as="tg" hint-placeholder-count="3">
+<button onClick="{{ tg.onClick }}" style="height:44px;padding:0 16px;border:2px solid #1D1D1B;border-radius:12px;background:{{ tg.bg }};font:700 16px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">{{ tg.label }}</button>
+</sc-for>
+<span style="flex:1"></span>
+<span style="font-size:15px;color:#5F5E5A">Keyboard aktif: ⏎ rombongan baru · Spasi jeda · Tab nama berikutnya</span>
+</div>
+</sc-if>
+
+<div data-screen-label="A2 Operator" style="width:1920px;height:1080px;background:#F8F7F4;position:relative;overflow:hidden;display:flex;flex-direction:column;padding:32px 40px;gap:24px">
+
+<div style="height:64px;display:flex;align-items:center;gap:20px;flex:none">
+<div style="display:flex;align-items:center;gap:12px;flex:none"><span style="width:44px;height:44px;border-radius:12px;background:#8EDCCB;border:2.5px solid #1D1D1B;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px">T</span><span style="font-size:24px;font-weight:800;letter-spacing:-.02em">tetra</span></div>
+<span style="font-size:18px;font-weight:700;border:2px solid #1D1D1B;border-radius:999px;padding:6px 16px;background:#CEC8F6;white-space:nowrap;flex:none">Photo Stage</span>
+<div style="display:flex;flex-direction:column;gap:2px;margin-left:8px;min-width:0"><span style="font-size:20px;font-weight:800;letter-spacing:-.01em;white-space:nowrap">Wedding Rina &amp; Dimas</span><span style="font-family:'Geist Mono',monospace;font-size:14px;color:#5F5E5A">12.12.2026 · 12/40 grup</span></div>
+<div style="flex:1"></div>
+<div style="display:flex;align-items:center;border:2px solid #1D1D1B;border-radius:999px;background:#FFFFFF;height:52px;overflow:hidden;flex:none">
+<sc-for list="{{ statusItems }}" as="si" hint-placeholder-count="4">
+<div style="display:flex;align-items:center;gap:10px;padding:0 18px;height:100%;font-size:17px;font-weight:700;white-space:nowrap;background:{{ si.bg }};border-left:{{ si.sep }}"><span style="width:12px;height:12px;border-radius:50%;background:{{ si.dot }};border:1.5px solid #1D1D1B;flex:none"></span>{{ si.label }}<span style="font-weight:500;color:#3A3936;font-family:'Geist Mono',monospace;font-size:15px">{{ si.sub }}</span></div>
+</sc-for>
+</div>
+<button onClick="{{ openWarna }}" style="height:52px;padding:0 22px;border:2px solid #1D1D1B;border-radius:14px;background:#FFFFFF;font:700 18px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;flex:none">Warna</button>
+<button style="height:52px;padding:0 22px;border:2px solid #1D1D1B;border-radius:14px;background:#FFFFFF;font:700 18px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;flex:none">Crew</button>
+</div>
+
+<sc-if value="{{ banner.show }}" hint-placeholder-val="{{ false }}">
+<div style="flex:none;min-height:60px;margin-top:-6px;border:2.5px solid #1D1D1B;border-radius:18px;background:{{ banner.bg }};display:flex;align-items:center;gap:14px;padding:10px 24px;font-size:19px;font-weight:700"><span>{{ banner.text }}</span><span style="font-weight:500;color:#3A3936">{{ banner.sub }}</span><span style="flex:1"></span><sc-if value="{{ banner.isPause }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:10px;font-weight:500;color:#3A3936;white-space:nowrap">Tekan<span style="font-family:'Geist Mono',monospace;font-size:15px;font-weight:500;border:1.5px solid #1D1D1B;border-bottom-width:3px;border-radius:7px;padding:2px 10px;background:#FFFFFF;color:#1D1D1B">Spasi</span>untuk lanjut</span></sc-if></div>
+</sc-if>
+
+<div style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 452px;gap:32px">
+
+<div style="border:3px solid #1D1D1B;border-radius:36px;background:#FFFFFF;box-shadow:12px 12px 0 -3px #8EDCCB,12px 12px 0 0 #1D1D1B;padding:32px 40px 28px;display:flex;flex-direction:column;gap:24px;min-height:0">
+<div style="display:flex;align-items:flex-end;gap:28px;flex:none">
+<div style="display:flex;flex-direction:column;gap:4px;flex:none"><span style="font-family:'Geist Mono',monospace;font-size:16px;color:#5F5E5A;letter-spacing:.06em">ROMBONGAN</span><span style="font-size:84px;font-weight:800;letter-spacing:-.05em;line-height:.85">#{{ no }}</span></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;min-width:0">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:16px;font-weight:700;color:#5F5E5A">Nama grup</span><span style="font-size:15px;color:#8A8883;display:flex;align-items:center;gap:8px"><span style="font-family:'Geist Mono',monospace;font-size:13px;border:1.5px solid #8A8883;border-radius:6px;padding:0 7px">Tab</span>isi dari daftar</span></div>
+<input value="{{ name }}" onChange="{{ onName }}" onKeyDown="{{ onNameKey }}" placeholder="{{ autoName }}" style="height:76px;border:2.5px solid #1D1D1B;border-radius:20px;padding:0 24px;font:800 34px 'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em;color:#1D1D1B;outline:none;background:#FFFFFF;width:100%" style-focus="box-shadow:0 0 0 4px #8EDCCB">
+</div>
+</div>
+
+<sc-if value="{{ hasPhotos }}" hint-placeholder-val="{{ true }}">
+<div style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:24px">
+<sc-for list="{{ hero }}" as="p" hint-placeholder-count="1">
+<div style="display:flex;flex-direction:column;min-height:0;background:#FFFFFF;border:2.5px solid #1D1D1B;border-radius:18px;padding:12px 12px 0;box-shadow:6px 6px 0 -2.5px #FFFFFF,6px 6px 0 0 #1D1D1B">
+<div style="flex:1;min-height:0;border-radius:8px;overflow:hidden;background:#EFEDE8"><img src="{{ p.src }}" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+<div style="height:60px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-family:'Geist Mono',monospace;font-size:14px;color:#5F5E5A;white-space:nowrap">{{ p.t }} · terbaru</span><button onClick="{{ p.onPrint }}" style="height:40px;padding:0 14px;border:1.5px solid #1D1D1B;border-radius:11px;background:{{ p.bg }};font:700 15px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap">{{ p.label }}</button></div>
+</div>
+</sc-for>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:24px;min-height:0">
+<sc-for list="{{ rest }}" as="p" hint-placeholder-count="2">
+<div style="display:flex;flex-direction:column;min-height:0;background:#FFFFFF;border:2.5px solid #1D1D1B;border-radius:18px;padding:10px 10px 0">
+<div style="flex:1;min-height:0;border-radius:7px;overflow:hidden;background:#EFEDE8"><img src="{{ p.src }}" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+<div style="height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:6px"><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#5F5E5A">{{ p.t }}</span><button onClick="{{ p.onPrint }}" style="height:36px;padding:0 11px;border:1.5px solid #1D1D1B;border-radius:10px;background:{{ p.bg }};font:700 14px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap">{{ p.label }}</button></div>
+</div>
+</sc-for>
+<sc-if value="{{ showSlot }}" hint-placeholder-val="{{ true }}">
+<div style="border:2px dashed {{ slot.line }};border-radius:18px;background:{{ slot.bg }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:16px"><span style="font-size:16px;font-weight:700">{{ slot.title }}</span><span style="font-size:14px;line-height:1.4;color:#3A3936">{{ slot.sub }}</span></div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ noPhotos }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;min-height:0;border:2.5px dashed #1D1D1B;border-radius:24px;background:{{ slot.bg }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center"><span style="font-size:34px;font-weight:800;letter-spacing:-.02em">{{ slot.emptyTitle }}</span><span style="font-size:19px;color:#3A3936">{{ slot.emptySub }}</span></div>
+</sc-if>
+
+<sc-if value="{{ hasUnsorted }}" hint-placeholder-val="{{ false }}">
+<div style="flex:none;display:flex;align-items:center;gap:16px;border:2.5px solid #1D1D1B;border-radius:20px;background:#FCE3C6;padding:12px 14px 12px 20px">
+<div style="display:flex;flex-direction:column;gap:2px;flex:none"><span style="font-size:18px;font-weight:800">Belum dikelompokkan</span><span style="font-size:14px;color:#3A3936">{{ unsortedCount }} foto masuk saat jeda</span></div>
+<div style="display:flex;gap:8px;flex:1;min-width:0;overflow:hidden"><sc-for list="{{ unsorted }}" as="u" hint-placeholder-count="2"><img src="{{ u.src }}" style="width:84px;height:56px;object-fit:cover;border:1.5px solid #1D1D1B;border-radius:8px;flex:none"></sc-for></div>
+<button onClick="{{ unsortedToActive }}" style="height:48px;padding:0 16px;border:2px solid #1D1D1B;border-radius:13px;background:#FFFFFF;font:700 16px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap">Masukkan ke #{{ no }}</button>
+<button onClick="{{ unsortedToNew }}" style="height:48px;padding:0 16px;border:2px solid #1D1D1B;border-radius:13px;background:#FFFFFF;font:700 16px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap">Jadi rombongan baru</button>
+<button onClick="{{ unsortedHide }}" style="height:48px;padding:0 14px;border:1.5px dashed #1D1D1B;border-radius:13px;background:transparent;font:700 16px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap">Sembunyikan</button>
+</div>
+</sc-if>
+<sc-if value="{{ showFooter }}" hint-placeholder-val="{{ true }}">
+<div style="flex:none;display:flex;align-items:center;gap:18px;border-top:2px dashed #1D1D1B;padding-top:18px;white-space:nowrap">
+<span style="font-size:17px;font-weight:700">{{ countText }}</span><span style="color:#8A8883">·</span><span style="font-size:17px;color:#3A3936">{{ lastText }}</span>
+<div style="flex:1;height:10px;border:1.5px solid #1D1D1B;border-radius:999px;background:#FFFFFF;overflow:hidden;margin:0 6px"><div style="width:{{ autoPct }}%;height:100%;background:#8EDCCB"></div></div>
+<span style="font-size:16px;color:#5F5E5A">{{ autoText }}</span>
+</div>
+</sc-if>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:20px;min-height:0">
+<div style="border:2.5px solid #1D1D1B;border-radius:28px;background:#FFFFFF;padding:14px;display:flex;gap:16px;align-items:center;flex:none">
+<div style="background:#FFFFFF;border:2px solid #1D1D1B;border-radius:14px;padding:6px;flex:none"><img src="{{ qr.src }}" style="width:110px;height:110px;display:block"></div>
+<div style="display:flex;flex-direction:column;gap:5px;min-width:0"><span style="font-size:15px;font-weight:700;color:#5F5E5A">QR rombongan #{{ qr.no }}</span><span style="font-size:19px;font-weight:800;letter-spacing:-.02em;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ qr.name }}</span><span style="font-size:14px;color:#3A3936;line-height:1.35">{{ qr.note }}</span></div>
+</div>
+
+<div style="border:2.5px solid #1D1D1B;border-radius:28px;background:#FFFFFF;padding:18px 22px;display:flex;flex-direction:column;gap:10px;flex:none">
+<div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font-size:20px;font-weight:800;letter-spacing:-.02em">Berikutnya dari daftar</span><span style="font-family:'Geist Mono',monospace;font-size:15px;color:#3A3936">{{ doneCount }}/40</span></div>
+<div style="height:8px;border:1.5px solid #1D1D1B;border-radius:999px;overflow:hidden;background:#FFFFFF"><div style="width:{{ donePct }}%;height:100%;background:#8EDCCB"></div></div>
+<div style="display:flex;flex-direction:column">
+<sc-for list="{{ nextList }}" as="g" hint-placeholder-count="5">
+<button onClick="{{ g.onPick }}" style="height:36px;display:flex;align-items:center;gap:12px;border:none;border-bottom:1.5px dashed #D6D3CC;background:transparent;padding:0 6px;font:600 17px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;text-align:left;border-radius:8px" style-hover="background:#F8F7F4"><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#8A8883;width:18px">{{ g.n }}</span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.name }}</span><span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A">{{ g.key }}</span></button>
+</sc-for>
+</div>
+<span style="font-size:13px;color:#8A8883;white-space:nowrap">Klik = pasang ke #{{ no }}, atau buka rombongan baru</span>
+</div>
+
+<div style="border:2.5px solid #1D1D1B;border-radius:28px;background:#FFFFFF;padding:16px 22px;display:flex;flex-direction:column;flex:1;min-height:0;overflow-y:auto">
+<span style="font-size:20px;font-weight:800;letter-spacing:-.02em;margin-bottom:4px">Riwayat</span>
+<sc-for list="{{ historyRows }}" as="h" hint-placeholder-count="3">
+<div style="display:flex;flex-direction:column;border-bottom:1.5px dashed #D6D3CC;flex:none">
+<button onClick="{{ h.onToggle }}" style="display:flex;align-items:center;gap:14px;height:52px;border:none;background:transparent;padding:0;font-family:'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;text-align:left">
+<img src="{{ h.src }}" style="width:57px;height:38px;object-fit:cover;border:1.5px solid #1D1D1B;border-radius:7px;flex:none">
+<div style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ h.name }}</span><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#5F5E5A">#{{ h.no }} · {{ h.countText }} · {{ h.time }}</span></div>
+<span style="font-size:13px;font-weight:700;border:1.5px solid #1D1D1B;border-radius:999px;padding:3px 10px;background:{{ h.bg }};white-space:nowrap;flex:none">{{ h.status }}</span>
+</button>
+<sc-if value="{{ h.open }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:6px;padding:2px 0 10px">
+<input value="{{ h.name }}" onChange="{{ h.onRename }}" style="height:36px;border:2px solid #1D1D1B;border-radius:12px;padding:0 12px;font:700 16px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;outline:none;background:#FFFFFF;box-shadow:0 0 0 3px #D6F1EA">
+<div style="display:flex;align-items:center;gap:6px">
+<sc-for list="{{ h.thumbs }}" as="t" hint-placeholder-count="3"><button onClick="{{ t.onPick }}" style="position:relative;width:48px;height:32px;padding:0;border:{{ t.border }};border-radius:8px;overflow:hidden;background:#EFEDE8;cursor:pointer;flex:none;box-shadow:{{ t.ring }}"><img src="{{ t.src }}" style="width:100%;height:100%;object-fit:cover;display:block;opacity:{{ t.op }}"><sc-if value="{{ t.hidden }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#1D1D1B">tersembunyi</span></sc-if></button></sc-for>
+<span style="font-size:12px;color:#5F5E5A;margin-left:4px;line-height:1.3">{{ h.selHint }}</span>
+</div>
+<div style="display:flex;gap:6px">
+<button onClick="{{ h.onMerge }}" style="flex:1;height:32px;border:1.5px solid #1D1D1B;border-radius:10px;background:#FFFFFF;font:700 13px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap">{{ h.mergeLabel }}</button>
+<button onClick="{{ h.onSplit }}" style="flex:1;height:32px;border:1.5px solid #1D1D1B;border-radius:10px;background:#FFFFFF;font:700 13px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;opacity:{{ h.actOp }}">{{ h.splitLabel }}</button>
+<button onClick="{{ h.onHide }}" style="flex:1.3;height:32px;border:1.5px dashed #1D1D1B;border-radius:10px;background:#FFFFFF;font:700 13px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap;opacity:{{ h.actOp }}">{{ h.hideLabel }}</button>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-for>
+<sc-if value="{{ showHistHint }}" hint-placeholder-val="{{ true }}"><span style="font-size:13px;color:#8A8883;padding-top:8px">Klik rombongan untuk ganti nama, gabung, pisah, atau sembunyikan foto</span></sc-if>
+</div>
+</div>
+</div>
+
+<div style="height:100px;flex:none;display:flex;align-items:center;gap:20px">
+<button onClick="{{ newGroup }}" style="height:96px;padding:0 34px;border:3px solid #1D1D1B;border-radius:24px;background:#F8D98B;box-shadow:8px 8px 0 -3px #F8F7F4,8px 8px 0 0 #1D1D1B;display:flex;align-items:center;gap:20px;font:800 30px 'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em;color:#1D1D1B;cursor:pointer;white-space:nowrap" style-active="transform:translate(4px,4px);box-shadow:4px 4px 0 -3px #F8F7F4,4px 4px 0 0 #1D1D1B">Rombongan baru<span style="font-family:'Geist Mono',monospace;font-size:20px;font-weight:500;border:2px solid #1D1D1B;border-bottom-width:4px;border-radius:9px;padding:2px 12px;background:#FFFFFF">⏎ Enter</span></button>
+<button onClick="{{ togglePause }}" style="height:96px;padding:0 30px;border:3px solid #1D1D1B;border-radius:24px;background:{{ pauseBg }};box-shadow:8px 8px 0 -3px #F8F7F4,8px 8px 0 0 #1D1D1B;display:flex;align-items:center;gap:18px;font:800 28px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap" style-active="transform:translate(4px,4px);box-shadow:4px 4px 0 -3px #F8F7F4,4px 4px 0 0 #1D1D1B">{{ pauseLabel }}<span style="font-family:'Geist Mono',monospace;font-size:18px;font-weight:500;border:2px solid #1D1D1B;border-bottom-width:4px;border-radius:9px;padding:2px 12px;background:#FFFFFF">Spasi</span></button>
+<div style="flex:1"></div>
+<span style="font-size:18px;font-weight:700;color:#3A3936;white-space:nowrap">Pisah otomatis</span>
+<div style="display:flex;align-items:center;height:64px;border:2.5px solid #1D1D1B;border-radius:18px;background:{{ autoBoxBg }};overflow:hidden">
+<button onClick="{{ autoMinus }}" style="width:64px;height:100%;border:none;border-right:2px solid #1D1D1B;background:transparent;font:700 26px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">−</button>
+<span style="width:120px;text-align:center;font-family:'Geist Mono',monospace;font-size:22px;font-weight:500;color:{{ autoNumColor }}">{{ autoSec }} dtk</span>
+<button onClick="{{ autoPlus }}" style="width:64px;height:100%;border:none;border-left:2px solid #1D1D1B;background:transparent;font:700 26px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">+</button>
+</div>
+<button onClick="{{ autoToggle }}" style="display:flex;align-items:center;gap:12px;height:64px;padding:0 18px;border:2.5px solid #1D1D1B;border-radius:18px;background:{{ autoTgBg }};font:700 18px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap"><span style="width:52px;height:30px;border:2px solid #1D1D1B;border-radius:999px;background:{{ autoTrack }};position:relative;flex:none"><span style="position:absolute;left:{{ autoKnob }}px;top:2px;width:22px;height:22px;border-radius:50%;background:#FFFFFF;border:2px solid #1D1D1B"></span></span>{{ autoTgLabel }}</button>
+</div>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:50%;top:110px;transform:translateX(-50%);background:#1D1D1B;color:#F8F7F4;border-radius:999px;padding:14px 28px;font-size:19px;font-weight:700;white-space:nowrap">{{ toast }}</div>
+</sc-if>
+
+<sc-if value="{{ warnaOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;background:rgba(29,29,27,.42);display:flex;align-items:center;justify-content:center">
+<dc-import name="Photo Stage Warna" on-done="{{ closeWarna }}" hint-size="1640px,880px"></dc-import>
+</div>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1920,&quot;height&quot;:1160},&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;normal&quot;,&quot;kosong&quot;,&quot;jeda&quot;,&quot;kamera&quot;,&quot;tv&quot;,&quot;offline&quot;,&quot;riwayat&quot;],&quot;default&quot;:&quot;normal&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;interactive&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;demo&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const sc = props.scenario || 'normal';
+    const P = (src, t, print) => ({ src, t, print, prints: print === 'done' ? 1 : 0 });
+    this.pool = ['foto/stage/b1.png', 'foto/stage/c1.png', 'foto/stage/c2.png', 'foto/stage/b2.png', 'foto/stage/a3.png'];
+    this.state = {
+      no: 47, name: 'Keluarga Besar Bpk. Hadi', shotK: 0, now: Date.now(), lastShot: Date.now() - 7000,
+      photos: sc === 'kosong' ? [] : [P('foto/stage/a1.png', '19.42.08', 'done'), P('foto/stage/a2.png', '19.42.15', 'failed'), P('foto/stage/a3.png', '19.42.21', 'idle')],
+      paused: sc === 'jeda', camera: sc !== 'kamera', tv: sc !== 'tv', online: sc !== 'offline',
+      unsorted: sc === 'jeda' ? [{ src: 'foto/stage/c1.png' }, { src: 'foto/stage/c2.png' }] : [],
+      autoOn: true, autoSec: 45, warnaOpen: false, toast: '', openHist: sc === 'riwayat' ? 0 : -1, sel: sc === 'riwayat' ? [3] : [],
+      next: ['Teman Kantor PT ABC', 'Sahabat SMA Mempelai Wanita', 'Arisan Ibu-ibu Cibubur', 'Keluarga Bpk. Sutrisno', 'Teman Kuliah Mempelai Pria', 'Rekan Kerja Bank Mandiri', 'Keluarga Tante Lies'],
+      doneCount: 12,
+      history: [
+        { no: 46, name: 'Keluarga Mempelai Pria (Bekasi)', photos: [{ src: 'foto/stage/b1.png', hidden: false }, { src: 'foto/stage/c1.png', hidden: false }, { src: 'foto/stage/b2.png', hidden: false }, { src: 'foto/stage/a3.png', hidden: false }], time: '19.40', up: 'mengunggah', src: 'foto/stage/b1.png' },
+        { no: 45, name: 'Tamu · 19.37', photos: [{ src: 'foto/stage/c1.png', hidden: false }, { src: 'foto/stage/c2.png', hidden: false }], time: '19.37', up: 'terunggah', src: 'foto/stage/c1.png' },
+        { no: 44, name: 'Rekan Dosen FT UI', photos: [{ src: 'foto/stage/b2.png', hidden: false }, { src: 'foto/stage/b1.png', hidden: false }, { src: 'foto/stage/a3.png', hidden: false }], time: '19.34', up: 'terunggah', src: 'foto/stage/b2.png' },
+        { no: 43, name: 'Keluarga Ibu Ratna', photos: [{ src: 'foto/stage/c2.png', hidden: false }, { src: 'foto/stage/a1.png', hidden: false }, { src: 'foto/stage/a2.png', hidden: false }, { src: 'foto/stage/b1.png', hidden: false }, { src: 'foto/stage/c1.png', hidden: false }], time: '19.31', up: 'terunggah', src: 'foto/stage/c2.png' }
+      ]
+    };
+  }
+  componentDidMount() {
+    if (!this.props.interactive) return;
+    this.onKey = (e) => {
+      const tag = e.target && e.target.tagName;
+      if (e.key === 'Escape') { this.setState({ warnaOpen: false, openHist: -1 }); return; }
+      if (this.state.warnaOpen) return;
+      if (e.key === 'Tab') { e.preventDefault(); this.fillNext(); return; }
+      if (tag === 'INPUT') return;
+      if (e.key === 'Enter') { e.preventDefault(); this.newGroup(); }
+      else if (e.code === 'Space') { e.preventDefault(); this.togglePause(); }
+      else if (e.key === 'j' || e.key === 'J') this.shoot();
+    };
+    window.addEventListener('keydown', this.onKey);
+    this.tick = setInterval(() => {
+      const st = this.state; const now = Date.now();
+      if (st.autoOn && !st.paused && st.photos.length && (now - st.lastShot) / 1000 >= st.autoSec) { this.newGroup(true); return; }
+      this.setState({ now });
+    }, 1000);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKey); clearInterval(this.tick); clearTimeout(this.toastT); }
+  showToast(t) { clearTimeout(this.toastT); this.setState({ toast: t }); this.toastT = setTimeout(() => this.setState({ toast: '' }), 2200); }
+  clock() { const d = new Date(2026, 11, 12, 19, 42, 21 + this.state.shotK * 7); const z = (n) => String(n).padStart(2, '0'); return { hm: `${z(d.getHours())}.${z(d.getMinutes())}`, hms: `${z(d.getHours())}.${z(d.getMinutes())}.${z(d.getSeconds())}` }; }
+  shoot() {
+    if (!this.state.camera) { this.showToast('Kamera terputus, foto tidak bisa masuk'); return; }
+    const k = this.state.shotK + 1; const src = this.pool[k % this.pool.length];
+    const t = this.clock().hms;
+    if (this.state.paused) { this.setState(s => ({ shotK: k, unsorted: s.unsorted.concat([{ src }]) })); return; }
+    if (this.state.photos.length >= 5) { this.showToast('Maksimal 5 foto per rombongan. Tekan ⏎ untuk rombongan baru'); return; }
+    this.setState(s => ({ shotK: k, lastShot: Date.now(), photos: s.photos.concat([{ src, t, print: 'idle', prints: 0 }]) }));
+  }
+  newGroup(auto) {
+    const st = this.state;
+    if (!st.photos.length) { this.showToast(`Rombongan #${st.no} masih kosong`); return; }
+    const name = st.name || `Tamu · ${this.clock().hm}`;
+    const entry = { no: st.no, name, photos: st.photos.map(p => ({ src: p.src, hidden: false })), time: this.clock().hm, up: st.online ? 'mengunggah' : 'antre', src: st.photos[st.photos.length - 1].src };
+    this.setState(s => ({ history: [entry].concat(s.history), no: s.no + 1, name: '', photos: [], openHist: -1, doneCount: s.name ? s.doneCount + 1 : s.doneCount }));
+    this.showToast(auto ? `Jeda ${st.autoSec} dtk lewat. Rombongan #${st.no + 1} dibuka` : `Rombongan #${st.no + 1} dibuka. QR #${st.no} tampil di TV`);
+  }
+  togglePause() { this.setState(s => ({ paused: !s.paused, lastShot: Date.now() })); }
+  fillNext() { if (this.state.next.length) this.pick(this.state.next[0]); }
+  pick(name) {
+    const st = this.state;
+    if (!st.name) { this.setState(s => ({ name, next: s.next.filter(x => x !== name) })); return; }
+    if (st.photos.length) this.newGroup();
+    this.setState(s => ({ name, next: s.next.filter(x => x !== name) }));
+  }
+  setPrint(i, v) { this.setState(s => { const p = s.photos.slice(); if (!p[i]) return null; p[i] = { ...p[i], print: v, prints: v === 'done' ? p[i].prints + 1 : p[i].prints }; return { photos: p }; }); }
+  onPrint(i) { const p = this.state.photos[i]; if (!p || p.print === 'printing') return; this.setPrint(i, 'printing'); setTimeout(() => this.setPrint(i, 'done'), 2000); }
+  editHist(i, patch) { this.setState(s => { const h = s.history.slice(); h[i] = { ...h[i], ...patch }; return { history: h }; }); }
+  qrSvg(seed) {
+    let s = seed; const r = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+    const n = 29; let d = '';
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const f = (x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9); if (!f && r() < 0.5) d += `M${x} ${y}h1v1h-1z`; }
+    const fd = (x, y) => `<rect x="${x}" y="${y}" width="7" height="7" rx="1.5" fill="#1D1D1B"/><rect x="${x+1}" y="${y+1}" width="5" height="5" rx="1" fill="#fff"/><rect x="${x+2}" y="${y+2}" width="3" height="3" rx=".6" fill="#1D1D1B"/>`;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 ${n+4} ${n+4}" shape-rendering="crispEdges"><rect x="-2" y="-2" width="${n+4}" height="${n+4}" fill="#fff"/><path d="${d}" fill="#1D1D1B"/>${fd(0,0)}${fd(n-7,0)}${fd(0,n-7)}</svg>`);
+  }
+  renderVals() {
+    const st = this.state;
+    const L = { idle: ['Cetak 4R', '#FFFFFF'], printing: ['Mencetak…', '#FCE3C6'], done: ['Dicetak ✓', '#D6F1EA'], failed: ['Gagal · ulangi', '#F7D5CC'] };
+    const photos = st.photos.map((p, i) => ({ ...p, label: p.print === 'done' && p.prints > 1 ? `Dicetak ${p.prints}× ✓` : L[p.print][0], bg: L[p.print][1], onPrint: () => this.onPrint(i) }));
+    const n = photos.length;
+    const hero = n ? [photos[n - 1]] : [];
+    const rest = photos.slice(0, Math.max(0, n - 1)).reverse();
+    const queue = st.online ? 3 : 12;
+    const statusItems = [
+      st.camera ? { label: 'Kamera', sub: 'Canon R6', dot: '#5DB978', bg: '#FFFFFF' } : { label: 'Kamera terputus', sub: 'coba ke-3', dot: '#E8836F', bg: '#F7D5CC' },
+      st.tv ? { label: 'TV', sub: '', dot: '#5DB978', bg: '#FFFFFF' } : { label: 'TV tidak tersambung', sub: '', dot: '#F8D98B', bg: '#FCE3C6' },
+      { label: 'Upload', sub: `${queue} antre`, dot: st.online ? '#8EDCCB' : '#F8D98B', bg: st.online ? '#FFFFFF' : '#FCE3C6' },
+      st.online ? { label: 'Internet', sub: '', dot: '#5DB978', bg: '#FFFFFF' } : { label: 'Offline', sub: '', dot: '#F8D98B', bg: '#FCE3C6' }
+    ].map((x, i) => ({ ...x, sep: i ? '1.5px solid #1D1D1B' : 'none' }));
+    let banner = { show: false, bg: '#FFFFFF', text: '', sub: '', isPause: false };
+    if (!st.camera) banner = { show: true, bg: '#F7D5CC', text: 'Kamera terputus. Menyambung ulang…', sub: 'Foto yang sudah masuk tetap aman. Cek kabel USB atau aplikasi tether.', isPause: false };
+    else if (st.paused) banner = { show: true, bg: '#FCE3C6', text: 'Dijeda.', sub: 'Foto yang masuk ditampung di "Belum dikelompokkan".', isPause: true };
+    else if (!st.tv) banner = { show: true, bg: '#FCE3C6', text: 'TV tidak tersambung.', sub: 'Tamu tetap bisa scan QR di layar ini. TV tampil lagi otomatis saat tersambung.', isPause: false };
+    else if (!st.online) banner = { show: true, bg: '#D6EEF8', text: 'Offline.', sub: `${queue} rombongan antre, terkirim otomatis saat online. Foto tersimpan di laptop.`, isPause: false };
+    const elapsed = Math.max(0, Math.round((st.now - st.lastShot) / 1000));
+    const remain = Math.max(0, st.autoSec - elapsed);
+    const last = n ? st : null;
+    const qrSrc = n ? { no: st.no, name: st.name || `Tamu · ${this.clock().hm}` } : { no: st.history[0].no, name: st.history[0].name };
+    const qr = { ...qrSrc, src: this.qrSvg(qrSrc.no), note: st.tv ? 'Untuk tamu yang minta langsung ke crew' : 'TV mati: arahkan tamu scan di sini' };
+    const keys = ['Tab', '', '', '', ''];
+    const nextList = st.next.slice(0, 5).map((name, i) => ({ name, n: i + 1, key: keys[i], onPick: () => this.pick(name) }));
+    const open = st.openHist;
+    const hasBanner = !st.camera || st.paused || !st.tv || !st.online;
+    const histN = open >= 0 ? 1 : (hasBanner ? 2 : 3);
+    const historyRows = st.history.slice(0, histN).map((h, i) => {
+      const count = h.photos.length, hidden = h.photos.filter(p => p.hidden).length, vis = count - hidden;
+      const up = st.online ? h.up : (h.up === 'terunggah' ? 'terunggah' : 'antre');
+      const isOpen = open === i, sel = isOpen ? st.sel : [];
+      const selHidden = sel.length > 0 && sel.every(k => h.photos[k] && h.photos[k].hidden);
+      return { ...h, open: isOpen, countText: hidden ? `${vis} foto · ${hidden} disembunyikan` : `${count} foto`, status: up, bg: up === 'terunggah' ? '#D6F1EA' : up === 'antre' ? '#FCE3C6' : '#D6EEF8',
+        thumbs: h.photos.map((p, k) => { const on = sel.includes(k); return { src: p.src, hidden: p.hidden, op: p.hidden ? 0.35 : 1, border: on ? '2px solid #1D1D1B' : '1.5px solid #1D1D1B', ring: on ? '0 0 0 3px #8EDCCB' : 'none',
+          onPick: () => this.setState(s2 => ({ sel: s2.sel.includes(k) ? s2.sel.filter(x => x !== k) : s2.sel.concat([k]) })) }; }),
+        selHint: sel.length ? `${sel.length} dipilih` : 'Pilih foto',
+        actOp: sel.length ? 1 : 0.45,
+        splitLabel: sel.length ? `Pisah ${sel.length} foto` : 'Pisah',
+        hideLabel: selHidden ? 'Tampilkan lagi' : 'Sembunyikan',
+        mergeLabel: st.history[i + 1] ? `Gabung ke #${st.history[i + 1].no}` : 'Gabung',
+        onToggle: () => this.setState({ openHist: open === i ? -1 : i, sel: [] }),
+        onRename: (e) => this.editHist(i, { name: e.target.value }),
+        onMerge: () => { const nx = st.history[i + 1]; if (!nx) return; this.setState(s2 => { const hh = s2.history.slice(); hh[i + 1] = { ...hh[i + 1], photos: hh[i + 1].photos.concat(hh[i].photos) }; hh.splice(i, 1); return { history: hh, openHist: -1, sel: [] }; }); this.showToast(`#${h.no} digabung ke #${nx.no}`); },
+        onSplit: () => {
+          if (!sel.length) { this.showToast('Pilih foto yang mau dipisah dulu'); return; }
+          if (sel.length === count) { this.showToast('Sisakan minimal 1 foto di rombongan ini'); return; }
+          this.setState(s2 => { const hh = s2.history.slice(); const cur = hh[i];
+            const moved = cur.photos.filter((_, k) => sel.includes(k)), keep = cur.photos.filter((_, k) => !sel.includes(k));
+            const nw = { ...cur, no: cur.no + 'b', name: 'Tamu · ' + cur.time, photos: moved, src: moved[0].src };
+            hh[i] = { ...cur, photos: keep, src: keep[keep.length - 1].src }; hh.splice(i, 0, nw);
+            return { history: hh, openHist: 0, sel: [] }; });
+          this.showToast(`${sel.length} foto jadi rombongan #${h.no}b. Beri nama di atas.`);
+        },
+        onHide: () => {
+          if (!sel.length) { this.showToast('Pilih foto yang mau disembunyikan dulu'); return; }
+          this.setState(s2 => { const hh = s2.history.slice(); hh[i] = { ...hh[i], photos: hh[i].photos.map((p, k) => sel.includes(k) ? { ...p, hidden: !selHidden } : p) }; return { history: hh, sel: [] }; });
+          this.showToast(selHidden ? 'Foto tampil lagi di halaman tamu & galeri' : `${sel.length} foto disembunyikan dari tamu & galeri`);
+        }
+      };
+    });
+    const slot = !st.camera
+      ? { line: '#1D1D1B', bg: '#F7D5CC', title: 'Kamera terputus', sub: 'Foto berikutnya masuk setelah tersambung', emptyTitle: 'Kamera terputus', emptySub: 'Menyambung ulang otomatis. Foto yang sudah ada tetap aman.' }
+      : st.paused ? { line: '#1D1D1B', bg: '#FCE3C6', title: 'Dijeda', sub: 'Foto baru masuk ke "Belum dikelompokkan"', emptyTitle: 'Dijeda', emptySub: 'Tekan Spasi untuk lanjut' }
+      : { line: '#8A8883', bg: '#FFFFFF', title: 'Foto berikutnya', sub: 'masuk otomatis dari kamera', emptyTitle: 'Menunggu jepretan fotografer', emptySub: 'Foto masuk otomatis, langsung berwarna preset acara' };
+    return {
+      demo: !!this.props.demo,
+      toggles: [
+        { label: st.camera ? 'Putuskan kamera' : 'Sambungkan kamera', bg: st.camera ? '#FFFFFF' : '#F7D5CC', onClick: () => this.setState(s => ({ camera: !s.camera })) },
+        { label: st.tv ? 'Putuskan TV' : 'Sambungkan TV', bg: st.tv ? '#FFFFFF' : '#FCE3C6', onClick: () => this.setState(s => ({ tv: !s.tv })) },
+        { label: st.online ? 'Jadikan offline' : 'Kembali online', bg: st.online ? '#FFFFFF' : '#D6EEF8', onClick: () => this.setState(s => ({ online: !s.online })) }
+      ],
+      shoot: () => this.shoot(),
+      statusItems, banner,
+      no: st.no, name: st.name, autoName: `Tamu · ${this.clock().hm}`,
+      onName: (e) => this.setState({ name: e.target.value }),
+      onNameKey: (e) => { if (e.key === 'Enter') e.target.blur(); },
+      hasPhotos: n > 0, noPhotos: n === 0, hero, rest, showSlot: n < 5, slot,
+      hasUnsorted: st.unsorted.length > 0, unsorted: st.unsorted, unsortedCount: st.unsorted.length,
+      unsortedToActive: () => this.setState(s => ({ photos: s.photos.concat(s.unsorted.map((u, k) => ({ src: u.src, t: this.clock().hms, print: 'idle', prints: 0 }))).slice(0, 5), unsorted: [], lastShot: Date.now() })),
+      unsortedToNew: () => { if (this.state.photos.length) this.newGroup(); this.setState(s => ({ photos: s.unsorted.map(u => ({ src: u.src, t: this.clock().hms, print: 'idle', prints: 0 })).slice(0, 5), unsorted: [], lastShot: Date.now() })); },
+      unsortedHide: () => { this.setState({ unsorted: [] }); this.showToast('Foto disembunyikan. Masih ada di folder lokal.'); },
+      showFooter: st.unsorted.length === 0,
+      countText: `${n} foto`, lastText: n ? `jepretan terakhir ${this.props.interactive ? elapsed : 7} dtk lalu` : 'belum ada jepretan',
+      autoPct: st.autoOn && n && !st.paused ? Math.round(((this.props.interactive ? elapsed : 7) / st.autoSec) * 100) : 0,
+      autoText: !st.autoOn ? 'Pisah otomatis mati · rombongan baru lewat tombol' : st.paused ? 'Pisah otomatis berhenti saat jeda' : n ? `dipisah otomatis dalam ${this.props.interactive ? remain : st.autoSec - 7} dtk` : `dipisah otomatis ${st.autoSec} dtk setelah jepretan terakhir`,
+      qr, doneCount: st.doneCount, donePct: Math.round(st.doneCount / 40 * 100), nextList,
+      historyRows, showHistHint: open < 0,
+      newGroup: () => this.newGroup(), togglePause: () => this.togglePause(),
+      pauseLabel: st.paused ? 'Lanjut' : 'Jeda', pauseBg: st.paused ? '#8EDCCB' : '#FFFFFF',
+      autoSec: st.autoSec, autoBoxBg: st.autoOn ? '#FFFFFF' : '#EFEDE8', autoNumColor: st.autoOn ? '#1D1D1B' : '#8A8883',
+      autoMinus: () => this.setState(s => ({ autoSec: Math.max(15, s.autoSec - 15) })),
+      autoPlus: () => this.setState(s => ({ autoSec: Math.min(180, s.autoSec + 15) })),
+      autoToggle: () => this.setState(s => ({ autoOn: !s.autoOn })),
+      autoTgBg: st.autoOn ? '#D6F1EA' : '#FFFFFF', autoTrack: st.autoOn ? '#8EDCCB' : '#EFEDE8', autoKnob: st.autoOn ? 24 : 2, autoTgLabel: st.autoOn ? 'Aktif' : 'Mati',
+      toast: st.toast,
+      warnaOpen: st.warnaOpen, openWarna: () => this.setState({ warnaOpen: true }), closeWarna: () => this.setState({ warnaOpen: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

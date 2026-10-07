@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#EDECE8;font-family:'Plus Jakarta Sans',sans-serif;color:#1D1D1B;-webkit-font-smoothing:antialiased}a{color:#1D1D1B}a:hover{color:#5F5E5A}*{box-sizing:border-box}input::placeholder{color:#8A8883}.hs::-webkit-scrollbar{display:none}@keyframes spin{to{transform:rotate(360deg)}}</style>
+</helmet>
+<section style="padding:96px;display:flex;flex-direction:column;gap:64px">
+<div style="display:flex;flex-direction:column;gap:14px;max-width:1500px">
+<div style="display:flex;gap:10px;align-items:center"><span style="font-family:'Geist Mono',monospace;font-size:18px;background:#1D1D1B;color:#fff;padding:6px 14px;border-radius:999px">C</span><span style="font-size:20px;font-weight:600;color:#5F5E5A">Tetra Booth · Photo Stage</span></div>
+<div style="font-size:76px;font-weight:800;letter-spacing:-.035em;line-height:1">HP tamu</div>
+<div style="font-size:24px;color:#5F5E5A;line-height:1.45;text-wrap:pretty">390 × 844. Sering dibuka dari browser WhatsApp dengan sinyal lemah: foto pertama dimuat dulu, sisanya menyusul. Geser foto, Simpan semua, cari nama grup.</div>
+</div>
+
+<div style="display:flex;flex-wrap:wrap;gap:64px;align-items:flex-start">
+
+<div id="C7" style="display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:center;gap:14px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:20px;padding:6px 14px;border-radius:10px">C7</span><span style="font-size:22px;font-weight:600;color:#3A3936">Halaman rombongan</span></div>
+<div data-screen-label="C7 Halaman rombongan" style="width:390px;height:844px;background:#F8F7F4;border:1.5px solid #1D1D1B;border-radius:40px;overflow:hidden;display:flex;flex-direction:column">
+<div style="flex:1;min-height:0;overflow-y:auto;padding:44px 0 20px;display:flex;flex-direction:column;gap:20px" class="hs">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:0 20px"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:800">Wedding Rina &amp; Dimas</span><span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A">12 Desember 2026</span></div><span style="width:32px;height:32px;border-radius:9px;background:#8EDCCB;border:1.5px solid #1D1D1B;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">T</span></div>
+<div style="display:flex;flex-direction:column;gap:6px;padding:0 20px"><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#3A3936">Rombongan #47 · 19.42 · 3 foto</span><span style="font-size:30px;font-weight:800;letter-spacing:-.035em;line-height:1.05;text-wrap:balance">Keluarga Besar Bpk. Hadi</span></div>
+<div ref="{{ carRef }}" onScroll="{{ onCarScroll }}" class="hs" style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 20px 10px;scrollbar-width:none">
+<sc-for list="{{ c7photos }}" as="p" hint-placeholder-count="3">
+<div style="flex:none;width:342px;scroll-snap-align:center;background:#FFFFFF;border:1.5px solid #1D1D1B;border-radius:18px;padding:10px 10px 0;box-shadow:5px 5px 0 -1.5px #F8F7F4,5px 5px 0 0 #1D1D1B">
+<img src="{{ p.src }}" style="width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:9px;display:block">
+<div style="height:50px;display:flex;align-items:center;justify-content:space-between"><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#5F5E5A">{{ p.n }} / 3</span><button onClick="{{ p.onSave }}" style="height:34px;padding:0 14px;border:1.5px solid #1D1D1B;border-radius:10px;background:{{ p.bg }};font:700 13px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap;flex:none">{{ p.label }}</button></div>
+</div>
+</sc-for>
+</div>
+<div style="display:flex;justify-content:center;align-items:center;margin-top:-6px">
+<sc-for list="{{ dots }}" as="d" hint-placeholder-count="3"><div style="display:flex;align-items:center"><span style="width:16px;height:16px;border-radius:50%;border:1.5px solid #1D1D1B;background:{{ d.bg }}"></span><sc-if value="{{ d.line }}" hint-placeholder-val="{{ true }}"><span style="width:22px;height:1.5px;background:#1D1D1B"></span></sc-if></div></sc-for>
+</div>
+<a href="#C8" style="margin:6px 20px 0;display:flex;align-items:center;gap:14px;border:1.5px solid #1D1D1B;border-radius:18px;background:#FFFFFF;padding:14px 16px;text-decoration:none;color:#1D1D1B">
+<span style="width:46px;height:46px;border-radius:12px;border:1.5px dashed #1D1D1B;background:#FCE3C6;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none">▦</span>
+<span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:16px;font-weight:800">Lihat semua foto acara</span><span style="font-size:13px;color:#5F5E5A">Cari nama grup atau jam</span></span><span style="font-size:20px;font-weight:700">›</span></a>
+</div>
+<div style="flex:none;border-top:1.5px dashed #1D1D1B;padding:16px 20px 18px;display:flex;flex-direction:column;gap:10px;background:#F8F7F4">
+<button onClick="{{ saveAll }}" style="height:56px;border:1.5px solid #1D1D1B;border-radius:14px;background:{{ saveAllBg }};box-shadow:4px 4px 0 -1.5px #F8F7F4,4px 4px 0 0 #1D1D1B;font:800 17px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">{{ saveAllLabel }}</button>
+<div style="display:flex;justify-content:space-between;font-size:11px;color:#5F5E5A"><span>Tersedia sampai <span style="font-family:'Geist Mono',monospace">11 Jan 2027</span></span><span>Powered by Tetra Photobooth</span></div>
+</div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:center;gap:14px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:20px;padding:6px 14px;border-radius:10px">C7b</span><span style="font-size:22px;font-weight:600;color:#3A3936">Foto masih dikirim</span></div>
+<div data-screen-label="C7b Foto masih dikirim" style="width:390px;height:844px;background:#F8F7F4;border:1.5px solid #1D1D1B;border-radius:40px;overflow:hidden;display:flex;flex-direction:column;padding:44px 20px 20px;gap:20px">
+<div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px;font-weight:800">Wedding Rina &amp; Dimas</span><span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A">12 Desember 2026</span></div><span style="width:32px;height:32px;border-radius:9px;background:#8EDCCB;border:1.5px solid #1D1D1B;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">T</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#3A3936">Rombongan #48 · 19.45</span><span style="font-size:30px;font-weight:800;letter-spacing:-.035em;line-height:1.05">Teman Kantor PT ABC</span></div>
+<div style="background:#FFFFFF;border:1.5px solid #1D1D1B;border-radius:18px;padding:10px">
+<div style="aspect-ratio:3/2;border-radius:9px;background:repeating-linear-gradient(135deg,#EFEDE8 0 12px,#E6E3DC 12px 24px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px"><span style="width:34px;height:34px;border-radius:50%;border:3px solid #D6D3CC;border-top-color:#1D1D1B;animation:spin 900ms linear infinite"></span><span style="font-size:15px;font-weight:700">Foto sedang dikirim…</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:0;border:1.5px solid #1D1D1B;border-radius:18px;background:#FFFFFF;padding:6px 16px">
+<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1.5px dashed #D6D3CC"><span style="width:26px;height:26px;border-radius:50%;background:#5DB978;border:1.5px solid #1D1D1B;color:#FFFFFF;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center">✓</span><span style="font-size:15px;font-weight:700;flex:1">Difoto di pelaminan</span><span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A">19.45</span></div>
+<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1.5px dashed #D6D3CC"><span style="width:26px;height:26px;border-radius:50%;background:#1D1D1B;border:1.5px solid #1D1D1B;color:#FFFFFF;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">2</span><span style="font-size:15px;font-weight:800;flex:1">Dikirim ke sini</span><span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A">1 dari 4</span></div>
+<div style="display:flex;align-items:center;gap:12px;padding:12px 0"><span style="width:26px;height:26px;border-radius:50%;background:#FFFFFF;border:1.5px solid #1D1D1B;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">3</span><span style="font-size:15px;font-weight:600;flex:1;color:#5F5E5A">Siap disimpan</span></div>
+</div>
+<div style="border:1.5px dashed #1D1D1B;border-radius:14px;background:#D6EEF8;padding:12px 14px;font-size:14px;line-height:1.45;color:#3A3936">Halaman ini terbuka sendiri saat foto siap. Tidak perlu scan ulang, cukup biarkan terbuka.</div>
+<div style="flex:1"></div>
+<div style="height:56px;border:1.5px dashed #1D1D1B;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#8A8883">Simpan semua</div>
+</div>
+</div>
+
+<div id="C8" style="display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:center;gap:14px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:20px;padding:6px 14px;border-radius:10px">C8</span><span style="font-size:22px;font-weight:600;color:#3A3936">Galeri acara · interaktif</span></div>
+<div data-screen-label="C8 Galeri acara" style="width:390px;height:844px;background:#F8F7F4;border:1.5px solid #1D1D1B;border-radius:40px;overflow:hidden;display:flex;flex-direction:column">
+<div style="flex:none;padding:44px 20px 12px;display:flex;flex-direction:column;gap:14px;border-bottom:1.5px solid #1D1D1B;background:#F8F7F4">
+<div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:22px;font-weight:800;letter-spacing:-.02em">Rina &amp; Dimas</span><span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A">12 Desember 2026 · {{ totalText }}</span></div><span style="width:32px;height:32px;border-radius:9px;background:#8EDCCB;border:1.5px solid #1D1D1B;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">T</span></div>
+<div style="display:flex;border:1.5px solid #1D1D1B;border-radius:13px;overflow:hidden;height:44px">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.onPick }}" style="flex:1;border:none;border-right:{{ t.sep }};background:{{ t.bg }};font:700 15px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">{{ t.label }}</button></sc-for>
+</div>
+<sc-if value="{{ isStage }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;flex-direction:column;gap:12px">
+<input value="{{ q }}" onChange="{{ onQ }}" placeholder="Cari nama grup, mis. Hadi" style="height:46px;border:1.5px solid #1D1D1B;border-radius:13px;padding:0 14px;font:600 15px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;outline:none;background:#FFFFFF" style-focus="box-shadow:0 0 0 3px #8EDCCB">
+<div class="hs" style="display:flex;gap:8px;overflow-x:auto;scrollbar-width:none">
+<sc-for list="{{ hours }}" as="hr" hint-placeholder-count="3"><button onClick="{{ hr.onPick }}" style="flex:none;height:34px;padding:0 14px;border:1.5px solid #1D1D1B;border-radius:999px;background:{{ hr.bg }};font:700 13px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap">{{ hr.label }}</button></sc-for>
+</div>
+</div>
+</sc-if>
+</div>
+<div ref="{{ listRef }}" class="hs" style="flex:1;min-height:0;overflow-y:auto;padding:18px 20px 28px;display:flex;flex-direction:column;gap:22px;scrollbar-width:none">
+<sc-if value="{{ isStage }}" hint-placeholder-val="{{ true }}">
+<sc-for list="{{ sections }}" as="sec" hint-placeholder-count="2">
+<div data-hour="{{ sec.key }}" style="display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:18px;font-weight:800;letter-spacing:-.02em">{{ sec.label }}</span><span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A">{{ sec.count }}</span></div>
+<sc-for list="{{ sec.groups }}" as="g" hint-placeholder-count="3">
+<a href="#C7" style="display:flex;flex-direction:column;gap:10px;border:1.5px solid #1D1D1B;border-radius:18px;background:#FFFFFF;padding:12px;text-decoration:none;color:#1D1D1B">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><span style="font-size:16px;font-weight:800;line-height:1.25">{{ g.name }}</span><span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A;white-space:nowrap;padding-top:2px">#{{ g.no }} · {{ g.time }}</span></div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px"><sc-for list="{{ g.thumbs }}" as="th" hint-placeholder-count="3"><img src="{{ th.src }}" style="width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:8px;border:1.5px solid #1D1D1B;display:block"></sc-for></div>
+</a>
+</sc-for>
+</div>
+</sc-for>
+<sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+<div style="border:1.5px dashed #1D1D1B;border-radius:18px;background:#FFFFFF;padding:22px 18px;display:flex;flex-direction:column;gap:8px;text-align:center"><span style="font-size:17px;font-weight:800">"{{ q }}" belum ketemu</span><span style="font-size:14px;color:#3A3936;line-height:1.45">Nama grup bisa berbeda dari yang kamu ingat. Coba cari per jam, atau rombongan tanpa nama tercatat sebagai "Tamu · jam".</span></div>
+</sc-if>
+</sc-if>
+<sc-if value="{{ isBooth }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:18px;font-weight:800;letter-spacing:-.02em">Photobooth</span><span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A">212 sesi</span></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+<sc-for list="{{ strips }}" as="s" hint-placeholder-count="4"><img src="{{ s.src }}" style="width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:10px;border:1.5px solid #1D1D1B;display:block;background:#FFFFFF"></sc-for>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { idx: 0, saved: [false, false, false], allState: 'idle', tab: 'stage', q: '', hour: '19' };
+  carRef = React.createRef();
+  listRef = React.createRef();
+  componentWillUnmount() { clearTimeout(this.t); }
+  jump(key) {
+    this.setState({ hour: key });
+    const el = this.listRef.current; if (!el) return;
+    const t = el.querySelector(`[data-hour="${key}"]`); if (t) el.scrollTo({ top: t.offsetTop - el.offsetTop - 12, behavior: 'smooth' });
+  }
+  renderVals() {
+    const st = this.state;
+    const srcs = ['foto/stage/a1.png', 'foto/stage/a2.png', 'foto/stage/a3.png'];
+    const c7photos = srcs.map((src, i) => ({ src, n: i + 1, label: st.saved[i] ? 'Tersimpan ✓' : 'Simpan', bg: st.saved[i] ? '#D6F1EA' : '#FFFFFF',
+      onSave: () => this.setState(s => { const v = s.saved.slice(); v[i] = true; return { saved: v }; }) }));
+    const all = [
+      { h: '19', no: 47, name: 'Keluarga Besar Bpk. Hadi', time: '19.42', th: ['a1', 'a2', 'a3'] },
+      { h: '19', no: 46, name: 'Keluarga Mempelai Pria (Bekasi)', time: '19.40', th: ['b1', 'c1', 'b2'] },
+      { h: '19', no: 45, name: 'Tamu · 19.37', time: '19.37', th: ['c1', 'c2'] },
+      { h: '19', no: 44, name: 'Rekan Dosen FT UI', time: '19.34', th: ['b2', 'b1', 'a3'] },
+      { h: '19', no: 43, name: 'Keluarga Ibu Ratna', time: '19.31', th: ['c2', 'a1', 'a2'] },
+      { h: '18', no: 12, name: 'Sahabat SMA Mempelai Wanita', time: '18.41', th: ['a2', 'b2', 'c1'] },
+      { h: '18', no: 11, name: 'Teman Kantor PT ABC', time: '18.36', th: ['a3', 'b1'] },
+      { h: '18', no: 10, name: 'Keluarga Bpk. Sutrisno', time: '18.30', th: ['b1', 'c2', 'a1'] },
+      { h: '17', no: 2, name: 'Keluarga Inti Mempelai', time: '17.12', th: ['c1', 'c2', 'b2'] },
+      { h: '17', no: 1, name: 'Saksi & Penghulu', time: '17.05', th: ['b2', 'b1'] }
+    ];
+    const q = st.q.trim().toLowerCase();
+    const hit = all.filter(g => !q || g.name.toLowerCase().includes(q));
+    const mk = (h, label) => { const gs = hit.filter(g => g.h === h); return { key: h, label, count: `${gs.length} rombongan`, groups: gs.map(g => ({ ...g, thumbs: g.th.map(t => ({ src: `foto/stage/${t}.png` })) })) }; };
+    const sections = [mk('19', '19.00 – 20.00'), mk('18', '18.00 – 19.00'), mk('17', '17.00 · Akad')].filter(s => s.groups.length);
+    const isStage = st.tab === 'stage';
+    return {
+      carRef: this.carRef,
+      onCarScroll: (e) => { const i = Math.round(e.target.scrollLeft / 354); if (i !== st.idx) this.setState({ idx: i }); },
+      c7photos,
+      dots: [0, 1, 2].map(i => ({ bg: i === st.idx ? '#1D1D1B' : '#FFFFFF', line: i < 2 })),
+      saveAllLabel: st.allState === 'idle' ? 'Simpan semua (3 foto)' : st.allState === 'busy' ? 'Menyiapkan 3 foto…' : 'Tersimpan ke galeri HP ✓',
+      saveAllBg: st.allState === 'done' ? '#D6F1EA' : '#F8D98B',
+      saveAll: () => { if (st.allState !== 'idle') return; this.setState({ allState: 'busy' }); this.t = setTimeout(() => this.setState({ allState: 'done', saved: [true, true, true] }), 1400); },
+      tabs: [{ k: 'booth', label: 'Photobooth' }, { k: 'stage', label: 'Photo Stage' }].map((t, i) => ({ ...t, bg: st.tab === t.k ? '#CEC8F6' : '#FFFFFF', sep: i === 0 ? '1.5px solid #1D1D1B' : 'none', onPick: () => this.setState({ tab: t.k }) })),
+      isStage, isBooth: !isStage, totalText: isStage ? '47 rombongan' : '212 sesi',
+      q: st.q, onQ: (e) => this.setState({ q: e.target.value }),
+      hours: [{ k: '19', label: '19.00' }, { k: '18', label: '18.00' }, { k: '17', label: '17.00 · Akad' }].map(h => ({ ...h, bg: st.hour === h.k ? '#CEC8F6' : '#FFFFFF', onPick: () => this.jump(h.k) })),
+      listRef: this.listRef, sections, empty: !sections.length,
+      strips: [1, 2, 3, 4, 5, 6].map(n => ({ n, src: `foto/strip/s${n}.png` }))
+    };
+  }
+}
+</script>
+</body>
+</html>

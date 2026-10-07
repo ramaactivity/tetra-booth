@@ -3,7 +3,10 @@ import { newAccessToken } from "@tetra/shared";
 import { revalidatePath } from "next/cache";
 import { requireMember } from "@/lib/supabase/server";
 
-/** Link klien (/g) dan live (/live): buat/buat ulang (token lama langsung mati) atau cabut. Owner/admin. */
+/**
+ * Link klien (/g) dan live (/live): aktifkan atau cabut. Alamatnya slug event (#147); kolom token = tanda aktif
+ * (token acak baru tiap diaktifkan, jadi link token lama yang pernah dicabut tetap mati). Owner/admin.
+ */
 export async function setLink(eventId: string, kind: "client" | "live", action: "new" | "revoke") {
   const { db, orgId, user } = await requireMember(["owner", "admin"]);
   const value = action === "new" ? newAccessToken() : null;
@@ -18,6 +21,5 @@ export async function setLink(eventId: string, kind: "client" | "live", action: 
     action: `link.${kind}.${action}`,
     target: eventId,
   });
-  revalidatePath(`/admin/events/${eventId}/settings`);
-  revalidatePath(`/admin/events/${eventId}`);
+  revalidatePath("/admin/(app)/events/[id]", "layout");
 }

@@ -95,7 +95,7 @@ public sealed class HotFolderTests : IDisposable
         using var server = new System.Net.HttpListener();
         server.Prefixes.Add($"http://127.0.0.1:{port}/");
         server.Start();
-        // "digiCamControl" palsu: setiap GET menyimpan JPEG ke hot folder.
+        // Software tether palsu: setiap GET menyimpan JPEG ke hot folder.
         var serve = Task.Run(async () =>
         {
             var ctx = await server.GetContextAsync();

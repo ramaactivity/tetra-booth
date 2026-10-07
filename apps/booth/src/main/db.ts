@@ -67,6 +67,27 @@ export type SessionMeta = {
   retakeCount: number;
   printCount: number;
   assetCount: number;
+  isTest?: boolean;
+  /** Photo Stage (#178). */
+  source?: "stage";
+  groupName?: string | null;
+  hiddenIdx?: number[];
+};
+/** Rekap booth (#154): sesi asli (bukan tes) yang selesai di laptop ini. */
+export type LocalRecap = {
+  sessions: number;
+  prints: number;
+  tests: number;
+  firstAt: string | null;
+  lastAt: string | null;
+};
+/** File hasil sesi untuk folder event (#155). */
+export type EventFile = {
+  sessionId: string;
+  startedAt: string;
+  kind: AssetKind;
+  idx: number;
+  path: string;
 };
 
 export type SessionStart = {
@@ -76,6 +97,11 @@ export type SessionStart = {
   startedAt: string;
   /** Photobox: pembayaran paket yang lunas (DECISIONS #70). */
   paymentId?: string | undefined;
+  /** Sesi mode "Tes dulu" crew (#153). */
+  isTest?: boolean | undefined;
+  /** Photo Stage (#178): sesi = rombongan fotografer pelaminan. */
+  source?: "stage" | undefined;
+  groupName?: string | null | undefined;
 };
 export type SessionDone = {
   id: string;
@@ -84,6 +110,16 @@ export type SessionDone = {
   retakeCount: number;
   printCount: number;
   assets: { kind: AssetKind; idx: number; path: string; bytes: number }[];
+};
+/** Job cetak ulang galeri = `<sesi>-g<waktu>`; job gagal tidak dihitung (crew mencetak ulang dari menunya). */
+const REPRINTED = `(select coalesce(sum(copies), 0) from print_jobs p
+  where p.session_id = sessions.id and p.id like sessions.id || '-g%' and p.status != 'failed')`;
+export type GallerySession = {
+  id: string;
+  completedAt: string;
+  layoutId: string;
+  printCount: number;
+  reprinted: number;
 };
 export type PrintJobStatus = "queued" | "done" | "failed" | "reprinted";
 export type PrintJobInfo = {
@@ -112,6 +148,16 @@ export function openDb(file: string) {
   const db = new DatabaseSync(file);
   db.exec("pragma journal_mode = wal; pragma synchronous = normal; pragma foreign_keys = on;");
   db.exec(SCHEMA);
+  // Kolom baru di database lama (tambah saja, tidak pernah ubah/hapus).
+  const cols = new Set(
+    (db.prepare("pragma table_info(sessions)").all() as { name: string }[]).map((c) => c.name),
+  );
+  if (!cols.has("is_test"))
+    db.exec("alter table sessions add column is_test int not null default 0");
+  if (!cols.has("source")) db.exec("alter table sessions add column source text");
+  if (!cols.has("group_name")) db.exec("alter table sessions add column group_name text");
+  // Photo Stage (#195): idx foto yang disembunyikan (JSON array), dikirim sebagai `hiddenIdx`.
+  if (!cols.has("hidden_idx")) db.exec("alter table sessions add column hidden_idx text");
   // Sesi yang masih berjalan saat app mati tidak akan pernah selesai.
   const abandoned = db
     .prepare("update sessions set status = 'abandoned' where status = 'in_progress'")
@@ -130,8 +176,8 @@ export function openDb(file: string) {
   };
 
   const insertStart = db.prepare(
-    `insert into sessions (id, event_id, layout_version_id, payment_id, status, started_at, photo_count, retake_count, print_count)
-     values (?, ?, ?, ?, 'in_progress', ?, 0, 0, 0)
+    `insert into sessions (id, event_id, layout_version_id, payment_id, status, started_at, photo_count, retake_count, print_count, is_test, source, group_name)
+     values (?, ?, ?, ?, 'in_progress', ?, 0, 0, 0, ?, ?, ?)
      on conflict (id) do nothing`,
   );
   const complete = db.prepare(
@@ -185,7 +231,16 @@ export function openDb(file: string) {
     abandoned: Number(abandoned),
 
     sessionStarted(s: SessionStart) {
-      insertStart.run(s.id, s.eventId, s.layoutVersionId, s.paymentId ?? null, s.startedAt);
+      insertStart.run(
+        s.id,
+        s.eventId,
+        s.layoutVersionId,
+        s.paymentId ?? null,
+        s.startedAt,
+        s.isTest ? 1 : 0,
+        s.source ?? null,
+        s.groupName ?? null,
+      );
     },
 
     /** Sesi + aset + antrean upload dalam satu transaksi (TSD §4.2 langkah 1). Idempotent per aset (id = sesi:kind:idx). */
@@ -317,6 +372,19 @@ export function openDb(file: string) {
         }
       ).n;
     },
+    /** Photo Stage (#186): rombongan yang masih punya aset di antrean upload (dari `ids`, plus total). */
+    stageUploads(ids: string[]): { pendingGroups: number; pending: string[] } {
+      const rows = db
+        .prepare(
+          "select distinct a.session_id id from upload_queue q join assets a on a.id = q.asset_id",
+        )
+        .all() as { id: string }[];
+      const want = new Set(ids);
+      return {
+        pendingGroups: rows.length,
+        pending: rows.map((r) => r.id).filter((id) => want.has(id)),
+      };
+    },
     uploadPending(): number {
       return (db.prepare("select count(*) n from upload_queue").get() as { n: number }).n;
     },
@@ -332,17 +400,84 @@ export function openDb(file: string) {
         .all(now, limit) as DueUpload[];
     },
     /** Metadata sesi untuk upsert cloud (POST /api/booth/sessions). */
-    sessionMeta(id: string) {
-      const { paymentId, ...m } = db
+    sessionMeta(id: string): SessionMeta & { paymentId?: string } {
+      const { paymentId, isTest, source, groupName, hiddenIdx, ...m } = db
         .prepare(
           `select id, event_id eventId, started_at startedAt, completed_at completedAt,
              photo_count photoCount, retake_count retakeCount, print_count printCount,
              (select count(*) from assets where session_id = sessions.id) assetCount,
-             payment_id paymentId
+             payment_id paymentId, is_test isTest, source, group_name groupName, hidden_idx hiddenIdx
            from sessions where id = ?`,
         )
-        .get(id) as SessionMeta & { paymentId: string | null };
-      return paymentId ? { ...m, paymentId } : m;
+        .get(id) as Omit<SessionMeta, "isTest" | "source" | "groupName" | "hiddenIdx"> & {
+        paymentId: string | null;
+        isTest: number;
+        source: string | null;
+        groupName: string | null;
+        hiddenIdx: string | null;
+      };
+      return {
+        ...m,
+        ...(paymentId && { paymentId }),
+        ...(isTest && { isTest: true }),
+        ...(source === "stage" && { source: "stage" as const, groupName }),
+        ...(hiddenIdx !== null && { hiddenIdx: JSON.parse(hiddenIdx) as number[] }),
+      };
+    },
+    /** Photo Stage (#178): ganti nama grup; metadata dikirim ulang ke cloud (dueMeta). */
+    sessionRename(id: string, groupName: string | null) {
+      db.prepare(
+        "update sessions set group_name = ?, synced_meta = 0 where id = ? and source = 'stage'",
+      ).run(groupName, id);
+    },
+    /** Photo Stage (#195): foto tersembunyi (idx original); metadata dikirim ulang ke cloud. */
+    stageHide(id: string, idx: number[]) {
+      db.prepare(
+        "update sessions set hidden_idx = ?, synced_meta = 0 where id = ? and source = 'stage'",
+      ).run(JSON.stringify([...new Set(idx)].sort((a, b) => a - b)), id);
+    },
+    /** Photo Stage (#195): tambah foto ke rombongan yang sudah selesai (Gabung); aset baru ikut antrean upload. */
+    stageAppend(id: string, photoCount: number, assets: SessionDone["assets"]) {
+      tx(() => {
+        const row = db
+          .prepare(
+            "select event_id from sessions where id = ? and source = 'stage' and status = 'completed'",
+          )
+          .get(id) as { event_id: string } | undefined;
+        if (!row) throw new Error(`rombongan ${id} belum selesai`);
+        const now = new Date().toISOString();
+        db.prepare("update sessions set photo_count = ?, synced_meta = 0 where id = ?").run(
+          photoCount,
+          id,
+        );
+        for (const a of assets) {
+          const assetId = `${id}:${a.kind}:${a.idx}`;
+          insertAsset.run(assetId, id, a.kind, a.idx, a.path, a.bytes);
+          if (UUID.test(row.event_id)) enqueue.run(assetId, UPLOAD_PRIORITY[a.kind], now);
+        }
+      });
+    },
+    /**
+     * Sesi selesai di event cloud yang metadatanya belum terkirim padahal tidak ada aset yang antre (mis. nama grup
+     * diganti setelah semua foto terunggah). Sesi yang masih punya antrean ikut terkirim bersama asetnya.
+     */
+    dueMeta(limit: number): string[] {
+      return (
+        db
+          .prepare(
+            `select id from sessions s where status = 'completed' and synced_meta = 0
+               and not exists (select 1 from assets a join upload_queue q on q.asset_id = a.id where a.session_id = s.id)
+             limit ?`,
+          )
+          .all(limit) as { id: string }[]
+      )
+        .map((r) => r.id)
+        .filter((id) => {
+          const ev = (
+            db.prepare("select event_id from sessions where id = ?").get(id) as { event_id: string }
+          ).event_id;
+          return UUID.test(ev);
+        });
     },
     sessionMetaSynced(id: string) {
       db.prepare("update sessions set synced_meta = 1 where id = ?").run(id);
@@ -355,6 +490,13 @@ export function openDb(file: string) {
           assetId,
         );
         db.prepare("delete from upload_queue where asset_id = ?").run(assetId);
+        // Photo Stage (#195): foto tersembunyi baru bisa ditandai di cloud setelah asetnya ada → kirim ulang
+        // metadata setelah aset terakhir rombongan itu terunggah.
+        db.prepare(
+          `update sessions set synced_meta = 0 where id = (select session_id from assets where id = ?)
+             and hidden_idx is not null and hidden_idx != '[]'
+             and not exists (select 1 from assets a join upload_queue q on q.asset_id = a.id where a.session_id = sessions.id)`,
+        ).run(assetId);
       });
     },
     uploadFailed(assetId: string, error: string, nextAt: string) {
@@ -377,6 +519,125 @@ export function openDb(file: string) {
     /** "Coba sekarang" (FSD §1.3): semua aset yang menunggu backoff jatuh tempo sekarang. */
     uploadRetryNow(now: string) {
       db.prepare("update upload_queue set next_attempt_at = ?").run(now);
+    },
+
+    /** Sesi selesai event cloud yang punya strip_web, urut per event ("Tajamkan foto lama", #140). */
+    webSessions(): { id: string; eventId: string }[] {
+      return (
+        db
+          .prepare(
+            `select s.id, s.event_id eventId from sessions s
+             where s.status = 'completed'
+               and exists (select 1 from assets a where a.session_id = s.id and a.kind = 'strip_web')
+             order by s.event_id, s.completed_at`,
+          )
+          .all() as { id: string; eventId: string }[]
+      ).filter((s) => UUID.test(s.eventId));
+    },
+    /**
+     * Sesi selesai satu event, terbaru dulu (layar awal #143, galeri tamu #145). Halaman berikut: `before` =
+     * completedAt kartu terakhir (keyset). `reprinted` = lembar yang sudah dicetak lagi dari galeri.
+     */
+    recentSessions(eventId: string, limit: number, before = "9999"): GallerySession[] {
+      return (
+        db
+          .prepare(
+            `select id, completed_at completedAt, layout_version_id layoutVersionId, print_count printCount,
+               ${REPRINTED} reprinted
+             from sessions where event_id = ? and status = 'completed' and is_test = 0 and completed_at < ?
+             order by completed_at desc limit ?`,
+          )
+          .all(eventId, before, limit) as (GallerySession & { layoutVersionId: string })[]
+      ).map(({ layoutVersionId, ...s }) => ({
+        ...s,
+        layoutId: layoutVersionId.slice(0, layoutVersionId.lastIndexOf("@")),
+      }));
+    },
+    /**
+     * Jumlah sesi selesai per jam (UTC "YYYY-MM-DDTHH"), terbaru dulu, untuk chip jam galeri (#145).
+     * ponytail: jam UTC = jam lokal hanya untuk zona offset jam penuh (WIB/WITA/WIT); ubah kalau booth di zona :30.
+     */
+    sessionHours(eventId: string): { hour: string; n: number }[] {
+      return db
+        .prepare(
+          `select substr(completed_at, 1, 13) hour, count(*) n from sessions
+           where event_id = ? and status = 'completed' and is_test = 0 group by hour order by hour desc`,
+        )
+        .all(eventId) as { hour: string; n: number }[];
+    },
+    /** Rekap booth (#154): sesi asli selesai event ini (print_count sudah termasuk cetak ulang galeri). */
+    recap(eventId: string): LocalRecap {
+      return db
+        .prepare(
+          `select coalesce(sum(is_test = 0), 0) sessions,
+             coalesce(sum(case when is_test = 0 then print_count end), 0) prints,
+             coalesce(sum(is_test), 0) tests,
+             min(case when is_test = 0 then started_at end) firstAt,
+             max(case when is_test = 0 then started_at end) lastAt
+           from sessions where event_id = ? and status = 'completed'`,
+        )
+        .get(eventId) as LocalRecap;
+    },
+    /** Jam mulai sesi asli event ini (sesi di luar waktu acara di rekap, #170). */
+    sessionTimes(eventId: string): string[] {
+      return (
+        db
+          .prepare(
+            `select started_at t from sessions
+             where event_id = ? and status = 'completed' and is_test = 0`,
+          )
+          .all(eventId) as { t: string }[]
+      ).map((r) => r.t);
+    },
+    /** File hasil sesi asli event ini (lembar cetak, foto asli, GIF, video) untuk folder event (#155). */
+    eventFiles(eventId: string): EventFile[] {
+      return db
+        .prepare(
+          `select a.session_id sessionId, s.started_at startedAt, a.kind, a.idx, a.path
+           from assets a join sessions s on s.id = a.session_id
+           where s.event_id = ? and s.status = 'completed' and s.is_test = 0
+             and a.kind in ('strip', 'original', 'animation', 'video')
+           order by s.started_at, a.kind, a.idx`,
+        )
+        .all(eventId) as EventFile[];
+    },
+    /** Lembar cetak ulang dari galeri untuk sesi selesai ini; undefined = sesi tidak ada / belum selesai. */
+    reprinted(sessionId: string): number | undefined {
+      return (
+        db
+          .prepare(`select ${REPRINTED} n from sessions where id = ? and status = 'completed'`)
+          .get(sessionId) as { n: number } | undefined
+      )?.n;
+    },
+    /** Cetak ulang dari galeri menambah print_count sesi (#145). */
+    addPrints(sessionId: string, copies: number) {
+      db.prepare("update sessions set print_count = print_count + ? where id = ?").run(
+        copies,
+        sessionId,
+      );
+    },
+    /**
+     * Aset yang ditulis ulang (#140): ukuran baru, belum terunggah, masuk antrean lagi. Kunci R2 & baris aset cloud
+     * sama (sesi/kind/idx), jadi unggahan ulang menimpa objek lama (idempotent).
+     */
+    reupload(
+      sessionId: string,
+      assets: { kind: AssetKind; idx: number; path: string; bytes: number }[],
+      now: string,
+    ) {
+      tx(() => {
+        for (const a of assets) {
+          const id = `${sessionId}:${a.kind}:${a.idx}`;
+          db.prepare(
+            `insert into assets (id, session_id, kind, idx, path, bytes) values (?, ?, ?, ?, ?, ?)
+             on conflict (id) do update set path = excluded.path, bytes = excluded.bytes, r2_key = null, uploaded_at = null`,
+          ).run(id, sessionId, a.kind, a.idx, a.path, a.bytes);
+          db.prepare(
+            `insert into upload_queue (asset_id, priority, next_attempt_at) values (?, ?, ?)
+             on conflict (asset_id) do update set attempts = 0, last_error = null, next_attempt_at = excluded.next_attempt_at`,
+          ).run(id, UPLOAD_PRIORITY[a.kind], now);
+        }
+      });
     },
 
     /** Untuk test & mode crew nanti. */

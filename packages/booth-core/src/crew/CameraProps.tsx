@@ -25,7 +25,7 @@ const human = (s: string) => HUMAN[s] ?? s;
 /**
  * Setelan eksposur DSLR (ISO, shutter, aperture, WB, ISO/shutter jepret, kualitas) yang langsung dikirim ke kamera.
  * Dipakai di sheet Kamera & Printer dan di Tes Jepret, supaya efeknya terlihat di live view saat diubah (Rama, W-034).
- * `null` saat kamera tidak punya setelan (webcam, hot folder biasa) kecuali `showEmpty`.
+ * `null` saat kamera tidak punya setelan (webcam, hot folder) kecuali `showEmpty`.
  */
 /** Setelan dengan pilihan sebanyak ini (ISO, shutter, aperture) jadi tombol langkah ◀ nilai ▶, bukan chip. */
 const STEPPER_MIN = 8;

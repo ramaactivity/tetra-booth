@@ -1,5 +1,8 @@
+import { CalendarDays, Images, Laptop } from "lucide-react";
 import type { ReactNode } from "react";
 import { copy } from "@/lib/copy";
+
+const ICONS = [Laptop, Images, CalendarDays];
 
 /** Kerangka halaman masuk (desain v2 E0): form kiri, panel dekoratif kanan. Dipakai masuk, lupa & buat sandi. */
 export function AuthShell({ children }: { children: ReactNode }) {
@@ -18,22 +21,25 @@ export function AuthShell({ children }: { children: ReactNode }) {
         <div className="absolute -right-40 -bottom-40 size-[520px] rounded-full border-[1.5px] border-white" />
         <div className="absolute -right-[60px] -bottom-[60px] size-80 rounded-full border-[1.5px] border-white" />
         <div className="flex w-[380px] flex-col gap-3.5">
-          {copy.admin.loginCards.map((c) => (
-            <div
-              key={c.t}
-              className={`layered flex items-center gap-3 rounded-2xl border-[1.5px] border-ink bg-white p-3.5 [--lb:1.5px] [--lx:5px] [--under:#fff] ${c.ml}`}
-            >
-              <span
-                className={`flex size-11 items-center justify-center rounded-xl border-[1.5px] border-dashed border-ink text-lg ${c.bg}`}
+          {copy.admin.loginCards.map((c, i) => {
+            const I = ICONS[i] ?? Laptop;
+            return (
+              <div
+                key={c.t}
+                className={`layered flex items-center gap-3 rounded-2xl border-[1.5px] border-ink bg-white p-3.5 [--lb:1.5px] [--lx:5px] [--under:#fff] ${c.ml}`}
               >
-                {c.i}
-              </span>
-              <div>
-                <div className="text-sm font-bold">{c.t}</div>
-                <div className="mt-0.5 text-xs text-text-2">{c.d}</div>
+                <span
+                  className={`flex size-11 flex-none items-center justify-center rounded-xl border-[1.5px] border-ink ${c.bg}`}
+                >
+                  <I aria-hidden className="size-5" strokeWidth={2} />
+                </span>
+                <div>
+                  <div className="text-sm font-bold">{c.t}</div>
+                  <div className="mt-0.5 text-xs text-text-2">{c.d}</div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
     </main>

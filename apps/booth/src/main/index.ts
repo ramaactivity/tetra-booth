@@ -9,24 +9,24 @@ import {
   cameraServiceFlags,
   canon,
   config,
-  digicam,
   flagWarnings,
   kioskFlag,
   metricsEverySec,
   RESUME_KEY,
+  stageTvWindow,
   startScreenFlag,
   userDir,
   windowSize,
 } from "./config";
 import { openDb } from "./db";
-import { ensureDigiCam, releaseCameraForEdsdk } from "./digicam";
-import { ensureEdsdk } from "./edsdk";
+import { ensureEdsdk, releaseCameraForEdsdk } from "./edsdk";
 import { createFrameWatch } from "./frame-watch";
 import { createGpuWatch } from "./gpu-watch";
 import { registerIpc } from "./ipc";
 import { APP_ID, allowQuit, applyKiosk } from "./kiosk";
 import { setupLogging } from "./log";
 import { startMetrics } from "./metrics";
+import { startStageTv } from "./stage-tv";
 
 // Sentry hanya di build terpasang (dev & e2e tidak mengirim). Event antre di disk saat offline, tidak pernah menunggu jaringan.
 if (app.isPackaged)
@@ -143,21 +143,20 @@ registerIpc(db, alerts, cloud, (p) => gpu.phase(p));
 app.on("will-quit", () => db.close());
 app.whenReady().then(async () => {
   const log = (m: string) => console.info(m);
-  // --digicam: digiCamControl bisa butuh ±1 menit untuk siap, jadi jendela booth tampil dulu; kamera menyusul
-  // (sesi yang dimulai sebelum itu masuk layar "kamera disiapkan ulang" dan lanjut sendiri).
-  // Tanpa --hot-folder, folder sesi digiCamControl dipakai sebagai hot folder.
-  if (digicam) createWindow();
-  const hot = digicam ? await ensureDigiCam(log, digicam.exe) : undefined;
-  const extra =
-    hot && !cameraServiceFlags.args.includes("--hot-folder") ? ["--hot-folder", hot] : [];
   // Canon EDSDK (#112): DLL diunduh sendiri dari cloud kalau belum ada (bukan untuk `--canon fake`).
   if (canon && canon !== "fake") {
     await releaseCameraForEdsdk(log);
     await ensureEdsdk(canon, () => cloud.edsdk(), log);
   }
-  if (cameraServiceFlags.spawn) await startCameraService(log, db, alerts, extra);
+  if (cameraServiceFlags.spawn) await startCameraService(log, db, alerts);
   else app.on("will-quit", watchPrintEvents(log, db, alerts));
-  if (!digicam) createWindow();
+  createWindow();
+  if (config.role === "stage")
+    startStageTv({
+      preload: join(__dirname, "../preload/index.js"),
+      forceWindow: stageTvWindow,
+      log,
+    });
   cloud.start();
   startMetrics(db, metricsEverySec, log);
 });

@@ -41,12 +41,12 @@ Prinsip:
 2. Stress test otomatis 500 sesi (kamera simulasi) tanpa crash atau memory leak. _(Selesai 2026-09-25: W-024 500/500 sesi tanpa crash, tanpa tren memori; dinyatakan cukup oleh Rama, DECISIONS #53)_
 
 ## Fase 1b — Kamera DSLR (dipindah dari Fase 1, menunggu EDSDK & kamera)
-- [ ] Camera Service: Canon EDSDK (connect, reconnect, live view, capture). _(Kode selesai & diuji dengan driver palsu di Mac, 28 Sep, DECISIONS #111; menunggu uji 60D di Windows)_
+- [x] Camera Service: Canon EDSDK (connect, reconnect, live view, capture). _(Kode 28 Sep, DECISIONS #111; jadi bawaan #141. 4 Okt 2026: event nyata Employee Day DSO full pakai Tetra Booth dengan 700D lewat EDSDK; 700D & 60D terbukti, QR di cetakan bisa dipindai, cetak ulang dari galeri jalan. digiCamControl dihapus, #168)_
 - [x] Cetak fisik DNP RX1HS 4R & 2x6x2. _(W-022/W-023, 2026-09-25: tanpa tepi putih, offset terkalibrasi `7.335,6.70`; potong 2 inci hanya lewat dialog Printing Preferences, DECISIONS #59. 60D lewat digiCamControl + hot folder sebagai pengganti sementara EDSDK)_
 
 **Selesai jika:**
 1. Stress test otomatis 500 sesi semalaman tanpa crash, memory leak, atau kamera putus permanen (diuji di 600D dan 70D).
-2. Dipakai di 1 event nyata dengan LumaBooth standby sebagai cadangan, tanpa perlu pindah ke cadangan.
+2. Dipakai di 1 event nyata dengan LumaBooth standby sebagai cadangan, tanpa perlu pindah ke cadangan. _(Terpenuhi 4 Okt 2026: event DSO. Kriteria 1 — stress test semalaman di kamera asli — belum dicatat.)_
 
 ## Fase 2 — Cloud + halaman tamu
 - [x] Pairing device. _(N2, 2026-09-25: API + skrip owner + mode crew; DECISIONS #55–56)_
@@ -84,7 +84,7 @@ Prinsip:
 **Selesai jika:** 100 transaksi nyata dengan ≥ 98% sukses tanpa bantuan crew dan rekonsiliasi cocok dengan dashboard Xendit.
 
 ## Fase 5 — Ekspansi
-- [ ] Sony a7III via Camera Remote SDK.
+- [ ] Sony via **Camera Remote Command** (PTP, bukan Camera Remote SDK: SDK tidak mendukung A7 II/A7 III). Command mendukung A7 II, A7 III, A7 IV, A7 V, A7C, A6100/A6400/A6600/A6700; A6300/A6500 tidak didukung Sony (tetap hot folder). _(6 Okt 2026: S1–S5 selesai di Mac dengan kamera palsu, DECISIONS #169/#171, `docs/PLAN-SONY.md`; sisa uji hardware W-037…W-041, menunggu kamera Sony.)_
 - [ ] Animasi (GIF/boomerang) di booth, halaman tamu, galeri. _(GIF foto sesi di booth + halaman tamu sudah dimajukan 2026-09-25, DECISIONS #62; galeri L3 2026-09-25, DECISIONS #72; sisa: boomerang/video live view, butuh kamera asli)_
 - [x] Lead capture (gate/optional + consent) + export CSV dari admin. _(L1, 2026-09-25, DECISIONS #71)_
 - [x] Galeri event publik untuk tamu. _(L2, 2026-09-25: `/s/{id}/galeri`, DECISIONS #72; QR di live slideshow → `/l/{token}`, DECISIONS #75)_

@@ -8,18 +8,23 @@ import {
   BoothUpdateResponse,
   BundleManifest,
   EdsdkResponse,
+  GalleryLinkResponse,
   type HeartbeatRequest,
+  type LocalStorage,
   PairResponse,
   type PaymentCreateRequest,
   PaymentCreateResponse,
   PaymentStatusResponse,
+  type RunAction,
 } from "@tetra/shared";
 import { app, safeStorage, screen } from "electron";
 import type { Alerts } from "./alerts";
 import { installBundle } from "./bundle-sync";
 import { cameraHealth, request } from "./camera-client";
+import { CloudError, cloudErrorText } from "./cloud-error";
 import { config, printerName } from "./config";
 import type { BoothDb } from "./db";
+import { createRunQueue } from "./run-queue";
 import { createUploader } from "./upload";
 
 /**
@@ -36,10 +41,12 @@ const SYNC_MS = 5 * 60_000;
 const UPLOAD_MS = 15_000;
 const TIMEOUT_MS = 15_000;
 
+/** Pesan untuk crew di layar Sambungkan ke akun Tetra: apa yang salah + apa yang harus dilakukan. */
 const PAIR_ERRORS: Record<string, string> = {
-  invalid_code: "Kode salah atau sudah kedaluwarsa",
-  rate_limited: "Terlalu banyak percobaan, tunggu 10 menit",
-  bad_request: "Kode harus 6 digit",
+  invalid_code:
+    "Kode salah atau sudah lewat 10 menit. Cek angkanya, atau minta admin menekan Buat kode baru.",
+  rate_limited: "Terlalu banyak kode salah. Tunggu 10 menit, lalu coba lagi dengan kode baru.",
+  bad_request: "Kode harus 6 angka.",
 };
 
 /**
@@ -60,7 +67,7 @@ async function statusSnapshot(db: BoothDb, alerts: Alerts): Promise<BoothStatus>
   }
   const health = await cameraHealth().catch(() => null);
   const model =
-    config.camera === "canon"
+    config.camera === "canon" || config.camera === "sony"
       ? await request({ id: randomUUID(), type: "camera.status" })
           .then((s) => s.model?.slice(0, 80) ?? null)
           .catch(() => null)
@@ -133,7 +140,7 @@ export function createCloud(
       headers: { authorization: `Bearer ${t}` },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    if (!res.ok) throw new Error(`${path}: server ${res.status}`);
+    if (!res.ok) throw new CloudError(`${path}: server ${res.status}`, res.status);
     return res.json() as Promise<unknown>;
   };
   const download = async (url: string) => {
@@ -144,14 +151,14 @@ export function createCloud(
 
   const api = async (path: string, body: unknown) => {
     const t = token();
-    if (!t) throw new Error("booth belum dipasangkan");
+    if (!t) throw new CloudError("booth belum dipasangkan", 401);
     const res = await fetch(`${baseUrl}${path}`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${t}` },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    if (!res.ok) throw new Error(`${path}: server ${res.status}`);
+    if (!res.ok) throw new CloudError(`${path}: server ${res.status}`, res.status);
     return res.json() as Promise<unknown>;
   };
   const uploader = createUploader({
@@ -168,7 +175,27 @@ export function createCloud(
       if (!res.ok) throw new Error(`R2 PUT ${res.status}`);
     },
   });
-  const uploadQuiet = () => void uploader.drain();
+  const runQueue = createRunQueue({
+    kv: db.kv,
+    log,
+    post: async (path, body) => {
+      const t = token();
+      if (!t) throw new Error("booth belum dipasangkan");
+      const res = await fetch(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${t}` },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+      return { status: res.status, body: await res.json().catch(() => null) };
+    },
+  });
+  const uploadQuiet = () => {
+    void uploader.drain();
+    void runQueue.drain();
+  };
+  /** Event cloud = bundle pernah diunduh dari cloud (event lokal/contoh tidak punya timer). */
+  const cloudEvent = (eventId: string) => !!db.kv.get(`bundle_version:${eventId}`);
 
   let syncing: Promise<number> | null = null;
   /**
@@ -212,6 +239,38 @@ export function createCloud(
       return uploader.drain();
     },
     token,
+    /** Timer event (#149): null = bukan event cloud. */
+    runState: (eventId: string) => (cloudEvent(eventId) ? runQueue.state(eventId) : null),
+    /** `arm` = Mulai acara (#152): timer mulai saat sesi tamu pertama. */
+    runAction: (eventId: string, action: RunAction | "arm", local?: LocalStorage) =>
+      !cloudEvent(eventId)
+        ? null
+        : action === "arm"
+          ? runQueue.arm(eventId)
+          : runQueue.push(eventId, action, local),
+    /**
+     * Laporkan ukuran folder event di laptop (#166) saat rekap booth dibuka. Idempotent (nilai terakhir menang);
+     * offline / gagal = dilewati, terkirim lagi saat rekap dibuka berikutnya.
+     */
+    reportStorage(eventId: string, local: LocalStorage) {
+      if (!cloudEvent(eventId) || !token()) return;
+      api(`/api/booth/events/${eventId}/storage`, local).catch((e: unknown) =>
+        log(
+          `[cloud] ukuran folder event belum terkirim: ${e instanceof Error ? e.message : String(e)} (${cloudErrorText(e, "offline")})`,
+        ),
+      );
+    },
+    /** Sesi tamu (bukan tes) mulai: timer yang menunggu mulai di jam sesi itu. */
+    sessionStarted: (eventId: string, at: string) => {
+      if (cloudEvent(eventId)) runQueue.sessionStarted(eventId, at);
+    },
+    /** Timer menurut laptop ini (rekap booth offline, #154). */
+    localRun: (eventId: string) => runQueue.localRun(eventId),
+    /** Aktifkan link galeri klien event ini (#155) dan balas slug-nya. Offline/ditolak = Error. */
+    async galleryLink(eventId: string) {
+      return GalleryLinkResponse.parse(await api(`/api/booth/events/${eventId}/gallery-link`, {}))
+        .slug;
+    },
     /** Rilis booth terbaru di cloud (DECISIONS #80); null = belum ada rilis. */
     async latestRelease() {
       const t = token();
@@ -260,12 +319,17 @@ export function createCloud(
           signal: AbortSignal.timeout(TIMEOUT_MS),
         });
       } catch {
-        throw new Error("Tidak tersambung ke server. Cek internet lalu coba lagi");
+        throw new Error(
+          "Laptop booth tidak tersambung ke internet. Sambungkan ke Wi-Fi atau hotspot, lalu ketik kodenya lagi.",
+        );
       }
       const body: unknown = await res.json().catch(() => ({}));
       if (!res.ok) {
         const err = (body as { error?: string }).error ?? "";
-        throw new Error(PAIR_ERRORS[err] ?? `Server menolak (${res.status})`);
+        throw new Error(
+          PAIR_ERRORS[err] ??
+            `Server sedang bermasalah (${res.status}). Coba lagi beberapa menit lagi.`,
+        );
       }
       const p = PairResponse.parse(body);
       db.kv.set("cloud_token", safeStorage.encryptString(p.token).toString("base64"));

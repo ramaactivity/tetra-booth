@@ -159,6 +159,20 @@ public sealed class EdsdkDriver : ICanonDriver
         }
         var item = _pending;
         _pending = IntPtr.Zero;
+        return Download(item);
+    }
+
+    public byte[]? TakeUnsolicited()
+    {
+        if (_pending == IntPtr.Zero) return null;
+        var item = _pending;
+        _pending = IntPtr.Zero;
+        return Download(item);
+    }
+
+    /// <summary>Unduh item kamera ke memori, lalu lepas item.</summary>
+    private static byte[] Download(IntPtr item)
+    {
         try
         {
             Check(EdsGetDirectoryItemInfo(item, out var info), "info file");

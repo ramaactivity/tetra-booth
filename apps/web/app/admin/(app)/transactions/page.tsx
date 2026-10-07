@@ -1,4 +1,5 @@
 import { Select } from "@tetra/ui";
+import { Calculator, CircleCheck, Download, ReceiptText, Wallet } from "lucide-react";
 import { paymentProvider } from "@/lib/payments";
 import { layoutName, loadTransactions, parseFilter } from "./data";
 import { SimulateButton } from "./SimulateButton";
@@ -42,12 +43,12 @@ export default async function TransactionsPage({
   const perEvent = sum((r) => r.events?.name ?? "—");
   const canSimulate = !!paymentProvider()?.simulate;
   const stats = [
-    { l: "Omzet", v: rp(total), i: "Rp", bg: "var(--mint-soft)" },
-    { l: "Sesi terbayar", v: String(packages), i: "▣", bg: "var(--sky)" },
+    { l: "Omzet", v: rp(total), I: Wallet, bg: "var(--mint-soft)" },
+    { l: "Sesi terbayar", v: String(packages), I: ReceiptText, bg: "var(--sky)" },
     {
       l: "Rata-rata per sesi",
       v: rp(packages ? Math.round(total / packages) : 0),
-      i: "≈",
+      I: Calculator,
       bg: "var(--peach)",
     },
     {
@@ -55,7 +56,7 @@ export default async function TransactionsPage({
       v: closed.length
         ? `${Math.round((closed.filter((r) => r.status === "paid").length / closed.length) * 100)}%`
         : "—",
-      i: "✓",
+      I: CircleCheck,
       bg: "var(--lavender)",
     },
   ];
@@ -67,8 +68,9 @@ export default async function TransactionsPage({
         <h1 className="text-[30px] font-extrabold tracking-[-0.03em]">Transaksi</h1>
         <a
           href={`/admin/transactions/export?${qs}`}
-          className="pressable layered flex h-11 items-center rounded-xl border-[1.5px] border-ink bg-butter px-[18px] text-sm font-extrabold no-underline [--lb:1.5px] [--lx:4px]"
+          className="pressable layered flex h-11 items-center gap-2 rounded-xl border-[1.5px] border-ink bg-butter px-[18px] text-sm font-extrabold no-underline [--lb:1.5px] [--lx:4px]"
         >
+          <Download aria-hidden className="size-4" strokeWidth={2} />
           Export CSV
         </a>
       </div>
@@ -107,16 +109,13 @@ export default async function TransactionsPage({
           <div
             key={s.l}
             style={{ ["--under" as string]: s.bg }}
-            className="layered flex items-center gap-3.5 rounded-2xl border-[1.5px] border-ink bg-white px-[18px] py-4 [--lb:1.5px] [--lx:5px]"
+            className="layered rounded-2xl border-[1.5px] border-ink bg-white px-[18px] py-4 [--lb:1.5px] [--lx:5px]"
           >
-            <span
-              className="flex size-11 flex-none items-center justify-center rounded-xl border-[1.5px] border-dashed border-ink text-[15px] font-bold"
-              style={{ background: s.bg }}
-            >
-              {s.i}
-            </span>
             <div>
-              <div className="text-xs font-semibold text-text-2">{s.l}</div>
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-text-2">
+                <s.I aria-hidden className="size-4 flex-none" strokeWidth={2} />
+                {s.l}
+              </div>
               <div
                 className="mt-0.5 text-[24px] font-extrabold tracking-[-0.03em]"
                 data-testid={`stat-${s.l}`}

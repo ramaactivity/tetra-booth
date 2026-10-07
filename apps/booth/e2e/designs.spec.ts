@@ -147,8 +147,10 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     for (let i = 0; i < 5; i++) await w.getByTestId("crew-hotspot").click();
     await typePin(w, "2468");
     await typePin(w, "2468");
-    await w.getByRole("button", { name: /^Pasangkan/ }).click();
+    await w.getByTestId("step-pair").getByRole("button", { name: "Sambungkan" }).click();
     await typePin(w, "123456");
+    await expect(w.getByTestId("pair-device")).toContainText("Booth Uji · B08");
+    await w.getByRole("button", { name: "Kembali ke Menu Crew" }).click();
     await expect(w.getByTestId("cloud-device")).toHaveText("Booth Uji · B08");
     await w.getByTestId("step-event").getByRole("button").click();
     await w.getByRole("button", { name: /Mode Event/ }).click();
@@ -174,6 +176,8 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     await expect(ed).toHaveCount(0);
     await expect(row).toContainText("Diubah di booth");
     await w.getByTestId("to-guest").click();
+    // Event cloud belum mulai: pop-up Mulai acara / Tes dulu (#152).
+    await w.getByRole("button", { name: /^Mulai acara/ }).click();
     await w.waitForTimeout(1000);
 
     // Layar awal per event: gambar latar, teks tombol sendiri, strip contoh disembunyikan.

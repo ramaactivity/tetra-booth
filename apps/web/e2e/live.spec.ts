@@ -67,7 +67,7 @@ test("slideshow + sesi baru", async ({ page }) => {
     await expect(page.getByRole("img", { name: new RegExp(`/l/${token}$`) })).toBeVisible();
     await page.goto(`/l/${token}`);
     await expect(page.getByRole("heading", { name: "Andi & Sari" })).toBeVisible();
-    await expect(page.getByText("2 foto")).toBeVisible();
+    await expect(page.getByText(/· 2 foto/)).toBeVisible();
   } finally {
     await db.from("events").delete().eq("id", eventId);
   }

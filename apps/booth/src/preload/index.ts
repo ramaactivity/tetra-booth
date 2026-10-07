@@ -14,6 +14,7 @@ const bridge: TetraBridge = {
   liveViewFrame: () => ipcRenderer.invoke("liveViewFrame"),
   liveViewStop: () => ipcRenderer.invoke("liveViewStop"),
   printSubmit: (job) => ipcRenderer.invoke("printSubmit", job),
+  printReprint: (req) => ipcRenderer.invoke("printReprint", req),
   phaseChanged: (phase) => ipcRenderer.send("phaseChanged", phase),
   sessionStarted: (x) => ipcRenderer.invoke("sessionStarted", x),
   sessionCompleted: (x) => ipcRenderer.invoke("sessionCompleted", x),
@@ -32,6 +33,14 @@ const bridge: TetraBridge = {
   crewPair: (code) => ipcRenderer.invoke("crewPair", code),
   crewSyncEvents: () => ipcRenderer.invoke("crewSyncEvents"),
   crewRetryUploads: () => ipcRenderer.invoke("crewRetryUploads"),
+  crewRunState: (id) => ipcRenderer.invoke("crewRunState", id),
+  crewEventRun: (id, a) => ipcRenderer.invoke("crewEventRun", id, a),
+  crewRecap: (id) => ipcRenderer.invoke("crewRecap", id),
+  crewOpenEventFolder: (id) => ipcRenderer.invoke("crewOpenEventFolder", id),
+  crewGalleryLink: (id) => ipcRenderer.invoke("crewGalleryLink", id),
+  crewEventSize: (id) => ipcRenderer.invoke("crewEventSize", id),
+  crewOldSessions: () => ipcRenderer.invoke("crewOldSessions"),
+  crewReupload: (id, a) => ipcRenderer.invoke("crewReupload", id, a),
   crewCheckUpdate: () => ipcRenderer.invoke("crewCheckUpdate"),
   crewDevice: () => ipcRenderer.invoke("crewDevice"),
   crewSaveDevice: (s) => ipcRenderer.invoke("crewSaveDevice", s),
@@ -58,6 +67,30 @@ const bridge: TetraBridge = {
     ipcRenderer.on("updateProgress", h);
     return () => ipcRenderer.off("updateProgress", h);
   },
+  stageListen: (on) => ipcRenderer.invoke("stageListen", on),
+  stageRename: (id, name) => ipcRenderer.invoke("stageRename", id, name),
+  stageStatus: (ids) => ipcRenderer.invoke("stageStatus", ids),
+  stageHide: (id, idx) => ipcRenderer.invoke("stageHide", id, idx),
+  stageAppend: (id, photoCount, assets) =>
+    ipcRenderer.invoke("stageAppend", id, photoCount, assets),
+  stageTvPublish: (st) => ipcRenderer.invoke("stageTvPublish", st),
+  stageTvLast: () => ipcRenderer.invoke("stageTvLast"),
+  stageTvStatus: () => ipcRenderer.invoke("stageTvStatus"),
+  onStageTv: (cb) => {
+    const h = (_e: IpcRendererEvent, st: unknown) => cb(st);
+    ipcRenderer.on("stageTv", h);
+    return () => ipcRenderer.off("stageTv", h);
+  },
+  onStageTvStatus: (cb) => {
+    const h = (_e: IpcRendererEvent, on: boolean) => cb(on);
+    ipcRenderer.on("stageTvStatus", h);
+    return () => ipcRenderer.off("stageTvStatus", h);
+  },
+  onStageShot: (cb) => {
+    const h = (_e: IpcRendererEvent, s: Parameters<typeof cb>[0]) => cb(s);
+    ipcRenderer.on("stageShot", h);
+    return () => ipcRenderer.off("stageShot", h);
+  },
   onPrintUpdated: (cb) => {
     const h = (_e: IpcRendererEvent, u: Parameters<typeof cb>[0]) => cb(u);
     ipcRenderer.on("printUpdated", h);
@@ -66,6 +99,7 @@ const bridge: TetraBridge = {
   eventsList: () => ipcRenderer.invoke("eventsList"),
   eventsActive: () => ipcRenderer.invoke("eventsActive"),
   eventsSetActive: (id) => ipcRenderer.invoke("eventsSetActive", id),
+  eventsRecentPieces: (id, n, before) => ipcRenderer.invoke("eventsRecentPieces", id, n, before),
   eventAsset: (e, a) => ipcRenderer.invoke("eventAsset", e, a),
   paymentCreate: (req) => ipcRenderer.invoke("paymentCreate", req),
   paymentStatus: (id) => ipcRenderer.invoke("paymentStatus", id),

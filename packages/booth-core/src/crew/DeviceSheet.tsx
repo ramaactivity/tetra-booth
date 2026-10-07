@@ -7,9 +7,8 @@ import { usePlatform } from "../PlatformContext";
 import type { DeviceInfo, DeviceSettings } from "../platform";
 import { Sheet } from "./Sheet";
 
-const DEFAULT_HOT = "C:\\TetraBooth\\hot";
-const DEFAULT_TRIGGER = "http://localhost:5513/?CMD=Capture";
-const CAMERAS = ["webcam", "canon", "hotfolder", "simulated"] as const;
+/** DSLR Canon = EDSDK (#141, #168), Sony = Camera Remote Command (#171); hot folder hanya flag teknisi. */
+const CAMERAS = ["canon", "sony", "webcam", "simulated"] as const;
 
 const choice = (on: boolean) =>
   `pressable flex min-h-[72px] items-center justify-center rounded-[18px] border-[2.5px] border-ink px-6 py-2 text-center text-xl leading-tight font-bold disabled:opacity-40 ${on ? "bg-mint-soft" : "bg-white"}`;
@@ -18,8 +17,8 @@ const input =
 const label = "text-lg font-bold text-text-2";
 
 /**
- * Kamera & printer dari mode crew (DECISIONS #85): sumber kamera, webcam, hot folder + pemicu digiCamControl,
- * setelan eksposur DSLR (langsung berlaku), printer + pengingat 2inch cut. Simpan = booth dibuka ulang.
+ * Kamera & printer dari mode crew (DECISIONS #85): sumber kamera, webcam, AF sebelum jepret (Canon), folder &
+ * pemicu hot folder (teknisi), printer + pengingat 2inch cut. Simpan = booth dibuka ulang.
  */
 export function DeviceSheet({
   paper,
@@ -56,24 +55,30 @@ export function DeviceSheet({
   const changed = info && JSON.stringify(draft) !== JSON.stringify(info.now);
   const camera = draft.camera ?? "webcam";
 
-  // DSLR (digiCamControl / Canon EDSDK): AF sebelum jepret. Setelan eksposur ada di halaman Kamera & Tes Jepret.
-  const dslr = (
-    <>
-      <button
-        type="button"
-        aria-pressed={!!draft.afBeforeCapture}
-        disabled={!info}
-        className={choice(!!draft.afBeforeCapture)}
-        onClick={() => set({ afBeforeCapture: !draft.afBeforeCapture })}
-      >
-        {copy.crew.afBeforeCapture} · {draft.afBeforeCapture ? copy.crew.on : copy.crew.off}
-      </button>
-    </>
-  );
-
   return (
     <Sheet title={copy.crew.device} onClose={onClose}>
       <div className="flex min-h-0 flex-col gap-6 overflow-y-auto pr-1">
+        <section className="flex flex-col gap-3">
+          <p className={label}>
+            {copy.crew.deviceRole}
+            {locked("role") && ` · ${copy.crew.deviceLocked}`}
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            {(["booth", "stage"] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                aria-pressed={(draft.role ?? "booth") === r}
+                disabled={!info || locked("role")}
+                className={choice((draft.role ?? "booth") === r)}
+                onClick={() => set({ role: r })}
+              >
+                {copy.crew.roles[r]}
+              </button>
+            ))}
+          </div>
+          {draft.role === "stage" && <p className="text-lg text-text-2">{copy.crew.roleNote}</p>}
+        </section>
         <section className="flex flex-col gap-3">
           <p className={label}>
             {copy.crew.deviceCamera}
@@ -86,19 +91,14 @@ export function DeviceSheet({
                 type="button"
                 disabled={locked("camera")}
                 className={choice(camera === c)}
-                onClick={() =>
-                  set(
-                    c === "hotfolder"
-                      ? {
-                          camera: c,
-                          hotFolder: draft.hotFolder ?? DEFAULT_HOT,
-                          hotFolderTrigger: draft.hotFolderTrigger ?? DEFAULT_TRIGGER,
-                        }
-                      : { camera: c },
-                  )
-                }
+                onClick={() => set({ camera: c })}
               >
                 {copy.crew.cameraKind[c]}
+                {c === "sony" && copy.crew.sonyUntested && (
+                  <span className="mt-1 block text-base font-semibold text-text-2">
+                    {copy.crew.sonyUntested}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -106,7 +106,35 @@ export function DeviceSheet({
           {camera === "canon" && (
             <div className="flex flex-col gap-3">
               <p className="text-lg text-text-2">{copy.crew.canonNote}</p>
-              {dslr}
+              {/* AF sebelum jepret; setelan eksposur ada di halaman Kamera & Tes Jepret. */}
+              <button
+                type="button"
+                aria-pressed={!!draft.afBeforeCapture}
+                disabled={!info}
+                className={choice(!!draft.afBeforeCapture)}
+                onClick={() => set({ afBeforeCapture: !draft.afBeforeCapture })}
+              >
+                {copy.crew.afBeforeCapture} · {draft.afBeforeCapture ? copy.crew.on : copy.crew.off}
+              </button>
+            </div>
+          )}
+
+          {camera === "sony" && (
+            <div className="flex flex-col gap-3">
+              <ul className="flex list-disc flex-col gap-1.5 pl-6 text-lg text-text-2">
+                {copy.crew.sonyTips.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                aria-pressed={!!draft.afBeforeCapture}
+                disabled={!info}
+                className={choice(!!draft.afBeforeCapture)}
+                onClick={() => set({ afBeforeCapture: !draft.afBeforeCapture })}
+              >
+                {copy.crew.afBeforeCapture} · {draft.afBeforeCapture ? copy.crew.on : copy.crew.off}
+              </button>
             </div>
           )}
 
@@ -134,7 +162,6 @@ export function DeviceSheet({
                   className={input}
                   disabled={locked("hot-folder")}
                   value={draft.hotFolder ?? ""}
-                  placeholder={copy.crew.hotFolderFromDcc}
                   onChange={(e) => set({ hotFolder: e.target.value })}
                 />
               </label>
@@ -147,7 +174,6 @@ export function DeviceSheet({
                   onChange={(e) => set({ hotFolderTrigger: e.target.value })}
                 />
               </label>
-              {dslr}
             </div>
           )}
         </section>

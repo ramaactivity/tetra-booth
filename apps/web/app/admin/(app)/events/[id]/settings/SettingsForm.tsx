@@ -7,7 +7,7 @@ import {
   paperLabel,
 } from "@tetra/shared";
 import { ColorPicker } from "@tetra/ui";
-import { Check, Play } from "lucide-react";
+import { ArrowRight, Check, Play } from "lucide-react";
 import Link from "next/link";
 import {
   type InputHTMLAttributes,
@@ -15,21 +15,35 @@ import {
   startTransition,
   useActionState,
   useEffect,
+  useRef,
   useState,
 } from "react";
+import { OPS_PAPER, OpsPaperWarning } from "../../OpsPaperWarning";
 import { type SaveResult, saveEvent } from "./actions";
-import { type DesignOption, DesignPicker } from "./DesignPicker";
+import { type DesignOption, DesignPicker, forMode } from "./DesignPicker";
+import { StageGroups } from "./StageGroups";
+import { useLeaveGuard } from "./useLeaveGuard";
 
 export type SettingsValues = {
   name: string;
+  /** Ukuran frame booking Tetra Ops asal event (#162), kosong = bukan dari Ops. */
+  opsFrameSize?: string | null;
   event_date: string;
   location: string;
   tagline: string;
   client_name: string;
+  /** Paket yang dijual (#150): nama + durasi jam, untuk rekap durasi. */
+  package_name: string;
+  /** Booking Tetra Ops yang ditautkan (#193); "" = belum. */
+  opsProjectId: string;
+  package_hours: string;
+  /** Jadwal booking (#152) "HH:MM", kosong = tidak diisi. */
+  scheduled_start: string;
+  scheduled_end: string;
   /** Desain frame terpilih, berurutan (pertama = utama): preset id atau `tpl:<layoutId>`. */
   designs: string[];
   designOptions: DesignOption[];
-  templates: { id: string; name: string; paper: string; version: number }[];
+  templates: { id: string; name: string; paper: string; mode: string; version: number }[];
   background: string;
   hasOverlay: boolean;
   /** Layar awal booth (#102). */
@@ -41,6 +55,12 @@ export type SettingsValues = {
   filters: string[];
   promptsBefore: string[];
   promptsAfter: string[];
+  /** Daftar grup Photo Stage (#181). */
+  stageGroups: string[];
+  stageGapSec: number;
+  stageTvSec: number;
+  /** Usulan daftar grup dari portal Ops saat daftar masih kosong (#182). */
+  opsStageGroups: string[];
   /** Suara per cue (#104): nyala/mati + URL file pengganti (presigned) kalau ada. */
   sounds: { cue: string; on: boolean; custom: string | null }[];
   /** Header halaman tamu. */
@@ -97,7 +117,7 @@ const input = "h-[42px] w-full rounded-[11px] border-[1.5px] border-ink bg-white
 const textarea = "w-full rounded-[11px] border-[1.5px] border-ink bg-white px-3 py-2.5 text-sm";
 
 /** "12 Oktober 2026" (sama dengan tanggal di strip, lib/guest `longDate`). */
-const longDate = (d: string) => {
+export const longDate = (d: string) => {
   const t = new Date(`${d}T00:00:00Z`);
   return Number.isNaN(t.getTime())
     ? ""
@@ -105,7 +125,7 @@ const longDate = (d: string) => {
 };
 
 /** Kotak centang / radio bergaya v2 (input asli, jadi keyboard & label tetap jalan). */
-function Box({ radio, ...p }: InputHTMLAttributes<HTMLInputElement> & { radio?: boolean }) {
+export function Box({ radio, ...p }: InputHTMLAttributes<HTMLInputElement> & { radio?: boolean }) {
   return (
     <span className="relative inline-flex size-5 flex-none">
       <input
@@ -353,10 +373,13 @@ const MODES = [
 
 export function SettingsForm({
   eventId,
+  slug,
   v,
   links,
 }: {
   eventId: string;
+  /** Segmen URL saat ini; simpan yang mengganti slug membuka URL barunya. */
+  slug: string;
   v: SettingsValues;
   /** Panel link klien (di luar data form, aksi sendiri). */
   links: ReactNode;
@@ -378,33 +401,13 @@ export function SettingsForm({
   const [dirty, setDirty] = useState(false);
   const [active, setActive] = useState("informasi");
   const [r, action, pending] = useActionState<SaveResult, FormData>(
-    saveEvent.bind(null, eventId),
+    saveEvent.bind(null, eventId, slug),
     null,
   );
   useEffect(() => {
     if (r?.ok) setDirty(false);
   }, [r]);
-  // Perubahan belum disimpan: tanya dulu saat menutup tab/reload, atau saat mengklik link lain di admin
-  // (navigasi Next tidak memicu beforeunload). Link anchor bagian (#…) di halaman ini tidak ditanya.
-  useEffect(() => {
-    if (!dirty) return;
-    const onUnload = (e: BeforeUnloadEvent) => e.preventDefault();
-    const onClick = (e: MouseEvent) => {
-      const a = (e.target as Element | null)?.closest("a[href]");
-      const href = a?.getAttribute("href");
-      if (!href || href.startsWith("#") || a?.getAttribute("target") === "_blank") return;
-      if (!confirm("Ada perubahan belum disimpan. Tinggalkan halaman ini?")) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-    window.addEventListener("beforeunload", onUnload);
-    document.addEventListener("click", onClick, true);
-    return () => {
-      window.removeEventListener("beforeunload", onUnload);
-      document.removeEventListener("click", onClick, true);
-    };
-  }, [dirty]);
+  useLeaveGuard(dirty, "Ada perubahan belum disimpan. Tinggalkan halaman ini?");
   const pb = mode === "photobox";
 
   // Bagian yang sedang terbaca → disorot di navigasi kiri.
@@ -440,6 +443,7 @@ export function SettingsForm({
   );
 
   const main = v.designOptions.find((o) => o.value === designs[0]);
+  const opsPaper = v.opsFrameSize ? OPS_PAPER[v.opsFrameSize] : undefined;
   const ok = {
     informasi: !!name.trim() && !!date,
     template: designs.length > 0,
@@ -507,6 +511,15 @@ export function SettingsForm({
       label: "Sesi & pembayaran",
       items: [
         ["sesi", "Sesi", "ok"],
+        ...(!pb
+          ? [
+              ["photo-stage", "Photo Stage", v.stageGroups.length ? "ok" : "opsional"] as [
+                string,
+                string,
+                Badge,
+              ],
+            ]
+          : []),
         ...(pb
           ? [["photobox", "Photobox", ok.photobox ? "ok" : "wajib"] as [string, string, Badge]]
           : []),
@@ -575,7 +588,13 @@ export function SettingsForm({
                   <span className={`min-w-0 text-sm leading-snug ${c.ok ? "font-semibold" : ""}`}>
                     {c.ok && <span className="sr-only">Sudah: </span>}
                     {c.text}
-                    {!c.ok && <span className="font-bold"> →</span>}
+                    {!c.ok && (
+                      <ArrowRight
+                        aria-hidden
+                        className="ml-1 inline size-3.5 align-[-2px]"
+                        strokeWidth={2}
+                      />
+                    )}
                   </span>
                 </span>
               </a>
@@ -676,6 +695,79 @@ export function SettingsForm({
               />
             </Field>
             <Field
+              id="package_name"
+              label="Paket"
+              optional
+              hint="Nama paket yang dibeli klien, mis. Paket Wedding 3 Jam."
+            >
+              <input
+                id="package_name"
+                name="package_name"
+                maxLength={80}
+                defaultValue={v.package_name}
+                aria-describedby="package_name-hint"
+                className={input}
+              />
+            </Field>
+            <Field
+              id="ops_project_id"
+              label="ID booking Tetra Ops"
+              optional
+              hint="Event yang tidak dibuat dari impor Ops bisa ditautkan di sini (mis. PRJ-20261004-9023), supaya galeri muncul di dashboard klien Ops."
+            >
+              <input
+                id="ops_project_id"
+                name="ops_project_id"
+                maxLength={64}
+                pattern="[A-Za-z0-9_\-]+"
+                defaultValue={v.opsProjectId}
+                placeholder="PRJ-…"
+                aria-describedby="ops_project_id-hint"
+                className={`${input} font-mono`}
+              />
+            </Field>
+            <Field
+              id="package_hours"
+              label="Durasi paket"
+              optional
+              unit="jam"
+              hint="Rekap event membandingkan lama event berjalan dengan durasi ini."
+            >
+              <input
+                id="package_hours"
+                name="package_hours"
+                type="number"
+                inputMode="decimal"
+                min={0.5}
+                max={48}
+                step={0.5}
+                defaultValue={v.package_hours}
+                aria-describedby="package_hours-hint"
+                className={input.replace("w-full", "w-28")}
+              />
+            </Field>
+            <Field
+              label="Jadwal"
+              optional
+              hint="Jam mulai dan selesai menurut booking. Rekap membandingkannya dengan jam nyata, booth tidak dibatasi."
+            >
+              <input
+                name="scheduled_start"
+                type="time"
+                aria-label="Jadwal mulai"
+                defaultValue={v.scheduled_start}
+                className={input.replace("w-full", "w-32")}
+              />
+              <span className="text-[13px] text-text-2">sampai</span>
+              <input
+                name="scheduled_end"
+                type="time"
+                aria-label="Jadwal selesai"
+                defaultValue={v.scheduled_end}
+                className={input.replace("w-full", "w-32")}
+              />
+            </Field>
+            <Field
               id="tagline"
               label="Teks kecil di layar booth"
               optional
@@ -728,7 +820,7 @@ export function SettingsForm({
             desc="Bingkai yang tercetak di setiap foto. Pilih 1–3 desain berukuran kertas sama; lebih dari satu = tamu memilih sebelum foto. Desain pertama = utama."
           >
             <DesignPicker
-              options={v.designOptions}
+              options={forMode(v.designOptions, mode, (x) => designs.includes(x))}
               value={designs}
               onChange={(d) => {
                 setDesigns(d);
@@ -738,6 +830,9 @@ export function SettingsForm({
               background={background}
               overlayUrl={v.hasOverlay ? `/admin/events/${eventId}/overlay` : undefined}
             />
+            {opsPaper && main && main.paper !== opsPaper && (
+              <OpsPaperWarning ops={opsPaper} paper={main.paper} />
+            )}
             {pb && (
               <p className="rounded-[11px] border-[1.5px] border-dashed border-ink bg-sky px-3.5 py-2.5 text-xs leading-normal md:col-span-2">
                 Mode Photobox menjual layout yang dicentang di bagian{" "}
@@ -794,7 +889,7 @@ export function SettingsForm({
           >
             {(
               [
-                ["all", "Semua booth", "Termasuk booth yang baru dipasangkan nanti."],
+                ["all", "Semua booth", "Termasuk booth yang baru disambungkan nanti."],
                 ["pick", "Pilih booth", "Hanya booth yang dicentang di bawah."],
               ] as const
             ).map(([val, title, hint]) => (
@@ -1076,6 +1171,39 @@ export function SettingsForm({
             </Field>
           </Section>
 
+          {/* Photo Stage (#181): daftar grup dari klien/WO; disembunyikan di photobox tapi tetap di form. */}
+          <Section
+            id="photo-stage"
+            title="Photo Stage"
+            hidden={pb}
+            badge={v.stageGroups.length ? "ok" : "opsional"}
+            desc="Daftar grup foto pelaminan dari klien atau WO. Muncul di laptop stage sebagai pilihan cepat nama rombongan."
+          >
+            <StageGroups
+              initial={v.stageGroups.length ? v.stageGroups : v.opsStageGroups}
+              fromOps={v.stageGroups.length ? 0 : v.opsStageGroups.length}
+              onEdit={() => setDirty(true)}
+            />
+            <Field
+              id="stageGapSec"
+              label="Pisah otomatis bawaan"
+              unit="detik"
+              hint="Rombongan ditutup kalau kamera diam selama ini. Laptop stage yang sudah mengatur sendiri tetap memakai setelannya."
+              def="45 detik"
+            >
+              {num("stageGapSec", 15, 180)}
+            </Field>
+            <Field
+              id="stageTvSec"
+              label="Lama tampil di TV"
+              unit="detik"
+              hint="Rombongan terbaru tampil di TV selama ini setelah jepretan terakhir, lalu TV kembali ke galeri."
+              def="30 detik"
+            >
+              {num("stageTvSec", 10, 120)}
+            </Field>
+          </Section>
+
           {/* Disembunyikan di Mode Event, tapi tetap di form: harga photobox tidak hilang saat simpan. */}
           <Section
             id="photobox"
@@ -1092,11 +1220,14 @@ export function SettingsForm({
                   name: LAYOUT_PRESETS[id].name,
                   info: LAYOUT_PRESETS[id].info,
                 })),
-                ...v.templates.map((t) => ({
-                  id: `tpl-${t.id}`,
-                  name: t.name,
-                  info: `${paperLabel(t.paper as LayoutPaper)} · template`,
-                })),
+                // Template photobox saja (#160), kecuali yang sudah dijual event ini.
+                ...v.templates
+                  .filter((t) => t.mode === "photobox" || sold.has(`tpl-${t.id}`))
+                  .map((t) => ({
+                    id: `tpl-${t.id}`,
+                    name: t.name,
+                    info: `${paperLabel(t.paper as LayoutPaper)} · template`,
+                  })),
               ].map((p) => (
                 <div
                   key={p.id}
@@ -1301,7 +1432,7 @@ export function SettingsForm({
             )}
             <p
               role="status"
-              className={`min-w-0 flex-1 text-[13px] leading-snug ${r && !r.ok ? "font-bold" : "text-text-2"}`}
+              className={`min-w-0 flex-1 text-[13px] leading-snug ${r && !r.ok ? "font-bold" : "text-text-2"} ${r ? "max-sm:order-last max-sm:basis-full" : "max-sm:hidden"}`}
             >
               {r && !r.ok && (
                 <span className="mr-2 rounded-md border-[1.5px] border-ink bg-coral px-1.5 py-px text-[11px] font-extrabold">
@@ -1314,7 +1445,7 @@ export function SettingsForm({
             <button
               type="submit"
               disabled={pending}
-              className="pressable layered h-11 flex-none rounded-xl border-[1.5px] border-ink bg-butter px-8 text-sm font-extrabold [--lb:1.5px] [--lx:4px] disabled:opacity-50"
+              className="pressable layered ml-auto h-11 flex-none rounded-xl border-[1.5px] border-ink bg-butter px-8 text-sm font-extrabold [--lb:1.5px] [--lx:4px] disabled:opacity-50"
             >
               {pending ? "Menyimpan…" : "Simpan"}
             </button>

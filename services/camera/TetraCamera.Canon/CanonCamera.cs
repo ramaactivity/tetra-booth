@@ -74,6 +74,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     public string? Model => _info?.Model;
     public string Serial => _info?.Serial ?? "";
     public byte[]? LatestFrame => _live ? _frame : null;
+    public bool CanFocusAt => Connected;
     public bool Stuck => Environment.TickCount64 - Interlocked.Read(ref _beat) > _stuckAfter.TotalMilliseconds;
 
     private void Loop()
@@ -85,6 +86,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
             Interlocked.Exchange(ref _beat, Environment.TickCount64);
             if (_queue.TryTake(out var work, 5)) work();
             try { if (_driver.IsOpen) _driver.Pump(); } catch { /* event gagal diambil: dicek lagi putaran berikutnya */ }
+            if (_listen is { } listen && _driver.IsOpen) TakeShot(listen);
             var now = DateTime.UtcNow;
             if (!_driver.IsOpen)
             {
@@ -140,6 +142,32 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     }
 
     /// <summary>Jalankan di thread SDK; tidak dijawab dalam <c>commandTimeout</c> = error "kamera tidak menjawab".</summary>
+    /// <summary>Photo Stage (#178): folder tujuan + penerima jepretan rana fotografer; null = mati (booth).</summary>
+    private volatile Tuple<string, Action<CaptureResult>>? _listen;
+    private int _shotSeq;
+
+    public void Listen(string? outputDir, Action<CaptureResult>? onShot) =>
+        _listen = outputDir is null || onShot is null ? null : Tuple.Create(outputDir, onShot);
+
+    /// <summary>Thread SDK: unduh jepretan yang tidak diminta, simpan, laporkan. Gagal = dicatat, loop jalan terus.</summary>
+    private void TakeShot(Tuple<string, Action<CaptureResult>> listen)
+    {
+        try
+        {
+            if (_driver.TakeUnsolicited() is not { } bytes) return;
+            if (JpegInfo.ReadSize(new MemoryStream(bytes)) is not { } dims)
+            {
+                Console.Error.WriteLine("[canon] jepretan stage bukan JPEG (set kualitas ke JPEG), dilewati");
+                return;
+            }
+            Directory.CreateDirectory(listen.Item1);
+            var dst = Path.Combine(listen.Item1, $"shot-{DateTime.Now:yyyyMMdd-HHmmss}-{++_shotSeq:D4}.jpg");
+            File.WriteAllBytes(dst, bytes);
+            listen.Item2(new CaptureResult(dst, dims.Width, dims.Height));
+        }
+        catch (Exception e) { Console.Error.WriteLine($"[canon] jepretan stage gagal diunduh: {e.Message}"); }
+    }
+
     private async Task<T> Run<T>(Func<T> f)
     {
         var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);

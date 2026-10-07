@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./detect": "./src/detect.ts",
+    "./chroma": "./src/chroma.ts",
+    "./chroma-controls": "./src/ChromaControls.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

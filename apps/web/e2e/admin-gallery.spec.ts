@@ -1,7 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { db, hasDb, login, makeUser } from "./admin-helpers";
 
-/** A6/A7: link klien dari admin → galeri /g/{token} (lightbox, favorit, filter) → cabut link. */
+/**
+ * A6/A7: link klien dari admin → galeri /g/<slug event> (#147; lightbox, favorit, filter) → token lama tetap jalan
+ * → cabut link (slug & token mati).
+ */
 test.skip(!hasDb, "butuh Supabase dev (apps/web/.env.local)");
 
 const R2 =
@@ -22,9 +25,10 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
       branding: { tagline: "The Wedding of" },
       client_expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString(),
     })
-    .select("id")
+    .select("id, slug")
     .single();
   const eventId = ev?.id ?? "";
+  expect(ev?.slug).toBe(`e2e-galeri-${tag}-2026-10-12`);
   const device =
     (await db.from("devices").select("id").eq("organization_id", u.org).limit(1).single()).data
       ?.id ?? "";
@@ -59,6 +63,11 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
     const url =
       (await page.getByTestId("link-client").locator("span.truncate").textContent()) ?? "";
     const path = new URL(url).pathname;
+    expect(path).toBe(`/g/${ev?.slug}`);
+    const token =
+      (await db.from("events").select("client_token").eq("id", eventId).single()).data
+        ?.client_token ?? "";
+    expect(token.length).toBeGreaterThan(20);
 
     const guest = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await guest.goto(path);
@@ -66,6 +75,10 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
     await expect(guest.getByTestId("photo-count")).toHaveText("4 foto");
     await expect(guest.getByTestId("gallery-photo")).toHaveCount(2);
     await guest.screenshot({ path: "test-results/gallery-mobile.png", fullPage: true });
+    // Link token lama (sebelum #147) tetap membuka galeri yang sama.
+    await guest.goto(`/g/${token}`);
+    await expect(guest.getByRole("heading", { name: `e2e galeri ${tag}` })).toBeVisible();
+    await guest.goto(path);
     await guest.getByTestId("gallery-photo").first().click();
     await expect(guest.getByRole("dialog")).toContainText("1 / 2");
     await guest.getByRole("button", { name: "♡ Favorit" }).click();
@@ -79,6 +92,12 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
       (await db.from("favorites").select("asset_id").eq("event_id", eventId)).data,
     ).toHaveLength(1);
     await expect(guest.getByRole("link", { name: "↓ Download Semua" })).toBeVisible();
+    // Download satu foto = unduhan file (Content-Disposition attachment), bukan membuka gambar di tab.
+    await guest.getByTestId("gallery-photo").first().click();
+    const dl = guest.waitForEvent("download");
+    await guest.getByRole("button", { name: /Download/ }).click();
+    expect((await dl).suggestedFilename()).toMatch(/^tetra-.+\.jpg$/);
+    await guest.getByRole("button", { name: "Tutup" }).click();
     await guest.getByRole("button", { name: "▶ Putar Slideshow" }).click();
     await expect(guest.getByRole("dialog")).toContainText("1 / 2");
     await expect(guest.getByRole("dialog")).toContainText("2 / 2", { timeout: 6000 });
@@ -91,9 +110,18 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
 
     page.once("dialog", (d) => d.accept());
     await page.getByRole("button", { name: "Cabut", exact: true }).first().click();
-    await expect(page.getByTestId("link-client")).toContainText("Belum ada link");
+    await expect(page.getByTestId("link-client")).toContainText("Link belum aktif");
     await guest.goto(path);
     await expect(guest.getByRole("heading", { name: "Galeri tidak tersedia" })).toBeVisible();
+    await guest.goto(`/g/${token}`);
+    await expect(guest.getByRole("heading", { name: "Galeri tidak tersedia" })).toBeVisible();
+    expect((await guest.request.get(`/api/g/${ev?.slug}/zip?kind=original`)).ok()).toBe(false);
+
+    // Live slideshow: /live/<slug> hanya saat linknya aktif.
+    expect((await guest.request.get(`/api/live/${ev?.slug}`)).status()).toBe(404);
+    await page.getByRole("button", { name: "Buat Link" }).nth(1).click();
+    await expect(page.getByTestId("link-live")).toContainText(`/live/${ev?.slug}`);
+    expect((await guest.request.get(`/api/live/${ev?.slug}`)).status()).toBe(200);
     await guest.close();
   } finally {
     await db.from("audit_logs").delete().eq("target", eventId);

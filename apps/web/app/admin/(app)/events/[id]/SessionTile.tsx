@@ -6,19 +6,25 @@ export function SessionTile({
   eventId,
   id,
   thumb,
+  download,
   time,
   hidden,
+  test,
   status,
 }: {
   eventId: string;
   id: string;
   thumb: string | null;
+  download: string | null;
   time: string;
   hidden: boolean;
+  /** Sesi "Tes dulu" dari booth (#153): tidak dihitung di statistik/galeri. */
+  test: boolean;
   status: string;
 }) {
   const [pending, start] = useTransition();
-  const act = (a: "hide" | "show" | "delete") => () => start(() => moderate(eventId, id, a));
+  const act = (a: "hide" | "show" | "delete" | "untest") => () =>
+    start(() => moderate(eventId, id, a));
   const [copied, setCopied] = useState(false);
   // Bagikan link halaman tamu sesi ini: share sheet di HP, salin ke clipboard di laptop.
   const share = async () => {
@@ -50,9 +56,21 @@ export function SessionTile({
             className={`size-full object-contain ${hidden ? "opacity-30" : ""}`}
           />
         )}
-        {hidden && (
-          <span className="absolute inset-x-2 top-2 rounded-full border-[1.5px] border-ink bg-white px-2 py-0.5 text-center text-[11px] font-bold">
-            Disembunyikan
+        {(hidden || test) && (
+          <span className="absolute inset-x-2 top-2 flex justify-center gap-1">
+            {test && (
+              <span
+                data-testid="session-test"
+                className="rounded-full border-[1.5px] border-ink bg-butter px-2 py-0.5 text-[11px] font-bold"
+              >
+                Tes
+              </span>
+            )}
+            {hidden && (
+              <span className="rounded-full border-[1.5px] border-ink bg-white px-2 py-0.5 text-[11px] font-bold">
+                Disembunyikan
+              </span>
+            )}
           </span>
         )}
       </a>
@@ -60,15 +78,42 @@ export function SessionTile({
         <span>{id}</span>
         <span className="text-text-2">{time}</span>
       </div>
-      <div className="px-2.5 pb-2 text-[11px] font-semibold text-text-2">{status}</div>
-      <button
-        type="button"
-        aria-label={`Bagikan link sesi ${id}`}
-        className="h-9 border-t-[1.5px] border-ink bg-mint-soft px-2 text-xs font-bold"
-        onClick={() => void share()}
-      >
-        {copied ? "Link tersalin" : "Bagikan link"}
-      </button>
+      <div className="px-2.5 pb-2 text-[11px] font-semibold text-text-2">
+        {test ? "Sesi tes crew · tidak dihitung" : status}
+      </div>
+      <div className="flex border-t-[1.5px] border-ink">
+        <button
+          type="button"
+          aria-label={`Bagikan link sesi ${id}`}
+          className="h-9 flex-1 bg-mint-soft px-2 text-xs font-bold"
+          onClick={() => void share()}
+        >
+          {copied ? "Link tersalin" : "Bagikan link"}
+        </button>
+        {download && (
+          <a
+            href={download}
+            download
+            aria-label={`Download foto sesi ${id}`}
+            className="flex h-9 flex-1 items-center justify-center border-l-[1.5px] border-ink bg-sky px-2 text-xs font-bold no-underline"
+          >
+            Download
+          </a>
+        )}
+      </div>
+      {test && (
+        <button
+          type="button"
+          disabled={pending}
+          className="h-9 border-t-[1.5px] border-ink bg-butter px-2 text-[11px] font-bold"
+          onClick={() => {
+            if (confirm("Jadikan sesi asli? Sesi ini ikut dihitung dan tampil di galeri."))
+              act("untest")();
+          }}
+        >
+          Bukan tes, hitung sesi ini
+        </button>
+      )}
       <div className="flex border-t-[1.5px] border-ink text-[11px] font-bold">
         <button
           type="button"

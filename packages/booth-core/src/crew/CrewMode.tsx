@@ -17,6 +17,7 @@ type View = "pin" | "create" | "menu" | "camera" | "change" | "pair" | "start";
 export function CrewMode({
   event,
   bundles,
+  guestBaseUrl,
   onSelectEvent,
   onReloadEvents,
   onClose,
@@ -25,9 +26,12 @@ export function CrewMode({
 }: {
   event: BoothEvent;
   bundles: EventBundle[];
+  /** Base URL halaman tamu (QR di desain saat render ulang sesi lama, #140). */
+  guestBaseUrl: string;
   onSelectEvent: (id: string) => void;
   onReloadEvents: () => Promise<void>;
-  onClose: () => void;
+  /** `test` = crew memilih Tes dulu (#153); kosong = mode tamu tidak berubah. */
+  onClose: (mode?: "live" | "test") => void;
   /** Dibuka dari tombol Dashboard Admin di layar awal: setelah PIN benar, langsung buka browser. */
   openAdmin?: boolean;
   /** Ctrl+Shift+Q: setelah PIN langsung konfirmasi Tutup Aplikasi. */
@@ -47,9 +51,9 @@ export function CrewMode({
       .catch(() => setView("pin"));
   }, [crew]);
 
-  const close = () => {
+  const close = (mode?: "live" | "test") => {
     void crew.lock();
-    onClose();
+    onClose(mode);
   };
 
   switch (view) {
@@ -66,11 +70,18 @@ export function CrewMode({
             if (openAdmin && view === "pin") void crew.openAdmin().catch(() => {});
             setView("menu");
           }}
-          onCancel={view === "change" ? () => setView("menu") : close}
+          onCancel={view === "change" ? () => setView("menu") : () => close()}
         />
       );
     case "pair":
-      return <PairPad onDone={() => setView("menu")} onCancel={() => setView("menu")} />;
+      return (
+        <PairPad
+          guestBaseUrl={guestBaseUrl}
+          onDone={() => setView("menu")}
+          onNext={() => setView("start")}
+          onCancel={() => setView("menu")}
+        />
+      );
     case "camera":
       return (
         <CameraCheck
@@ -105,6 +116,7 @@ export function CrewMode({
         <>
           <CrewMenu
             event={event}
+            guestBaseUrl={guestBaseUrl}
             startExit={openExit}
             onChangeEvent={() => setView("start")}
             onEditDesign={(id) =>

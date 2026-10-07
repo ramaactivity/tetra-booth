@@ -8,7 +8,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * (= id kita), lalu status dicek ulang ke API Midtrans (isi notifikasi tidak dipercaya). Idempotent.
  */
 export async function POST(req: Request) {
-  const key = process.env.MIDTRANS_SERVER_KEY;
+  // Midtrans memisahkan Signature Secret Key dari Server Key (Okt 2026); nilainya sama sampai Server Key baru dibuat.
+  const key = process.env.MIDTRANS_SIGNATURE_KEY || process.env.MIDTRANS_SERVER_KEY;
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!key || !body || !midtransSignatureOk(body, key))
     return new Response("unauthorized", { status: 401 });

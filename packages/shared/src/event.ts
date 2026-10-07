@@ -23,6 +23,12 @@ export const EventSettingsSchema = z.object({
   filters: z.array(z.enum(PHOTO_FILTER_IDS)).max(5).default([]),
   promptsBefore: z.array(z.string().min(1).max(40)).max(10).default([]),
   promptsAfter: z.array(z.string().min(1).max(40)).max(10).default([]),
+  /** Photo Stage (#181): daftar grup foto dari klien/WO (urutan foto pelaminan), pilihan cepat di laptop stage. */
+  stageGroups: z.array(z.string().min(1).max(120)).max(300).default([]),
+  /** Photo Stage (#192): pisah otomatis bawaan (dtk) untuk laptop stage yang belum pernah mengaturnya. */
+  stageGapSec: z.number().int().min(15).max(180).default(45),
+  /** Photo Stage (#192): lama rombongan tampil di TV setelah jepretan terakhir (dtk). */
+  stageTvSec: z.number().int().min(10).max(120).default(30),
 });
 export type EventSettings = z.infer<typeof EventSettingsSchema>;
 export const DEFAULT_SETTINGS: EventSettings = EventSettingsSchema.parse({});
@@ -95,6 +101,19 @@ export const PhotoboxSchema = z.object({
 });
 export type Photobox = z.infer<typeof PhotoboxSchema>;
 
+const Hhmm = z.string().regex(/^\d{2}:\d{2}$/);
+export const EventInfoSchema = z.object({
+  scheduledStart: Hhmm.optional(),
+  scheduledEnd: Hhmm.optional(),
+  packageName: z.string().max(80).optional(),
+  packageHours: z.number().positive().max(48).optional(),
+  slug: z
+    .string()
+    .regex(/^[\w-]{1,80}$/)
+    .optional(),
+});
+export type EventInfo = z.infer<typeof EventInfoSchema>;
+
 /**
  * Bundle event lokal: `events/{id}/bundle/config.json` + file aset di folder yang sama (TSD §3, §4.1).
  * Fase 1: disalin manual; Fase 2: diunduh dari cloud dengan format yang sama.
@@ -119,6 +138,8 @@ export const EventBundleSchema = z
     /** Per suara (#104): "off" = dimatikan, selain itu assetId file pengganti; tidak ada = suara bawaan booth. */
     sounds: z.partialRecord(z.enum(SOUND_CUES), z.string().min(1).max(64)).optional(),
     settings: EventSettingsSchema.default(DEFAULT_SETTINGS),
+    /** Info rekap booth (#154), diisi server saat bundle diunduh: jadwal, paket, slug link galeri. */
+    info: EventInfoSchema.optional(),
     assets: z.record(z.string().min(1).max(64), AssetFile).default({}),
   })
   .superRefine((b, ctx) => {

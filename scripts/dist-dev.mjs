@@ -6,7 +6,15 @@
 
 import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 const need = (k) =>
@@ -114,12 +122,18 @@ if (!process.argv.includes("--tools")) {
     "application/vnd.microsoft.portable-executable",
   );
   await put(`dev-builds/${setup}`, exe, "application/vnd.microsoft.portable-executable");
+  // Blockmap electron-builder untuk update diferensial (DECISIONS #139). Tidak ada di artifact = booth unduh penuh.
+  const blockmap = `dist/installer/${setup}.blockmap`;
+  const blockmapKey = existsSync(blockmap) ? `dev-builds/${setup}.blockmap` : undefined;
+  if (blockmapKey) await put(blockmapKey, readFileSync(blockmap), "application/gzip");
+  else console.log("  (blockmap tidak ada di artifact CI: booth akan mengunduh penuh)");
   // Dibaca /api/booth/update (tombol Update di mode crew) & /download/booth (DECISIONS #80). Ditulis terakhir.
   const release = {
     version: pkg.version,
     key: `dev-builds/${setup}`,
     sha256: createHash("sha256").update(exe).digest("hex"),
     size: exe.byteLength,
+    blockmapKey,
   };
   await put("dev-builds/latest.json", JSON.stringify(release, null, 2), "application/json");
   console.log(`  OK: ${media}/dev-builds/tetra-booth-dev.zip`);

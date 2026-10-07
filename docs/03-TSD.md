@@ -59,14 +59,14 @@ Pesan JSON teks: `{ "id": "uuid", "type": "...", "payload": {...} }`. Balasan me
 **Live view:** frame biner di WebSocket yang sama. Format: byte 0 = `0x01`, sisanya JPEG. Renderer menggambar ke `<canvas>` (mirror via transform). Target ≥ 20 fps.
 
 ### 2.1 Canon (EDSDK)
-- Pakai wrapper C# untuk EDSDK (pelajari pola dari source digiCamControl). Semua panggilan EDSDK dijalankan di satu thread khusus dengan antrean perintah (EDSDK tidak thread-safe).
+- Pakai wrapper C# untuk EDSDK. Semua panggilan EDSDK dijalankan di satu thread khusus dengan antrean perintah (EDSDK tidak thread-safe).
 - Simpan hasil ke host (`SaveTo_Host`), unduh langsung ke `outputDir`.
 - Saat connect: matikan auto power off kamera, set kualitas JPEG Large Fine.
 - Disconnect → loop reconnect tiap 2 detik, emit `camera.disconnected` / `camera.connected`.
 - File DLL EDSDK tidak di-commit ke git (lisensi Canon); disimpan di lokasi build privat.
 
 ### 2.2 Sony (Fase 5)
-- Sony Camera Remote SDK. Cek daftar model yang didukung di dokumentasi SDK versi terbaru sebelum mulai; a7III perlu mode "PC Remote".
+- ~~Sony Camera Remote SDK~~ → **Sony Camera Remote Command** (protokol PTP vendor, DECISIONS #169): SDK tidak mendukung A7 II/A7 III. Proyek `TetraCamera.Sony`: satu adapter `SonyCamera`, profil v2 (PTP 2, bodi < 2020) / v3 (PTP 3) dipilih dari model `GetDeviceInfo` (v3 ditolak → v2). Transport `IPtpTransport`: `WpdTransport` (driver MTP bawaan Windows, perintah MTP extension; cadangan WIA Escape kalau W-037 gagal), `FakeSonyTransport` untuk Mac/CI. Kamera harus mode USB "PC Remote". Rencana & identifier: `docs/PLAN-SONY.md`.
 
 ### 2.3 Fallback hot-folder
 - `FileSystemWatcher` di folder yang dikonfigurasi. File JPEG baru → dianggap hasil `capture` berikutnya. Dipakai jika SDK bermasalah (mis. EOS Utility yang menulis ke folder).

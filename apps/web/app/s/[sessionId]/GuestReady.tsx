@@ -8,7 +8,7 @@ import { track } from "./track";
 const t = copy.guest;
 
 /** Simpan lewat share sheet (masuk galeri HP); fallback unduh; tanpa CORS → buka gambarnya di tab baru. */
-async function save(assets: GuestAsset[], sessionId: string) {
+export async function save(assets: GuestAsset[], sessionId: string) {
   let files: File[];
   try {
     files = await Promise.all(
@@ -24,7 +24,15 @@ async function save(assets: GuestAsset[], sessionId: string) {
       }),
     );
   } catch {
-    window.open(assets[0]?.url, "_blank");
+    // Tanpa CORS: unduh langsung lewat URL attachment (bukan membuka gambar di tab baru).
+    for (const a of assets) {
+      const link = document.createElement("a");
+      link.href = a.download;
+      link.rel = "noopener";
+      document.body.append(link);
+      link.click();
+      link.remove();
+    }
     return;
   }
   if (navigator.canShare?.({ files })) {
@@ -44,12 +52,17 @@ export function GuestReady({
   sessionId,
   assets,
   expiresAt,
+  stage = false,
 }: {
   sessionId: string;
   assets: GuestAsset[];
   expiresAt: string | null;
+  /** Photo Stage (#180): foto fotografer tanpa strip; langsung tab Original, simpan semua jadi aksi utama. */
+  stage?: boolean;
 }) {
-  const [tab, setTab] = useState<"strip" | "original" | "animation" | "video">("strip");
+  const [tab, setTab] = useState<"strip" | "original" | "animation" | "video">(
+    stage ? "original" : "strip",
+  );
   const [busy, setBusy] = useState(false);
   // Penampil layar penuh: set foto yang dibuka + posisi.
   const [view, setView] = useState<{ list: GuestAsset[]; i: number } | null>(null);
@@ -74,51 +87,53 @@ export function GuestReady({
 
   return (
     <>
-      <div
-        className="mx-5 flex overflow-hidden rounded-xl border-[1.5px] border-ink bg-white"
-        role="tablist"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "strip"}
-          className={tabClass(tab === "strip")}
-          onClick={() => setTab("strip")}
+      {!stage && (
+        <div
+          className="mx-5 flex overflow-hidden rounded-xl border-[1.5px] border-ink bg-white"
+          role="tablist"
         >
-          {t.strip}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "original"}
-          className={`${tabClass(tab === "original")} border-l-[1.5px] border-ink`}
-          onClick={() => setTab("original")}
-        >
-          {t.original}
-        </button>
-        {gif && (
           <button
             type="button"
             role="tab"
-            aria-selected={tab === "animation"}
-            className={`${tabClass(tab === "animation")} border-l-[1.5px] border-ink`}
-            onClick={() => setTab("animation")}
+            aria-selected={tab === "strip"}
+            className={tabClass(tab === "strip")}
+            onClick={() => setTab("strip")}
           >
-            {t.animation}
+            {t.strip}
           </button>
-        )}
-        {video && (
           <button
             type="button"
             role="tab"
-            aria-selected={tab === "video"}
-            className={`${tabClass(tab === "video")} border-l-[1.5px] border-ink`}
-            onClick={() => setTab("video")}
+            aria-selected={tab === "original"}
+            className={`${tabClass(tab === "original")} border-l-[1.5px] border-ink`}
+            onClick={() => setTab("original")}
           >
-            {t.video}
+            {t.original}
           </button>
-        )}
-      </div>
+          {gif && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "animation"}
+              className={`${tabClass(tab === "animation")} border-l-[1.5px] border-ink`}
+              onClick={() => setTab("animation")}
+            >
+              {t.animation}
+            </button>
+          )}
+          {video && (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "video"}
+              className={`${tabClass(tab === "video")} border-l-[1.5px] border-ink`}
+              onClick={() => setTab("video")}
+            >
+              {t.video}
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col items-center px-5 pt-5 pb-6">
         {tab === "strip" && strip && (
@@ -185,27 +200,33 @@ export function GuestReady({
       </div>
 
       <footer className="sticky bottom-0 flex flex-col gap-2.5 border-t-[1.5px] border-dashed border-ink bg-paper px-5 pt-3.5 pb-6">
-        <button
-          type="button"
-          disabled={busy || !main}
-          onClick={run(main ? [main] : [])}
-          className="pressable layered h-[52px] rounded-[14px] border-[1.5px] border-ink bg-butter px-4 text-base font-extrabold [--lb:1.5px] [--lx:4px] disabled:opacity-40"
-        >
-          {busy
-            ? t.saving
-            : tab === "animation"
-              ? t.saveGif
-              : tab === "video"
-                ? t.saveVideo
-                : t.saveStrip}
-        </button>
+        {!stage && (
+          <button
+            type="button"
+            disabled={busy || !main}
+            onClick={run(main ? [main] : [])}
+            className="pressable layered h-[52px] rounded-[14px] border-[1.5px] border-ink bg-butter px-4 text-base font-extrabold [--lb:1.5px] [--lx:4px] disabled:opacity-40"
+          >
+            {busy
+              ? t.saving
+              : tab === "animation"
+                ? t.saveGif
+                : tab === "video"
+                  ? t.saveVideo
+                  : t.saveStrip}
+          </button>
+        )}
         <button
           type="button"
           disabled={busy || !originals.length}
           onClick={run(originals, true)}
-          className="pressable h-12 rounded-[14px] border-[1.5px] border-ink bg-white px-4 text-[15px] font-bold disabled:opacity-40"
+          className={
+            stage
+              ? "pressable layered h-[52px] rounded-[14px] border-[1.5px] border-ink bg-butter px-4 text-base font-extrabold [--lb:1.5px] [--lx:4px] disabled:opacity-40"
+              : "pressable h-12 rounded-[14px] border-[1.5px] border-ink bg-white px-4 text-[15px] font-bold disabled:opacity-40"
+          }
         >
-          {t.saveAll}
+          {stage ? t.saveAllStage : t.saveAll}
         </button>
         <div className="flex justify-between gap-3 text-xs text-text-2">
           {expiresAt ? (

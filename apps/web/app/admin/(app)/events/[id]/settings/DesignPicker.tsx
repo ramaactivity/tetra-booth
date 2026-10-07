@@ -1,6 +1,6 @@
 "use client";
 import { type LayoutPaper, type LayoutSpec, paperLabel } from "@tetra/shared";
-import { ArrowLeft, Plus, Search, X } from "lucide-react";
+import { ArrowLeft, Check, Plus, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { DesignPreview, type PreviewTemplate, type PreviewVars } from "./DesignPreview";
@@ -15,13 +15,21 @@ export type DesignOption = {
   layout: LayoutSpec;
   /** Template editor: versi terbaru + versi yang dikunci event (null = belum dipakai) + file aset. */
   template?: PreviewTemplate & { pinned: number | null };
+  /** Bentuk dasar di luar preset event (wizard): hanya bisa dipakai lewat "Salin & sesuaikan". */
+  copyOnly?: boolean;
+  /** Template editor: untuk mode Event atau Photobox (layouts.mode, #160); preset = semua mode. */
+  mode?: "event" | "photobox";
 };
+
+/** Pilihan untuk satu mode event: preset + template mode itu, plus yang sudah terpasang (`keep`) walau beda mode. */
+export const forMode = (options: DesignOption[], mode: string, keep: (v: string) => boolean) =>
+  options.filter((o) => !o.mode || o.mode === mode || keep(o.value));
 
 export const MAX_DESIGNS = 3;
 const PAGE = 12;
 
 const pill =
-  "inline-flex h-8 items-center rounded-full border-[1.5px] border-ink bg-white px-3 text-xs font-bold no-underline hover:bg-butter";
+  "inline-flex h-11 items-center rounded-full border-[1.5px] border-ink bg-white px-3.5 text-xs font-bold no-underline hover:bg-butter";
 
 /** Layout untuk pratinjau: preset memakai warna latar event (seperti bundle). */
 const layoutOf = (o: DesignOption, background: string): LayoutSpec =>
@@ -39,6 +47,8 @@ export function DesignPicker({
   vars,
   background,
   overlayUrl,
+  copy,
+  paper: fixedPaper,
 }: {
   options: DesignOption[];
   value: string[];
@@ -47,11 +57,18 @@ export function DesignPicker({
   background: string;
   /** Overlay PNG event; dipakai di pratinjau desain utama kalau preset. */
   overlayUrl?: string | undefined;
+  /**
+   * Wizard: "Salin & sesuaikan" menandai satu desain (disalin saat event dibuat) alih-alih submit form.
+   * Tanpa prop ini = perilaku Pengaturan (tombol submit `copy`).
+   */
+  copy?: { value: string | null; onChange: (v: string | null) => void };
+  /** Wizard: kertas sudah dipilih lebih dulu, pemilih hanya menampilkan ukuran ini. */
+  paper?: LayoutPaper;
 }) {
   const [open, setOpen] = useState(false);
   const byValue = new Map(options.map((o) => [o.value, o]));
   const picked = value.flatMap((v) => byValue.get(v) ?? []);
-  const paper = picked[0]?.paper;
+  const paper = picked[0]?.paper ?? fixedPaper;
   return (
     <div className="flex flex-col gap-4 md:col-span-2">
       {value.map((v) => (
@@ -117,7 +134,7 @@ export function DesignPicker({
                       Jadikan utama
                     </button>
                   )}
-                  {t && (
+                  {t && !copy && (
                     <Link
                       href={`/admin/templates/${t.id}`}
                       aria-label={`Edit desain ${o.name}`}
@@ -126,16 +143,37 @@ export function DesignPicker({
                       Edit desain
                     </Link>
                   )}
-                  <button
-                    type="submit"
-                    name="copy"
-                    value={o.value}
-                    aria-label={`Salin & sesuaikan ${o.name}`}
-                    title="Buat salinan khusus event ini, pakai untuk event, lalu buka editornya"
-                    className={pill}
-                  >
-                    Salin & sesuaikan
-                  </button>
+                  {copy ? (
+                    <button
+                      type="button"
+                      aria-pressed={copy.value === o.value}
+                      aria-label={`Salin & sesuaikan ${o.name}`}
+                      title="Buat salinan khusus event ini saat event dibuat, lalu sesuaikan di editor"
+                      disabled={o.copyOnly}
+                      onClick={() => copy.onChange(copy.value === o.value ? null : o.value)}
+                      className={`${pill} aria-pressed:bg-mint disabled:cursor-default`}
+                    >
+                      {copy.value === o.value ? (
+                        <>
+                          <Check aria-hidden className="mr-1 size-4" strokeWidth={2} />
+                          Akan disalin
+                        </>
+                      ) : (
+                        "Salin & sesuaikan"
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      name="copy"
+                      value={o.value}
+                      aria-label={`Salin & sesuaikan ${o.name}`}
+                      title="Buat salinan khusus event ini, pakai untuk event, lalu buka editornya"
+                      className={pill}
+                    >
+                      Salin & sesuaikan
+                    </button>
+                  )}
                   <button
                     type="button"
                     aria-label={`Lepas ${o.name}`}
@@ -156,7 +194,7 @@ export function DesignPicker({
             className="flex min-h-[300px] flex-col items-center justify-center gap-3 rounded-2xl border-[1.5px] border-dashed border-ink bg-white p-6 text-center hover:bg-mint-soft"
           >
             <span className="flex size-11 items-center justify-center rounded-full border-[1.5px] border-ink bg-butter">
-              <Plus className="size-5" strokeWidth={2.5} />
+              <Plus className="size-5" strokeWidth={2} />
             </span>
             <span className="text-sm font-extrabold">Tambah desain</span>
             <span className="max-w-[200px] text-xs leading-snug text-text-2">

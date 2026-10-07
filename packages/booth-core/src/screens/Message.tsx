@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { copy } from "../copy";
+import { CrewHotspot, useCrewKeys } from "../crew/CrewEntry";
 import { Done } from "../ui";
 
 /** Kartu tenang berlapis di tengah layar dengan spinner (A10). */
@@ -25,8 +26,21 @@ export function Message({ children }: { children: ReactNode }) {
   );
 }
 
-/** Kamera bermasalah, sambung ulang otomatis (A10). Tanpa kode error. */
-export function CameraError({ attempt }: { attempt: number }) {
+/** Setelah sekian percobaan, nomor percobaan tidak ditampilkan lagi (angka ratusan hanya membuat tamu cemas). */
+export const SHOW_ATTEMPTS = 10;
+
+/**
+ * Kamera bermasalah, sambung ulang otomatis (A10). Tanpa kode error. Crew selalu bisa masuk dari sini (#170):
+ * ketuk pojok kanan atas 5× atau Ctrl+Shift+M, sama seperti layar awal.
+ */
+export function CameraError({
+  attempt,
+  onCrew,
+}: {
+  attempt: number;
+  onCrew?: ((intent?: "exit") => void) | undefined;
+}) {
+  useCrewKeys(onCrew);
   return (
     <main className="relative flex h-full w-full items-center justify-center overflow-hidden bg-paper">
       <div className="absolute -top-[180px] -left-[180px] size-[640px] rounded-full bg-sky" />
@@ -34,16 +48,22 @@ export function CameraError({ attempt }: { attempt: number }) {
         <h1 className={title}>{copy.camera.preparing}</h1>
         <p className="text-[28px] font-medium text-text-2">
           {copy.camera.retrying}{" "}
-          {attempt > 0 && <span className="font-mono">{copy.camera.attempt(attempt)}</span>}
+          {attempt > 0 && attempt <= SHOW_ATTEMPTS && (
+            <span className="font-mono">{copy.camera.attempt(attempt)}</span>
+          )}
         </p>
         <p className="flex items-center gap-4 rounded-[20px] border-2 border-dashed border-ink bg-mint-soft px-7 py-[18px] text-[28px] font-bold">
           <Done size={40} />
           {copy.camera.safe}
         </p>
       </Card>
-      <p className="absolute right-[72px] bottom-[52px] text-[22px] font-semibold text-text-2">
+      <p
+        data-testid="camera-help"
+        className={`absolute right-[72px] bottom-[52px] font-semibold ${attempt > SHOW_ATTEMPTS ? "rounded-full border-2 border-ink bg-butter px-6 py-2 text-[28px] text-ink" : "text-[22px] text-text-2"}`}
+      >
         {copy.camera.help}
       </p>
+      <CrewHotspot onCrew={onCrew} />
     </main>
   );
 }

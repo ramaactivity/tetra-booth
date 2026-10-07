@@ -9,7 +9,7 @@ namespace TetraCamera.Host;
 /// Menerima pesan teks JSON `{ id, type, payload }`, membalas dengan `id` yang sama. TSD §2.
 /// Skema: packages/shared/src/camera-protocol.ts. Perintah kamera ditambah bersama sumber kamera simulasi (M1).
 /// </summary>
-public sealed class Dispatcher(IPrinterAdapter printer, ICameraSource? camera = null)
+public sealed class Dispatcher(IPrinterAdapter printer, ICameraSource? camera = null, Action<string>? publish = null)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private readonly DateTime _startedAt = DateTime.UtcNow;
@@ -58,6 +58,7 @@ public sealed class Dispatcher(IPrinterAdapter printer, ICameraSource? camera = 
                     model = camera?.Model,
                     battery = (int?)null,
                     shotsRemaining = (int?)null,
+                    tapFocus = camera?.CanFocusAt == true,
                 }),
                 "liveview.start" => await LiveView(id, type, true),
                 "liveview.stop" => await LiveView(id, type, false),
@@ -72,6 +73,7 @@ public sealed class Dispatcher(IPrinterAdapter printer, ICameraSource? camera = 
                     ok = camera is not null && await camera.FocusAsync(RequiredString(payload, "step")),
                 }),
                 "capture" => await Capture(id, type, payload, ct),
+                "capture.listen" => Listen(id, type, payload),
                 "print.submit" => await PrintSubmit(id, type, payload, ct),
                 "print.status" => await PrintStatus(id, type, payload, ct),
                 _ => Error(id, "unknown_type", $"perintah '{type}' belum didukung"),
@@ -95,6 +97,19 @@ public sealed class Dispatcher(IPrinterAdapter printer, ICameraSource? camera = 
         var r = await camera.CaptureAsync(outputDir, index, ct);
         return Reply(id, type, new { path = r.Path, width = r.Width, height = r.Height });
     }
+
+    /// <summary>Photo Stage (#178): `outputDir` absolut = mulai, null = berhenti. Jepretan → event `capture.shot`.</summary>
+    private string Listen(string id, string type, JsonNode? p)
+    {
+        if (camera is null) throw new CameraFailure("no_camera", "tidak ada kamera");
+        var dir = p?["outputDir"]?.GetValueKind() == JsonValueKind.String ? p["outputDir"]!.GetValue<string>() : null;
+        if (dir is not null && !Path.IsPathFullyQualified(dir)) throw new BadPayload("outputDir harus path absolut");
+        camera.Listen(dir, dir is null ? null : r => publish?.Invoke(ShotEvent(r)));
+        return Reply(id, type, new { ok = true });
+    }
+
+    public static string ShotEvent(CaptureResult r) =>
+        Event("capture.shot", new { path = r.Path, width = r.Width, height = r.Height });
 
     private async Task<string> SetProp(string id, string type, JsonNode? p)
     {

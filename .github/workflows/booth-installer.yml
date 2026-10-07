@@ -28,6 +28,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: booth-installer
-          path: apps/booth/release/Tetra-Booth-Setup-*.exe
+          # Blockmap = update diferensial (DECISIONS #139); satu folder, jadi artifact tetap datar.
+          path: |
+            apps/booth/release/Tetra-Booth-Setup-*.exe
+            apps/booth/release/Tetra-Booth-Setup-*.exe.blockmap
           if-no-files-found: error
           retention-days: 14

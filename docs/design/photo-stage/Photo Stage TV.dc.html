@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#F8F7F4;font-family:'Plus Jakarta Sans',sans-serif;color:#1D1D1B;-webkit-font-smoothing:antialiased}a{color:#1D1D1B}a:hover{color:#5F5E5A}*{box-sizing:border-box}@keyframes tvMarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:18px;font-family:'Plus Jakarta Sans',sans-serif;color:#1D1D1B">
+<sc-if value="{{ demo }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:2px dashed #8A8883;border-radius:16px;padding:12px 16px;background:#FFFFFF;max-width:1920px">
+<span style="font-family:'Geist Mono',monospace;font-size:14px;color:#5F5E5A;margin-right:6px">SIMULASI</span>
+<button onClick="{{ incoming }}" style="height:44px;padding:0 16px;border:2px solid #1D1D1B;border-radius:12px;background:#F8D98B;font:700 16px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">Rombongan baru masuk</button>
+<button onClick="{{ toIdle }}" style="height:44px;padding:0 16px;border:2px solid #1D1D1B;border-radius:12px;background:#FFFFFF;font:700 16px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">Kembali ke galeri</button>
+<span style="font-size:15px;font-weight:700;margin-left:10px">Foto</span>
+<sc-for list="{{ countOpts }}" as="c" hint-placeholder-count="5"><button onClick="{{ c.onPick }}" style="width:44px;height:44px;border:2px solid #1D1D1B;border-radius:12px;background:{{ c.bg }};font:700 16px 'Geist Mono',monospace;color:#1D1D1B;cursor:pointer">{{ c.n }}</button></sc-for>
+<button onClick="{{ toggleMotion }}" style="height:44px;padding:0 16px;border:2px solid #1D1D1B;border-radius:12px;background:{{ motionBg }};font:700 16px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;margin-left:10px">{{ motionLabel }}</button>
+<span style="flex:1"></span>
+<span style="font-family:'Geist Mono',monospace;font-size:15px;color:#5F5E5A">{{ demoStatus }}</span>
+</div>
+</sc-if>
+
+<div data-screen-label="{{ screenLabel }}" style="width:1920px;height:1080px;background:#F8F7F4;position:relative;overflow:hidden">
+
+<div style="position:absolute;inset:0;opacity:{{ idleOpacity }};transition:{{ fade }}">
+<div style="position:absolute;left:96px;top:84px;display:flex;flex-direction:column;gap:18px">
+<span style="align-self:flex-start;font-size:24px;font-weight:700;border:2.5px solid #1D1D1B;border-radius:999px;padding:8px 22px;background:#CEC8F6;white-space:nowrap">The Wedding of</span>
+<span style="font-size:150px;font-weight:800;letter-spacing:-.055em;line-height:.9">Rina &amp; Dimas</span>
+<span style="font-family:'Geist Mono',monospace;font-size:26px;color:#3A3936">12.12.2026</span>
+</div>
+<div style="position:absolute;right:96px;top:84px;display:flex;align-items:center;gap:24px;background:#D6EEF8;border:2.5px solid #1D1D1B;border-radius:28px;padding:18px 30px 18px 18px">
+<div style="background:#FFFFFF;border:2px solid #1D1D1B;border-radius:16px;padding:10px"><img src="{{ qrEvent }}" style="width:150px;height:150px;display:block"></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1">Belum dapat<br>fotomu?</span><span style="font-size:22px;font-weight:600;color:#3A3936">Cari di sini</span></div>
+</div>
+<div style="position:absolute;left:0;right:0;bottom:84px;height:520px;overflow:hidden">
+<div style="display:flex;gap:44px;width:max-content;padding:16px 0 0 96px;animation:{{ marquee }}">
+<sc-for list="{{ reel }}" as="p" hint-placeholder-count="8">
+<div style="background:#FFFFFF;border:3px solid #1D1D1B;border-radius:20px;padding:14px 14px 0;transform:rotate({{ p.rot }}deg);box-shadow:10px 10px 0 -3px #F8F7F4,10px 10px 0 0 #1D1D1B;flex:none"><img src="{{ p.src }}" style="width:600px;height:400px;object-fit:cover;border-radius:8px;display:block"><div style="height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 4px"><span style="font-size:22px;font-weight:700">{{ p.name }}</span><span style="font-family:'Geist Mono',monospace;font-size:18px;color:#5F5E5A">{{ p.time }}</span></div></div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div style="position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,1fr) 560px;opacity:{{ actOpacity }};transform:translateY({{ actShift }}px);transition:{{ fade }};pointer-events:{{ actPointer }}">
+<div style="padding:72px 0 64px 88px;display:flex;flex-direction:column;gap:40px;min-width:0;opacity:{{ swapOpacity }};transition:{{ fade }}">
+<div style="display:flex;flex-direction:column;gap:14px;padding-right:48px"><span style="font-family:'Geist Mono',monospace;font-size:28px;color:#3A3936">Rombongan #{{ cur.no }} · {{ cur.time }}</span><span style="font-size:{{ nameSize }}px;font-weight:800;letter-spacing:-.05em;line-height:.95;text-wrap:balance">{{ cur.name }}</span></div>
+<div style="flex:1;min-height:0;display:flex;align-items:center">
+<div style="position:relative;width:{{ lay.w }}px;height:{{ lay.h }}px;flex:none">
+<sc-for list="{{ lay.items }}" as="p" hint-placeholder-count="3">
+<div style="position:absolute;left:{{ p.x }}px;top:{{ p.y }}px;background:#FFFFFF;border:3px solid #1D1D1B;border-radius:20px;padding:14px;transform:rotate({{ p.rot }}deg);box-shadow:10px 10px 0 -3px #F8F7F4,10px 10px 0 0 #1D1D1B"><img src="{{ p.src }}" style="width:{{ p.w }}px;height:{{ p.h }}px;object-fit:cover;border-radius:8px;display:block"></div>
+</sc-for>
+</div>
+</div>
+</div>
+<div style="background:#FFFFFF;border-left:3px solid #1D1D1B;padding:64px 64px 48px;display:flex;flex-direction:column;gap:22px">
+<div style="background:#FFFFFF;border:3px solid #1D1D1B;border-radius:36px;padding:28px;box-shadow:14px 14px 0 -3px #F8D98B,14px 14px 0 0 #1D1D1B"><img src="{{ cur.qr }}" style="width:100%;display:block"></div>
+<div style="font-size:52px;font-weight:800;letter-spacing:-.035em;line-height:1">Scan untuk ambil fotomu</div>
+<div style="height:8px;border:2px solid #1D1D1B;border-radius:999px;overflow:hidden;background:#FFFFFF"><div style="height:100%;width:{{ remainPct }}%;background:#8EDCCB;transition:{{ barTr }}"></div></div>
+<div style="flex:1"></div>
+<span style="font-size:22px;font-weight:700;color:#3A3936">Rombongan sebelumnya</span>
+<sc-for list="{{ prev }}" as="r" hint-placeholder-count="2">
+<div style="display:flex;align-items:center;gap:20px;border-top:2.5px dashed #1D1D1B;padding-top:18px">
+<div style="border:2px solid #1D1D1B;border-radius:12px;padding:6px;background:#FFFFFF;flex:none"><img src="{{ r.qr }}" style="width:88px;height:88px;display:block"></div>
+<div style="display:flex;flex-direction:column;gap:4px;min-width:0"><span style="font-family:'Geist Mono',monospace;font-size:20px;color:#5F5E5A">#{{ r.no }}</span><span style="font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.15">{{ r.name }}</span></div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1920,&quot;height&quot;:1150},&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;aktif&quot;,&quot;idle&quot;,&quot;demo&quot;],&quot;default&quot;:&quot;aktif&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;fotoCount&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:3,&quot;min&quot;:1,&quot;max&quot;:5,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;},&quot;reduceMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.groups = [
+      { no: 47, name: 'Keluarga Besar Bpk. Hadi', time: '19.42', photos: ['foto/stage/a3.png', 'foto/stage/a1.png', 'foto/stage/a2.png', 'foto/stage/b1.png', 'foto/stage/c1.png'] },
+      { no: 48, name: 'Teman Kantor PT ABC', time: '19.45', photos: ['foto/stage/a1.png', 'foto/stage/a2.png', 'foto/stage/b2.png', 'foto/stage/c2.png', 'foto/stage/a3.png'] },
+      { no: 49, name: 'Sahabat SMA Mempelai Wanita', time: '19.48', photos: ['foto/stage/b2.png', 'foto/stage/b1.png', 'foto/stage/a1.png', 'foto/stage/c1.png', 'foto/stage/a2.png'] },
+      { no: 50, name: 'Tamu · 19.51', time: '19.51', photos: ['foto/stage/c1.png', 'foto/stage/c2.png', 'foto/stage/b1.png', 'foto/stage/a3.png', 'foto/stage/b2.png'] }
+    ];
+    this.history = [{ no: 46, name: 'Keluarga Mempelai Pria (Bekasi)' }, { no: 45, name: 'Tamu · 19.37' }];
+    this.state = { mode: props.mode === 'idle' ? 'idle' : 'aktif', gi: 0, prevList: this.history, count: props.fotoCount ?? 3, reduce: false, remain: 30, swap: false };
+  }
+  componentDidMount() {
+    if (this.props.mode !== 'demo') return;
+    this.t = setInterval(() => {
+      if (this.state.mode !== 'aktif') return;
+      const r = this.state.remain - 1;
+      if (r <= 0) this.setState({ mode: 'idle', remain: 30 }); else this.setState({ remain: r });
+    }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this.t); clearTimeout(this.sw); }
+  incoming() {
+    const st = this.state;
+    const gi = (st.gi + 1) % this.groups.length;
+    const prevGroup = this.groups[st.gi];
+    const prevList = [{ no: prevGroup.no, name: prevGroup.name }].concat(st.prevList).slice(0, 2);
+    if (st.mode === 'aktif' && !st.reduce) {
+      this.setState({ swap: true });
+      clearTimeout(this.sw);
+      this.sw = setTimeout(() => this.setState({ gi, prevList, remain: 30, swap: false, count: 1 + Math.floor(Math.random() * 5) }), 160);
+    } else this.setState({ mode: 'aktif', gi, prevList, remain: 30, swap: false, count: 1 + Math.floor(Math.random() * 5) });
+  }
+  qr(seed) {
+    let s = seed; const r = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+    const n = 29; let d = '';
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const f = (x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9); if (!f && r() < 0.5) d += `M${x} ${y}h1v1h-1z`; }
+    const fd = (x, y) => `<rect x="${x}" y="${y}" width="7" height="7" rx="1.5" fill="#1D1D1B"/><rect x="${x+1}" y="${y+1}" width="5" height="5" rx="1" fill="#fff"/><rect x="${x+2}" y="${y+2}" width="3" height="3" rx=".6" fill="#1D1D1B"/>`;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 ${n+4} ${n+4}" shape-rendering="crispEdges"><rect x="-2" y="-2" width="${n+4}" height="${n+4}" fill="#fff"/><path d="${d}" fill="#1D1D1B"/>${fd(0,0)}${fd(n-7,0)}${fd(0,n-7)}</svg>`);
+  }
+  layout(srcs, W, H, g, rots) {
+    const n = srcs.length, f = 34;
+    const small = (u) => ({ cw: u + f, ch: u / 1.5 + f });
+    let pos;
+    if (n <= 2) {
+      const u = Math.min((W - (n - 1) * g) / n - f, (H - f) * 1.5);
+      pos = srcs.map((s, i) => ({ x: i * (small(u).cw + g), y: 0, w: u, h: u / 1.5 }));
+    } else if (n === 4) {
+      const u = Math.min((W - g) / 2 - f, ((H - g) / 2 - f) * 1.5); const { cw, ch } = small(u);
+      pos = srcs.map((s, i) => ({ x: (i % 2) * (cw + g), y: Math.floor(i / 2) * (ch + g), w: u, h: u / 1.5 }));
+    } else {
+      const cols = n === 3 ? 1 : 2;
+      const dims = (u) => { const { cw, ch } = small(u); const bh = 2 * ch + g; const bw = (bh - f) * 1.5 + f; return { W: bw + g + cols * cw + (cols - 1) * g, H: bh, bw, bh, cw, ch }; };
+      let u = 1400; while (u > 40) { const d = dims(u); if (d.W <= W && d.H <= H) break; u -= 2; }
+      const d = dims(u);
+      pos = [{ x: 0, y: 0, w: d.bw - f, h: d.bh - f }];
+      for (let i = 1; i < n; i++) { const k = i - 1; pos.push({ x: d.bw + g + (k % cols) * (d.cw + g), y: Math.floor(k / cols) * (d.ch + g), w: u, h: u / 1.5 }); }
+    }
+    const items = pos.map((p, i) => ({ src: srcs[i], x: Math.round(p.x), y: Math.round(p.y), w: Math.round(p.w), h: Math.round(p.h), rot: rots[i % rots.length] }));
+    return { w: Math.max(...items.map(p => p.x + p.w + f)), h: Math.max(...items.map(p => p.y + p.h + f)), items };
+  }
+  renderVals() {
+    const st = this.state; const demo = this.props.mode === 'demo';
+    const count = demo ? st.count : Math.max(1, Math.min(5, this.props.fotoCount ?? 3));
+    const g = this.groups[st.gi];
+    const reduce = st.reduce || this.props.reduceMotion;
+    const fade = reduce ? 'none' : 'opacity 250ms ease-out, transform 250ms ease-out';
+    const act = st.mode === 'aktif';
+    const reelBase = [
+      { src: 'foto/stage/a3.png', name: 'Keluarga Ibu Ratna', time: '19.31' }, { src: 'foto/stage/b1.png', name: 'Rekan Dosen FT UI', time: '19.34' },
+      { src: 'foto/stage/a1.png', name: 'Tamu · 19.37', time: '19.37' }, { src: 'foto/stage/c1.png', name: 'Keluarga Mempelai Pria', time: '19.40' },
+      { src: 'foto/stage/b2.png', name: 'Teman Kuliah', time: '19.22' }, { src: 'foto/stage/c2.png', name: 'Arisan Cibubur', time: '19.18' }
+    ];
+    const reel = reelBase.concat(reelBase).map((p, i) => ({ ...p, rot: [-1.2, 0.8, -0.4, 1.2, -0.8, 0.5][i % 6] }));
+    return {
+      demo, screenLabel: act ? 'B4 TV aktif' : 'B5 TV idle',
+      idleOpacity: act ? 0 : 1, actOpacity: act ? 1 : 0, actShift: act || reduce ? 0 : 12, actPointer: act ? 'auto' : 'none', fade,
+      swapOpacity: st.swap ? 0 : 1,
+      marquee: reduce ? 'none' : 'tvMarquee 90s linear infinite',
+      reel, qrEvent: this.qr(7),
+      cur: { ...g, qr: this.qr(g.no) },
+      nameSize: g.name.length > 24 ? 92 : 104,
+      lay: this.layout(g.photos.slice(0, count), 1220, 600, 32, [-1, 1.2, -0.6, 0.8, -1.2]),
+      prev: st.prevList.map(p => ({ ...p, qr: this.qr(p.no) })),
+      remainPct: Math.round(st.remain / 30 * 100), barTr: reduce ? 'none' : 'width 1s linear',
+      incoming: () => this.incoming(), toIdle: () => this.setState({ mode: 'idle', remain: 30 }),
+      countOpts: [1, 2, 3, 4, 5].map(n => ({ n, bg: count === n ? '#8EDCCB' : '#FFFFFF', onPick: () => this.setState({ count: n }) })),
+      toggleMotion: () => this.setState(s => ({ reduce: !s.reduce })), motionLabel: st.reduce ? 'Tanpa animasi: aktif' : 'Tanpa animasi', motionBg: st.reduce ? '#D6F1EA' : '#FFFFFF',
+      demoStatus: act ? `aktif · kembali ke galeri dalam ${st.remain} dtk` : 'idle · galeri berjalan'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { db, hasDb, login, makeUser } from "./admin-helpers";
+import { createTemplateViaWizard } from "./template-helpers";
 
 /** Editor template: elemen QR unduh foto (satu per desain) — tambah, ubah ukuran, geser, hapus/urungkan, simpan. */
 test.skip(!hasDb, "butuh Supabase dev (apps/web/.env.local)");
@@ -11,10 +12,7 @@ test("editor template: QR unduh foto tersimpan di layout", async ({ page }) => {
   try {
     await login(page, u);
     await page.goto("/admin/templates");
-    await page.getByRole("button", { name: "+ Buat Template" }).click();
-    await page.getByPlaceholder(/Nama template/).fill(tplName);
-    await page.getByRole("button", { name: "Buat", exact: true }).click();
-    await expect(page.getByLabel("Nama template")).toHaveValue(tplName);
+    await createTemplateViaWizard(page, { name: tplName });
 
     // Bawaan 4R 1200×1800: sisi 22% × 1200 = 264, kanan bawah di dalam margin aman 36.
     const addQr = page.getByRole("button", { name: /^QR unduh foto Tamu scan/ });

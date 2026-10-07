@@ -47,6 +47,13 @@ test("statistik, sembunyikan, hapus, audit", async ({ page }) => {
       },
       {
         organization_id: u.org,
+        session_id: ids[0],
+        kind: "strip_web",
+        idx: 0,
+        r2_key: `${R2}/strip_web_0.jpg#${ids[0]}`,
+      },
+      {
+        organization_id: u.org,
         session_id: ids[2],
         kind: "strip",
         idx: 0,
@@ -73,6 +80,12 @@ test("statistik, sembunyikan, hapus, audit", async ({ page }) => {
       .getByRole("button", { name: `Bagikan link sesi ${ids[0]}` })
       .click();
     await expect(tile(ids[0])).toContainText("Link tersalin");
+    // Download per sesi: strip web resolusi penuh sebagai file (attachment), bukan membuka gambar.
+    const dl = page.waitForEvent("download");
+    await tile(ids[0])
+      .getByRole("link", { name: `Download foto sesi ${ids[0]}` })
+      .click();
+    expect((await dl).suggestedFilename()).toBe(`tetra-${ids[0]}-strip.jpg`);
     expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(
       new RegExp(`/s/${ids[0]}$`),
     );

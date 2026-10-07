@@ -60,6 +60,7 @@ export type Database = {
           bytes: number | null
           created_at: string
           height: number | null
+          hidden_at: string | null
           id: string
           idx: number
           kind: string
@@ -72,6 +73,7 @@ export type Database = {
           bytes?: number | null
           created_at?: string
           height?: number | null
+          hidden_at?: string | null
           id?: string
           idx?: number
           kind: string
@@ -84,6 +86,7 @@ export type Database = {
           bytes?: number | null
           created_at?: string
           height?: number | null
+          hidden_at?: string | null
           id?: string
           idx?: number
           kind?: string
@@ -313,15 +316,27 @@ export type Database = {
           id: string
           lead_capture: NonNullable<Json>
           live_token: string | null
+          local_bytes: number | null
+          local_files: number | null
+          local_reported_at: string | null
           location: string | null
           mode: string
           name: string
+          ops_frame_size: string | null
+          ops_project_id: string | null
+          ops_sync: NonNullable<Json>
           organization_id: string
           orientation: string
+          package_hours: number | null
+          package_name: string | null
           public_gallery: boolean
           purge_at: string | null
           purged_at: string | null
+          run: NonNullable<Json>
+          scheduled_end: string | null
+          scheduled_start: string | null
           settings: NonNullable<Json>
+          slug: string
           status: string
           updated_at: string
         }
@@ -339,15 +354,27 @@ export type Database = {
           id?: string
           lead_capture?: NonNullable<Json>
           live_token?: string | null
+          local_bytes?: number | null
+          local_files?: number | null
+          local_reported_at?: string | null
           location?: string | null
           mode: string
           name: string
+          ops_frame_size?: string | null
+          ops_project_id?: string | null
+          ops_sync?: NonNullable<Json>
           organization_id: string
           orientation?: string
+          package_hours?: number | null
+          package_name?: string | null
           public_gallery?: boolean
           purge_at?: string | null
           purged_at?: string | null
+          run?: NonNullable<Json>
+          scheduled_end?: string | null
+          scheduled_start?: string | null
           settings?: NonNullable<Json>
+          slug?: string
           status?: string
           updated_at?: string
         }
@@ -365,15 +392,27 @@ export type Database = {
           id?: string
           lead_capture?: NonNullable<Json>
           live_token?: string | null
+          local_bytes?: number | null
+          local_files?: number | null
+          local_reported_at?: string | null
           location?: string | null
           mode?: string
           name?: string
+          ops_frame_size?: string | null
+          ops_project_id?: string | null
+          ops_sync?: NonNullable<Json>
           organization_id?: string
           orientation?: string
+          package_hours?: number | null
+          package_name?: string | null
           public_gallery?: boolean
           purge_at?: string | null
           purged_at?: string | null
+          run?: NonNullable<Json>
+          scheduled_end?: string | null
+          scheduled_start?: string | null
           settings?: NonNullable<Json>
+          slug?: string
           status?: string
           updated_at?: string
         }
@@ -524,6 +563,7 @@ export type Database = {
           archived_at: string | null
           created_at: string
           id: string
+          mode: string
           name: string
           organization_id: string
           paper: string
@@ -532,6 +572,7 @@ export type Database = {
           archived_at?: string | null
           created_at?: string
           id?: string
+          mode?: string
           name: string
           organization_id: string
           paper: string
@@ -540,6 +581,7 @@ export type Database = {
           archived_at?: string | null
           created_at?: string
           id?: string
+          mode?: string
           name?: string
           organization_id?: string
           paper?: string
@@ -640,6 +682,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ops_webhook_deliveries: {
+        Row: {
+          delivery_id: string
+          event: string
+          occurred_at: string
+          organization_id: string
+          payload: NonNullable<Json>
+          project_id: string
+          received_at: string
+        }
+        Insert: {
+          delivery_id: string
+          event: string
+          occurred_at: string
+          organization_id: string
+          payload: NonNullable<Json>
+          project_id: string
+          received_at?: string
+        }
+        Update: {
+          delivery_id?: string
+          event?: string
+          occurred_at?: string
+          organization_id?: string
+          payload?: NonNullable<Json>
+          project_id?: string
+          received_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ops_webhook_deliveries_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -786,14 +866,17 @@ export type Database = {
           deleted_at: string | null
           device_id: string
           event_id: string
+          group_name: string | null
           hidden_at: string | null
           id: string
+          is_test: boolean
           layout_version_id: string | null
           organization_id: string
           payment_id: string | null
           photo_count: number
           print_count: number
           retake_count: number
+          source: string
           started_at: string
           upload_status: string
         }
@@ -804,14 +887,17 @@ export type Database = {
           deleted_at?: string | null
           device_id: string
           event_id: string
+          group_name?: string | null
           hidden_at?: string | null
           id: string
+          is_test?: boolean
           layout_version_id?: string | null
           organization_id: string
           payment_id?: string | null
           photo_count?: number
           print_count?: number
           retake_count?: number
+          source?: string
           started_at: string
           upload_status?: string
         }
@@ -822,14 +908,17 @@ export type Database = {
           deleted_at?: string | null
           device_id?: string
           event_id?: string
+          group_name?: string | null
           hidden_at?: string | null
           id?: string
+          is_test?: boolean
           layout_version_id?: string | null
           organization_id?: string
           payment_id?: string | null
           photo_count?: number
           print_count?: number
           retake_count?: number
+          source?: string
           started_at?: string
           upload_status?: string
         }
@@ -873,10 +962,71 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      layout_usage: {
+        Row: {
+          last_used_at: string | null
+          layout_id: string | null
+          organization_id: string | null
+          prints: number | null
+          sessions: number | null
+          sessions_month: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      event_cloud_storage: {
+        Args: { ev: string; org: string }
+        Returns: {
+          bytes: number
+          files: number
+        }[]
+      }
+      event_payment_stats: {
+        Args: { org: string }
+        Returns: {
+          event_id: string
+          paid: number
+          revenue: number
+        }[]
+      }
+      event_session_stats: {
+        Args: { org: string }
+        Returns: {
+          event_id: string
+          prints: number
+          sessions: number
+        }[]
+      }
+      event_slug_base: { Args: { d: string; name: string }; Returns: string }
       is_member: { Args: { org: string; roles?: string[] }; Returns: boolean }
+      ops_event_stats: {
+        Args: { evs: string[]; org: string }
+        Returns: {
+          event_id: string
+          photos: number
+          sessions: number
+        }[]
+      }
+      org_period_stats: {
+        Args: { d_from: string; d_to: string; org: string }
+        Returns: {
+          active_days: number
+          mode: string
+          paid: number
+          prints: number
+          revenue: number
+          sessions: number
+        }[]
+      }
       rate_hit: {
         Args: { k: string; max_hits: number; window_s: number }
         Returns: boolean

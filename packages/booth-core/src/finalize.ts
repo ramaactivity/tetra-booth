@@ -27,7 +27,7 @@ export const fit = (w: number, h: number, max: number) => {
 const THUMB_QUALITY = 0.85;
 const VIEW_QUALITY = 0.92;
 
-const encode = async (src: ImageBitmap, w: number, h: number, quality = THUMB_QUALITY) => {
+export const encode = async (src: ImageBitmap, w: number, h: number, quality = THUMB_QUALITY) => {
   const c = cpuCanvas(w, h);
   const g = c.getContext("2d");
   if (!g) throw new Error("canvas 2d tidak tersedia");
@@ -52,6 +52,35 @@ export async function previewUrl(bytes: Uint8Array<ArrayBuffer>, w: number, h: n
     return { url: URL.createObjectURL(new Blob([jpeg], { type: "image/jpeg" })), sharp };
   } finally {
     bmp.close();
+  }
+}
+
+/**
+ * strip_web & thumb_strip dari satu potong desain dalam orientasi aslinya, bukan lembar cetak (1× atau 2× #133).
+ * Dipakai finalize dan "Tajamkan foto lama" (#140).
+ */
+export async function encodeWebPiece(
+  storage: BoothStorage,
+  dir: string,
+  piecePath: string,
+): Promise<SessionAsset[]> {
+  const piece = await createImageBitmap(new Blob([await storage.readFile(piecePath)]));
+  try {
+    const out: SessionAsset[] = [];
+    const save = async (kind: AssetKind, name: string, bytes: Uint8Array) => {
+      await storage.writeFile(`${dir}/${name}`, bytes);
+      out.push({ kind, idx: 0, path: `${dir}/${name}`, bytes: bytes.byteLength });
+    };
+    await save(
+      "strip_web",
+      "strip_web.jpg",
+      await encode(piece, piece.width, piece.height, VIEW_QUALITY),
+    );
+    const t = fit(piece.width, piece.height, THUMB_LONG_SIDE);
+    await save("thumb_strip", "thumb_strip.jpg", await encode(piece, t.width, t.height));
+    return out;
+  } finally {
+    piece.close();
   }
 }
 
@@ -82,20 +111,7 @@ export async function buildOutputs(
   const stripBytes = await storage.readFile(strip.path);
   assets.push({ kind: "strip", idx: 0, path: strip.path, bytes: stripBytes.byteLength });
 
-  // strip_web & thumb = satu potong desain dalam orientasi aslinya, bukan lembar cetak.
-  const piece = await load(strip.piecePath);
-  try {
-    await save(
-      "strip_web",
-      0,
-      "strip_web.jpg",
-      await encode(piece, piece.width, piece.height, VIEW_QUALITY),
-    );
-    const t = fit(piece.width, piece.height, THUMB_LONG_SIDE);
-    await save("thumb_strip", 0, "thumb_strip.jpg", await encode(piece, t.width, t.height));
-  } finally {
-    piece.close();
-  }
+  assets.push(...(await encodeWebPiece(storage, dir, strip.piecePath)));
 
   const frames: ImageData[] = [];
   for (const [i, p] of photos.entries()) {

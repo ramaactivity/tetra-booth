@@ -1,8 +1,8 @@
 import { newSessionId } from "@tetra/shared";
 import { Button } from "@tetra/ui";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
-import { errText } from "../errors";
+import { crewText as errText } from "../errors";
 import { previewUrl } from "../finalize";
 import { usePlatform } from "../PlatformContext";
 import type { CameraProp, FocusStep, LiveFrame } from "../platform";
@@ -10,12 +10,6 @@ import { LiveView } from "../screens/LiveView";
 import { sharpNotes, sharpnessOf } from "../sharpness";
 import { CameraProps } from "./CameraProps";
 
-const FOCUS_FINE: { step: FocusStep; label: string }[] = [
-  { step: "near2", label: "◀◀" },
-  { step: "near1", label: "◀" },
-  { step: "far1", label: "▶" },
-  { step: "far2", label: "▶▶" },
-];
 const METER_MS = 300;
 const GUIDES_KEY = "tb.testShot.guides";
 /** Margin aman: 5% sisi pendek area slot, jauhkan wajah & tangan dari tepi potongan. */
@@ -123,9 +117,17 @@ export function CameraCheck({
   const lastMeter = useRef(0);
   const frameSize = useRef<{ w: number; h: number } | undefined>(undefined);
   const [reticle, setReticle] = useState<{ x: number; y: number }>();
+  // Sony A7 II/III tidak punya tap to focus (#171): ditanyakan lagi saat frame pertama datang & tiap Tes Jepret.
+  const [hasFrame, setHasFrame] = useState(false);
+  const [tapOk, setTapOk] = useState(!p.crew.canFocusAt);
+  useEffect(() => {
+    if (!hasFrame) return;
+    p.crew.canFocusAt?.().then(setTapOk, () => setTapOk(false));
+  }, [p, hasFrame]);
+  const focusAt = tapOk ? p.crew.focusAt : undefined;
   const tap = async (e: React.PointerEvent<HTMLDivElement>) => {
     const f = frameSize.current;
-    if (!f || !p.crew.focusAt) return;
+    if (!f || !focusAt) return;
     const r = e.currentTarget.getBoundingClientRect();
     const at = { x: e.clientX - r.left, y: e.clientY - r.top };
     // Stage diskalakan ke jendela: posisi klik dalam piksel layar, kotak digambar dalam piksel Stage (W-034, jendela
@@ -134,7 +136,7 @@ export function CameraCheck({
     setReticle({ x: at.x / k, y: at.y / k });
     const pt = tapToFrame(at, { w: r.width, h: r.height }, f, p.mirrorLiveView ?? true);
     try {
-      await p.crew.focusAt(pt.x, pt.y);
+      await focusAt(pt.x, pt.y);
       setMeter((m) => m && { now: m.now, peak: m.now });
     } catch (err) {
       setError(errText(err));
@@ -144,6 +146,7 @@ export function CameraCheck({
   };
   const onFrame = ({ source, width, height }: LiveFrame) => {
     frameSize.current = { w: width, h: height };
+    setHasFrame(true);
     const t = performance.now();
     if (t - lastMeter.current < METER_MS) return;
     lastMeter.current = t;
@@ -195,13 +198,14 @@ export function CameraCheck({
       setError(errText(e));
     } finally {
       setBusy(false);
+      setHasFrame(false);
       setLiveRun((n) => n + 1);
     }
   };
   const applySettings = async (t: TestShot) => {
     try {
       const set = (n: string, v?: string) => (v ? p.crew.setCameraProp(n, v) : Promise.resolve());
-      // ISO/shutter jepret hanya ada di Canon EDSDK; digiCamControl memakai setelan kamera langsung.
+      // ISO/shutter jepret (#113) kalau kamera menyediakannya, selain itu setelan live view.
       const names = new Set((await p.crew.cameraProps()).map((x) => x.name));
       await set(names.has("iso_capture") ? "iso_capture" : "iso", t.s.iso);
       await set(names.has("shutter_capture") ? "shutter_capture" : "shutterspeed", t.s.shutter);
@@ -235,7 +239,7 @@ export function CameraCheck({
           guide={guides ? slot : undefined}
           overlay={guides ? { grid: true, safe: SAFE } : undefined}
         />
-        {p.crew.focusAt && (
+        {focusAt && (
           <div
             data-testid="tap-focus"
             className="absolute inset-0"
@@ -263,7 +267,7 @@ export function CameraCheck({
             {guides ? copy.crew.on : copy.crew.off}
           </span>
         </button>
-        {p.crew.focusAt && (
+        {focusAt && (
           <p className="pointer-events-none absolute top-6 left-6 rounded-full border-2 border-ink bg-white/90 px-5 py-2 text-lg font-semibold">
             {copy.crew.tapToFocus}
           </p>
@@ -278,22 +282,6 @@ export function CameraCheck({
               <Button className="h-[76px] rounded-[18px] text-2xl" onClick={() => void focus("af")}>
                 {copy.crew.autoFocus}
               </Button>
-              {/* Geser fokus manual hanya berguna untuk digiCamControl; Canon EDSDK selalu AF saat jepret. */}
-              {!p.crew.focusAt && (
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-semibold text-text-2">{copy.crew.focusFine}</span>
-                  {FOCUS_FINE.map(({ step, label }) => (
-                    <Button
-                      key={step}
-                      variant="secondary"
-                      className="h-14 min-w-14 flex-1 rounded-[14px] px-2 text-xl"
-                      onClick={() => void focus(step)}
-                    >
-                      {label}
-                    </Button>
-                  ))}
-                </div>
-              )}
               {meter && (
                 <div data-testid="focus-meter" className="flex flex-col gap-2">
                   <div className="flex justify-between text-lg font-semibold text-text-2">

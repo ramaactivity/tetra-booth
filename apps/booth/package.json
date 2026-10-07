@@ -1,6 +1,6 @@
 {
   "name": "booth",
-  "version": "0.5.40",
+  "version": "0.6.0",
   "private": true,
   "description": "Tetra Booth",
   "author": {
@@ -16,6 +16,7 @@
     "stress": "node scripts/stress.mjs"
   },
   "dependencies": {
+    "@fontsource/cormorant-garamond": "^5.3.0",
     "@sentry/electron": "^7.20.0",
     "@tetra/booth-core": "workspace:*",
     "@tetra/editor": "workspace:*",

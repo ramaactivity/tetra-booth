@@ -3,7 +3,6 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { BoothConfig } from "@tetra/platform-electron";
 import { z } from "zod";
-import { DIGICAM_TRIGGER, isDigiCamTrigger } from "./digicam";
 
 /** Flag yang butuh nilai. Diterima `--nama=nilai` maupun `--nama nilai` (M-008). */
 export const VALUE_FLAGS = [
@@ -22,8 +21,10 @@ export const VALUE_FLAGS = [
   "hot-folder-trigger",
   "print-offset",
   "printer-2x6x2",
-  "digicam-exe",
   "canon",
+  "sony",
+  /** Peran laptop (#178): `--role stage` = Photo Stage. */
+  "role",
 ] as const;
 type ValueFlag = (typeof VALUE_FLAGS)[number];
 
@@ -72,7 +73,7 @@ export const userDir = dataDir ?? join(appData, "TetraBooth");
 
 /** Pengaturan perangkat dari mode crew (DECISIONS #85), satu file per laptop. */
 export const DeviceSettings = z.object({
-  camera: z.enum(["webcam", "simulated", "hotfolder", "canon"]).optional(),
+  camera: z.enum(["webcam", "simulated", "hotfolder", "canon", "sony"]).optional(),
   webcamId: z.string().max(512).optional(),
   mirrorLiveView: z.boolean().optional(),
   mirrorPhoto: z.boolean().optional(),
@@ -80,6 +81,8 @@ export const DeviceSettings = z.object({
   hotFolder: z.string().min(1).max(260).optional(),
   hotFolderTrigger: z.url().max(512).optional(),
   printer: z.string().min(1).max(256).optional(),
+  /** Peran laptop (#178): `stage` = Photo Stage. Bawaan booth. */
+  role: z.enum(["booth", "stage"]).optional(),
 });
 export type DeviceSettings = z.infer<typeof DeviceSettings>;
 export const deviceFile = join(userDir, "device.json");
@@ -99,6 +102,7 @@ const deviceArgs = Object.entries({
   "hot-folder": device.hotFolder,
   "hot-folder-trigger": device.hotFolderTrigger,
   printer: device.printer,
+  role: device.role,
 }).flatMap(([k, v]) => (v ? [`--${k}`, v] : []));
 
 /**
@@ -120,11 +124,23 @@ export const lockedByArgv = (name: string) => argvFlags.has(name);
  *   electron apps/booth --camera=simulated --demo --size 1080x1920 --printer "Microsoft Print to PDF" --data C:/tmp/data
  */
 const flags = parseFlags([...fileArgs, ...deviceArgs, ...process.argv]);
+/**
+ * digiCamControl dihapus (DECISIONS #141, #168). Migrasi booth lama: `--digicam`, atau hot folder yang dipicu web
+ * server digiCamControl (port 5513, dulu mode crew "DSLR (digiCamControl)") → Canon EDSDK; folder & pemicunya diabaikan.
+ */
+export const isLegacyDigicam = (f: Pick<ReturnType<typeof parseFlags>, "has" | "value">) =>
+  f.has("digicam") ||
+  (f.value("camera") === "hotfolder" && /:5513([/?]|$)/.test(f.value("hot-folder-trigger") ?? ""));
+const legacyDigicam = isLegacyDigicam(flags);
+
 /** Dicatat di index setelah log file aktif. */
 export const flagWarnings = [
   ...(fileArgs.length ? [`[config] flag dari ${flagsFile}: ${fileArgs.join(" ")}`] : []),
   ...(deviceArgs.length ? [`[config] mode crew (${deviceFile}): ${deviceArgs.join(" ")}`] : []),
   ...flags.missing.map((m) => `[config] --${m} butuh nilai, diabaikan`),
+  ...(legacyDigicam
+    ? ["[config] digiCamControl sudah dihapus (#168): kamera pindah ke Canon EDSDK"]
+    : []),
 ];
 
 /** Tanda "booth membuka ulang sendiri" di kv: layar awal dilewati sekali (DECISIONS #86). */
@@ -147,42 +163,41 @@ export const bumperFlag = (isPackaged: boolean) =>
 export const kioskFlag = (isPackaged: boolean) =>
   flags.has("kiosk") || (isPackaged && !flags.has("no-kiosk"));
 
-/**
- * `--digicam`: kamera DSLR lewat digiCamControl (lihat digicam.ts). Menyiratkan `--camera=hotfolder`,
- * pemicu shutter ke web server digiCamControl, buka aplikasinya otomatis, dan live view.
- * `--digicam-exe` untuk lokasi CameraControl.exe yang tidak standar. Mode crew "DSLR (digiCamControl)" (hot folder
- * + pemicu ke port 5513) mendapat perilaku yang sama.
- */
-export const digicam =
-  flags.has("digicam") ||
-  (flags.value("camera") === "hotfolder" && isDigiCamTrigger(flags.value("hot-folder-trigger")))
-    ? { exe: flags.value("digicam-exe") }
-    : undefined;
+/** Booth terpasang (installer) di Windows tanpa pilihan kamera: bawaan Canon EDSDK, bukan webcam. */
+const packagedWindows = process.platform === "win32" && !process.defaultApp;
 
 /**
  * `--camera=canon`: DSLR Canon lewat EDSDK di Camera Service (DECISIONS #111). DLL Canon tidak ikut installer
- * (lisensi): disalin sekali ke `<folder data>/edsdk` (EDSDK.dll + EdsImage.dll), atau `--canon <folder>`;
+ * (lisensi) dan diunduh otomatis ke `<folder data>/edsdk` (#112), atau `--canon <folder>`;
  * `--canon fake` = kamera simulasi (dev/e2e).
  */
 export const canon =
-  !digicam && flags.value("camera") === "canon"
+  flags.value("camera") === "canon" || legacyDigicam || (packagedWindows && !flags.value("camera"))
     ? (flags.value("canon") ?? join(userDir, "edsdk"))
     : undefined;
 
+/**
+ * `--camera=sony`: mirrorless Sony lewat Camera Remote Command (PTP) di Camera Service (DECISIONS #169, #171). Driver
+ * MTP bawaan Windows (`--sony wpd`, bawaan); `--sony fake` (A7 III) / `--sony fake-v3` (A7 IV) = kamera simulasi
+ * (dev/e2e). Jepret, live view, setelan, & fokus seperti Canon; belum diuji dengan kamera asli (W-037…W-041).
+ */
+export const sony = flags.value("camera") === "sony" ? (flags.value("sony") ?? "wpd") : undefined;
+
 export const config: BoothConfig = {
-  camera: digicam
-    ? "hotfolder"
-    : canon
-      ? "canon"
+  camera: canon
+    ? "canon"
+    : sony
+      ? "sony"
       : ((["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ??
         "webcam"),
-  liveView: !!digicam || !!canon,
+  liveView: !!canon || !!sony,
   demo: flags.has("demo"),
   fast: flags.has("fast"),
   guestUrl: process.env.TETRA_GUEST_URL ?? "https://booth.tetraphoto.com",
   ...(device.webcamId ? { webcamId: device.webcamId } : {}),
   mirrorLiveView: device.mirrorLiveView ?? true,
   mirrorPhoto: device.mirrorPhoto ?? false,
+  ...(flags.value("role") === "stage" ? { role: "stage" as const } : {}),
 };
 
 const size = /^(\d+)x(\d+)$/.exec(flags.value("size") ?? "");
@@ -193,12 +208,16 @@ export const windowSize = size
 /** Folder screenshot per fase (uji jarak jauh tanpa melihat layar). */
 export const shotsDir = flags.value("shots");
 
+/** Photo Stage (#179): `--tv-window` = jendela TV biasa di layar utama (uji tanpa layar kedua). */
+export const stageTvWindow = flags.has("tv-window");
+
 /**
  * Camera Service: `--no-spawn` = sambung ke service yang dijalankan manual (port 8765, token dev).
  * Diteruskan apa adanya sampai config device ada: --printer, --printer-2x6x2 (antrean potong 2 inci, #52),
  * --paper-4r, --paper-2x6x2, --paper-fit,
  * --print-offset (kalibrasi DNP, M-021), --print-to-file (khusus uji/stress, printer ber-port PORTPROMPT: seperti
- * Print to PDF), --hot-folder (M7), --hot-folder-trigger (pemicu shutter, mis. digiCamControl).
+ * Print to PDF). Khusus `--camera=hotfolder` (teknisi, #168): --hot-folder (M7), --hot-folder-trigger (URL pemicu
+ * shutter, GET per jepret).
  */
 export const cameraServiceFlags = {
   spawn: !flags.has("no-spawn"),
@@ -212,16 +231,15 @@ export const cameraServiceFlags = {
       "paper-fit",
       "print-offset",
       "print-to-file",
-      "hot-folder",
-      "hot-folder-trigger",
+      ...(config.camera === "hotfolder" ? (["hot-folder", "hot-folder-trigger"] as const) : []),
     ] as const
   ).flatMap((k) => {
-    const v =
-      flags.value(k) ?? (k === "hot-folder-trigger" && digicam ? DIGICAM_TRIGGER : undefined);
+    const v = flags.value(k);
     return v ? [`--${k}`, v] : [];
   }),
 };
 if (canon) cameraServiceFlags.args.push("--canon", canon);
+if (sony) cameraServiceFlags.args.push("--sony", sony);
 
 /** Antrean printer utama (`--printer`), untuk membuka dialog Printing Preferences dari menu crew. */
 export const printerName = flags.value("printer");
@@ -233,11 +251,14 @@ export const deviceNow: DeviceSettings = {
   mirrorLiveView: config.mirrorLiveView ?? true,
   mirrorPhoto: config.mirrorPhoto ?? false,
   afBeforeCapture: !!device.afBeforeCapture,
-  ...(flags.value("hot-folder") ? { hotFolder: flags.value("hot-folder") } : {}),
-  ...(flags.value("hot-folder-trigger") || digicam
-    ? { hotFolderTrigger: flags.value("hot-folder-trigger") ?? DIGICAM_TRIGGER }
+  ...(config.camera === "hotfolder" && flags.value("hot-folder")
+    ? { hotFolder: flags.value("hot-folder") }
+    : {}),
+  ...(config.camera === "hotfolder" && flags.value("hot-folder-trigger")
+    ? { hotFolderTrigger: flags.value("hot-folder-trigger") }
     : {}),
   ...(printerName ? { printer: printerName } : {}),
+  role: config.role ?? "booth",
 };
 
 /** Interval log metrik (detik), default 60. Stress test memakai nilai kecil. */

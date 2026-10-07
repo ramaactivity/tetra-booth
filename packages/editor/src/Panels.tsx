@@ -23,13 +23,16 @@ import {
   Layers,
   LayoutGrid,
   Move,
+  Pipette,
   QrCode,
   SendToBack,
   Trash2,
   Type,
   Upload,
 } from "lucide-react";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { CHECKER, ChromaControls, type KeySetting } from "./ChromaControls";
+import { DEFAULT_TOLERANCE, keyColor, rgbToHex, suggestKeyColor } from "./chroma";
 import type { EditorApi } from "./Editor";
 import { FONT_PACKS } from "./fonts";
 import { type AlignMode, type Key, layerStack, OVERLAY, QR } from "./geometry";
@@ -429,6 +432,103 @@ function MyLayouts({ ed }: { ed: EditorApi }) {
 }
 
 /** Rel ikon + panel kiri editor (seperti Canva). */
+/** Hapus warna penanda overlay (#163): pratinjau kecil (klik = pipet), warna, kepekaan, Terapkan. */
+function ChromaKeyPanel({ ed, onDone }: { ed: EditorApi; onDone: (msg: string) => void }) {
+  const img = ed.images.ov;
+  const canvas = useRef<HTMLCanvasElement>(null);
+  // Salinan kecil overlay (tinggi 240 px) untuk pratinjau langsung; hasil akhir dihitung di ukuran penuh.
+  const small = useMemo(() => {
+    if (!img) return null;
+    const h = 240;
+    const w = Math.max(1, Math.round((h * ed.W) / ed.H));
+    const g = new OffscreenCanvas(w, h).getContext("2d");
+    if (!g) return null;
+    g.drawImage(img as CanvasImageSource, 0, 0, w, h);
+    const data = g.getImageData(0, 0, w, h);
+    return { w, h, data, suggested: suggestKeyColor(data.data, w, h) };
+  }, [img, ed.W, ed.H]);
+  const [k, setK] = useState<KeySetting | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const suggested = small?.suggested;
+  const value = useMemo(
+    () => k ?? { color: suggested ?? "#00ff00", tol: DEFAULT_TOLERANCE },
+    [k, suggested],
+  );
+  useEffect(() => {
+    const c = canvas.current;
+    if (!small || !c) return;
+    const d = new ImageData(new Uint8ClampedArray(small.data.data), small.w, small.h);
+    keyColor(d.data, small.w, small.h, { color: value.color, tolerance: value.tol });
+    c.getContext("2d")?.putImageData(d, 0, 0);
+  }, [small, value.color, value.tol]);
+  if (!small) return null;
+
+  return (
+    <section
+      aria-label="Hapus warna"
+      className="flex flex-col gap-3 rounded-[14px] border-[1.5px] border-ink bg-paper p-3"
+    >
+      <p className="text-xs leading-normal text-text-2">
+        Warna penanda slot foto akan dihapus jadi transparan.
+      </p>
+      <button
+        type="button"
+        aria-label="Ambil warna penanda dari gambar"
+        onClick={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          const x = Math.min(small.w - 1, Math.floor(((e.clientX - r.left) / r.width) * small.w));
+          const y = Math.min(small.h - 1, Math.floor(((e.clientY - r.top) / r.height) * small.h));
+          const o = (y * small.w + x) * 4;
+          const d = small.data.data;
+          setK({ ...value, color: rgbToHex(d[o] ?? 0, d[o + 1] ?? 0, d[o + 2] ?? 0) });
+        }}
+        className="mx-auto block cursor-crosshair overflow-hidden rounded-[6px] border-[1.5px] border-ink"
+        style={{ backgroundImage: CHECKER }}
+      >
+        <canvas
+          ref={canvas}
+          width={small.w}
+          height={small.h}
+          className="block"
+          style={{ width: small.w, height: small.h }}
+        />
+      </button>
+      <ChromaControls value={value} suggested={small.suggested} onChange={setK} />
+      {error && (
+        <p role="alert" className="text-xs font-bold text-coral-strong">
+          {error}
+        </p>
+      )}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            const err = await ed.keyOverlay(value);
+            setBusy(false);
+            if (err) return setError(err);
+            onDone(
+              'Warna dihapus. Tekan "Deteksi slot dari area transparan" untuk membuat slot (Urungkan untuk kembali).',
+            );
+          }}
+          className="h-9 flex-1 rounded-[10px] border-[1.5px] border-ink bg-butter text-xs font-extrabold disabled:opacity-50"
+        >
+          {busy ? "Memproses…" : "Terapkan"}
+        </button>
+        <button
+          type="button"
+          onClick={() => onDone("")}
+          className="h-9 rounded-[10px] border-[1.5px] border-ink bg-white px-3 text-xs font-bold hover:bg-paper"
+        >
+          Batal
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export function Panels({
   ed,
   tab,
@@ -439,6 +539,8 @@ export function Panels({
   setTab: (t: Tab | null) => void;
 }) {
   const [dragKey, setDragKey] = useState<Key | null>(null);
+  const [detected, setDetected] = useState<string | null>(null);
+  const [keying, setKeying] = useState(false);
   const presets = (
     Object.entries(LAYOUT_PRESETS) as [PresetId, (typeof LAYOUT_PRESETS)[PresetId]][]
   ).filter(
@@ -609,12 +711,56 @@ export function Panels({
               <Section title="Overlay PNG">
                 <Upload1
                   label="Overlay"
-                  hint={`${ed.W}×${ed.H} px, transparan`}
-                  accept="image/png"
+                  hint={`${ed.W}×${ed.H} px, transparan atau warna penanda`}
+                  accept="image/png,image/jpeg,image/webp"
                   has={!!ed.layout.overlay}
                   onPick={(f) => ed.pick("ov", f)}
                   onRemove={() => ed.commit(({ overlay: _o, ...l }) => l)}
                 />
+                {ed.layout.overlay && ed.images.ov && (
+                  <>
+                    {keying ? (
+                      <ChromaKeyPanel
+                        ed={ed}
+                        onDone={(msg) => {
+                          setKeying(false);
+                          setDetected(msg || null);
+                        }}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setKeying(true);
+                          setDetected(null);
+                        }}
+                        className="flex h-10 items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] border-ink bg-white text-xs font-bold hover:bg-paper"
+                      >
+                        <Pipette className="size-4" />
+                        Hapus warna (chroma key)
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const n = ed.detectFromOverlay();
+                        setDetected(
+                          n
+                            ? `${n} slot dibuat dari area transparan. Slot lama diganti (Urungkan untuk kembali).`
+                            : "Tidak ada area transparan yang cukup besar di overlay.",
+                        );
+                      }}
+                      className="h-10 rounded-[10px] border-[1.5px] border-ink bg-white text-xs font-bold hover:bg-paper"
+                    >
+                      Deteksi slot dari area transparan
+                    </button>
+                    {detected && (
+                      <p role="status" className={small}>
+                        {detected}
+                      </p>
+                    )}
+                  </>
+                )}
               </Section>
               <Section title="Gambar latar">
                 <Upload1

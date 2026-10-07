@@ -42,3 +42,65 @@ export async function login(page: Page, u: { email: string; password: string }) 
   await page.getByRole("button", { name: "Masuk" }).click();
   await expect(page).toHaveURL(/\/admin$/);
 }
+
+/**
+ * Wizard Buat event (Mode Event): info → mode → kertas + desain (nama di pemilih) → booth → Buat event.
+ * Tanpa `devices` = Semua booth. Hasil: id event baru (dari tombol Buka event).
+ */
+export async function createEventViaWizard(
+  page: Page,
+  o: {
+    name: string;
+    date?: string;
+    paper: RegExp;
+    designs?: string[];
+    /** Desain frame baru (#162) alih-alih memilih: template otomatis, atau unggah PNG. */
+    design?: "auto" | { name: string; mimeType: string; buffer: Buffer };
+    /** Screenshot halaman penuh langkah Desain ke test-results/<shot>.png. */
+    shot?: string;
+    devices?: string[];
+    /** Paket manual (nama + jam) di langkah Info. */
+    pkg?: { name: string; hours: string };
+  },
+) {
+  await page.goto("/admin");
+  await page.getByRole("link", { name: "Buat Event" }).click();
+  await page.getByLabel("Nama event").fill(o.name);
+  await page.getByLabel("Tanggal event").fill(o.date ?? "2026-10-12");
+  if (o.pkg) {
+    await page.getByLabel("Nama paket").fill(o.pkg.name);
+    await page.getByLabel("Durasi (jam)").fill(o.pkg.hours);
+  }
+  await page.getByRole("button", { name: /^Lanjut/ }).click();
+  await page.getByRole("radio", { name: /^Event/ }).check();
+  await page.getByRole("button", { name: /^Lanjut/ }).click();
+  await page.getByRole("radio", { name: o.paper }).check();
+  const picker = page.getByRole("dialog", { name: "Tambah desain frame" });
+  if (o.design === "auto")
+    await page.getByRole("button", { name: "Lewati, buat template otomatis" }).click();
+  else if (o.design) {
+    await page.getByRole("button", { name: "Upload desain", exact: true }).click();
+    await page.getByLabel("Desain PNG").setInputFiles(o.design);
+    await expect(page.getByRole("img", { name: "Pratinjau slot terdeteksi" })).toBeVisible();
+  }
+  if (o.shot) await page.screenshot({ path: `test-results/${o.shot}.png`, fullPage: true });
+  for (const d of o.designs ?? []) {
+    await page.getByRole("button", { name: /Tambah desain/ }).click();
+    await picker.getByRole("textbox", { name: "Cari nama desain" }).fill(d);
+    await picker
+      .getByRole("button", { name: new RegExp(`^${d}`) })
+      .first()
+      .click();
+    await picker.getByRole("button", { name: "Pakai desain ini" }).click();
+  }
+  await page.getByRole("button", { name: /^Lanjut/ }).click();
+  if (o.devices) {
+    await page.getByRole("radio", { name: /^Pilih booth/ }).check();
+    for (const d of o.devices) await page.getByRole("checkbox", { name: d }).check();
+  }
+  await page.getByRole("button", { name: /^Lanjut/ }).click();
+  await page.getByRole("button", { name: "Buat event" }).click();
+  const open = page.getByRole("link", { name: "Buka event" });
+  await expect(open).toBeVisible({ timeout: 30_000 });
+  return (await open.getAttribute("href"))?.split("/").pop() ?? "";
+}

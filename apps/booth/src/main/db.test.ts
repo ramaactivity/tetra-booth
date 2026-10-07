@@ -45,6 +45,81 @@ describe("booth db", () => {
     ]);
   });
 
+  it("layar awal (#143): hanya sesi selesai event itu, terbaru dulu", () => {
+    const db = openDb(":memory:");
+    db.sessionStarted(start);
+    db.sessionCompleted(done);
+    db.sessionStarted({ ...start, id: "baru000001" });
+    db.sessionCompleted({ ...done, id: "baru000001", completedAt: "2026-09-24T11:00:00Z" });
+    db.sessionStarted({ ...start, id: "batal00001" });
+    db.sessionStarted({ ...start, id: "lain000001", eventId: "local" });
+    db.sessionCompleted({ ...done, id: "lain000001" });
+    const ids = (r: { id: string }[]) => r.map((x) => x.id);
+    expect(ids(db.recentSessions(start.eventId, 10))).toEqual(["baru000001", start.id]);
+    expect(ids(db.recentSessions(start.eventId, 1))).toEqual(["baru000001"]);
+    // Galeri (#145): halaman berikut lewat kursor completedAt; jam UTC + jumlah untuk chip.
+    expect(db.recentSessions(start.eventId, 1, "2026-09-24T11:00:00Z")).toEqual([
+      {
+        id: start.id,
+        completedAt: done.completedAt,
+        layoutId: "l",
+        printCount: 2,
+        reprinted: 0,
+      },
+    ]);
+    expect(db.sessionHours(start.eventId)).toEqual([
+      { hour: "2026-09-24T11", n: 1 },
+      { hour: "2026-09-24T10", n: 1 },
+    ]);
+  });
+
+  it("galeri cetak lagi (#145): hanya job -g yang tidak gagal dihitung, print_count bertambah", () => {
+    const db = openDb(":memory:");
+    db.sessionStarted(start);
+    expect(db.reprinted(start.id)).toBeUndefined();
+    db.sessionCompleted(done);
+    const job = { sessionId: start.id, path: "/s/out/strip.jpg", paper: "4R" };
+    db.printSubmitting({ ...job, id: start.id, copies: 2 });
+    db.printSubmitting({ ...job, id: `${start.id}-g1`, copies: 1 });
+    db.printSubmitting({ ...job, id: `${start.id}-g2`, copies: 1 });
+    db.printJobResult(`${start.id}-g2`, "failed", "x");
+    db.printSubmitting({ ...job, id: `${start.id}-r1`, copies: 1 });
+    expect(db.reprinted(start.id)).toBe(1);
+    db.addPrints(start.id, 1);
+    expect(db.recentSessions(start.eventId, 1)[0]).toMatchObject({ printCount: 3, reprinted: 1 });
+  });
+
+  it("tajamkan foto lama (#140): strip_web terunggah masuk antrean lagi dengan ukuran baru, tanpa baris ganda", () => {
+    const db = openDb(":memory:");
+    db.sessionStarted(start);
+    db.sessionCompleted(done);
+    db.sessionStarted({ ...start, id: "lokalsesi1", eventId: "local" });
+    db.sessionCompleted({ ...done, id: "lokalsesi1" });
+    expect(db.webSessions()).toEqual([{ id: start.id, eventId: start.eventId }]);
+    const id = `${start.id}:strip_web:0`;
+    db.uploadDone(id, "k", "2026-09-24T10:02:00Z");
+    db.uploadFailed(`${start.id}:strip:0`, "x", "2026-09-24T10:03:00Z");
+    const assets = [
+      { kind: "strip_web" as const, idx: 0, path: "/s/out/strip_web.jpg", bytes: 50 },
+      { kind: "thumb_strip" as const, idx: 0, path: "/s/out/thumb_strip.jpg", bytes: 9 },
+    ];
+    db.reupload(start.id, assets, "2026-10-01T00:00:00Z");
+    db.reupload(start.id, assets, "2026-10-01T00:00:00Z");
+    expect(
+      db.query(
+        "select kind, bytes, r2_key from assets where session_id = ? and kind in ('strip_web', 'thumb_strip') order by kind",
+        start.id,
+      ),
+    ).toEqual([
+      { kind: "strip_web", bytes: 50, r2_key: null },
+      { kind: "thumb_strip", bytes: 9, r2_key: null },
+    ]);
+    expect(db.dueUploads("2026-10-01T00:00:00Z", 2).map((u) => u.kind)).toEqual([
+      "strip_web",
+      "thumb_strip",
+    ]);
+  });
+
   it("idempotent: dipanggil ulang tidak menggandakan aset/antrean", () => {
     const db = openDb(":memory:");
     db.sessionStarted(start);
@@ -159,5 +234,56 @@ describe("log harian", () => {
       writeFileSync(join(dir, f), "");
     expect(pruneLogs(dir, new Date("2026-09-24T12:00:00Z"))).toEqual(["2026-09-01.log"]);
     expect(readdirSync(dir).sort()).toEqual(["2026-09-10.log", "2026-09-24.log", "catatan.txt"]);
+  });
+
+  it("Photo Stage (#178): sumber + nama grup ikut metadata; ganti nama setelah terunggah = dueMeta", () => {
+    const db = openDb(":memory:");
+    db.sessionStarted({ ...start, source: "stage", groupName: "Keluarga Inti" });
+    db.sessionCompleted({ ...done, assets: [done.assets[2], done.assets[3]].filter((a) => !!a) });
+    expect(db.sessionMeta(start.id)).toMatchObject({ source: "stage", groupName: "Keluarga Inti" });
+    expect(db.dueMeta(10)).toEqual([]);
+    for (const u of db.dueUploads("9999", 10))
+      db.uploadDone(u.assetId, `k/${u.assetId}`, "2026-09-24T10:02:00Z");
+    db.sessionMetaSynced(start.id);
+    expect(db.dueMeta(10)).toEqual([]);
+    db.sessionRename(start.id, "Keluarga Besar Bpk. Hadi");
+    expect(db.dueMeta(10)).toEqual([start.id]);
+    expect(db.sessionMeta(start.id).groupName).toBe("Keluarga Besar Bpk. Hadi");
+    db.sessionMetaSynced(start.id);
+    expect(db.dueMeta(10)).toEqual([]);
+  });
+
+  it("Photo Stage (#195): sembunyikan foto & tambah foto (Gabung) = metadata dikirim ulang", () => {
+    const db = openDb(":memory:");
+    db.sessionStarted({ ...start, source: "stage" });
+    db.sessionCompleted({ ...done, assets: [done.assets[2], done.assets[3]].filter((a) => !!a) });
+    for (const u of db.dueUploads("9999", 10))
+      db.uploadDone(u.assetId, `k/${u.assetId}`, "2026-09-24T10:02:00Z");
+    db.sessionMetaSynced(start.id);
+    expect("hiddenIdx" in db.sessionMeta(start.id)).toBe(false);
+    db.stageHide(start.id, [2, 1, 2]);
+    expect(db.sessionMeta(start.id).hiddenIdx).toEqual([1, 2]);
+    expect(db.dueMeta(10)).toEqual([start.id]);
+    db.sessionMetaSynced(start.id);
+    const before = db.sessionMeta(start.id).assetCount;
+    db.stageAppend(start.id, 5, [
+      { kind: "original", idx: 5, path: "/s/original_5.jpg", bytes: 10 },
+    ]);
+    expect(db.sessionMeta(start.id)).toMatchObject({ photoCount: 5, assetCount: before + 1 });
+    // Aset baru antre dulu; setelah terunggah dan ada foto tersembunyi, metadata dikirim ulang.
+    expect(db.dueMeta(10)).toEqual([]);
+    for (const u of db.dueUploads("9999", 10))
+      db.uploadDone(u.assetId, `k/${u.assetId}`, "2026-09-24T10:03:00Z");
+    expect(db.dueMeta(10)).toEqual([start.id]);
+  });
+
+  it("sesi booth biasa tidak membawa field Photo Stage dan tidak bisa diganti nama", () => {
+    const db = openDb(":memory:");
+    db.sessionStarted(start);
+    db.sessionCompleted(done);
+    const m = db.sessionMeta(start.id);
+    expect("source" in m).toBe(false);
+    db.sessionRename(start.id, "x");
+    expect(db.query("select group_name from sessions")).toEqual([{ group_name: null }]);
   });
 });

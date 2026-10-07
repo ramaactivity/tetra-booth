@@ -23,6 +23,9 @@ export default defineConfig({
       PAYMENT_PROVIDER: "fake",
       XENDIT_CALLBACK_TOKEN: "e2e-callback-token",
       MIDTRANS_SERVER_KEY: "SB-Mid-server-e2e",
+      // Tetra Ops palsu (stub http lokal di e2e/wizard-ops.spec.ts, DECISIONS #150).
+      TETRA_OPS_URL: "http://127.0.0.1:4019",
+      TETRA_OPS_TOKEN: "e2e-ops-token",
     },
   },
 });

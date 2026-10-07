@@ -28,6 +28,7 @@ import { copyLayout, StoredLayout } from "@/lib/layouts";
 import { consentVersion, LEAD_FIELDS } from "@/lib/leads";
 import type { PhotoboxLayoutSetting, PhotoboxSettings } from "@/lib/payments";
 import { putObject } from "@/lib/r2";
+import { groupLines } from "@/lib/stage-groups";
 import { requireMember } from "@/lib/supabase/server";
 
 const DAY = 86_400_000;
@@ -53,7 +54,10 @@ const int = (min: number, max: number) => z.coerce.number().int().min(min).max(m
 /** Minimal nominal QRIS Xendit. */
 const MIN_PRICE = 1500;
 
-const Design = z.union([z.enum(EVENT_PRESETS), z.string().regex(/^tpl:[0-9a-f-]{36}$/)]);
+const Tpl = z.string().regex(/^tpl:[0-9a-f-]{36}$/);
+const Design = z.union([z.enum(EVENT_PRESETS), Tpl]);
+/** "Salin & sesuaikan" juga menerima bentuk dasar di luar EVENT_PRESETS (mis. Polaroid): salinannya template. */
+const CopySource = z.union([z.enum(Object.keys(LAYOUT_PRESETS) as [PresetId, ...PresetId[]]), Tpl]);
 /** Desain frame event: 1–3, ukuran kertas sama; lebih dari satu = tamu memilih (DECISIONS #99). */
 const MAX_DESIGNS = 3;
 
@@ -63,6 +67,24 @@ const Form = z.object({
   location: z.string().trim().max(120),
   tagline: z.string().trim().max(40),
   client_name: z.string().trim().max(120),
+  /** Paket (#150). Tidak dikirim = tidak diubah; kosong = dihapus. */
+  package_name: z.string().trim().max(80).optional(),
+  /** Tautan booking Tetra Ops (#193), mis. PRJ-20261004-9023; kosong = tidak ditautkan. Tidak dikirim = tidak diubah. */
+  ops_project_id: z
+    .union([
+      z.literal(""),
+      z
+        .string()
+        .trim()
+        .regex(/^[\w-]{1,64}$/),
+    ])
+    .optional(),
+  package_hours: z
+    .union([z.literal(""), z.coerce.number().min(0.5).max(48).multipleOf(0.5)])
+    .optional(),
+  /** Jadwal booking (#152), "HH:MM". Tidak dikirim = tidak diubah; kosong = dihapus. */
+  scheduled_start: z.union([z.literal(""), z.string().regex(/^\d{2}:\d{2}$/)]).optional(),
+  scheduled_end: z.union([z.literal(""), z.string().regex(/^\d{2}:\d{2}$/)]).optional(),
   background: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   guest_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   attract_bg: z.string().regex(/^#[0-9a-fA-F]{6}$/),
@@ -73,6 +95,9 @@ const Form = z.object({
   maxPrints: int(1, 10),
   reviewTimeoutSec: int(5, 120),
   qrScreenSec: int(10, 300),
+  // Wizard Buat event tidak mengirim setelan Photo Stage (#192): pakai bawaan.
+  stageGapSec: int(15, 180).default(45),
+  stageTvSec: int(10, 120).default(30),
   mode: z.enum(["event", "photobox"]),
   lead_mode: z.enum(["gate", "optional"]),
   consent_text: z.string().trim().max(600),
@@ -90,17 +115,32 @@ const lines = (v: FormDataEntryValue | null) =>
     .filter(Boolean)
     .slice(0, 10);
 
-export type SaveResult = { ok: boolean; message: string } | null;
+/** `copied` = id template salinan "Salin & sesuaikan" (editor dibuka setelah simpan). */
+export type SaveResult = { ok: boolean; message: string; copied?: string; slug?: string } | null;
 
-/**
- * Simpan pengaturan event (E3) + template (preset, latar, overlay) → bundle baru (bundle_version + 1) →
- * booth menarik versi baru saat online. Penugasan device diganti sesuai centang.
- */
+/** Simpan dari halaman Pengaturan; "Salin & sesuaikan" langsung membuka editor salinannya. */
 export async function saveEvent(
   eventId: string,
+  slug: string,
   _prev: SaveResult,
   form: FormData,
 ): Promise<SaveResult> {
+  const r = await applySettings(eventId, form);
+  if (r.copied) redirect(`/admin/templates/${r.copied}`);
+  // Nama/tanggal berubah → slug baru (trigger DB); URL lama tidak berlaku lagi.
+  if (r.slug && r.slug !== slug) redirect(`/admin/events/${r.slug}/settings`);
+  return r;
+}
+
+/**
+ * Simpan pengaturan event (E3) + template (preset, latar, overlay) → bundle baru (bundle_version + 1) →
+ * booth menarik versi baru saat online. Penugasan device diganti sesuai centang. Dipakai Pengaturan dan
+ * wizard Buat event (satu jalur simpan, bundle selalu sah).
+ */
+export async function applySettings(
+  eventId: string,
+  form: FormData,
+): Promise<NonNullable<SaveResult>> {
   const { db, orgId } = await requireMember(["owner", "admin"]);
   const p = Form.safeParse(Object.fromEntries(form));
   if (!p.success) return { ok: false, message: "Periksa lagi isian yang ditandai" };
@@ -229,6 +269,8 @@ export async function saveEvent(
     maxPrints: f.maxPrints,
     reviewTimeoutSec: f.reviewTimeoutSec,
     qrScreenSec: f.qrScreenSec,
+    stageGapSec: f.stageGapSec,
+    stageTvSec: f.stageTvSec,
     countdownSound: form.get("countdownSound") === "on",
     bumper: form.get("bumper") === "on",
     countdownVideo: form.get("countdownVideo") === "on",
@@ -238,6 +280,7 @@ export async function saveEvent(
     ).map((x) => x.id),
     promptsBefore: lines(form.get("prompts_before")),
     promptsAfter: lines(form.get("prompts_after")),
+    stageGroups: groupLines(form.get("stage_groups")),
   };
   /** Versi terbaru template editor (dikunci ke event saat simpan). */
   const latest = async (layoutId: string) => {
@@ -264,10 +307,14 @@ export async function saveEvent(
     pbTemplates[l.template] = { name: lv.name, custom: lv.custom };
   }
   // Desain frame (utama dulu): preset, atau `tpl:<layoutId>` = template editor (versi terbaru dikunci saat simpan).
-  const copy = Design.safeParse(form.get("copy"));
+  const copy = CopySource.safeParse(form.get("copy"));
   const values = [...new Set(form.getAll("design").map(String))];
   if (copy.success && !values.includes(copy.data)) values.push(copy.data);
-  const picked = z.array(Design).min(1).max(MAX_DESIGNS).safeParse(values);
+  const picked = z
+    .array(copy.success ? z.union([Design, z.literal(copy.data)]) : Design)
+    .min(1)
+    .max(MAX_DESIGNS)
+    .safeParse(values);
   if (!picked.success)
     return {
       ok: false,
@@ -364,12 +411,19 @@ export async function saveEvent(
   const start = new Date(`${f.event_date}T00:00:00+07:00`).getTime();
   const guest = new Date(start + f.guest_days * DAY).toISOString();
   const client = new Date(start + f.client_days * DAY).toISOString();
-  const { error } = await db
+  const { data: saved, error } = await db
     .from("events")
     .update({
       name: f.name,
       event_date: f.event_date,
       location: f.location || null,
+      ...(f.package_name !== undefined && { package_name: f.package_name || null }),
+      ...(f.ops_project_id !== undefined && { ops_project_id: f.ops_project_id || null }),
+      ...(f.package_hours !== undefined && {
+        package_hours: f.package_hours === "" ? null : f.package_hours,
+      }),
+      ...(f.scheduled_start !== undefined && { scheduled_start: f.scheduled_start || null }),
+      ...(f.scheduled_end !== undefined && { scheduled_end: f.scheduled_end || null }),
       mode: f.mode,
       lead_capture,
       settings: {
@@ -389,8 +443,10 @@ export async function saveEvent(
       all_devices: allDevices,
     })
     .eq("id", eventId)
-    .eq("organization_id", orgId);
-  if (error) {
+    .eq("organization_id", orgId)
+    .select("slug")
+    .single();
+  if (error || !saved) {
     await dropCopy();
     return { ok: false, message: "Gagal menyimpan, coba lagi" };
   }
@@ -409,11 +465,12 @@ export async function saveEvent(
       .from("event_devices")
       .upsert(want.map((device_id) => ({ organization_id: orgId, event_id: eventId, device_id })));
 
-  revalidatePath(`/admin/events/${eventId}/settings`);
+  revalidatePath("/admin/(app)/events/[id]", "layout");
   revalidatePath("/admin");
-  if (copied) redirect(`/admin/templates/${copied}`);
   return {
     ok: true,
     message: `Tersimpan · bundle v${ev.bundle_version + 1}. Booth menerima pengaturan baru saat online.`,
+    slug: saved.slug,
+    ...(copied && { copied }),
   };
 }

@@ -55,6 +55,16 @@ export function createUploader(o: {
   /** Unggah semua yang jatuh tempo, 2 sekaligus; berhenti kalau satu putaran gagal semua (mis. offline). */
   const drain = () => {
     draining ??= (async () => {
+      // Metadata saja (nama grup Photo Stage diganti setelah foto terunggah, #178). Gagal = dicoba di drain berikutnya.
+      for (const id of o.db.dueMeta(20)) {
+        try {
+          await o.api("/api/booth/sessions", o.db.sessionMeta(id));
+          o.db.sessionMetaSynced(id);
+        } catch (e) {
+          o.log(`[upload] metadata ${id} gagal (${e instanceof Error ? e.message : String(e)})`);
+          break;
+        }
+      }
       for (;;) {
         const due = o.db.dueUploads(iso(now()), CONCURRENCY);
         if (!due.length) return;

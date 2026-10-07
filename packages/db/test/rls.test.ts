@@ -107,6 +107,45 @@ describe("migrasi & RLS", () => {
     expect(upd.updated_at > ev.updated_at).toBe(true);
   });
 
+  it("slug event: nama + tanggal, aksen & tahun dobel dibuang, unik global, ikut nama", async () => {
+    await c.query("reset role");
+    const add = async (name: string) =>
+      (
+        await c.query(
+          "insert into events(organization_id, name, mode, event_date) values ($1,$2,'event','2026-10-04') returning id, slug",
+          [org, name],
+        )
+      ).rows[0] as { id: string; slug: string };
+    const evs = [
+      await add("Employee Day — DSO"),
+      await add("employee day dso"),
+      await add("Café Ñandú!"),
+      await add("Employee Day DSO 2026"),
+    ];
+    expect(evs.map((e) => e.slug)).toEqual([
+      "employee-day-dso-2026-10-04",
+      "employee-day-dso-2026-10-04-2",
+      "cafe-nandu-2026-10-04",
+      "employee-day-dso-2026-10-04-3",
+    ]);
+    // Unik global (link publik /g/<slug>): organisasi lain dengan nama sama dapat akhiran.
+    const org2 = (
+      await c.query("insert into organizations(name, slug) values ('Lain','lain') returning id")
+    ).rows[0].id as string;
+    const lain = await c.query(
+      "insert into events(organization_id, name, mode, event_date) values ($1,'Gala Malam 2025','event','2026-10-04') returning id, slug",
+      [org2],
+    );
+    expect(lain.rows[0].slug).toBe("gala-malam-2025-2026-10-04");
+    await c.query("delete from events where id = $1", [lain.rows[0].id]);
+    await c.query("delete from organizations where id = $1", [org2]);
+    const upd = await c.query("update events set name = 'Gala' where id = $1 returning slug", [
+      evs[1]?.id,
+    ]);
+    expect(upd.rows[0].slug).toBe("gala-2026-10-04");
+    await c.query("delete from events where id = any($1)", [evs.map((e) => e.id)]);
+  });
+
   it("bukan anggota: tidak lihat event organisasi lain, insert ditolak", async () => {
     await as(other);
     expect(await count("events")).toBe(0);

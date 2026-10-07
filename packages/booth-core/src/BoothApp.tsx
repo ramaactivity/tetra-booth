@@ -8,6 +8,7 @@ import { type BoothEvent, DEFAULT_EVENT, loadEvent, releaseEvent } from "./event
 import { usePlatform } from "./PlatformContext";
 import type { PrinterAlert } from "./platform";
 import { SessionRunner } from "./SessionRunner";
+import { StageRunner } from "./StageRunner";
 import { StartScreen } from "./screens/StartScreen";
 import { Stage } from "./ui";
 
@@ -40,6 +41,8 @@ export function BoothApp({
   // Tombol Dashboard Admin di layar awal: PIN crew dulu, lalu browser terbuka.
   const [adminIntent, setAdminIntent] = useState(false);
   const [exitIntent, setExitIntent] = useState(false);
+  /** Mode "Tes dulu" (#153): sesi ditandai tes, lencana TES di pojok. Dipilih ulang tiap Buka untuk Tamu. */
+  const [testMode, setTestMode] = useState(false);
   // Kursor di mode tamu: diatur crew (CrewMenu), dibaca ulang tiap mode crew ditutup.
   const [showCursor, setShowCursor] = useState(guestCursor.shown);
   // Notifikasi hasil update (berhasil / gagal dipasang) sekali setelah booth terbuka lagi (masukan Rama).
@@ -154,6 +157,7 @@ export function BoothApp({
         <CrewMode
           event={event}
           bundles={bundles}
+          guestBaseUrl={guestBaseUrl}
           onSelectEvent={(id) => {
             // Event dipilih lewat layar pilih mode di mode crew → layar awal selesai.
             setStart(false);
@@ -162,7 +166,8 @@ export function BoothApp({
           onReloadEvents={reload}
           openAdmin={adminIntent}
           openExit={exitIntent}
-          onClose={() => {
+          onClose={(mode) => {
+            if (mode) setTestMode(mode === "test");
             setAdminIntent(false);
             setExitIntent(false);
             setShowCursor(guestCursor.shown());
@@ -176,19 +181,30 @@ export function BoothApp({
   return (
     <div className={kiosk && !showCursor ? "cursor-none [&_*]:cursor-none" : undefined}>
       <Stage>
-        <SessionRunner
-          key={event.id}
-          event={runEvent}
-          guestBaseUrl={guestBaseUrl}
-          demo={demo}
-          fast={fast}
-          bumper={bumper}
-          onCrew={(intent) => {
-            setExitIntent(intent === "exit");
-            setCrewOpen(true);
-          }}
-        />
-        {alert && (
+        {p.stage ? (
+          <StageRunner
+            key={event.id}
+            event={event}
+            guestBaseUrl={guestBaseUrl}
+            onCrew={() => setCrewOpen(true)}
+          />
+        ) : (
+          <SessionRunner
+            key={event.id}
+            event={runEvent}
+            guestBaseUrl={guestBaseUrl}
+            demo={demo}
+            fast={fast}
+            bumper={bumper}
+            test={testMode}
+            onCrew={(intent) => {
+              setExitIntent(intent === "exit");
+              setCrewOpen(true);
+            }}
+          />
+        )}
+        {/* Stage (#178) belum mencetak: peringatan printer booth tidak relevan. */}
+        {alert && !p.stage && (
           <p
             className="absolute bottom-5 left-6 flex items-center gap-2.5 rounded-full border-2 border-ink bg-white px-4 py-1.5 text-xl font-semibold"
             role="status"

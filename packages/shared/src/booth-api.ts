@@ -27,7 +27,7 @@ export const BoothStatus = z.object({
   activeEventName: tolerant(z.string().max(120)),
   camera: tolerant(
     z.object({
-      kind: z.enum(["webcam", "simulated", "hotfolder", "canon"]),
+      kind: z.enum(["webcam", "simulated", "hotfolder", "canon", "sony"]),
       /** null = tidak dipantau main (webcam dikelola renderer). */
       connected: z.boolean().nullable(),
       model: z.string().max(80).nullable(),
@@ -75,9 +75,15 @@ export const BoothRelease = z.object({
   key: z.string().min(1),
   sha256: z.string().regex(/^[0-9a-f]{64}$/),
   size: z.number().int().positive(),
+  /** Blockmap installer (update diferensial, DECISIONS #139); tidak ada = booth mengunduh penuh. */
+  blockmapKey: z.string().min(1).optional(),
 });
 export type BoothRelease = z.infer<typeof BoothRelease>;
-export const BoothUpdateResponse = BoothRelease.extend({ url: z.url() });
+/** Booth lama mengabaikan `blockmapUrl` (z.object membuang kunci tak dikenal). */
+export const BoothUpdateResponse = BoothRelease.extend({
+  url: z.url(),
+  blockmapUrl: z.url().optional(),
+});
 
 /**
  * DLL Canon EDSDK untuk booth yang sudah dipasangkan (DECISIONS #112): disimpan privat di R2 (lisensi Canon,
@@ -171,6 +177,17 @@ export const SessionUpsert = z.object({
   paymentId: z.uuid().optional(),
   /** Jumlah aset yang akan diunggah; sesi `complete` saat semuanya tercatat. */
   assetCount: z.number().int().min(1).max(50),
+  /** Sesi mode "Tes dulu" crew (#153): tidak dihitung di statistik, rekap, galeri. Booth lama = tidak dikirim. */
+  isTest: z.boolean().optional(),
+  /** Photo Stage (#178): sumber sesi; tidak dikirim = booth. */
+  source: z.enum(["booth", "stage"]).optional(),
+  /**
+   * Photo Stage (#195): nomor foto (idx original) yang disembunyikan dari tamu & galeri (riwayat laptop stage:
+   * Sembunyikan / Pisah / Gabung). Tidak dikirim = tidak diubah; [] = semua tampil.
+   */
+  hiddenIdx: z.array(z.number().int().min(1).max(20)).max(20).optional(),
+  /** Photo Stage: nama grup rombongan (null = tanpa nama). Upsert ulang = ganti nama. */
+  groupName: z.string().trim().max(120).nullable().optional(),
 });
 export type SessionUpsert = z.infer<typeof SessionUpsert>;
 
@@ -197,6 +214,10 @@ export const AssetsResponse = z.object({
   uploadStatus: z.enum(["pending", "partial", "complete"]),
 });
 export type AssetsResponse = z.infer<typeof AssetsResponse>;
+
+/** POST /api/booth/events/{id}/gallery-link: aktifkan link galeri klien event ini (idempotent), balas slug. */
+export const GalleryLinkResponse = z.object({ slug: z.string().regex(/^[\w-]{1,80}$/) });
+export type GalleryLinkResponse = z.infer<typeof GalleryLinkResponse>;
 
 /** POST /api/track (publik, rate-limited): analytics halaman tamu (FSD §2). */
 export const TrackRequest = z.object({

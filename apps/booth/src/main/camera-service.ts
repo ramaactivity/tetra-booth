@@ -14,6 +14,7 @@ import {
 } from "./camera-client";
 import { cameraServiceFlags } from "./config";
 import type { BoothDb } from "./db";
+import { stageReassert, stageShot } from "./stage";
 import { createSupervisor } from "./supervisor";
 import { waitUntil } from "./wait";
 
@@ -62,12 +63,7 @@ const freePort = () =>
  * Jalankan Camera Service di bawah supervisor dengan port & token acak (TSD §1).
  * Token lewat env, bukan argumen, supaya tidak terlihat di daftar proses.
  */
-export async function startCameraService(
-  log: (m: string) => void,
-  db: BoothDb,
-  alerts: Alerts,
-  extraArgs: readonly string[] = [],
-) {
+export async function startCameraService(log: (m: string) => void, db: BoothDb, alerts: Alerts) {
   const bin = findBinary();
   if (!bin) {
     log(
@@ -81,12 +77,14 @@ export async function startCameraService(
   // Jurnal print di folder data booth: kirim ulang setelah crash tidak mencetak dua kali (DECISIONS #39).
   const args = [
     ...cameraServiceFlags.args,
-    ...extraArgs,
     "--print-journal",
     join(app.getPath("userData"), "print-journal.log"),
     // Setelan Canon dari mode crew, dipasang ulang tiap kamera tersambung (#113).
     ...(cameraServiceFlags.args.includes("--canon")
       ? ["--canon-settings", join(app.getPath("userData"), "canon-settings.json")]
+      : []),
+    ...(cameraServiceFlags.args.includes("--sony")
+      ? ["--sony-settings", join(app.getPath("userData"), "sony-settings.json")]
       : []),
   ];
   log(`[supervisor] ${bin} port ${port} ${args.join(" ")}`);
@@ -151,21 +149,28 @@ export async function startCameraService(
 
 /** Hasil cetak datang sebagai event, bukan balasan print.submit: catat ke print_jobs + log (M-007). */
 export function watchPrintEvents(log: (m: string) => void, db: BoothDb, alerts: Alerts) {
-  return listenEvents((e) => {
-    if (e.type === "print.done") {
-      db.printJobResult(e.payload.jobId, "done");
-      alerts.onPrintDone(e.payload.jobId);
-      log(`[print] selesai ${e.payload.jobId} · kertas ${db.paper().remaining}`);
-    } else if (e.type === "print.failed") {
-      db.printJobResult(e.payload.jobId, "failed", `${e.payload.code}: ${e.payload.message}`);
-      alerts.onPrintFailed(e.payload.jobId, `${e.payload.code}: ${e.payload.message}`);
-      log(`[print] GAGAL ${e.payload.jobId}: ${e.payload.code} ${e.payload.message}`);
-    } else if (e.type === "printer.status") {
-      alerts.onPrinterStatus(e.payload.status, e.payload.message);
-      const msg = e.payload.message ? `: ${e.payload.message}` : "";
-      log(`[print] printer ${e.payload.status}${msg}`);
-    }
-  });
+  return listenEvents(
+    (e) => {
+      if (e.type === "capture.shot") {
+        stageShot(e.payload);
+        return;
+      }
+      if (e.type === "print.done") {
+        db.printJobResult(e.payload.jobId, "done");
+        alerts.onPrintDone(e.payload.jobId);
+        log(`[print] selesai ${e.payload.jobId} · kertas ${db.paper().remaining}`);
+      } else if (e.type === "print.failed") {
+        db.printJobResult(e.payload.jobId, "failed", `${e.payload.code}: ${e.payload.message}`);
+        alerts.onPrintFailed(e.payload.jobId, `${e.payload.code}: ${e.payload.message}`);
+        log(`[print] GAGAL ${e.payload.jobId}: ${e.payload.code} ${e.payload.message}`);
+      } else if (e.type === "printer.status") {
+        alerts.onPrinterStatus(e.payload.status, e.payload.message);
+        const msg = e.payload.message ? `: ${e.payload.message}` : "";
+        log(`[print] printer ${e.payload.status}${msg}`);
+      }
+    },
+    () => stageReassert(log),
+  );
 }
 
 /** Batas tunggu print selesai saat app ditutup (M-012). */
