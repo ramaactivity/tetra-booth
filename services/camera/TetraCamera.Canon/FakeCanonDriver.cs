@@ -85,6 +85,12 @@ public sealed class FakeCanonDriver : ICanonDriver
     };
     public uint GetProp(uint propId) => Props[propId];
     public uint[] PropOptions(uint propId) => Options[propId];
-    public void SetProp(uint propId, uint value) => Props[propId] = value;
+    /// <summary>true = ubah setelan selalu ditolak DEVICE_BUSY (700D saat jepret, 2026-10-07).</summary>
+    public volatile bool RejectSet;
+    public void SetProp(uint propId, uint value)
+    {
+        if (RejectSet) throw new CameraFailure("canon_error", "EDSDK ubah setelan gagal: 0x00000081");
+        Props[propId] = value;
+    }
     public void Dispose() => Close();
 }

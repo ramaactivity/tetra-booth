@@ -155,6 +155,21 @@ public class CanonCameraTests
     }
 
     [Fact]
+    public async Task Kamera_menolak_ISO_jepret_tetap_jepret_dengan_setelan_live_view()
+    {
+        var d = new FakeCanonDriver();
+        using var cam = Make(d);
+        await Until(() => cam.Connected);
+        await cam.SetPropAsync("iso", "ISO 800");
+        await cam.SetPropAsync("iso_capture", "ISO 200");
+        d.RejectSet = true;
+        var dir = Path.Combine(Path.GetTempPath(), $"tc-iso-{Guid.NewGuid():N}");
+        var r = await cam.CaptureAsync(dir, 0);
+        Assert.True(File.Exists(r.Path));
+        Assert.Equal([0x60u], d.IsoAtCapture); // ISO live view, bukan batal
+    }
+
+    [Fact]
     public async Task Shutter_jepret_dipasang_saat_rana_bersama_ISO_lalu_keduanya_dikembalikan()
     {
         var d = new FakeCanonDriver();
