@@ -118,7 +118,8 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   await expect(tvWin.getByRole("heading", { name: "Keluarga Besar Bpk. Hadi" })).toBeVisible();
   await expect(tvWin.getByText("Scan untuk ambil fotomu")).toBeVisible();
   await expect(tvWin.getByText("Rombongan sebelumnya")).toBeVisible();
-  await expect(tvWin.locator("img")).toHaveCount(1, { timeout: 10_000 });
+  // Lapisan aktif (B4): 1 foto rombongan #2; galeri idle tetap ter-mount di belakang (#189).
+  await expect(tvWin.locator('[aria-hidden="false"] img')).toHaveCount(1, { timeout: 10_000 });
   await tvWin.screenshot({ path: "test-results/stage-tv.png" });
 
   // Cetak instan 4R (#183): foto landscape → lembar 4R lewat antrean print booth.

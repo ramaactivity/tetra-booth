@@ -6,6 +6,7 @@ import {
   type StageState,
   stagePrintLayout,
   stageReducer,
+  tvMosaic,
 } from "./stage";
 
 const shot = (at: number) => ({ path: `/s/${at}.jpg`, width: 6000, height: 4000, at });
@@ -121,5 +122,20 @@ describe("baki jeda (#186)", () => {
     expect(s.loose).toEqual([]);
     const d = run(base, { type: "SHOT", shot: shot(2000), id: "x" }, { type: "DROP_LOOSE" });
     expect([d.loose.length, d.groups.length]).toEqual([0, 1]);
+  });
+});
+
+describe("tvMosaic (#189)", () => {
+  it("1–5 foto 3:2 muat di area foto TV tanpa tumpang tindih", () => {
+    for (const n of [1, 2, 3, 4, 5]) {
+      const m = tvMosaic(n, 1220, 600, 32);
+      expect(m.boxes).toHaveLength(n);
+      expect(m.w).toBeLessThanOrEqual(1220 + 1);
+      expect(m.h).toBeLessThanOrEqual(600 + 1);
+      for (const b of m.boxes) expect(Math.abs(b.w / b.h - 1.5)).toBeLessThan(0.02);
+    }
+    expect(tvMosaic(3, 1220, 600, 32).boxes[0]?.w).toBeGreaterThan(
+      tvMosaic(3, 1220, 600, 32).boxes[1]?.w ?? 0,
+    );
   });
 });

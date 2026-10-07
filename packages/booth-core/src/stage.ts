@@ -124,23 +124,35 @@ export function stageReducer(s: StageState, a: StageAction): StageState {
   }
 }
 
+const hm = (ms: number) =>
+  new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(ms);
 /** Label rombongan tanpa nama: "Tamu · 19.42" (jam mulai, WIB laptop). */
-export const groupLabel = (g: StageGroup) =>
-  g.name ??
-  `Tamu · ${new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(g.startedAt)}`;
+export const groupLabel = (g: StageGroup) => g.name ?? `Tamu · ${hm(g.startedAt)}`;
 
 /** Keadaan yang dikirim layar operator ke jendela TV (#179). Foto = path file kamera di laptop. */
 export type StageTvState = {
   eventName: string;
+  /** Label kecil di atas nama event, mis. "The Wedding of". */
+  tagline?: string | undefined;
+  date?: string | undefined;
+  /** QR galeri acara di layar idle (#189); null = tidak ditampilkan. */
+  galleryUrl?: string | null;
   guestBaseUrl: string;
   /** CSS filter preset warna (pratinjau = hasil). */
   filter: string;
   /** Rombongan terbaru yang punya foto; `at` = jepretan terakhirnya. */
-  active: { id: string; no: number; label: string; shots: string[]; at: number } | null;
+  active: {
+    id: string;
+    no: number;
+    label: string;
+    time: string;
+    shots: string[];
+    at: number;
+  } | null;
   /** Dua rombongan sebelumnya (tamu yang turunnya lambat). */
   previous: { id: string; no: number; label: string }[];
-  /** Foto terbaru acara untuk galeri berjalan saat idle. */
-  recent: string[];
+  /** Foto terbaru acara untuk galeri berjalan saat idle (satu per rombongan). */
+  recent: { path: string; label: string; time: string }[];
   /** Lama tampilan aktif setelah jepretan terakhir (detik). */
   activeSec: number;
   /** Layar uji dari wizard persiapan (#188). */
@@ -152,7 +164,7 @@ export type StageTvState = {
 /** Ringkasan untuk TV dari keadaan rombongan. */
 export function tvState(
   s: StageState,
-  base: Pick<StageTvState, "eventName" | "guestBaseUrl" | "filter" | "activeSec" | "lut" | "test">,
+  base: Omit<StageTvState, "active" | "previous" | "recent">,
 ): StageTvState {
   const withShots = s.groups.filter((g) => g.shots.length);
   const a = withShots.at(-1);
@@ -163,6 +175,7 @@ export function tvState(
           id: a.id,
           no: a.no,
           label: groupLabel(a),
+          time: hm(a.startedAt),
           shots: a.shots.map((x) => x.path),
           at: a.shots.at(-1)?.at ?? a.startedAt,
         }
@@ -171,7 +184,9 @@ export function tvState(
       .slice(-3, -1)
       .reverse()
       .map((g) => ({ id: g.id, no: g.no, label: groupLabel(g) })),
-    recent: withShots.flatMap((g) => g.shots.map((x) => x.path)).slice(-30),
+    recent: withShots
+      .slice(-12)
+      .map((g) => ({ path: g.shots[0]?.path ?? "", label: groupLabel(g), time: hm(g.startedAt) })),
   };
 }
 
@@ -193,5 +208,75 @@ export function stagePrintLayout(
     background: { color: "#ffffff" },
     slots: [{ id: "photo", x: 0, y: 0, w: width, h: height, fit: "cover", z: "below_overlay" }],
     texts: [],
+  };
+}
+
+type Box = { x: number; y: number; w: number; h: number };
+/**
+ * Mosaik 1–5 foto 3:2 di area W×H (desain B4): 1 tunggal, 2 berdampingan, 3 = 1 besar + 2 bertumpuk, 4 = 2×2,
+ * 5 = 1 besar + 2×2. `f` = bingkai (padding 14 + border 3, dua sisi).
+ */
+export function tvMosaic(
+  n: number,
+  W: number,
+  H: number,
+  g: number,
+): { w: number; h: number; boxes: Box[] } {
+  const f = 34;
+  const small = (u: number) => ({ cw: u + f, ch: u / 1.5 + f });
+  let boxes: Box[];
+  if (n <= 2) {
+    const u = Math.min((W - (n - 1) * g) / n - f, (H - f) * 1.5);
+    boxes = Array.from({ length: n }, (_, i) => ({
+      x: i * (small(u).cw + g),
+      y: 0,
+      w: u,
+      h: u / 1.5,
+    }));
+  } else if (n === 4) {
+    const u = Math.min((W - g) / 2 - f, ((H - g) / 2 - f) * 1.5);
+    const { cw, ch } = small(u);
+    boxes = Array.from({ length: 4 }, (_, i) => ({
+      x: (i % 2) * (cw + g),
+      y: Math.floor(i / 2) * (ch + g),
+      w: u,
+      h: u / 1.5,
+    }));
+  } else {
+    const cols = n === 3 ? 1 : 2;
+    const dims = (u: number) => {
+      const { cw, ch } = small(u);
+      const bh = 2 * ch + g;
+      const bw = (bh - f) * 1.5 + f;
+      return { W: bw + g + cols * cw + (cols - 1) * g, H: bh, bw, bh, cw, ch };
+    };
+    let u = 1400;
+    while (u > 40) {
+      const d = dims(u);
+      if (d.W <= W && d.H <= H) break;
+      u -= 2;
+    }
+    const d = dims(u);
+    boxes = [{ x: 0, y: 0, w: d.bw - f, h: d.bh - f }];
+    for (let i = 1; i < n; i++) {
+      const k = i - 1;
+      boxes.push({
+        x: d.bw + g + (k % cols) * (d.cw + g),
+        y: Math.floor(k / cols) * (d.ch + g),
+        w: u,
+        h: u / 1.5,
+      });
+    }
+  }
+  const r = boxes.map((b) => ({
+    x: Math.round(b.x),
+    y: Math.round(b.y),
+    w: Math.round(b.w),
+    h: Math.round(b.h),
+  }));
+  return {
+    w: Math.max(...r.map((b) => b.x + b.w + f)),
+    h: Math.max(...r.map((b) => b.y + b.h + f)),
+    boxes: r,
   };
 }

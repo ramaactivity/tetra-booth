@@ -266,6 +266,9 @@ export function StageRunner({
     stage?.tv.publish(
       tvState(s, {
         eventName: event.name,
+        tagline: event.tagline,
+        date: event.date,
+        galleryUrl: event.slug ? `${guestBaseUrl}/l/${event.slug}` : null,
         guestBaseUrl,
         filter: stagePresetCss(preset),
         activeSec: event.settings.qrScreenSec,
@@ -280,6 +283,9 @@ export function StageRunner({
     stage,
     event.id,
     event.name,
+    event.tagline,
+    event.date,
+    event.slug,
     event.settings.qrScreenSec,
     guestBaseUrl,
     setupOpen,

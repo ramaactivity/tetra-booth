@@ -7,6 +7,8 @@ export type BoothEvent = {
   id: string;
   name: string;
   tagline?: string | undefined;
+  /** Slug event cloud (link galeri `/l/{slug}`, #189); tidak ada = event lokal / bundle lama. */
+  slug?: string | undefined;
   /** Tanggal tampil di strip, mis. "12 Oktober 2026". */
   date: string;
   layout: LayoutSpec;
@@ -73,6 +75,7 @@ export async function loadEvent(bundle: EventBundle, events: BoothEvents): Promi
     id: bundle.id,
     name: bundle.name,
     tagline: bundle.tagline,
+    slug: bundle.info?.slug,
     date: bundle.date,
     layout: bundle.layout,
     settings: bundle.settings,

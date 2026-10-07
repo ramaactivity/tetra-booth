@@ -374,6 +374,8 @@ export const copy = {
     tvOn: "TV tersambung",
     tvOff: "TV tidak tersambung",
     tvScan: "Scan untuk ambil fotomu",
+    tvIdleQr: "Belum dapat\nfotomu?",
+    tvIdleQrSub: "Cari di sini",
     tvPrev: "Rombongan sebelumnya",
     tvIdle: "Foto dari pelaminan akan tampil di sini",
   },

@@ -2,12 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { copy } from "./copy";
 import { storedLut } from "./lut";
 import { usePlatform } from "./PlatformContext";
-import type { StageTvState } from "./stage";
+import { type StageTvState, tvMosaic } from "./stage";
 import { renderJpeg } from "./stageImage";
 import { QrCode, Stage } from "./ui";
 
 const t = copy.stage;
-const IDLE_SLIDE_MS = 5000;
+/** Tanpa animasi: galeri idle diam, ganti foto tiap 8 dtk (desain B6). */
+const STILL_SLIDE_MS = 8000;
+const ROTS = [-1, 1.2, -0.6, 0.8, -1.2];
+const REEL_ROTS = [-1.2, 0.8, -0.4, 1.2, -0.8, 0.5];
+
 /** Foto TV cukup 1280 px (layar 1080p); object URL disimpan per path, dibuang saat path tidak dipakai lagi. */
 function usePhotos(paths: string[], lut: StageTvState["lut"]) {
   const p = usePlatform();
@@ -52,13 +56,25 @@ function usePhotos(paths: string[], lut: StageTvState["lut"]) {
   return urls;
 }
 
+const useReducedMotion = () => {
+  const [on, setOn] = useState(() => matchMedia("(prefers-reduced-motion: reduce)").matches);
+  useEffect(() => {
+    const m = matchMedia("(prefers-reduced-motion: reduce)");
+    const f = () => setOn(m.matches);
+    m.addEventListener("change", f);
+    return () => m.removeEventListener("change", f);
+  }, []);
+  return on;
+};
+
 /**
- * Layar TV Photo Stage (#179, docs/PLAN-PHOTO-STAGE.md §5): jendela layar penuh di layar kedua. Rombongan baru →
- * nama grup + foto + QR besar selama `activeSec` setelah jepretan terakhir; selain itu galeri berjalan.
- * Tampilan sementara; desain final dari Claude Design.
+ * Layar TV Photo Stage (#189, desain B4–B6): rombongan baru → nama grup + mosaik foto + QR besar selama `activeSec`
+ * setelah jepretan terakhir (bar sisa waktu); selain itu galeri cetakan bergeser + QR galeri acara. Dua lapisan
+ * selalu ter-mount (pudar 250 ms), ganti rombongan 160 ms; tanpa animasi saat `prefers-reduced-motion`.
  */
 export function StageTv() {
   const p = usePlatform();
+  const reduce = useReducedMotion();
   const [st, setSt] = useState<StageTvState | null>(null);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -71,106 +87,223 @@ export function StageTv() {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
-  const active = st?.active && now - st.active.at < st.activeSec * 1000 ? st.active : null;
-  const photos = usePhotos(active ? active.shots : (st?.recent ?? []), st?.lut ?? null);
-  const slide = st?.recent.length
-    ? st.recent[Math.floor(now / IDLE_SLIDE_MS) % st.recent.length]
-    : undefined;
+  const live = st?.active && now - st.active.at < st.activeSec * 1000 ? st.active : null;
+  // Rombongan yang tampil berganti: konten kiri pudar 160 ms, data diganti, lalu muncul lagi.
+  const [shown, setShown] = useState(live);
+  const [swap, setSwap] = useState(false);
+  const liveKey = live ? `${live.id}:${live.shots.length}:${live.label}` : "";
+  // biome-ignore lint/correctness/useExhaustiveDependencies: dipicu pergantian isi rombongan saja
+  useEffect(() => {
+    if (!live) return;
+    if (reduce || !shown || shown.id === live.id) return setShown(live);
+    setSwap(true);
+    const id = setTimeout(() => {
+      setShown(live);
+      setSwap(false);
+    }, 160);
+    return () => clearTimeout(id);
+  }, [liveKey, reduce]);
+  const cur = live ? (shown ?? live) : shown;
+  const recent = st?.recent ?? [];
+  const photos = usePhotos(
+    [...(cur?.shots.slice(-5) ?? []), ...recent.map((r) => r.path)],
+    st?.lut ?? null,
+  );
   const filter = st?.filter ?? "none";
   const url = (id: string) => `${st?.guestBaseUrl ?? ""}/s/${id}`;
+  const act = !!live;
+  const fade = reduce ? "" : "transition-[opacity,transform] duration-[250ms] ease-out";
+  const lay = tvMosaic(Math.min(5, cur?.shots.length || 1), 1220, 600, 32);
+  const remain = live ? Math.max(0, 1 - (now - live.at) / (st?.activeSec ?? 30) / 1000) : 0;
+  // Galeri idle: deret cetakan (dua kali untuk putaran tanpa sambungan); tanpa animasi = geser tiap 8 dtk.
+  const shift = reduce && recent.length ? Math.floor(now / STILL_SLIDE_MS) % recent.length : 0;
+  const reel = [...recent.slice(shift), ...recent.slice(0, shift)].reverse();
 
   return (
     <Stage>
-      <div className="flex h-full flex-col bg-paper p-14" data-testid="stage-tv">
+      <style>
+        {"@keyframes tvMarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}"}
+      </style>
+      <div className="relative h-full overflow-hidden bg-paper" data-testid="stage-tv">
         {st?.test ? (
-          <div className="flex flex-1 items-center justify-center gap-20">
+          <div className="flex h-full items-center justify-center gap-20 p-14">
             <div className="flex max-w-[900px] flex-col gap-6">
               <p className="text-[34px] font-bold text-text-2">{st.eventName}</p>
               <h1 className="text-[104px] leading-[0.95] font-extrabold tracking-[-0.05em]">
-                {copy.stage.setup.tvTestScreen}
+                {t.setup.tvTestScreen}
               </h1>
-              <p className="text-[34px] leading-[1.35] text-text-3">
-                {copy.stage.setup.tvTestScreenSub}
-              </p>
+              <p className="text-[34px] leading-[1.35] text-text-3">{t.setup.tvTestScreenSub}</p>
             </div>
             <div className="rounded-[36px] border-[3px] border-ink bg-white p-7">
-              <QrCode url={st.guestBaseUrl} size={440} />
-            </div>
-          </div>
-        ) : active ? (
-          <div className="flex min-h-0 flex-1 gap-14">
-            <div className="flex min-w-0 flex-1 flex-col gap-8">
-              <div>
-                <p className="text-[34px] font-bold text-text-2">{t.group(active.no)}</p>
-                <h1 className="text-[76px] leading-[1.05] font-extrabold tracking-[-0.03em]">
-                  {active.label}
-                </h1>
-              </div>
-              <div
-                className={`grid min-h-0 flex-1 gap-6 ${active.shots.length === 1 ? "grid-cols-1" : active.shots.length <= 4 ? "grid-cols-2" : "grid-cols-3"}`}
-              >
-                {active.shots.map((path) => (
-                  <div
-                    key={path}
-                    className="min-h-0 overflow-hidden rounded-2xl border-[3px] border-ink bg-white p-3"
-                  >
-                    {photos[path] && (
-                      <img
-                        src={photos[path]}
-                        alt=""
-                        style={{ filter }}
-                        className="size-full rounded-lg object-contain"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex w-[560px] flex-col items-center justify-center gap-8">
-              <div className="rounded-[28px] border-[3px] border-ink bg-white p-8">
-                <QrCode url={url(active.id)} size={440} />
-              </div>
-              <p className="text-center text-[44px] font-extrabold">{t.tvScan}</p>
-              {!!st?.previous.length && (
-                <div className="flex w-full flex-col gap-3">
-                  <p className="text-2xl font-bold text-text-2">{t.tvPrev}</p>
-                  <div className="flex gap-4">
-                    {st.previous.map((g) => (
-                      <div
-                        key={g.id}
-                        className="flex flex-1 items-center gap-3 rounded-2xl border-2 border-ink bg-white p-3"
-                      >
-                        <QrCode url={url(g.id)} size={110} />
-                        <p className="min-w-0 text-xl font-bold">
-                          <span className="block text-text-2">#{g.no}</span>
-                          <span className="line-clamp-2">{g.label}</span>
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <QrCode url={st.galleryUrl ?? st.guestBaseUrl} size={440} />
             </div>
           </div>
         ) : (
-          <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[28px] border-[3px] border-ink bg-white">
-            {slide && photos[slide] ? (
-              <img
-                key={slide}
-                src={photos[slide]}
-                alt=""
-                style={{ filter }}
-                className="size-full object-contain"
-              />
-            ) : (
-              <p className="text-[44px] font-bold text-text-2">{t.tvIdle}</p>
+          <>
+            {/* B5 idle */}
+            <div
+              className={`absolute inset-0 ${fade}`}
+              style={{ opacity: act ? 0 : 1 }}
+              aria-hidden={act}
+            >
+              <div className="absolute top-[84px] left-24 flex max-w-[1150px] flex-col gap-[18px]">
+                {st?.tagline && (
+                  <span className="self-start whitespace-nowrap rounded-full border-[2.5px] border-ink bg-lavender px-[22px] py-2 text-2xl font-bold">
+                    {st.tagline}
+                  </span>
+                )}
+                <span className="text-[150px] leading-[0.9] font-extrabold tracking-[-0.055em] [text-wrap:balance]">
+                  {st?.eventName}
+                </span>
+                {st?.date && <span className="font-mono text-[26px] text-text-3">{st.date}</span>}
+              </div>
+              {st?.galleryUrl && (
+                <div className="absolute top-[84px] right-24 flex items-center gap-6 rounded-[28px] border-[2.5px] border-ink bg-sky py-[18px] pr-[30px] pl-[18px]">
+                  <div className="rounded-2xl border-2 border-ink bg-white p-2.5">
+                    <QrCode url={st.galleryUrl} size={150} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[30px] leading-[1.1] font-extrabold tracking-[-0.02em] whitespace-pre-line">
+                      {t.tvIdleQr}
+                    </span>
+                    <span className="text-[22px] font-semibold text-text-3">{t.tvIdleQrSub}</span>
+                  </div>
+                </div>
+              )}
+              <div className="absolute inset-x-0 bottom-[84px] h-[520px] overflow-hidden">
+                {reel.length ? (
+                  <div
+                    className="flex w-max gap-11 pt-4 pl-24"
+                    style={{
+                      animation: reduce
+                        ? "none"
+                        : `tvMarquee ${Math.max(30, reel.length * 15)}s linear infinite`,
+                    }}
+                  >
+                    {[...reel, ...(reduce ? [] : reel)].map((r, i) => (
+                      <div
+                        // biome-ignore lint/suspicious/noArrayIndexKey: deret diulang dua kali
+                        key={`${r.path}-${i}`}
+                        className="layered flex-none rounded-[20px] border-[3px] border-ink bg-white px-3.5 pt-3.5 [--lb:3px] [--lx:10px]"
+                        style={{ transform: `rotate(${REEL_ROTS[i % REEL_ROTS.length]}deg)` }}
+                      >
+                        <div className="h-[400px] w-[600px] overflow-hidden rounded-lg bg-neutral">
+                          {photos[r.path] && (
+                            <img
+                              src={photos[r.path]}
+                              alt=""
+                              style={{ filter }}
+                              className="size-full object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="flex h-[62px] items-center justify-between gap-4 px-1">
+                          <span className="truncate text-[22px] font-bold">{r.label}</span>
+                          <span className="font-mono text-lg text-text-2">{r.time}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="pt-40 pl-24 text-[44px] font-bold text-text-2">{t.tvIdle}</p>
+                )}
+              </div>
+            </div>
+
+            {/* B4 aktif */}
+            {cur && (
+              <div
+                className={`absolute inset-0 grid grid-cols-[minmax(0,1fr)_560px] ${fade} ${act ? "" : "pointer-events-none"}`}
+                style={{
+                  opacity: act ? 1 : 0,
+                  transform: `translateY(${act || reduce ? 0 : 12}px)`,
+                }}
+                aria-hidden={!act}
+              >
+                <div
+                  className={`flex min-w-0 flex-col gap-10 pt-[72px] pb-16 pl-[88px] ${reduce ? "" : "transition-opacity duration-[160ms]"}`}
+                  style={{ opacity: swap ? 0 : 1 }}
+                >
+                  <div className="flex flex-col gap-3.5 pr-12">
+                    <span className="font-mono text-[28px] text-text-3">
+                      {t.group(cur.no)} · {cur.time}
+                    </span>
+                    <h1
+                      className="leading-[0.95] font-extrabold tracking-[-0.05em] [text-wrap:balance]"
+                      style={{ fontSize: cur.label.length > 24 ? 92 : 104 }}
+                    >
+                      {cur.label}
+                    </h1>
+                  </div>
+                  <div className="flex min-h-0 flex-1 items-center">
+                    <div className="relative flex-none" style={{ width: lay.w, height: lay.h }}>
+                      {cur.shots.slice(-5).map((path, i) => {
+                        const b = lay.boxes[i];
+                        if (!b) return null;
+                        return (
+                          <div
+                            key={path}
+                            className="layered absolute rounded-[20px] border-[3px] border-ink bg-white p-3.5 [--lb:3px] [--lx:10px]"
+                            style={{ left: b.x, top: b.y, transform: `rotate(${ROTS[i]}deg)` }}
+                          >
+                            <div
+                              className="overflow-hidden rounded-lg bg-neutral"
+                              style={{ width: b.w, height: b.h }}
+                            >
+                              {photos[path] && (
+                                <img
+                                  src={photos[path]}
+                                  alt=""
+                                  style={{ filter }}
+                                  className="size-full object-cover"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-[22px] border-l-[3px] border-ink bg-white px-16 pt-16 pb-12">
+                  <div className="layered rounded-[36px] border-[3px] border-ink bg-white p-7 [--lb:3px] [--lx:14px] [--under:var(--butter)]">
+                    <QrCode url={url(cur.id)} size={370} />
+                  </div>
+                  <div className="text-[52px] leading-none font-extrabold tracking-[-0.035em]">
+                    {t.tvScan}
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full border-2 border-ink bg-white">
+                    <div
+                      className={`h-full bg-mint ${reduce ? "" : "transition-[width] duration-1000 ease-linear"}`}
+                      style={{ width: `${Math.round(remain * 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex-1" />
+                  {!!st?.previous.length && (
+                    <>
+                      <span className="text-[22px] font-bold text-text-3">{t.tvPrev}</span>
+                      {st.previous.map((g) => (
+                        <div
+                          key={g.id}
+                          className="flex items-center gap-5 border-t-[2.5px] border-dashed border-ink pt-[18px]"
+                        >
+                          <div className="flex-none rounded-xl border-2 border-ink bg-white p-1.5">
+                            <QrCode url={url(g.id)} size={88} />
+                          </div>
+                          <div className="flex min-w-0 flex-col gap-1">
+                            <span className="font-mono text-xl text-text-2">#{g.no}</span>
+                            <span className="line-clamp-2 text-[26px] leading-[1.15] font-extrabold tracking-[-0.02em]">
+                              {g.label}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </div>
             )}
-            {st && (
-              <p className="absolute bottom-8 left-10 rounded-2xl border-[3px] border-ink bg-white px-6 py-3 text-[34px] font-extrabold">
-                {st.eventName}
-              </p>
-            )}
-          </div>
+          </>
         )}
       </div>
     </Stage>
