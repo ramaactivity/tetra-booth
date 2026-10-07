@@ -91,7 +91,6 @@ export function GuestCam({
     !!info.design && me.revealed && me.photos.length >= slots && strips < GUEST_MAX_STRIPS;
   const voiceSent = me.audio || q.some((i) => i.kind === "audio");
   const voice = info.voice && !voiceSent;
-  const galleryUrl = info.publicGallery && me.revealed ? `/s/${me.sessionId}/galeri` : null;
 
   if (phase === "voice")
     return (
@@ -139,11 +138,11 @@ export function GuestCam({
   if (phase === "mine" || left <= 0)
     return (
       <Mine
+        token={token}
         info={info}
         me={me}
         pending={pendingIdx.length}
         left={left}
-        galleryUrl={galleryUrl}
         voice={voice}
         strip={canStrip}
         onCamera={() => setPhase(left > 0 ? "cam" : "done")}
@@ -161,10 +160,10 @@ export function GuestCam({
       upload={{ sent: me.usedIdx, waiting: pendingIdx, failing, online }}
       onSendNow={() => void sync()}
       onMine={() => setPhase("mine")}
-      onShot={async (video, filter) => {
+      onShot={async (video, preset, stamp) => {
         const idx = nextIdx(info.shots, taken);
         if (idx === null) return;
-        const shot = await capture(video, filter);
+        const shot = await capture(video, preset, stamp);
         if (lastThumb) URL.revokeObjectURL(lastThumb);
         setLastThumb(URL.createObjectURL(shot.thumb));
         await add({ kind: "photo", idx, ...shot });

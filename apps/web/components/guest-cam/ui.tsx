@@ -1,98 +1,94 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 /**
- * Bahan dasar layar tamu Guest Cam (desain G5, Spesifikasi §1): layar paper 52/20/28 px yang tidak scroll di
- * 390×844, tombol utama h56 r14 berlapis 4 px, pil bergaris tinta tanpa transparansi.
+ * Bahan dasar layar tamu Guest Cam v2 (#209, gaya kamera retro): hitam penuh, teks terang, satu tombol utama
+ * butter di bawah. Tidak scroll di 390×844; area aman notch/home bar dihormati.
  */
 
-export const mono = "font-mono";
+/** Layar penuh tanpa bar browser: Fullscreen API saat ada ketukan (Android). iOS Safari menolak, diam saja. */
+export function goFullscreen() {
+  const el = document.documentElement;
+  if (document.fullscreenElement || !el.requestFullscreen) return;
+  void el
+    .requestFullscreen({ navigationUI: "hide" })
+    .then(() =>
+      (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> })
+        .lock?.("portrait")
+        .catch(() => {}),
+    )
+    .catch(() => {});
+}
 
-/** Layar paper (A1, A2, A5, A7–A10): isi + bar bawah bergaris putus-putus. */
-export function Screen({ children, bottom }: { children: ReactNode; bottom?: ReactNode }) {
+export function Screen({
+  children,
+  bottom,
+  className = "",
+}: {
+  children: ReactNode;
+  bottom?: ReactNode;
+  className?: string;
+}) {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-paper px-5 pt-[52px] pb-[calc(28px+env(safe-area-inset-bottom))] motion-safe:animate-[enter_.25s_ease-out] max-[380px]:pt-10">
+    <main
+      className={`mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-black px-5 pt-[max(20px,env(safe-area-inset-top))] pb-[max(20px,env(safe-area-inset-bottom))] text-paper motion-safe:animate-[enter_.25s_ease-out] ${className}`}
+    >
       {children}
       <div className="flex-1" />
-      {bottom && (
-        <div className="-mx-5 mt-4 flex flex-col gap-3 border-t-[1.5px] border-dashed border-ink px-5 pt-[18px]">
-          {bottom}
-        </div>
-      )}
+      {bottom && <div className="mt-5 flex flex-col gap-3">{bottom}</div>}
     </main>
   );
 }
 
-/** Header layar: nama acara + baris mono (tanggal / info), kanan logo T atau tombol tutup. */
-export function Head({
+/** Bar atas: kiri tombol kembali (opsional), tengah judul kecil, kanan isi bebas. */
+export function TopBar({
+  onBack,
   title,
   sub,
-  onClose,
-  onBack,
-  backLabel,
   right,
 }: {
-  title: string;
-  sub?: string | undefined;
-  onClose?: (() => void) | undefined;
   onBack?: (() => void) | undefined;
-  backLabel?: string | undefined;
+  title?: string | undefined;
+  sub?: string | undefined;
   right?: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex min-w-0 items-center gap-2.5">
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            aria-label={backLabel}
-            className="flex size-8 flex-none items-center justify-center rounded-full border-[1.5px] border-ink text-base font-extrabold"
-          >
-            ‹
-          </button>
-        )}
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <div className="truncate text-[15px] font-extrabold tracking-[-0.02em]">{title}</div>
-          {sub && <div className={`${mono} text-[11px] text-text-2`}>{sub}</div>}
-        </div>
+    <div className="grid h-12 grid-cols-[48px_1fr_48px] items-center">
+      {onBack ? (
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Kembali"
+          className="flex size-11 items-center justify-center rounded-full bg-text-3 text-xl font-bold"
+        >
+          ‹
+        </button>
+      ) : (
+        <span />
+      )}
+      <div className="min-w-0 text-center">
+        {title && <div className="truncate text-[15px] font-extrabold">{title}</div>}
+        {sub && <div className="truncate font-mono text-[11px] text-muted">{sub}</div>}
       </div>
-      {right ??
-        (onClose ? (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Tutup"
-            className="flex size-8 flex-none items-center justify-center rounded-full border-[1.5px] border-ink text-sm font-extrabold"
-          >
-            ✕
-          </button>
-        ) : (
-          <TLogo />
-        ))}
+      <div className="flex justify-end">{right}</div>
     </div>
   );
 }
 
-export const TLogo = () => (
-  <span className="flex size-8 flex-none items-center justify-center rounded-[10px] border-[1.5px] border-ink bg-mint text-sm font-extrabold">
-    T
-  </span>
-);
-
-const btnBase =
-  "layered pressable flex h-14 items-center justify-center gap-2.5 rounded-[14px] border-[1.5px] border-ink text-base font-extrabold [--lb:1.5px] [--lx:4px] disabled:bg-neutral disabled:text-muted disabled:shadow-none";
-
-/** Tombol utama butter (satu per layar). */
 export function Primary({ className = "", ...p }: ButtonHTMLAttributes<HTMLButtonElement>) {
-  return <button type="button" {...p} className={`${btnBase} w-full bg-butter ${className}`} />;
+  return (
+    <button
+      type="button"
+      {...p}
+      className={`flex h-14 w-full items-center justify-center gap-2.5 rounded-full bg-butter text-base font-extrabold text-ink transition-transform active:scale-[.98] disabled:bg-text-3 disabled:text-muted ${className}`}
+    />
+  );
 }
-/** Tombol kedua putih, lebar tetap 132 px di samping tombol utama. */
 export function Secondary({ className = "", ...p }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       type="button"
       {...p}
-      className={`${btnBase} w-[132px] flex-none bg-white text-[15px] ${className}`}
+      className={`flex h-14 items-center justify-center gap-2 rounded-full bg-text-3 px-6 text-[15px] font-bold text-paper transition-transform active:scale-[.98] disabled:opacity-50 ${className}`}
     />
   );
 }
@@ -101,45 +97,65 @@ export function TextLink({ className = "", ...p }: ButtonHTMLAttributes<HTMLButt
     <button
       type="button"
       {...p}
-      className={`min-h-12 text-center text-[13px] font-bold underline ${className}`}
+      className={`min-h-12 text-center text-sm font-bold text-paper/80 underline underline-offset-4 ${className}`}
     />
-  );
-}
-
-/** Pil status bertulisan (A2b/A2c/A10): warna latar + teks, tanpa makna dari warna saja. */
-export function Tag({ bg, children }: { bg: string; children: ReactNode }) {
-  return (
-    <div
-      className={`flex h-[30px] items-center self-start rounded-full border-[1.5px] border-ink px-3 text-xs font-bold ${bg}`}
-    >
-      {children}
-    </div>
   );
 }
 
 export const H1 = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
   <h1
-    className={`text-[29px] leading-[1.08] font-extrabold tracking-[-0.035em] text-balance max-[380px]:text-[25px] ${className}`}
+    className={`text-[30px] leading-[1.05] font-extrabold tracking-[-0.035em] text-balance max-[380px]:text-[26px] ${className}`}
   >
     {children}
   </h1>
 );
 export const Lead = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
-  <p className={`mt-2.5 text-sm leading-[1.55] text-text-3 text-pretty ${className}`}>{children}</p>
+  <p className={`mt-2.5 text-[15px] leading-[1.5] text-paper/70 text-pretty ${className}`}>
+    {children}
+  </p>
 );
-
-/** Kartu putih berlapis 6 px (A5/A7b/A8b). */
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function Tag({ bg, children }: { bg: string; children: ReactNode }) {
   return (
-    <div
-      className={`layered rounded-[22px] border-[1.5px] border-ink p-[18px] [--lb:1.5px] [--lx:6px] ${className}`}
+    <span
+      className={`flex h-7 items-center self-start rounded-full px-3 text-xs font-extrabold text-ink ${bg}`}
     >
       {children}
-    </div>
+    </span>
   );
 }
 
-/** Tanggal acara di header tamu: 12.12.2026. */
+/** Ikon kamera retro (laci pilihan preset, gaya Dazz): bodi berwarna, lensa, jendela bidik, flash. */
+export function CameraIcon({ body, size = 56 }: { body: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden>
+      <rect x="18" y="12" width="14" height="7" rx="2" fill="#3A3936" />
+      <rect
+        x="6"
+        y="17"
+        width="52"
+        height="34"
+        rx="8"
+        fill={body}
+        stroke="#1D1D1B"
+        strokeWidth="2"
+      />
+      <rect
+        x="42"
+        y="21"
+        width="10"
+        height="6"
+        rx="1.5"
+        fill="#fff"
+        stroke="#1D1D1B"
+        strokeWidth="1.5"
+      />
+      <circle cx="30" cy="34" r="12" fill="#1D1D1B" />
+      <circle cx="30" cy="34" r="8" fill="#3A3936" stroke="#8A8883" strokeWidth="1.5" />
+      <circle cx="27" cy="31" r="2.5" fill="#fff" opacity=".7" />
+    </svg>
+  );
+}
+
 export const dotDate = (iso: string) => iso.split("-").reverse().join(".");
 export const firstName = (n: string) => n.trim().split(/\s+/)[0] ?? n;
 export const longDateId = (iso: string) =>

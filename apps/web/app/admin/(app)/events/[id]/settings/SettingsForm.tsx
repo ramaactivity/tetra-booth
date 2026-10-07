@@ -1,6 +1,7 @@
 "use client";
 import {
   EVENT_PRESETS,
+  GUEST_PRESETS,
   type GuestCamSettings,
   LAYOUT_PRESETS,
   type LayoutPaper,
@@ -1283,25 +1284,24 @@ export function SettingsForm({
                   {num("gc_shots", 1, 50)}
                 </Field>
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-[13px] font-bold">Filter di kamera tamu</span>
+                  <span className="text-[13px] font-bold">Kamera di HP tamu</span>
                   <div className="flex flex-wrap gap-1.5">
-                    {PHOTO_FILTERS.map((f) => {
-                      const on = f.id === "normal" || v.filters.includes(f.id);
-                      return (
+                    {GUEST_PRESETS.map((p) => (
+                      <span
+                        key={p.id}
+                        className="flex h-8 items-center gap-1.5 rounded-full border-[1.5px] border-ink bg-white px-3 text-xs font-bold"
+                      >
                         <span
-                          key={f.id}
-                          className={`flex h-8 items-center rounded-full border-[1.5px] px-3 text-xs font-bold ${on ? "border-ink bg-mint-soft" : "border-dashed border-muted text-muted"}`}
-                        >
-                          {f.label}
-                        </span>
-                      );
-                    })}
+                          className="size-3 rounded-full border border-ink"
+                          style={{ background: p.body }}
+                        />
+                        {p.name}
+                      </span>
+                    ))}
                   </div>
                   <p className="text-xs text-text-2">
-                    Sama dengan filter pilihan tamu di booth.{" "}
-                    <a href="#sesi" className="font-bold text-ink underline">
-                      Ubah di Sesi
-                    </a>
+                    Preset film gaya kamera retro (grain, vignette, stempel tanggal). Tamu memilih
+                    sendiri di kamera.
                   </p>
                 </div>
                 <GcChoice

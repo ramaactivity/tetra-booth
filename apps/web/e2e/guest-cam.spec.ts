@@ -182,7 +182,7 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await shot("A1");
       await page.getByLabel("Namamu").fill("Sari");
       await page.getByRole("button", { name: "Instagram" }).click();
-      await page.getByLabel("Instagram").fill("@sari.e2e");
+      await page.getByLabel("Akun Instagram").fill("@sari.e2e");
       await page.getByRole("checkbox").click();
       await page.getByRole("button", { name: "Mulai motret" }).click();
       const open = page.getByRole("button", { name: "Buka kamera" });
@@ -192,11 +192,14 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       }
       const shutter = page.getByRole("button", { name: "Jepret" });
       await expect(shutter).toBeEnabled();
-      await page.getByRole("button", { name: "Filter berikutnya" }).click();
-      await expect(page.getByText("Hitam Putih")).toBeVisible();
+      await page.getByRole("button", { name: "Kamera: Original" }).click();
+      await page.getByRole("button", { name: "Mono", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Kamera: Mono" })).toBeVisible();
+      await expect(page.locator("video")).toHaveCSS("filter", /grayscale\(1\)/);
+      await page.waitForTimeout(400);
       await shot("A3");
       await shutter.click();
-      await expect(page.getByRole("status")).toHaveText(/Masuk album/);
+      await expect(page.getByText(/^Masuk album/)).toBeVisible({ timeout: 10_000 });
       await shot("A4");
       await expect(shutter).toBeEnabled();
       await shutter.click();
@@ -204,7 +207,7 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await shot("A5");
 
       // G3: ucapan suara (mic palsu Chromium) dan strip virtual dari 2 foto.
-      await page.getByRole("button", { name: "Rekam ucapan" }).first().click();
+      await page.getByRole("button", { name: /Titip ucapan suara/ }).click();
       await page.getByRole("button", { name: "Mulai rekam" }).click();
       await page.waitForTimeout(1500);
       await shot("A8a");
@@ -219,8 +222,12 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await shot("A7a");
       await page.getByRole("button", { name: "Strip dari fotomu" }).click();
       for (const _ of [0, 1]) await page.locator('button[aria-pressed="false"]').first().click();
+      await expect(page.getByRole("img", { name: "Pratinjau strip" })).toBeVisible({
+        timeout: 15_000,
+      });
+      await page.waitForTimeout(600);
       await shot("A9a");
-      await page.getByRole("button", { name: "Lihat strip" }).click();
+      await page.getByRole("button", { name: "Cetak strip" }).click();
       await expect(page.getByRole("img", { name: "Strip kamu" })).toBeVisible();
       await shot("A9b");
       await page.getByRole("button", { name: "Kirim ke album" }).click();
@@ -275,18 +282,17 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       .single();
     try {
       await page.goto(`/c/${token}`);
-      await expect(page.getByText("Terbuka setelah acara")).toBeVisible();
+      await expect(page.getByText(/terbuka setelah acara/i)).toBeVisible();
       await page.getByLabel("Namamu").fill("Andi");
-      await page.getByLabel("WhatsApp").fill("0812 3456 7890");
+      await page.getByLabel("Nomor WhatsApp").fill("0812 3456 7890");
       await page.getByRole("checkbox").click();
       await page.getByRole("button", { name: "Mulai motret" }).click();
       const open = page.getByRole("button", { name: "Buka kamera" });
       if (await open.isVisible().catch(() => false)) await open.click();
       const shutter = page.getByRole("button", { name: "Jepret" });
       await expect(shutter).toBeEnabled();
-      await expect(page.getByRole("button", { name: "Filter berikutnya" })).toHaveCount(0);
       await shutter.click();
-      await expect(page.getByRole("status")).toHaveText("Tersimpan. Terbuka setelah acara");
+      await expect(page.getByText("Tersimpan. Terbuka setelah acara")).toBeVisible();
       if (process.env.GC_SHOTS)
         await page.screenshot({ path: `${process.env.GC_SHOTS}/after-A4.png` });
       await page.getByRole("button", { name: "Foto saya" }).click();

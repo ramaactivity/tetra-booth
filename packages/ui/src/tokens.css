@@ -106,6 +106,15 @@ html {
     opacity: 0;
   }
 }
+/* Guest Cam strip (#209): strip keluar dari slot printer. */
+@keyframes strip-out {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
 /* Countdown: angka berganti dengan scale 1.1 → 1. */
 @keyframes tick {
   from {

@@ -3,7 +3,7 @@ import { GUEST_VOICE_MAX_SEC } from "@tetra/shared";
 import { useEffect, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
-import { Card, dotDate, firstName, H1, Head, Lead, Primary, Screen, Secondary } from "./ui";
+import { firstName, Primary, Screen, Secondary, TopBar } from "./ui";
 
 const t = copy.guestCam;
 const BARS = 40;
@@ -15,27 +15,85 @@ type Take = {
   bars: number[];
 };
 const mmss = (s: number) =>
-  `00:${String(Math.min(99, Math.max(0, Math.round(s)))).padStart(2, "0")}`;
+  `00:${String(Math.min(99, Math.max(0, Math.floor(s)))).padStart(2, "0")}`;
 
-/** 40 batang waveform; `filled` = berapa yang sudah terisi (gelap), sisanya garis tipis. */
-function Wave({
-  bars,
-  filled,
-  played = 0,
-  h = 72,
+/** Gulungan kaset: berputar saat merekam/memutar. */
+function Reel({ spin }: { spin: boolean }) {
+  return (
+    <svg
+      width="58"
+      height="58"
+      viewBox="0 0 58 58"
+      aria-hidden
+      className={spin ? "motion-safe:animate-spin motion-safe:[animation-duration:2.4s]" : ""}
+    >
+      <circle cx="29" cy="29" r="27" fill="#F8F7F4" />
+      <circle cx="29" cy="29" r="9" fill="#1D1D1B" />
+      {[0, 60, 120, 180, 240, 300].map((a) => (
+        <rect
+          key={a}
+          x="27"
+          y="4"
+          width="4"
+          height="12"
+          rx="2"
+          fill="#1D1D1B"
+          transform={`rotate(${a} 29 29)`}
+        />
+      ))}
+    </svg>
+  );
+}
+
+/** Kaset (ucapan suara gaya voice tape, #209): label nama tamu + acara, jendela pita, gulungan. */
+function Cassette({
+  spin,
+  from,
+  to,
+  done,
 }: {
-  bars: number[];
-  filled: number;
-  played?: number;
-  h?: number;
+  spin: boolean;
+  from: string;
+  to: string;
+  done?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-[3px]" style={{ height: h }} aria-hidden>
+    <div className="relative mx-auto w-full max-w-[340px] rounded-[22px] bg-peach p-3.5 text-ink shadow-[0_18px_40px_rgba(0,0,0,.45)]">
+      <div className="rounded-xl bg-paper px-3.5 pt-2 pb-3">
+        <div className="flex items-center justify-between font-mono text-[10px] font-bold tracking-widest">
+          <span>SIDE A</span>
+          <span>{GUEST_VOICE_MAX_SEC}s</span>
+        </div>
+        <div className="mt-1 truncate text-lg leading-tight font-extrabold">{from}</div>
+        <div className="truncate text-[13px] text-text-2">untuk {to}</div>
+        <div className="mt-2.5 flex items-center justify-between rounded-full bg-ink px-4 py-2">
+          <Reel spin={spin} />
+          <div className="mx-2 h-6 flex-1 rounded-md bg-[#4a2f1a]" />
+          <Reel spin={spin} />
+        </div>
+      </div>
+      <div className="mx-auto mt-2.5 flex h-5 w-1/2 items-center justify-around rounded-t-lg bg-ink/80">
+        {[0, 1, 2, 3].map((i) => (
+          <span key={i} className="size-1.5 rounded-full bg-peach" />
+        ))}
+      </div>
+      {done && (
+        <span className="absolute -top-3 -right-2 rotate-6 rounded-lg bg-green px-3 py-1 text-sm font-extrabold text-white">
+          ✓ Terkirim
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Wave({ bars, filled, played = 0 }: { bars: number[]; filled: number; played?: number }) {
+  return (
+    <div className="flex h-14 items-center gap-[3px]" aria-hidden>
       {Array.from({ length: BARS }, (_, n) => n).map((i) => (
         <span
           key={i}
-          className={`flex-1 rounded-[2px] ${i < played ? "bg-mint" : i < filled ? "bg-ink" : "bg-line-soft"}`}
-          style={{ height: i < filled ? Math.max(6, Math.round((bars[i] ?? 0.2) * (h - 16))) : 4 }}
+          className={`flex-1 rounded-full ${i < played ? "bg-butter" : i < filled ? "bg-paper" : "bg-paper/20"}`}
+          style={{ height: i < filled ? Math.max(6, Math.round((bars[i] ?? 0.2) * 52)) : 4 }}
         />
       ))}
     </div>
@@ -43,8 +101,8 @@ function Wave({
 }
 
 /**
- * A8 Ucapan suara (VoiceRecorder): merekam (timer Geist Mono 64, berhenti sendiri di 00:30) → dengar ulang →
- * kirim (terkunci, satu per tamu). MediaRecorder webm/opus, mp4 di iOS. Amplitudo dari AnalyserNode.
+ * Ucapan suara (#209, gaya kaset): rekam (maks 30 dtk, berhenti sendiri), dengar ulang, kirim (satu per tamu).
+ * MediaRecorder webm/opus, mp4 di iOS; amplitudo waveform dari AnalyserNode.
  */
 export function VoiceRecorder({
   info,
@@ -61,6 +119,7 @@ export function VoiceRecorder({
 }) {
   const rec = useRef<MediaRecorder | null>(null);
   const bars = useRef<number[]>([]);
+  const audio = useRef<HTMLAudioElement>(null);
   const [secs, setSecs] = useState(0);
   const [live, setLive] = useState<number[]>([]);
   const [take, setTake] = useState<Take | null>(null);
@@ -68,7 +127,7 @@ export function VoiceRecorder({
   const [denied, setDenied] = useState(false);
   const [pos, setPos] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const audio = useRef<HTMLAudioElement>(null);
+  const from = firstName(name);
 
   useEffect(
     () => () => {
@@ -79,6 +138,8 @@ export function VoiceRecorder({
 
   const start = async () => {
     setDenied(false);
+    audio.current?.pause();
+    setPlaying(false);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
@@ -104,7 +165,7 @@ export function VoiceRecorder({
           peak = 0;
           setLive([...bars.current]);
         }
-        setSecs(Math.floor(s));
+        setSecs(s);
         if (s >= GUEST_VOICE_MAX_SEC && mr.state === "recording") mr.stop();
       }, 100);
       mr.ondataavailable = (e) => chunks.push(e.data);
@@ -114,62 +175,21 @@ export function VoiceRecorder({
         for (const tr of stream.getTracks()) tr.stop();
         const type = mr.mimeType.startsWith("audio/mp4") ? "audio/mp4" : "audio/webm";
         const blob = new Blob(chunks, { type });
-        const secs = Math.max(1, Math.min(GUEST_VOICE_MAX_SEC, (Date.now() - t0) / 1000));
-        setTake({ blob, url: URL.createObjectURL(blob), type, secs, bars: bars.current });
+        const len = Math.max(1, Math.min(GUEST_VOICE_MAX_SEC, (Date.now() - t0) / 1000));
+        setTake({ blob, url: URL.createObjectURL(blob), type, secs: len, bars: bars.current });
         setState("review");
       };
       rec.current = mr;
       mr.start();
       setSecs(0);
       setLive([]);
+      setPos(0);
       setState("rec");
     } catch {
       setDenied(true);
     }
   };
-
-  const head = (
-    <Head title={info.name} sub={dotDate(info.date)} onClose={sent ? undefined : onClose} />
-  );
-
-  if (sent)
-    return (
-      <Screen bottom={<Primary onClick={onClose}>{t.keepShootingBtn}</Primary>}>
-        {head}
-        <span className="mt-[72px] flex size-[72px] items-center justify-center rounded-full border-[1.5px] border-ink bg-green text-[32px] font-extrabold text-white max-[380px]:mt-10">
-          ✓
-        </span>
-        <H1 className="mt-[22px]">{t.sentTitle}</H1>
-        <Lead>{t.sentBody(info.name)}</Lead>
-        {take && (
-          <div className="mt-7 flex items-center gap-3 rounded-2xl border-[1.5px] border-ink bg-white p-3.5">
-            <PlayBtn small playing={playing} onClick={() => toggle()} />
-            <div className="flex-1">
-              <Wave
-                bars={take.bars}
-                filled={BARS}
-                h={32}
-                played={Math.round((pos / take.secs) * BARS)}
-              />
-            </div>
-            <span className="font-mono text-xs">{mmss(take.secs)}</span>
-          </div>
-        )}
-        {take && (
-          <audio
-            ref={audio}
-            src={take.url}
-            onTimeUpdate={(e) => setPos(e.currentTarget.currentTime)}
-            onEnded={() => setPlaying(false)}
-            hidden
-          >
-            <track kind="captions" />
-          </audio>
-        )}
-      </Screen>
-    );
-
-  function toggle() {
+  const toggle = () => {
     const a = audio.current;
     if (!a) return;
     if (a.paused) void a.play().then(() => setPlaying(true));
@@ -177,21 +197,20 @@ export function VoiceRecorder({
       a.pause();
       setPlaying(false);
     }
-  }
+  };
 
-  if (state === "review" || state === "sending")
-    return (
-      <Screen
-        bottom={
+  const recording = state === "rec";
+  const reviewing = state === "review" || state === "sending";
+  const played = take ? Math.round((pos / take.secs) * BARS) : 0;
+
+  return (
+    <Screen
+      bottom={
+        sent ? (
+          <Primary onClick={onClose}>{t.keepShootingBtn}</Primary>
+        ) : reviewing ? (
           <div className="flex gap-3">
-            <Secondary
-              disabled={state === "sending"}
-              onClick={() => {
-                audio.current?.pause();
-                setPlaying(false);
-                void start();
-              }}
-            >
+            <Secondary disabled={state === "sending"} onClick={() => void start()}>
               {t.again}
             </Secondary>
             <Primary
@@ -206,119 +225,93 @@ export function VoiceRecorder({
               {t.send}
             </Primary>
           </div>
-        }
-      >
-        {head}
-        <H1 className="mt-8">{t.reviewTitle}</H1>
-        <Lead>{t.reviewBody}</Lead>
-        {take && (
-          <Card className="mt-9 flex flex-col gap-[18px] bg-white">
-            <div className="flex items-center gap-3.5">
-              <PlayBtn playing={playing} onClick={toggle} />
-              <div className="flex-1">
-                <div className="text-[15px] font-extrabold">{t.voiceFrom(firstName(name))}</div>
-                <div className="mt-0.5 font-mono text-[13px] text-text-2">
-                  {mmss(pos)} / {mmss(take.secs)}
-                </div>
-              </div>
-            </div>
-            <Wave
-              bars={take.bars}
-              filled={take.bars.length}
-              played={Math.round((pos / take.secs) * BARS)}
-              h={56}
-            />
-            <audio
-              ref={audio}
-              src={take.url}
-              onTimeUpdate={(e) => setPos(e.currentTarget.currentTime)}
-              onEnded={() => setPlaying(false)}
-              hidden
-            >
-              <track kind="captions" />
-            </audio>
-          </Card>
-        )}
-      </Screen>
-    );
-
-  const recording = state === "rec";
-  return (
-    <Screen>
-      {head}
-      <H1 className="mt-8">{t.voiceTitle(info.name)}</H1>
-      <p className="mt-3.5 rounded-[12px] border-[1.5px] border-dashed border-ink bg-lavender px-3.5 py-[11px] text-[13px] leading-[1.5]">
-        {t.voiceIdea}
-      </p>
-      <div className="mt-11 flex flex-col items-center gap-1.5 max-[380px]:mt-6">
-        {recording && (
-          <span className="flex h-7 items-center gap-[7px] rounded-full border-[1.5px] border-ink bg-coral px-3 text-xs font-extrabold">
-            <span className="size-2 rounded-full border-[1.5px] border-ink bg-coral-strong" />
-            {t.recording}
-          </span>
-        )}
-        <span
-          className="font-mono text-[64px] leading-[1.05] font-medium tracking-[-0.03em]"
-          aria-live="polite"
-        >
-          {mmss(secs)}
-        </span>
-        <span className="font-mono text-[13px] text-text-2">
-          {t.remaining(GUEST_VOICE_MAX_SEC - secs)}
-        </span>
-      </div>
-      <div className="mt-7">
-        <Wave bars={live} filled={live.length} />
-      </div>
-      <div className="mt-2 flex justify-between font-mono text-[11px] text-text-2">
-        <span>00:00</span>
-        <span>{mmss(GUEST_VOICE_MAX_SEC)}</span>
-      </div>
-      {denied && <p className="mt-4 text-sm font-bold text-coral-strong">{t.micDenied}</p>}
-      <div className="flex-1" />
-      <div className="mt-6 flex flex-col items-center gap-2.5">
-        <button
-          type="button"
-          aria-label={recording ? t.stop : t.record}
-          onClick={() => (recording ? rec.current?.stop() : void start())}
-          className="layered pressable flex size-[92px] items-center justify-center rounded-full border-[1.5px] border-ink bg-white [--lb:1.5px] [--lx:4px]"
-        >
-          {recording ? (
-            <span className="size-[30px] rounded-[7px] bg-ink" />
-          ) : (
-            <span className="size-[34px] rounded-full border-[1.5px] border-ink bg-coral-strong" />
-          )}
-        </button>
-        <span className="text-[13px] font-bold">{recording ? t.stop : t.record}</span>
-      </div>
-    </Screen>
-  );
-}
-
-function PlayBtn({
-  playing,
-  onClick,
-  small,
-}: {
-  playing: boolean;
-  onClick: () => void;
-  small?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={playing ? t.pause : t.play}
-      className={`flex flex-none items-center justify-center rounded-full border-[1.5px] border-ink ${small ? "size-10 bg-white" : "size-14 bg-butter"}`}
+        ) : null
+      }
     >
-      {playing ? (
-        <span className="flex gap-[5px]">
-          <span className={`w-[5px] rounded-[2px] bg-ink ${small ? "h-3.5" : "h-[18px]"}`} />
-          <span className={`w-[5px] rounded-[2px] bg-ink ${small ? "h-3.5" : "h-[18px]"}`} />
-        </span>
+      <TopBar
+        onBack={sent ? undefined : onClose}
+        title={sent ? t.sentTitle : reviewing ? t.reviewTitle : t.voiceTitle(info.name)}
+      />
+      <div className="mt-6">
+        <Cassette spin={recording || playing} from={from} to={info.name} done={sent} />
+      </div>
+      {sent ? (
+        <p className="mt-8 text-center text-[15px] leading-snug text-paper/75">
+          {t.sentBody(info.name)}
+        </p>
       ) : (
-        <span className="ml-[3px] h-0 w-0 border-y-[7px] border-l-[12px] border-y-transparent border-l-ink" />
+        <>
+          <div className="mt-7 flex flex-col items-center">
+            <span
+              className={`font-mono leading-none font-medium tracking-[-0.03em] whitespace-nowrap ${reviewing ? "text-[34px]" : "text-[52px]"}`}
+              aria-live="polite"
+            >
+              {reviewing && take ? `${mmss(pos)} / ${mmss(take.secs)}` : mmss(secs)}
+            </span>
+            <span className="mt-2 font-mono text-xs text-muted">
+              {recording
+                ? t.remaining(Math.max(0, GUEST_VOICE_MAX_SEC - Math.floor(secs)))
+                : reviewing
+                  ? t.reviewBody
+                  : t.voiceIdea}
+            </span>
+          </div>
+          <div className="mt-5">
+            <Wave
+              bars={reviewing && take ? take.bars : live}
+              filled={reviewing && take ? take.bars.length : live.length}
+              played={reviewing ? played : 0}
+            />
+          </div>
+          {denied && <p className="mt-4 text-center text-sm font-bold text-coral">{t.micDenied}</p>}
+          <div className="mt-6 flex flex-col items-center gap-2">
+            {reviewing ? (
+              <button
+                type="button"
+                onClick={toggle}
+                aria-label={playing ? t.pause : t.play}
+                className="flex size-[76px] items-center justify-center rounded-full bg-paper text-ink"
+              >
+                {playing ? (
+                  <span className="flex gap-1.5">
+                    <span className="h-6 w-1.5 rounded-sm bg-ink" />
+                    <span className="h-6 w-1.5 rounded-sm bg-ink" />
+                  </span>
+                ) : (
+                  <span className="ml-1 h-0 w-0 border-y-[11px] border-l-[18px] border-y-transparent border-l-ink" />
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                aria-label={recording ? t.stop : t.record}
+                onClick={() => (recording ? rec.current?.stop() : void start())}
+                className="flex size-[84px] items-center justify-center rounded-full border-4 border-paper"
+              >
+                {recording ? (
+                  <span className="size-8 rounded-lg bg-coral-strong" />
+                ) : (
+                  <span className="size-[62px] rounded-full bg-coral-strong" />
+                )}
+              </button>
+            )}
+            <span className="text-[13px] font-bold text-paper/80">
+              {reviewing ? (playing ? t.pause : t.play) : recording ? t.stop : t.record}
+            </span>
+          </div>
+        </>
       )}
-    </button>
+      {take && (
+        <audio
+          ref={audio}
+          src={take.url}
+          onTimeUpdate={(e) => setPos(e.currentTarget.currentTime)}
+          onEnded={() => setPlaying(false)}
+          hidden
+        >
+          <track kind="captions" />
+        </audio>
+      )}
+    </Screen>
   );
 }

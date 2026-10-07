@@ -3,11 +3,13 @@ import { type GuestMe, InstagramSchema, WhatsappSchema } from "@tetra/shared";
 import { useState } from "react";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
-import { dotDate, H1, Primary, TLogo } from "./ui";
+import { dotDate, goFullscreen, Primary } from "./ui";
 
 const t = copy.guestCam;
+const field =
+  "h-[52px] w-full rounded-2xl bg-text-3 px-4 text-base text-paper outline-none placeholder:text-muted focus:shadow-[0_0_0_2px_var(--butter)]";
 
-/** A1 Pembuka (arah 1a): sampul acara, jatah + reveal, nama, ContactField, ConsentRow. Sekali per HP. */
+/** Pembuka v2 (#209): sampul acara penuh, form ringkas di bawah. Sekali isi per HP. */
 export function Join({
   token,
   info,
@@ -27,10 +29,10 @@ export function Join({
   const [error, setError] = useState<string | null>(null);
   const valid = (via === "whatsapp" ? WhatsappSchema : InstagramSchema).safeParse(contact).success;
   const ready = name.trim().length >= 2 && valid && ok;
-  const after = info.reveal === "after";
 
   const submit = async () => {
     if (!ready || busy) return;
+    goFullscreen();
     setBusy(true);
     setError(null);
     const r = await fetch(`/api/c/${encodeURIComponent(token)}/join`, {
@@ -44,66 +46,56 @@ export function Join({
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-paper px-5 pt-[52px] pb-[calc(28px+env(safe-area-inset-bottom))] max-[380px]:pt-10">
-      <div
-        className="relative h-[196px] flex-none overflow-hidden rounded-[20px] border-[1.5px] border-ink bg-neutral max-[380px]:h-[150px]"
-        style={
-          info.branding.color && !info.coverUrl ? { background: info.branding.color } : undefined
-        }
-      >
+    <main className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-black text-paper">
+      <div className="relative h-[40dvh] min-h-[240px] flex-none overflow-hidden">
         {info.coverUrl ? (
           // biome-ignore lint/performance/noImgElement: URL R2 bertanda tangan
           <img
             src={info.coverUrl}
             alt=""
-            className="absolute inset-0 size-full object-cover object-[50%_22%]"
+            className="absolute inset-0 size-full object-cover object-[50%_25%]"
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-lavender px-8 text-center text-[26px] leading-tight font-extrabold tracking-[-0.03em]">
-            {info.name}
-          </div>
+          <div
+            className="absolute inset-0"
+            style={{ background: info.branding.color ?? "var(--text-3)" }}
+          />
         )}
-        {info.branding.tagline && (
-          <span className="absolute top-3 left-3 flex h-7 items-center rounded-full border-[1.5px] border-ink bg-lavender px-3 text-xs font-bold">
-            {info.branding.tagline}
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,.35),transparent_35%,rgba(0,0,0,.9))]" />
+        <div className="absolute inset-x-5 top-[max(16px,env(safe-area-inset-top))] flex items-center justify-between">
+          <span className="rounded-full bg-black/55 px-3 py-1.5 font-mono text-xs">
+            {dotDate(info.date)}
           </span>
-        )}
-        <span className="absolute top-3 right-3">
-          {info.branding.logoUrl ? (
-            // biome-ignore lint/performance/noImgElement: URL R2 bertanda tangan
-            <img
-              src={info.branding.logoUrl}
-              alt=""
-              className="h-8 max-w-[96px] rounded-[10px] border-[1.5px] border-ink bg-white object-contain p-0.5"
-            />
-          ) : (
-            <TLogo />
+          <span className="rounded-full bg-black/55 px-3 py-1.5 text-xs font-extrabold">
+            tetra · guest cam
+          </span>
+        </div>
+        <div className="absolute inset-x-5 bottom-4">
+          {info.branding.tagline && (
+            <div className="text-xs font-bold tracking-[0.14em] text-paper/80 uppercase">
+              {info.branding.tagline}
+            </div>
           )}
-        </span>
-        <span className="absolute bottom-3 left-3 flex h-7 items-center rounded-full border-[1.5px] border-ink bg-white px-3 font-mono text-xs">
-          {dotDate(info.date)}
-        </span>
-      </div>
-
-      <H1 className="mt-[18px]">{t.invite(info.name)}</H1>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <span className="flex h-[30px] items-center gap-1.5 rounded-full border-[1.5px] border-ink bg-mint-soft px-3 text-xs font-bold">
-          <span className="font-mono text-[13px] font-medium">{info.shots}</span> {t.perHp}
-        </span>
-        <span
-          className={`flex h-[30px] items-center rounded-full border-[1.5px] border-ink px-3 text-xs font-bold ${after ? "bg-peach" : "bg-sky"}`}
-        >
-          {after ? t.revealAfter : t.revealLive}
-        </span>
+          <h1 className="mt-1 text-[34px] leading-[1.02] font-extrabold tracking-[-0.04em] text-balance">
+            {info.name}
+          </h1>
+        </div>
       </div>
 
       <form
-        className="mt-[22px] flex flex-col gap-3"
+        className="flex flex-1 flex-col gap-3 px-5 pt-4 pb-[max(20px,env(safe-area-inset-bottom))]"
         onSubmit={(e) => {
           e.preventDefault();
           void submit();
         }}
       >
+        <p className="text-[15px] leading-snug text-paper/75">
+          {t.invite(info.name)}.{" "}
+          <span className="text-paper">
+            <b className="font-mono">{info.shots}</b> {t.perHp} ·{" "}
+            {info.reveal === "after" ? t.revealAfter.toLowerCase() : t.revealLive.toLowerCase()}
+          </span>
+        </p>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -111,24 +103,24 @@ export function Join({
           placeholder={t.namePh}
           autoComplete="name"
           maxLength={80}
-          className="h-12 w-full rounded-[12px] border-[1.5px] border-ink bg-white px-3.5 text-[15px] font-semibold outline-none focus:shadow-[0_0_0_3px_var(--mint)]"
+          className={`${field} font-semibold`}
         />
-        {/* ContactField: segmented WhatsApp | Instagram di atas satu input. */}
-        <div className="flex flex-col gap-2">
-          <div className="flex h-11 overflow-hidden rounded-[12px] border-[1.5px] border-ink bg-white">
-            {(["whatsapp", "instagram"] as const).map((v, i) => (
+        <div className="flex gap-2">
+          <div className="flex h-[52px] flex-none rounded-2xl bg-text-3 p-1">
+            {(["whatsapp", "instagram"] as const).map((v) => (
               <button
                 key={v}
                 type="button"
                 aria-pressed={via === v}
+                aria-label={v === "whatsapp" ? t.wa : t.ig}
                 onClick={() => {
                   setVia(v);
                   setContact("");
                   setTouched(false);
                 }}
-                className={`flex-1 text-sm font-bold ${i === 0 ? "border-r-[1.5px] border-ink" : ""} ${via === v ? "bg-lavender" : "bg-white"}`}
+                className={`rounded-xl px-3 text-[13px] font-extrabold ${via === v ? "bg-paper text-ink" : "text-paper/70"}`}
               >
-                {v === "whatsapp" ? t.wa : t.ig}
+                {v === "whatsapp" ? "WA" : "IG"}
               </button>
             ))}
           </div>
@@ -137,50 +129,49 @@ export function Join({
             value={contact}
             onChange={(e) => setContact(e.target.value)}
             onBlur={() => setTouched(true)}
-            aria-label={via === "whatsapp" ? t.wa : t.ig}
+            aria-label={via === "whatsapp" ? `Nomor ${t.wa}` : `Akun ${t.ig}`}
             aria-invalid={touched && !!contact && !valid}
             placeholder={via === "whatsapp" ? t.waPh : t.igPh}
             type={via === "whatsapp" ? "tel" : "text"}
             inputMode={via === "whatsapp" ? "tel" : "text"}
             autoCapitalize="off"
             autoCorrect="off"
-            className={`h-12 w-full rounded-[12px] border-[1.5px] bg-white px-3.5 font-mono text-[15px] outline-none focus:shadow-[0_0_0_3px_var(--mint)] ${touched && contact && !valid ? "border-coral-strong" : "border-ink"}`}
+            className={`${field} min-w-0 font-mono ${touched && contact && !valid ? "shadow-[0_0_0_2px_var(--coral-strong)]" : ""}`}
           />
-          {touched && contact && !valid && (
-            <p className="text-xs font-bold text-coral-strong">
-              {via === "whatsapp" ? t.waBad : t.igBad}
-            </p>
-          )}
         </div>
-        {/* ConsentRow: centang bulat + teks persetujuan dipotong satu baris. */}
-        <div className="flex items-start gap-3 rounded-[12px] border-[1.5px] border-dashed border-ink px-3 py-[11px]">
-          {/* biome-ignore lint/a11y/useSemanticElements: centang bulat custom (desain ConsentRow), aria-checked lengkap */}
+        {touched && contact && !valid && (
+          <p className="text-xs font-bold text-coral">{via === "whatsapp" ? t.waBad : t.igBad}</p>
+        )}
+        <div className="flex items-start gap-3 rounded-2xl bg-text-3/60 px-3.5 py-3">
+          {/* biome-ignore lint/a11y/useSemanticElements: centang bulat custom, aria-checked lengkap */}
           <button
             type="button"
             role="checkbox"
             aria-checked={ok}
             aria-label={info.consentText}
             onClick={() => setOk(!ok)}
-            className={`flex size-6 flex-none items-center justify-center rounded-full border-[1.5px] border-ink text-xs font-extrabold text-white ${ok ? "bg-green" : "bg-white"}`}
+            className={`mt-0.5 flex size-6 flex-none items-center justify-center rounded-full border-2 text-xs font-extrabold ${ok ? "border-butter bg-butter text-ink" : "border-muted"}`}
           >
             {ok ? "✓" : ""}
           </button>
-          <div className="min-w-0 flex-1 text-xs leading-[1.5] text-text-3">
-            <div className={open ? "" : "line-clamp-1"}>{info.consentText}</div>
-            <button type="button" onClick={() => setOpen(!open)} className="font-bold underline">
+          <div className="min-w-0 flex-1 text-xs leading-[1.5] text-paper/70">
+            <div className={open ? "" : "line-clamp-2"}>{info.consentText}</div>
+            <button
+              type="button"
+              onClick={() => setOpen(!open)}
+              className="font-bold text-paper underline"
+            >
               {open ? t.readLess : t.readMore}
             </button>
           </div>
         </div>
-        {error && <p className="text-sm font-bold text-coral-strong">{error}</p>}
-        <button type="submit" hidden />
+        {error && <p className="text-sm font-bold text-coral">{error}</p>}
+        <div className="min-h-2 flex-1" />
+        <Primary type="submit" disabled={!ready || busy}>
+          {busy ? t.joining : t.start}
+        </Primary>
+        <p className="text-center text-[11px] text-muted">{t.joinFoot}</p>
       </form>
-
-      <div className="min-h-6 flex-1" />
-      <Primary disabled={!ready || busy} onClick={() => void submit()}>
-        {busy ? t.joining : t.start}
-      </Primary>
-      <p className="mt-3 text-center text-[11px] text-text-2">{t.joinFoot}</p>
     </main>
   );
 }
