@@ -1,6 +1,7 @@
 import {
   DEFAULT_STAGE_PRESET,
   newSessionId,
+  PHOTO_FILTERS,
   STAGE_GAP,
   type StagePreset,
   StagePresetSchema,
@@ -18,6 +19,7 @@ import { lutKey, parseCube, storedLut } from "./lut";
 import { usePlatform } from "./PlatformContext";
 import type { SessionAsset, StageStatus } from "./platform";
 import { StageColor } from "./StageColor";
+import { StageSetup } from "./StageSetup";
 import {
   activeGroup,
   groupLabel,
@@ -104,6 +106,19 @@ export function StageRunner({
   }, []);
   const sRef = useRef(s);
   sRef.current = s;
+  // Wizard persiapan (#188): sekali per event di laptop ini; jepretan selama wizard = foto tes.
+  const readyKey = `tetra.stage.ready.${event.id}`;
+  const [setupOpen, setSetupOpen] = useState(() => {
+    try {
+      return !localStorage.getItem(readyKey);
+    } catch {
+      return true;
+    }
+  });
+  const setupRef = useRef(setupOpen);
+  setupRef.current = setupOpen;
+  const [testShot, setTestShot] = useState<StageShot>();
+  const [tvTest, setTvTest] = useState(false);
   const presetRef = useRef(preset);
   presetRef.current = preset;
   const [lut, setLut] = useState(() => storedLut(lutKey(event.id)));
@@ -144,7 +159,8 @@ export function StageRunner({
       .listen(true)
       .catch((e: unknown) => console.error(`[stage] dengar rana gagal: ${errText(e)}`));
     const off = stage.onShot((sh) => {
-      dispatch({ type: "SHOT", shot: { ...sh, at: Date.now() }, id: newSessionId() });
+      if (setupRef.current) setTestShot({ ...sh, at: Date.now() });
+      else dispatch({ type: "SHOT", shot: { ...sh, at: Date.now() }, id: newSessionId() });
       makeThumb(sh.path);
     });
     return () => {
@@ -254,9 +270,21 @@ export function StageRunner({
         filter: stagePresetCss(preset),
         activeSec: event.settings.qrScreenSec,
         lut: lut ? { key: lutKey(event.id), at: lut.at } : null,
+        test: setupOpen && tvTest,
       }),
     );
-  }, [s, preset, lut, stage, event.id, event.name, event.settings.qrScreenSec, guestBaseUrl]);
+  }, [
+    s,
+    preset,
+    lut,
+    stage,
+    event.id,
+    event.name,
+    event.settings.qrScreenSec,
+    guestBaseUrl,
+    setupOpen,
+    tvTest,
+  ]);
 
   const newGroup = useCallback(() => {
     const a = activeGroup(sRef.current);
@@ -361,7 +389,7 @@ export function StageRunner({
         setOpenHist(null);
         return;
       }
-      if (colorOpen) return;
+      if (colorOpen || setupRef.current) return;
       if (e.key === "Tab") {
         e.preventDefault();
         pickRef.current("");
@@ -928,6 +956,46 @@ export function StageRunner({
         >
           {toast}
         </div>
+      )}
+
+      {setupOpen && (
+        <StageSetup
+          event={event}
+          testShot={testShot}
+          testThumb={testShot && thumbs[testShot.path]}
+          cameraOk={cameraOk}
+          model={status?.camera?.model}
+          tvOn={tvOn}
+          tvTest={tvTest}
+          setTvTest={setTvTest}
+          gapSec={s.gapSec}
+          setGap={setGap}
+          colorSummary={[PHOTO_FILTERS.find((f) => f.id === preset.filter)?.label, lut?.name]
+            .filter(Boolean)
+            .join(" · ")}
+          renderColor={(done) => (
+            <StageColor
+              inline
+              doneLabel={copy.stage.setup.useForAll}
+              preset={preset}
+              savePreset={savePreset}
+              lut={lut}
+              lutError={lutError}
+              pickLut={(f) => void pickLut(f)}
+              removeLut={removeLut}
+              shot={testShot}
+              model={model}
+              onClose={done}
+            />
+          )}
+          onDone={() => {
+            try {
+              localStorage.setItem(readyKey, "1");
+            } catch {}
+            setTvTest(false);
+            setSetupOpen(false);
+          }}
+        />
       )}
 
       {colorOpen && (

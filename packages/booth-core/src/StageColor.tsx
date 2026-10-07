@@ -74,6 +74,7 @@ export function StageColor({
   shot,
   model,
   doneLabel = t.done,
+  inline = false,
   onClose,
 }: {
   preset: StagePreset;
@@ -85,6 +86,8 @@ export function StageColor({
   shot: StageShot | undefined;
   model: string | null | undefined;
   doneLabel?: string;
+  /** Di dalam wizard persiapan (A1): tanpa lapisan gelap, diperkecil 0,74. */
+  inline?: boolean;
   onClose: () => void;
 }) {
   const [split, setSplit] = useState(50);
@@ -92,7 +95,13 @@ export function StageColor({
   const css = stagePresetCss(preset);
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-[rgba(29,29,27,.42)]">
+    <div
+      className={
+        inline
+          ? "[zoom:0.74]"
+          : "absolute inset-0 z-40 flex items-center justify-center bg-[rgba(29,29,27,.42)]"
+      }
+    >
       <div
         role="dialog"
         aria-label={t.colorTitle}

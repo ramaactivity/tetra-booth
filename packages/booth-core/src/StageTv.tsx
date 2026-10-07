@@ -82,7 +82,22 @@ export function StageTv() {
   return (
     <Stage>
       <div className="flex h-full flex-col bg-paper p-14" data-testid="stage-tv">
-        {active ? (
+        {st?.test ? (
+          <div className="flex flex-1 items-center justify-center gap-20">
+            <div className="flex max-w-[900px] flex-col gap-6">
+              <p className="text-[34px] font-bold text-text-2">{st.eventName}</p>
+              <h1 className="text-[104px] leading-[0.95] font-extrabold tracking-[-0.05em]">
+                {copy.stage.setup.tvTestScreen}
+              </h1>
+              <p className="text-[34px] leading-[1.35] text-text-3">
+                {copy.stage.setup.tvTestScreenSub}
+              </p>
+            </div>
+            <div className="rounded-[36px] border-[3px] border-ink bg-white p-7">
+              <QrCode url={st.guestBaseUrl} size={440} />
+            </div>
+          </div>
+        ) : active ? (
           <div className="flex min-h-0 flex-1 gap-14">
             <div className="flex min-w-0 flex-1 flex-col gap-8">
               <div>

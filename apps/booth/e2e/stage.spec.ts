@@ -24,6 +24,16 @@ const serviceBin = join(
   process.platform === "win32" ? "TetraCamera.exe" : "TetraCamera",
 );
 
+/** Wizard persiapan (#188) sekali per event: lewati semua langkah. */
+async function skipSetup(w: import("@playwright/test").Page) {
+  const setup = w.getByTestId("stage-setup");
+  for (const name of ["Lanjut ke Kamera", "Lanjut ke TV", "Lanjut ke Warna"])
+    await setup.getByRole("button", { name }).click();
+  await setup.getByRole("button", { name: "Pakai untuk semua foto" }).click();
+  await setup.getByRole("button", { name: "Mulai Photo Stage" }).click();
+  await expect(setup).toBeHidden();
+}
+
 test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => {
   test.skip(!existsSync(serviceBin), "Camera Service belum di-build");
   test.setTimeout(90_000);
@@ -55,10 +65,6 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   const w = await byHash(false);
   const tvWin = await byHash(true);
   await expect(w.getByTestId("stage-runner")).toBeVisible();
-  await expect(w.getByTestId("tv-status")).toHaveText("TV");
-  await expect(tvWin.getByText("Foto dari pelaminan akan tampil di sini")).toBeVisible();
-  await expect(w.getByText("Menunggu jepretan fotografer", { exact: true })).toBeVisible();
-
   const jpeg = async (n: number) =>
     Buffer.from(
       await app.evaluate(({ nativeImage }, n) => {
@@ -72,8 +78,26 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
       }, n),
       "base64",
     );
-  // Folder pantau baru dipasang saat layar stage terbuka; beri waktu satu putaran pindai.
-  await w.waitForTimeout(800);
+  // Wizard persiapan (#188): foto tes tidak masuk rombongan, layar uji tampil di TV.
+  const setup = w.getByTestId("stage-setup");
+  await expect(setup.getByText("Laptop ini untuk apa?")).toBeVisible();
+  await w.screenshot({ path: "test-results/stage-setup-1.png" });
+  await setup.getByRole("button", { name: "Lanjut ke Kamera" }).click();
+  await w.waitForTimeout(800); // folder pantau dipasang saat layar stage terbuka
+  writeFileSync(join(hot, "DSC0000.JPG"), await jpeg(5));
+  await expect(setup.getByText("Foto tes masuk")).toBeVisible({ timeout: 10_000 });
+  await w.screenshot({ path: "test-results/stage-setup-2.png" });
+  await setup.getByRole("button", { name: "Lanjut ke TV" }).click();
+  await setup.getByRole("button", { name: "Tampilkan uji di TV" }).click();
+  await expect(tvWin.getByText("Uji tampilan TV")).toBeVisible();
+  await setup.getByRole("button", { name: "Lanjut ke Warna" }).click();
+  await setup.getByRole("button", { name: "Pakai untuk semua foto" }).click();
+  await w.screenshot({ path: "test-results/stage-setup-5.png" });
+  await setup.getByRole("button", { name: "Mulai Photo Stage" }).click();
+  await expect(setup).toBeHidden();
+  await expect(w.getByTestId("tv-status")).toHaveText("TV");
+  await expect(tvWin.getByText("Foto dari pelaminan akan tampil di sini")).toBeVisible();
+  await expect(w.getByText("Menunggu jepretan fotografer", { exact: true })).toBeVisible();
   writeFileSync(join(hot, "DSC0001.JPG"), await jpeg(1));
   writeFileSync(join(hot, "DSC0002.JPG"), await jpeg(2));
   await expect(w.locator("section").getByText("#1", { exact: true })).toBeVisible({
@@ -218,6 +242,7 @@ test("stage: daftar grup dari klien jadi pilihan cepat nama rombongan (#181)", a
   const w = await app.firstWindow();
   await w.getByRole("button", { name: /Mode Event/ }).click();
   await w.getByRole("button", { name: /Rina & Dimas/ }).click();
+  await skipSetup(w);
   const next = w.getByTestId("stage-next");
   await expect(next).toContainText("0/3");
   await next.getByRole("button", { name: "Keluarga Inti" }).click();
