@@ -107,6 +107,20 @@ export const copy = {
       fix: "Sesuaikan di Pengaturan event.",
       field: { date: "tanggal", start: "jam mulai", end: "jam selesai", location: "lokasi" },
     },
+    /** Pasang desain ACC dari Tetra Ops (#177). */
+    opsDesign: {
+      ready: "Desain frame sudah di-ACC klien di Tetra Ops dan siap dipasang.",
+      installed: "Desain dari Tetra Ops sudah terpasang sebagai desain utama.",
+      install: "Pasang desain dari Tetra Ops",
+      reinstall: "Pasang ulang",
+      hint: "periksa kotak foto, lalu pasang sebagai desain utama",
+      loading: "Mengambil desain dari Tetra Ops…",
+      loadError: "Desain tidak bisa diambil dari Tetra Ops. Coba lagi sebentar lagi.",
+      confirm: "Pasang sebagai desain utama",
+      saving: "Memasang…",
+      cancel: "Batal",
+      close: "Tutup",
+    },
     /** Timer jalannya event (#149). */
     run: {
       title: "Jalannya event",

@@ -1,7 +1,8 @@
 import "server-only";
+import type { LayoutPaper } from "@tetra/shared";
 import { z } from "zod";
-import { ymdWib } from "@/lib/events";
-import { type DriftEvent, type OpsDrift, opsDrift } from "@/lib/ops-sync";
+import { ymdWib } from "./events";
+import { type DriftEvent, type OpsDrift, opsDrift } from "./ops-sync";
 
 /**
  * Klien baca-saja Tetra Ops (DECISIONS #150): booking & paket untuk wizard Buat event. Env `TETRA_OPS_URL`
@@ -26,8 +27,60 @@ export const OpsBooking = z.object({
   frame_size: str,
   package_name: str,
   package_duration_hours: z.number().positive().max(48).nullable(),
+  // Kontrak v0.5 §2.2 (aditif): desain frame dari modul desain Ops.
+  design: z
+    .looseObject({
+      status: z.string().max(20).nullable().optional(),
+      approved_at: z.string().max(40).nullable().optional(),
+      frame_size: z.string().max(20).nullable().optional(),
+      orientation: z.enum(["portrait", "landscape"]).nullable().optional(),
+      frame_url: z.string().max(4000).nullable().optional(),
+      spots: z
+        .array(
+          z.looseObject({
+            spot_no: z.number().int(),
+            frame_size: z.string().max(20).nullable().optional(),
+            orientation: z.enum(["portrait", "landscape"]).nullable().optional(),
+            frame_url: z.string().max(4000).nullable().optional(),
+          }),
+        )
+        .max(10)
+        .optional(),
+    })
+    .nullable()
+    .optional(),
 });
 export type OpsBooking = z.infer<typeof OpsBooking>;
+
+/** Ukuran frame Ops → kertas Booth (sama dengan wizard impor, #162). */
+const OPS_PAPER: Record<string, LayoutPaper> = { "2R": "2x6x2", "4R": "4R", polaroid: "3x4x2" };
+export const OPS_PAPER_OF = (size: string | null): LayoutPaper | undefined =>
+  size ? OPS_PAPER[size] : undefined;
+
+/** Desain frame yang sudah di-ACC untuk event Booth ini (#177), atau null. */
+export type OpsDesign = {
+  frameUrl: string;
+  frameSize: string | null;
+  orientation: "portrait" | "landscape" | null;
+  approvedAt: string | null;
+};
+/**
+ * Desain ACC dari booking Ops untuk satu event Booth. Event multi-unit dibuat satu per spot dengan nama
+ * "… · Spot N" (kontrak §2.2): spot ≥ 2 diambil dari `design.spots`, spot 1 dari field level atas.
+ */
+export function approvedDesign(b: OpsBooking | undefined, eventName: string): OpsDesign | null {
+  const d = b?.design;
+  if (!d || d.status !== "approved") return null;
+  const n = Number(/Spot (\d+)/i.exec(eventName)?.[1] ?? 1);
+  const s = n > 1 ? d.spots?.find((x) => x.spot_no === n) : d;
+  if (!s?.frame_url) return null;
+  return {
+    frameUrl: s.frame_url,
+    frameSize: s.frame_size ?? null,
+    orientation: s.orientation ?? null,
+    approvedAt: d.approved_at ?? null,
+  };
+}
 export const OpsPackage = z.object({
   name: z.string().max(200),
   category: str,
@@ -61,22 +114,26 @@ export const opsPackages = () =>
   );
 
 /**
- * Selisih event Booth hasil impor vs booking Ops saat ini (#176). `null` = sama, bukan event Ops, Ops tidak
- * terhubung/gagal dihubungi, atau event sudah lewat (yang penting hanya event mendatang).
+ * Booking Ops saat ini untuk event Booth mendatang hasil impor (#176, #177). `null` = bukan event Ops, Ops tidak
+ * terhubung/gagal dihubungi, atau event sudah lewat; `{ booking: undefined }` = tidak ada lagi di daftar Ops.
  */
-export async function opsDriftFor(
-  ev: DriftEvent & { ops_project_id: string | null },
-): Promise<OpsDrift | null> {
+export async function opsBookingNow(ev: {
+  event_date: string;
+  ops_project_id: string | null;
+}): Promise<{ booking: OpsBooking | undefined } | null> {
   const today = ymdWib(Date.now());
   if (!ev.ops_project_id || !opsConfigured() || ev.event_date < today) return null;
   try {
     const list = await opsBookings(today, ymdWib(Date.now() + (OPS_MAX_DAYS - 1) * 86_400_000));
-    return opsDrift(
-      ev,
-      list.find((b) => b.project_id === ev.ops_project_id),
-    );
+    return { booking: list.find((b) => b.project_id === ev.ops_project_id) };
   } catch (e) {
     console.warn(`[tetra-ops] ${e instanceof Error ? e.message : String(e)}`);
     return null;
   }
 }
+
+/** Selisih event Booth vs booking Ops saat ini (#176); `null` = sama atau tidak bisa dibandingkan. */
+export const opsDriftOf = (
+  ev: DriftEvent,
+  now: { booking: OpsBooking | undefined } | null,
+): OpsDrift | null => (now ? opsDrift(ev, now.booking) : null);

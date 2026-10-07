@@ -27,7 +27,8 @@ import type { OpsSync } from "@/lib/ops-sync";
 import { presignDownload, presignGet } from "@/lib/r2";
 import type { RecapData } from "@/lib/recap";
 import { requireMember } from "@/lib/supabase/server";
-import { opsDriftFor } from "@/lib/tetra-ops";
+import { approvedDesign, OPS_PAPER_OF, opsBookingNow, opsDriftOf } from "@/lib/tetra-ops";
+import { OpsDesignInstall } from "./OpsDesignInstall";
 import { RecapDialog } from "./RecapDialog";
 import { RunPanel } from "./RunPanel";
 import { SessionTile } from "./SessionTile";
@@ -243,7 +244,10 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   if (ops.updated_at && Date.parse(ops.updated_at) > Date.parse(ev.created_at))
     opsNotes.push({ text: t.updated, bg: "bg-peach" });
   if (ops.design_approved_at) opsNotes.push({ text: t.design, bg: "bg-mint-soft" });
-  const drift = await opsDriftFor(ev);
+  const opsNow = await opsBookingNow(ev);
+  const drift = opsDriftOf(ev, opsNow);
+  const opsDesign = ev.mode === "event" ? approvedDesign(opsNow?.booking, ev.name) : null;
+  const opsPaper = opsDesign ? OPS_PAPER_OF(opsDesign.frameSize) : undefined;
   if (drift?.kind === "missing") opsNotes.push({ text: t.missing, bg: "bg-coral" });
   if (drift?.kind === "changed") {
     const val = (f: (typeof drift.fields)[number]) =>
@@ -319,6 +323,18 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
         </div>
       </div>
 
+      {opsDesign && opsPaper && (
+        <OpsDesignInstall
+          eventId={ev.id}
+          paper={opsPaper}
+          orient={opsDesign.orientation ?? "portrait"}
+          installed={
+            !!ops.design_installed_at &&
+            (!opsDesign.approvedAt ||
+              Date.parse(ops.design_installed_at) > Date.parse(opsDesign.approvedAt))
+          }
+        />
+      )}
       {opsNotes.length > 0 && (
         <div className="mt-5 grid gap-2">
           {opsNotes.map((n) => (
