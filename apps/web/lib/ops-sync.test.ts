@@ -2,7 +2,9 @@ import { createHmac } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-const { bearerOk, nextOpsSync, OpsWebhookBody, opsSignatureOk } = await import("./ops-sync");
+const { bearerOk, nextOpsSync, OpsWebhookBody, opsDrift, opsSignatureOk } = await import(
+  "./ops-sync"
+);
 
 const SECRET = "whsec-test";
 const sign = (raw: string, t: number, secret = SECRET) =>
@@ -73,5 +75,40 @@ describe("Webhook Tetra Ops (kontrak v0.2 §4, #173)", () => {
     expect(bearerOk("Bearer abcd", "abc")).toBe(false);
     expect(bearerOk(null, "abc")).toBe(false);
     expect(bearerOk("Bearer ", "")).toBe(false);
+  });
+});
+
+describe("opsDrift: event Booth vs booking Ops (#176)", () => {
+  const ev = {
+    event_date: "2026-10-17",
+    location: "Gedung A, Bogor",
+    scheduled_start: "10:00:00",
+    scheduled_end: "13:00:00",
+  };
+  const b = {
+    event_date: "2026-10-17",
+    venue_name: "Gedung A",
+    venue_city: "Bogor",
+    start_time: "10:00",
+    end_time: "13:00",
+  };
+  it("sama = null; booking hilang = missing", () => {
+    expect(opsDrift(ev, b)).toBeNull();
+    expect(opsDrift(ev, undefined)).toEqual({ kind: "missing" });
+  });
+  it("pindah tanggal, jam, dan venue terdeteksi dengan nilai Ops", () => {
+    expect(
+      opsDrift(ev, { ...b, event_date: "2026-10-24", start_time: "15:00", venue_name: "Gedung B" }),
+    ).toEqual({
+      kind: "changed",
+      fields: [
+        { field: "date", ops: "2026-10-24" },
+        { field: "start", ops: "15:00" },
+        { field: "location", ops: "Gedung B, Bogor" },
+      ],
+    });
+  });
+  it("jam atau venue kosong di Ops tidak dianggap berubah", () => {
+    expect(opsDrift(ev, { ...b, start_time: null, venue_name: null, venue_city: null })).toBeNull();
   });
 });

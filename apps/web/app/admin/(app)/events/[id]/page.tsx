@@ -27,6 +27,7 @@ import type { OpsSync } from "@/lib/ops-sync";
 import { presignDownload, presignGet } from "@/lib/r2";
 import type { RecapData } from "@/lib/recap";
 import { requireMember } from "@/lib/supabase/server";
+import { opsDriftFor } from "@/lib/tetra-ops";
 import { RecapDialog } from "./RecapDialog";
 import { RunPanel } from "./RunPanel";
 import { SessionTile } from "./SessionTile";
@@ -59,7 +60,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, slug, name, event_date, location, mode, settings, client_token, live_token, run, package_name, package_hours, scheduled_start, scheduled_end, local_bytes, local_files, created_at, ops_sync",
+      "id, slug, name, event_date, location, mode, settings, client_token, live_token, run, package_name, package_hours, scheduled_start, scheduled_end, local_bytes, local_files, created_at, ops_sync, ops_project_id",
     )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
@@ -242,6 +243,18 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   if (ops.updated_at && Date.parse(ops.updated_at) > Date.parse(ev.created_at))
     opsNotes.push({ text: t.updated, bg: "bg-peach" });
   if (ops.design_approved_at) opsNotes.push({ text: t.design, bg: "bg-mint-soft" });
+  const drift = await opsDriftFor(ev);
+  if (drift?.kind === "missing") opsNotes.push({ text: t.missing, bg: "bg-coral" });
+  if (drift?.kind === "changed") {
+    const val = (f: (typeof drift.fields)[number]) =>
+      f.field === "date"
+        ? new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeZone: "UTC" }).format(
+            new Date(`${f.ops}T00:00:00Z`),
+          )
+        : f.ops;
+    const list = drift.fields.map((f) => `${t.field[f.field]} ${val(f)}`).join(", ");
+    opsNotes.push({ text: `${t.changed} ${list}. ${t.fix}`, bg: "bg-peach" });
+  }
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
   return (

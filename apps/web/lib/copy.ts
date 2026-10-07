@@ -101,6 +101,11 @@ export const copy = {
       updated:
         "Data booking di Tetra Ops berubah setelah event ini dibuat. Cek tanggal, jam, lokasi, dan paket.",
       design: "Desain frame sudah disetujui klien di Tetra Ops.",
+      missing:
+        "Booking ini tidak ada lagi di daftar Tetra Ops (dibatalkan, sudah selesai, atau dipindah lebih dari 6 bulan). Cek ke admin.",
+      changed: "Tetra Ops mencatat data berbeda:",
+      fix: "Sesuaikan di Pengaturan event.",
+      field: { date: "tanggal", start: "jam mulai", end: "jam selesai", location: "lokasi" },
     },
     /** Timer jalannya event (#149). */
     run: {

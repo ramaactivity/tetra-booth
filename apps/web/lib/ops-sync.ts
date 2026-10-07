@@ -81,3 +81,41 @@ export function nextOpsSync(prev: OpsSync, body: OpsWebhookBody): OpsSync {
       return prev;
   }
 }
+
+/** Data event Booth yang dibandingkan dengan booking Ops. */
+export type DriftEvent = {
+  event_date: string;
+  location: string | null;
+  scheduled_start: string | null;
+  scheduled_end: string | null;
+};
+type DriftBooking = {
+  event_date: string;
+  venue_name: string | null;
+  venue_city: string | null;
+  start_time: string | null;
+  end_time: string | null;
+};
+export type OpsDrift =
+  | { kind: "missing" }
+  | { kind: "changed"; fields: { field: "date" | "start" | "end" | "location"; ops: string }[] };
+
+const hm = (v: string | null) => (v && /^\d{2}:\d{2}/.test(v) ? v.slice(0, 5) : "");
+
+/**
+ * Selisih event Booth vs booking Ops sekarang (#176, jembatan sebelum webhook fase 5): klien pindah tanggal atau
+ * venue di Ops, event Booth hasil impor tidak ikut berubah. `null` = sama. Booking tidak ada di daftar Ops
+ * (batal, selesai, atau dipindah > 180 hari) = `missing`. Lokasi dibandingkan dengan rumus impor wizard.
+ */
+export function opsDrift(ev: DriftEvent, b: DriftBooking | undefined): OpsDrift | null {
+  if (!b) return { kind: "missing" };
+  const loc = [b.venue_name, b.venue_city].filter(Boolean).join(", ").slice(0, 120);
+  const fields: { field: "date" | "start" | "end" | "location"; ops: string }[] = [];
+  if (b.event_date !== ev.event_date) fields.push({ field: "date", ops: b.event_date });
+  if (hm(b.start_time) && hm(b.start_time) !== hm(ev.scheduled_start))
+    fields.push({ field: "start", ops: hm(b.start_time) });
+  if (hm(b.end_time) && hm(b.end_time) !== hm(ev.scheduled_end))
+    fields.push({ field: "end", ops: hm(b.end_time) });
+  if (loc && loc !== (ev.location ?? "")) fields.push({ field: "location", ops: loc });
+  return fields.length ? { kind: "changed", fields } : null;
+}

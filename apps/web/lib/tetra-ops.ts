@@ -1,5 +1,7 @@
 import "server-only";
 import { z } from "zod";
+import { ymdWib } from "@/lib/events";
+import { type DriftEvent, type OpsDrift, opsDrift } from "@/lib/ops-sync";
 
 /**
  * Klien baca-saja Tetra Ops (DECISIONS #150): booking & paket untuk wizard Buat event. Env `TETRA_OPS_URL`
@@ -57,3 +59,24 @@ export const opsPackages = () =>
   get("/api/booth/packages", z.object({ packages: z.array(OpsPackage).max(500) })).then(
     (r) => r.packages,
   );
+
+/**
+ * Selisih event Booth hasil impor vs booking Ops saat ini (#176). `null` = sama, bukan event Ops, Ops tidak
+ * terhubung/gagal dihubungi, atau event sudah lewat (yang penting hanya event mendatang).
+ */
+export async function opsDriftFor(
+  ev: DriftEvent & { ops_project_id: string | null },
+): Promise<OpsDrift | null> {
+  const today = ymdWib(Date.now());
+  if (!ev.ops_project_id || !opsConfigured() || ev.event_date < today) return null;
+  try {
+    const list = await opsBookings(today, ymdWib(Date.now() + (OPS_MAX_DAYS - 1) * 86_400_000));
+    return opsDrift(
+      ev,
+      list.find((b) => b.project_id === ev.ops_project_id),
+    );
+  } catch (e) {
+    console.warn(`[tetra-ops] ${e instanceof Error ? e.message : String(e)}`);
+    return null;
+  }
+}
