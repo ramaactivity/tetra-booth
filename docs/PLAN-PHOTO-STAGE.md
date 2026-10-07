@@ -34,7 +34,7 @@ Crew: Basic 2 (fotografer + operator), Standard 3 (+ helper QR di jalur turun), 
 |---|---|---|
 | **S1. Jepret, kelompok & warna** ✅ (7 Okt, #178; UI sementara) | Event kamera `capture.shot` (Canon + folder pantau untuk merek lain), `StageRunner`, layar operator (sesi aktif, foto masuk, Enter = rombongan baru, ketik/pilih nama grup, ubah nama sesi sebelumnya, Jeda/Lanjut, jeda otomatis bisa diatur/dimatikan), preset warna (filter + slider dari foto tes), simpan lokal + upload dengan `source`/`groupName`, migrasi cloud | 200 jepretan simulasi (kamera palsu + hot folder) terkelompok benar dan terunggah, booth biasa lulus semua tes lama |
 | **S2. TV + QR** ✅ (7 Okt, #179; UI sementara) | Jendela TV di layar kedua, QR sesi terbaru + foto + nama grup, idle galeri, pengaturan durasi tampil | Uji dua layar di laptop Windows: QR terbaca HP, TV kembali ke galeri |
-| **S3. Web** | Halaman tamu untuk sesi stage, galeri klien bertab Photobooth/Photo Stage + cari nama grup + per jam, live slideshow campur, ZIP per sumber | E2E web lulus, dicek di HP |
+| **S3. Web** ✅ (7 Okt, #180) | Halaman tamu untuk sesi stage, galeri klien bertab Photobooth/Photo Stage + cari nama grup + per jam, live slideshow campur, ZIP per sumber | E2E web lulus, dicek di HP |
 | **S4. Daftar grup** | Daftar grup dari admin (tempel/CSV) tersinkron ke laptop stage | Daftar grup muncul di laptop stage |
 | **S5. Lanjutan** | Cetak instan 4R dari stage, helper HP mengganti nama grup, LUT `.cube`, daftar grup dari portal Ops, Temukan Foto Saya (Fase 5, #76) | Dipilih owner sesuai prioritas |
 

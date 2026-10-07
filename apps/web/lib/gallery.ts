@@ -12,6 +12,12 @@ export type GalleryPhoto = {
   kind: "strip" | "original" | "animation";
   sessionId: string;
   hour: number;
+  /** Photo Stage (#180): foto fotografer pelaminan, dikelompokkan per rombongan. */
+  source: "booth" | "stage";
+  /** Nama rombongan (stage): nama grup, atau "Tamu · 19.42". */
+  group: string | null;
+  /** Jam mulai sesi "19.42" (WIB). */
+  time: string;
   thumb: string;
   full: string;
   /** URL unduh langsung (attachment). */
@@ -42,6 +48,12 @@ const hourWib = (ts: string) =>
     }).format(new Date(ts)),
   );
 const key = (k: string) => k.split("#")[0] ?? k;
+const clockWib = (ts: string) =>
+  new Intl.DateTimeFormat("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Jakarta",
+  }).format(new Date(ts));
 
 /**
  * Link publik galeri/live (DECISIONS #147): `/g/<slug-event>` atau token acak lama. Link aktif = kolom token terisi
@@ -119,7 +131,7 @@ async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gall
   const db = createServiceClient();
   const { data: sessions } = await db
     .from("sessions")
-    .select("id, started_at")
+    .select("id, started_at, source, group_name")
     .eq("event_id", ev.id)
     .eq("organization_id", ev.organization_id)
     .eq("is_test", false)
@@ -128,6 +140,7 @@ async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gall
     .order("started_at")
     .limit(10000);
   const started = new Map((sessions ?? []).map((s) => [s.id, s.started_at]));
+  const meta = new Map((sessions ?? []).map((s) => [s.id, s]));
   const ids = [...started.keys()];
   const assets: { id: string; session_id: string; kind: string; idx: number; r2_key: string }[] =
     [];
@@ -157,6 +170,13 @@ async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gall
           kind: KIND[a.kind],
           sessionId: a.session_id,
           hour: hourWib(started.get(a.session_id) ?? ev.event_date),
+          source: meta.get(a.session_id)?.source === "stage" ? "stage" : "booth",
+          group:
+            meta.get(a.session_id)?.source === "stage"
+              ? (meta.get(a.session_id)?.group_name ??
+                `Tamu · ${clockWib(started.get(a.session_id) ?? ev.event_date)}`)
+              : null,
+          time: clockWib(started.get(a.session_id) ?? ev.event_date),
           thumb: await presignGet(key(thumb.r2_key), 6 * 3600),
           full: await presignGet(key(a.r2_key), 6 * 3600),
           download: await presignDownload(

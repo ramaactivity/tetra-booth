@@ -113,10 +113,16 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
       <Shell>
         <TrackOpen sessionId={sessionId} />
         <Header event={g.event} />
+        {g.group && (
+          <h2 className="mx-5 mb-4 text-[22px] leading-tight font-extrabold tracking-[-0.02em]">
+            {g.group}
+          </h2>
+        )}
         <GuestReady
           sessionId={sessionId}
           assets={g.assets}
           expiresAt={g.expiresAt ? shortDate(g.expiresAt) : null}
+          stage={!!g.group}
         />
         {g.publicGallery && (
           <a

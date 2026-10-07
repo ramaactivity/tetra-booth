@@ -3,11 +3,12 @@ import { useEffect, useMemo, useState } from "react";
 import { PhotoViewer } from "@/components/PhotoViewer";
 import type { GalleryPhoto } from "@/lib/gallery";
 
-type Filter = "strip" | "original" | "animation" | "favorit";
+type Filter = "strip" | "original" | "animation" | "stage" | "favorit";
 const CHIPS: [Filter, string][] = [
   ["strip", "Strip"],
   ["original", "Original"],
   ["animation", "Animasi"],
+  ["stage", "Photo Stage"],
   ["favorit", "♥ Favorit"],
 ];
 const ext = (p: GalleryPhoto) => (p.kind === "animation" ? "gif" : "jpg");
@@ -57,24 +58,52 @@ export function GalleryView({
   readOnly?: boolean;
 }) {
   const [photos, setPhotos] = useState(initial);
-  const [filter, setFilter] = useState<Filter>("strip");
+  const hasStage = initial.some((p) => p.source === "stage");
+  const hasBooth = initial.some((p) => p.source === "booth");
+  const [filter, setFilter] = useState<Filter>(!hasBooth && hasStage ? "stage" : "strip");
+  // Photo Stage (#180): cari rombongan lewat nama grup.
+  const [q, setQ] = useState("");
   const [open, setOpen] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const shown = useMemo(
-    () => photos.filter((p) => (filter === "favorit" ? p.favorite : p.kind === filter)),
-    [photos, filter],
-  );
+  const shown = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return photos.filter((p) =>
+      filter === "favorit"
+        ? p.favorite
+        : filter === "stage"
+          ? p.source === "stage" &&
+            p.kind === "original" &&
+            (!needle || (p.group ?? "").toLowerCase().includes(needle))
+          : p.source === "booth" && p.kind === filter,
+    );
+  }, [photos, filter, q]);
+  /** Bagian grid: per jam (booth), per rombongan (Photo Stage). */
   const sections = useMemo(() => {
-    const m = new Map<number, number[]>();
-    for (const [i, p] of shown.entries()) m.set(p.hour, [...(m.get(p.hour) ?? []), i]);
-    return [...m.entries()];
-  }, [shown]);
+    const m = new Map<string, { id: string; title: string; sub: string; idx: number[] }>();
+    for (const [i, p] of shown.entries()) {
+      const k = filter === "stage" ? p.sessionId : String(p.hour);
+      const sec = m.get(k) ?? {
+        id: filter === "stage" ? `rombongan-${p.sessionId}` : `jam-${p.hour}`,
+        title: filter === "stage" ? (p.group ?? "") : hh(p.hour),
+        sub: filter === "stage" ? p.time : "",
+        idx: [],
+      };
+      sec.idx.push(i);
+      m.set(k, sec);
+    }
+    return [...m.values()];
+  }, [shown, filter]);
+  const hours = filter === "stage" ? [] : sections;
   const favCount = photos.filter((p) => p.favorite).length;
   const chips = CHIPS.filter(([k]) =>
-    k === "favorit" ? !readOnly : k === "strip" || photos.some((p) => p.kind === k),
+    k === "favorit"
+      ? !readOnly
+      : k === "stage"
+        ? hasStage
+        : (k === "strip" && !hasStage) || photos.some((p) => p.source === "booth" && p.kind === k),
   );
-  const grid = filter === "original" || filter === "animation" ? GRID.photo : GRID.strip;
+  const grid = filter === "strip" ? GRID.strip : GRID.photo;
   // Slideshow (C1 "Putar Slideshow"): viewer maju sendiri tiap 4 dtk, berulang.
   useEffect(() => {
     if (!playing || open === null || !shown.length) return;
@@ -100,8 +129,8 @@ export function GalleryView({
   // Jam yang sedang terlihat → chip Jam disorot (bagian teratas yang masih tampil di bawah toolbar).
   const [activeHour, setActiveHour] = useState<number | null>(null);
   useEffect(() => {
-    const els = sections
-      .map(([h]) => document.getElementById(`jam-${h}`))
+    const els = hours
+      .map((h) => document.getElementById(h.id))
       .filter((e): e is HTMLElement => !!e);
     if (!els.length) return;
     const obs = new IntersectionObserver(
@@ -115,7 +144,7 @@ export function GalleryView({
     );
     for (const el of els) obs.observe(el);
     return () => obs.disconnect();
-  }, [sections]);
+  }, [hours]);
   const cur = open !== null ? shown[open] : undefined;
   const act =
     "flex h-12 min-w-0 flex-1 flex-col items-center justify-center leading-tight md:flex-row md:gap-1.5";
@@ -162,7 +191,7 @@ export function GalleryView({
           ▶ Putar Slideshow
         </button>
       )}
-      {!readOnly && (filter === "strip" || filter === "original") && shown.length > 0 && (
+      {!readOnly && filter !== "animation" && filter !== "favorit" && shown.length > 0 && !q && (
         <a href={`/api/g/${token}/zip?kind=${filter}`} className={`${btn} bg-sky`}>
           ↓ Download Semua
         </a>
@@ -187,41 +216,53 @@ export function GalleryView({
             </button>
           ))}
         </div>
-        {sections.length > 1 && (
+        {filter === "stage" && (
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Cari nama grup, mis. Keluarga Bpk. Hadi"
+            aria-label="Cari nama grup"
+            className="h-11 min-w-0 rounded-[10px] border-[1.5px] border-ink bg-white px-3.5 text-[14px] md:w-80"
+          />
+        )}
+        {hours.length > 1 && (
           <nav
             aria-label="Lompat ke jam"
             className="-mx-3.5 flex items-center gap-1.5 overflow-x-auto px-3.5 [scrollbar-width:none] md:mx-0 md:min-w-0 md:flex-1 md:border-l-[1.5px] md:border-dashed md:border-ink md:pl-4"
           >
             <span className="mr-1 flex-none text-xs font-semibold text-text-2">Jam</span>
-            {sections.map(([hour, idx]) => (
-              <button
-                key={hour}
-                type="button"
-                onClick={() =>
-                  document
-                    .getElementById(`jam-${hour}`)
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                }
-                aria-current={activeHour === hour ? "true" : undefined}
-                className={`flex h-11 flex-none items-center gap-1.5 rounded-full border-[1.5px] border-ink px-3.5 text-[13px] font-bold ${activeHour === hour ? "bg-mint-soft" : "bg-white"}`}
-              >
-                {hh(hour)}
-                <span className="font-mono text-[11px] font-normal text-text-2">{idx.length}</span>
-              </button>
-            ))}
+            {hours.map((h) => {
+              const hour = Number(h.id.slice(4));
+              return (
+                <button
+                  key={h.id}
+                  type="button"
+                  onClick={() =>
+                    document
+                      .getElementById(h.id)
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                  aria-current={activeHour === hour ? "true" : undefined}
+                  className={`flex h-11 flex-none items-center gap-1.5 rounded-full border-[1.5px] border-ink px-3.5 text-[13px] font-bold ${activeHour === hour ? "bg-mint-soft" : "bg-white"}`}
+                >
+                  {h.title}
+                  <span className="font-mono text-[11px] font-normal text-text-2">
+                    {h.idx.length}
+                  </span>
+                </button>
+              );
+            })}
           </nav>
         )}
         {actions("hidden lg:ml-auto lg:flex")}
       </div>
 
-      {sections.map(([hour, idx]) => (
-        <section
-          key={hour}
-          id={`jam-${hour}`}
-          className="flex scroll-mt-32 flex-col gap-3 md:scroll-mt-20"
-        >
+      {sections.map(({ id, title, sub, idx }) => (
+        <section key={id} id={id} className="flex scroll-mt-32 flex-col gap-3 md:scroll-mt-20">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-extrabold tracking-[-0.02em] md:text-[22px]">{hh(hour)}</h2>
+            <h2 className="text-lg font-extrabold tracking-[-0.02em] md:text-[22px]">{title}</h2>
+            {sub && <span className="font-mono text-xs text-text-2">{sub}</span>}
             <span className="flex-1 border-t-[1.5px] border-dashed border-ink" />
             <span className="font-mono text-xs text-text-2">{idx.length} foto</span>
           </div>

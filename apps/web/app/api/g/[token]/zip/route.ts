@@ -6,7 +6,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 
 export const maxDuration = 60;
 
-const KINDS = { strip: "strip_web", original: "original" } as const;
+const KINDS = { strip: "strip_web", original: "original", stage: "original" } as const;
 
 /**
  * Unduh semua foto galeri klien sebagai ZIP (FSD §3 "Download semua", TSD §7), di-stream langsung dari R2
@@ -16,13 +16,18 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   if (!(await rateOk(`zip:${clientIp(req)}`, 600, 10))) return apiError("rate_limited", 429);
   const ev = await eventByClientToken((await ctx.params).token);
   if (!ev) return apiError("not_found", 404);
-  const kind = new URL(req.url).searchParams.get("kind") === "original" ? "original" : "strip";
+  const q = new URL(req.url).searchParams.get("kind");
+  // Photo Stage (#180): foto fotografer pelaminan terpisah dari original booth.
+  const kind = q === "original" || q === "stage" ? q : "strip";
   const { data } = await createServiceClient()
     .from("assets")
-    .select("idx, r2_key, sessions!inner(id, event_id, started_at, hidden_at, deleted_at)")
+    .select(
+      "idx, r2_key, sessions!inner(id, event_id, started_at, hidden_at, deleted_at, source, group_name)",
+    )
     .eq("organization_id", ev.organization_id)
     .eq("kind", KINDS[kind])
     .eq("sessions.event_id", ev.id)
+    .eq("sessions.source", kind === "stage" ? "stage" : "booth")
     .is("sessions.hidden_at", null)
     .is("sessions.deleted_at", null)
     .limit(5000);
@@ -34,7 +39,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
       const input = await getStream(a.r2_key.split("#")[0] ?? a.r2_key);
       if (!input) continue;
       yield {
-        name: `${String(n + 1).padStart(4, "0")}-${a.sessions.id}${kind === "original" ? `-${a.idx}` : ""}.jpg`,
+        name:
+          kind === "stage"
+            ? `${String(n + 1).padStart(4, "0")}-${(a.sessions.group_name ?? "Tamu").replace(/[^\w .-]+/g, "").slice(0, 60)}-${a.idx}.jpg`
+            : `${String(n + 1).padStart(4, "0")}-${a.sessions.id}${kind === "original" ? `-${a.idx}` : ""}.jpg`,
         lastModified: new Date(a.sessions.started_at),
         input,
       };

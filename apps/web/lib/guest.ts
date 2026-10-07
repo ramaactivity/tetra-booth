@@ -31,6 +31,8 @@ export type GuestState =
       lead: GuestLead | null;
       /** Klien mengaktifkan galeri publik → link "Lihat galeri acara". */
       publicGallery: boolean;
+      /** Photo Stage (#180): nama rombongan (sesi fotografer pelaminan); null = sesi booth. */
+      group: string | null;
     };
 
 export async function loadGuest(sessionId: string, now = new Date()): Promise<GuestState> {
@@ -39,7 +41,7 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
   const { data: s } = await db
     .from("sessions")
     .select(
-      "id, organization_id, started_at, upload_status, asset_count, hidden_at, deleted_at, events!inner(name, event_date, guest_expires_at, client_expires_at, purged_at, lead_capture, public_gallery, branding)",
+      "id, organization_id, started_at, upload_status, asset_count, hidden_at, deleted_at, source, group_name, events!inner(name, event_date, guest_expires_at, client_expires_at, purged_at, lead_capture, public_gallery, branding)",
     )
     .eq("id", sessionId)
     .maybeSingle();
@@ -99,7 +101,8 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
       total: s.asset_count ?? 0,
       lead,
     };
-  return { state: "ready", event, assets, expiresAt, lead, publicGallery: e.public_gallery };
+  const group = s.source === "stage" ? (s.group_name ?? `Tamu · ${clock(s.started_at)}`) : null;
+  return { state: "ready", event, assets, expiresAt, lead, publicGallery: e.public_gallery, group };
 }
 
 const tz = { timeZone: "Asia/Jakarta" } as const;

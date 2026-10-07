@@ -34,6 +34,7 @@ export const copy = {
     saveVideo: "Simpan Video ke HP",
     saveStrip: "Simpan ke Galeri HP",
     saveAll: "Simpan Semua Original",
+    saveAllStage: "Simpan Semua Foto",
     saving: "Menyimpan…",
     saveOne: "Simpan foto ini",
     viewerClose: "Tutup",
