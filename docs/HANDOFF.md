@@ -244,6 +244,14 @@ Tugas diambil dari atas. Centang saat selesai dan rujuk laporannya.
 3. Booth dev dari source: `electron apps/booth --camera=canon` (atau mode crew → Kamera & Printer → **DSLR Canon (EDSDK)** → Simpan). Cek log `[canon] tersambung: Canon EOS 60D`.
 4. Uji: fps live view (target ≥ 20), 3 sesi jepret + cetak DNP, AF & fokus manual di Tes Jepret, "AF sebelum jepret", cabut USB di attract & di tengah countdown (harus `[canon] kamera terputus, menyambung ulang` lalu tersambung lagi), matikan-nyalakan kamera. Laporan `docs/reports/windows/<tanggal>-edsdk-60d.md`, kalau ada error sertakan kode `0x…` dari log.
 
+## Untuk Windows: uji Photo Stage (#178–#184) — menunggu perangkat (Rama, 2026-10-07)
+Butuh: laptop Windows, kamera (Canon via EDSDK atau merek lain via aplikasi tether ke folder pantau), TV lewat HDMI/HDMI nirkabel, printer DNP 4R. Jalankan booth `--role stage`.
+1. Jepretan fotografer masuk & terkelompok per rombongan (Enter, jeda otomatis, Jeda/Lanjut), nama grup + daftar "Berikutnya:" dari pengaturan event.
+2. TV di layar kedua muncul sendiri saat HDMI dicolok, QR rombongan terbaca HP, halaman tamu menampilkan foto rombongan, TV kembali ke galeri.
+3. Cetak 4R: tombol Cetak 4R di foto (frame event 4R satu slot dan foto penuh), hasil di DNP tidak terpotong/terputar salah.
+4. Warna + LUT `.cube` 33: ukur waktu proses rombongan (log `[stage]`), pastikan UI operator tidak tersendat saat rombongan diproses.
+Laporan `docs/reports/windows/<tanggal>-photo-stage.md`.
+
 ## Untuk Rama (diperbarui 2026-09-25 pagi)
 Selesai: kata sandi admin, CORS R2, `CRON_SECRET` (cron menolak tanpa secret: 401), Sentry 2 DSN (terpasang, DECISIONS #68).
 1. **Supabase Auth → URL Configuration** (wajib untuk undangan tim & lupa kata sandi, DECISIONS #69): Site URL `https://booth.tetraphoto.com`; Redirect URLs tambah `https://booth.tetraphoto.com/**` dan `http://localhost:3000/**`. Sekarang Site URL masih `http://localhost:3000`, jadi link email mendarat di localhost.
