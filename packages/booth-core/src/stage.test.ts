@@ -1,5 +1,12 @@
+import { FIXTURES } from "@tetra/template-engine";
 import { describe, expect, it } from "vitest";
-import { activeGroup, initialStage, type StageState, stageReducer } from "./stage";
+import {
+  activeGroup,
+  initialStage,
+  type StageState,
+  stagePrintLayout,
+  stageReducer,
+} from "./stage";
 
 const shot = (at: number) => ({ path: `/s/${at}.jpg`, width: 6000, height: 4000, at });
 const run = (s: StageState, ...as: Parameters<typeof stageReducer>[1][]) =>
@@ -80,5 +87,17 @@ describe("Photo Stage: pengelompokan rombongan (#178)", () => {
     }));
     const s = run(initialStage(null), ...shots);
     expect(s.groups.map((g) => g.shots.length)).toEqual([20, 1]);
+  });
+});
+
+describe("stagePrintLayout (#183)", () => {
+  it("frame 4R satu slot dipakai, selain itu foto penuh mengikuti arah foto", () => {
+    const one = { ...FIXTURES["4R"], slots: FIXTURES["4R"].slots.slice(0, 1) };
+    expect(stagePrintLayout(one, { width: 6000, height: 4000 })).toBe(one);
+    const wide = stagePrintLayout(FIXTURES["2x6x2"], { width: 6000, height: 4000 });
+    expect([wide.paper, wide.canvas.width, wide.canvas.height]).toEqual(["4R", 1800, 1200]);
+    expect(stagePrintLayout(FIXTURES["2x6x2"], { width: 4000, height: 6000 }).canvas.width).toBe(
+      1200,
+    );
   });
 });

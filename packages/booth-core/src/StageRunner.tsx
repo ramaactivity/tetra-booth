@@ -7,8 +7,9 @@ import {
   StagePresetSchema,
   stagePresetCss,
 } from "@tetra/shared";
-import { Settings, SlidersHorizontal } from "lucide-react";
+import { Printer, Settings, SlidersHorizontal } from "lucide-react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { renderEvent } from "./compose";
 import { copy } from "./copy";
 import { errText } from "./errors";
 import type { BoothEvent } from "./event";
@@ -20,6 +21,8 @@ import {
   groupLabel,
   initialStage,
   type StageGroup,
+  type StageShot,
+  stagePrintLayout,
   stageReducer,
   tvState,
 } from "./stage";
@@ -70,6 +73,7 @@ export function StageRunner({
   const [preset, setPreset] = useState(() => loadPreset(event.id));
   const [colorOpen, setColorOpen] = useState(false);
   const [retry, setRetry] = useState(0);
+  const [prints, setPrints] = useState<Record<string, "printing" | "sent" | "failed">>({});
   const presetRef = useRef(preset);
   presetRef.current = preset;
   const started = useRef(new Map<string, Promise<void>>());
@@ -221,6 +225,32 @@ export function StageRunner({
         ?.then(() => stage?.rename(g.id, name.trim() || null))
         .catch((e: unknown) => console.warn(`[stage] ganti nama gagal: ${errText(e)}`));
   };
+  // Cetak instan 4R (#183): satu foto, warna preset, lewat antrean print yang sama dengan booth.
+  const printShot = async (g: StageGroup, sh: StageShot) => {
+    setPrints((x) => ({ ...x, [sh.path]: "printing" }));
+    try {
+      const bmp = await createImageBitmap(new Blob([await p.storage.readFile(sh.path)]));
+      try {
+        const { sheet } = await renderEvent(
+          { ...event, layout: stagePrintLayout(event.layout, bmp) },
+          [bmp],
+          stagePresetCss(presetRef.current),
+          `${guestBaseUrl}/s/${g.id}`,
+        );
+        const blob = await sheet.convertToBlob({ type: "image/jpeg", quality: 0.92 });
+        const stamp = Date.now().toString(36);
+        const path = `${await p.storage.sessionDir(g.id)}/out/print_${stamp}.jpg`;
+        await p.storage.writeFile(path, new Uint8Array(await blob.arrayBuffer()));
+        await p.printer.submit({ jobId: `${g.id}-s${stamp}`, path, copies: 1, paper: "4R" });
+      } finally {
+        bmp.close();
+      }
+      setPrints((x) => ({ ...x, [sh.path]: "sent" }));
+    } catch (e) {
+      console.error(`[stage] cetak gagal: ${errText(e)}`);
+      setPrints((x) => ({ ...x, [sh.path]: "failed" }));
+    }
+  };
   const setGap = (gapSec: number | null) => {
     localStorage.setItem(GAP_KEY, gapSec === null ? "off" : String(gapSec));
     dispatch({ type: "SET_GAP", gapSec });
@@ -332,7 +362,7 @@ export function StageRunner({
                 {cur.shots.map((sh) => (
                   <div
                     key={sh.path}
-                    className="aspect-[3/2] overflow-hidden rounded-xl border-2 border-ink bg-neutral"
+                    className="relative aspect-[3/2] overflow-hidden rounded-xl border-2 border-ink bg-neutral"
                   >
                     {thumbs[sh.path] && (
                       <img
@@ -342,6 +372,21 @@ export function StageRunner({
                         className="size-full object-cover"
                       />
                     )}
+                    <button
+                      type="button"
+                      disabled={prints[sh.path] === "printing"}
+                      onClick={() => void printShot(cur, sh)}
+                      className={`pressable absolute right-2 bottom-2 flex items-center gap-1.5 rounded-lg border-2 border-ink px-2.5 py-1 text-base font-bold ${prints[sh.path] === "failed" ? "bg-coral" : prints[sh.path] === "sent" ? "bg-mint-soft" : "bg-white"}`}
+                    >
+                      <Printer className="size-4" aria-hidden />
+                      {prints[sh.path] === "printing"
+                        ? t.printing
+                        : prints[sh.path] === "sent"
+                          ? t.printSent
+                          : prints[sh.path] === "failed"
+                            ? t.printFailed
+                            : t.print}
+                    </button>
                   </div>
                 ))}
               </div>

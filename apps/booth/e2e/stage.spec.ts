@@ -1,4 +1,11 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -88,9 +95,29 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   await expect(tvWin.locator("img")).toHaveCount(1, { timeout: 10_000 });
   await tvWin.screenshot({ path: "test-results/stage-tv.png" });
 
+  // Cetak instan 4R (#183): foto landscape → lembar 4R lewat antrean print booth.
+  await w.locator("section").getByRole("button", { name: "Cetak 4R" }).click();
+  await expect(w.locator("section").getByRole("button", { name: /Dicetak|Gagal/ })).toBeVisible({
+    timeout: 15_000,
+  });
+  const printed = readdirSync(join(data, "sessions"), { recursive: true })
+    .map(String)
+    .filter((f) => /out[/\\]print_\w+\.jpg$/.test(f));
+  expect(printed).toHaveLength(1);
+  const size = await app.evaluate(
+    ({ nativeImage }, f) => nativeImage.createFromPath(f).getSize(),
+    join(data, "sessions", printed[0] ?? ""),
+  );
+  expect([size.width, size.height].sort()).toEqual([1200, 1800]);
+  copyFileSync(join(data, "sessions", printed[0] ?? ""), "test-results/stage-print.jpg");
+  await w.screenshot({ path: "test-results/stage-printed.png" });
+
   // Rombongan #1 sudah ditutup → diproses & tersimpan.
   await expect(w.getByText("tersimpan")).toHaveCount(1, { timeout: 15_000 });
-  const sessions = readdirSync(join(data, "sessions")).filter((d) => !d.startsWith("_"));
+  // Folder rombongan #2 sudah ada karena cetak instan; yang selesai diproses hanya rombongan #1.
+  const sessions = readdirSync(join(data, "sessions")).filter((d) =>
+    existsSync(join(data, "sessions", d, "out", "original_1.jpg")),
+  );
   expect(sessions).toHaveLength(1);
   expect(readdirSync(join(data, "sessions", sessions[0] ?? "", "out")).sort()).toEqual([
     "original_1.jpg",

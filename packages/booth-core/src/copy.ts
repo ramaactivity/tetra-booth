@@ -187,6 +187,10 @@ export const copy = {
   /** Photo Stage (#178): layar operator laptop stage. Tampilan final menyusul dari Claude Design. */
   stage: {
     group: (n: number) => `Rombongan #${n}`,
+    print: "Cetak 4R",
+    printing: "Mencetak…",
+    printSent: "Dicetak",
+    printFailed: "Gagal, ulangi",
     namePlaceholder: "Nama grup (boleh kosong)",
     waiting: "Menunggu jepretan fotografer…",
     waitingHint: "Foto masuk otomatis dari kamera. Tekan Enter kalau rombongan berikutnya naik.",

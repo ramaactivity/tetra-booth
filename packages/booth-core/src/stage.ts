@@ -1,4 +1,4 @@
-import { STAGE_MAX_SHOTS } from "@tetra/shared";
+import { type LayoutSpec, STAGE_MAX_SHOTS } from "@tetra/shared";
 
 /**
  * Photo Stage (#178, docs/PLAN-PHOTO-STAGE.md): pengelompokan jepretan fotografer menjadi rombongan (= satu sesi).
@@ -158,5 +158,26 @@ export function tvState(
       .reverse()
       .map((g) => ({ id: g.id, no: g.no, label: groupLabel(g) })),
     recent: withShots.flatMap((g) => g.shots.map((x) => x.path)).slice(-30),
+  };
+}
+
+/**
+ * Cetak instan stage (#183): desain event dipakai kalau 4R satu slot (frame klien); selain itu foto penuh 4R
+ * mengikuti arah foto (lembar landscape diputar saat dicetak).
+ */
+export function stagePrintLayout(
+  layout: LayoutSpec,
+  photo: { width: number; height: number },
+): LayoutSpec {
+  if (layout.paper === "4R" && layout.slots.length === 1) return layout;
+  const [width, height] = photo.width > photo.height ? [1800, 1200] : [1200, 1800];
+  return {
+    id: "stage-print",
+    version: 1,
+    paper: "4R",
+    canvas: { width, height, dpi: 300 },
+    background: { color: "#ffffff" },
+    slots: [{ id: "photo", x: 0, y: 0, w: width, h: height, fit: "cover", z: "below_overlay" }],
+    texts: [],
   };
 }
