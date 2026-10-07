@@ -44,6 +44,10 @@ jobs:
           set -euo pipefail
           f="tetra-db-$(date -u +%Y%m%d-%H%M)-$(openssl rand -hex 6).dump"
           /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" -Fc --no-owner --no-privileges -n public -n auth -f "$f"
+          # Cek isi dump bisa dibaca dan memuat data inti, sebelum diunggah.
+          toc=$(/usr/lib/postgresql/17/bin/pg_restore -l "$f")
+          echo "Tabel berisi data: $(grep -c 'TABLE DATA' <<<"$toc")"
+          grep -q 'TABLE DATA public events ' <<<"$toc" && grep -q 'TABLE DATA auth users ' <<<"$toc"
           openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_PASSPHRASE -in "$f" -out "$f.enc"
           ls -l "$f" "$f.enc"
           aws s3 cp "$f.enc" "s3://$R2_BUCKET/backups/db/$f.enc" --endpoint-url "$R2_ENDPOINT" --only-show-errors
