@@ -164,6 +164,25 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
         })
       ).status(),
     ).toBe(404);
+    // Photo Stage (#178): sumber + nama grup tersimpan; upsert ulang = ganti nama; tanpa field = tidak berubah.
+    const stageId = `${sessionId.slice(0, 9)}S`;
+    const stageSession = { ...session, id: stageId, source: "stage", groupName: "Keluarga Inti" };
+    expect(
+      (await request.post("/api/booth/sessions", { headers: auth, data: stageSession })).status(),
+    ).toBe(200);
+    const stageRow = () =>
+      db.from("sessions").select("source, group_name").eq("id", stageId).single();
+    expect((await stageRow()).data).toEqual({ source: "stage", group_name: "Keluarga Inti" });
+    await request.post("/api/booth/sessions", {
+      headers: auth,
+      data: { ...stageSession, groupName: "Keluarga Besar Bpk. Hadi" },
+    });
+    expect((await stageRow()).data?.group_name).toBe("Keluarga Besar Bpk. Hadi");
+    expect(
+      (await db.from("sessions").select("source, group_name").eq("id", sessionId).single()).data,
+    ).toEqual({ source: "booth", group_name: null });
+    await db.from("sessions").delete().eq("id", stageId);
+
     const sign = await request.post("/api/booth/uploads/sign", {
       headers: auth,
       data: {

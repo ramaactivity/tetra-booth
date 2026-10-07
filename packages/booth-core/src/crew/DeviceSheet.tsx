@@ -60,6 +60,27 @@ export function DeviceSheet({
       <div className="flex min-h-0 flex-col gap-6 overflow-y-auto pr-1">
         <section className="flex flex-col gap-3">
           <p className={label}>
+            {copy.crew.deviceRole}
+            {locked("role") && ` · ${copy.crew.deviceLocked}`}
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            {(["booth", "stage"] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                aria-pressed={(draft.role ?? "booth") === r}
+                disabled={!info || locked("role")}
+                className={choice((draft.role ?? "booth") === r)}
+                onClick={() => set({ role: r })}
+              >
+                {copy.crew.roles[r]}
+              </button>
+            ))}
+          </div>
+          {draft.role === "stage" && <p className="text-lg text-text-2">{copy.crew.roleNote}</p>}
+        </section>
+        <section className="flex flex-col gap-3">
+          <p className={label}>
             {copy.crew.deviceCamera}
             {locked("camera") && ` · ${copy.crew.deviceLocked}`}
           </p>

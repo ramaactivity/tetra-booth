@@ -378,6 +378,9 @@ export const copy = {
     eventSettingsSaved: "Pengaturan event disimpan di booth",
     eventSettingsReset: "Pengaturan event kembali ke cloud",
     deviceCamera: "Kamera",
+    deviceRole: "Peran laptop",
+    roles: { booth: "Photobooth", stage: "Photo Stage" },
+    roleNote: "Photo Stage: foto dari kamera fotografer di pelaminan, dikelompokkan per rombongan.",
     devicePrinter: "Printer",
     deviceLocked: "dikunci teknisi",
     cameraKind: {

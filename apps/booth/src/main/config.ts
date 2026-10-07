@@ -102,6 +102,7 @@ const deviceArgs = Object.entries({
   "hot-folder": device.hotFolder,
   "hot-folder-trigger": device.hotFolderTrigger,
   printer: device.printer,
+  role: device.role,
 }).flatMap(([k, v]) => (v ? [`--${k}`, v] : []));
 
 /**
@@ -196,7 +197,7 @@ export const config: BoothConfig = {
   ...(device.webcamId ? { webcamId: device.webcamId } : {}),
   mirrorLiveView: device.mirrorLiveView ?? true,
   mirrorPhoto: device.mirrorPhoto ?? false,
-  ...((device.role ?? flags.value("role")) === "stage" ? { role: "stage" as const } : {}),
+  ...(flags.value("role") === "stage" ? { role: "stage" as const } : {}),
 };
 
 const size = /^(\d+)x(\d+)$/.exec(flags.value("size") ?? "");
@@ -254,7 +255,7 @@ export const deviceNow: DeviceSettings = {
     ? { hotFolderTrigger: flags.value("hot-folder-trigger") }
     : {}),
   ...(printerName ? { printer: printerName } : {}),
-  ...(config.role ? { role: config.role } : {}),
+  role: config.role ?? "booth",
 };
 
 /** Interval log metrik (detik), default 60. Stress test memakai nilai kecil. */

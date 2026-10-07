@@ -556,7 +556,9 @@ export function registerIpc(
   ipcMain.handle("crewDevice", async (e) => {
     crewOnly();
     const printers = (await e.sender.getPrintersAsync()).map((p) => p.name);
-    const locked = ["camera", "printer", "hot-folder", "hot-folder-trigger"].filter(lockedByArgv);
+    const locked = ["camera", "printer", "hot-folder", "hot-folder-trigger", "role"].filter(
+      lockedByArgv,
+    );
     return { now: deviceNow, locked, printers };
   });
   ipcMain.handle("crewSaveDevice", async (_e, s: unknown) => {
