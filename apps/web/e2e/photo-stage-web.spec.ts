@@ -90,6 +90,15 @@ test("Photo Stage di galeri klien, halaman tamu, dan live", async ({ browser, re
     await expect(g.getByRole("heading", { name: /^Tamu · 12\.20$/ })).toBeVisible();
     await expect(g.getByTestId("gallery-photo")).toHaveCount(4);
     await g.screenshot({ path: "test-results/gallery-stage.png", fullPage: true });
+    // #191: blok per jam + unduh per rombongan (ZIP satu sesi).
+    await expect(g.getByText("12.00 – 13.00")).toBeVisible();
+    await expect(g.getByText("2 rombongan")).toBeVisible();
+    const one = await request.get(
+      (await g.getByRole("link", { name: "Unduh rombongan" }).first().getAttribute("href")) ?? "",
+    );
+    expect(one.headers()["content-disposition"]).toContain(`-stage-${inti}.zip`);
+    await g.getByLabel("Cari nama grup").fill("xyz");
+    await expect(g.getByText("“xyz” belum ketemu")).toBeVisible();
     await g.getByLabel("Cari nama grup").fill("inti");
     await expect(g.getByTestId("gallery-photo")).toHaveCount(2);
     await expect(g.getByRole("heading", { name: /^Tamu/ })).toBeHidden();

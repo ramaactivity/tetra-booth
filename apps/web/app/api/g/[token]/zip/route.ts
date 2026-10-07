@@ -1,3 +1,4 @@
+import { SESSION_ID_PATTERN } from "@tetra/shared";
 import { downloadZip } from "client-zip";
 import { apiError, clientIp, rateOk } from "@/lib/booth";
 import { eventByClientToken } from "@/lib/gallery";
@@ -19,7 +20,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   const q = new URL(req.url).searchParams.get("kind");
   // Photo Stage (#180): foto fotografer pelaminan terpisah dari original booth.
   const kind = q === "original" || q === "stage" ? q : "strip";
-  const { data } = await createServiceClient()
+  // Unduh satu rombongan (#191): `session` = ID sesi stage di event ini.
+  const one = new URL(req.url).searchParams.get("session");
+  if (one && !SESSION_ID_PATTERN.test(one)) return apiError("bad_request", 400);
+  let sel = createServiceClient()
     .from("assets")
     .select(
       "idx, r2_key, sessions!inner(id, event_id, started_at, hidden_at, deleted_at, source, group_name)",
@@ -31,6 +35,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
     .is("sessions.hidden_at", null)
     .is("sessions.deleted_at", null)
     .limit(5000);
+  if (one) sel = sel.eq("sessions.id", one);
+  const { data } = await sel;
   const rows = (data ?? []).sort((a, b) =>
     a.sessions.started_at.localeCompare(b.sessions.started_at),
   );
@@ -56,7 +62,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   return new Response(downloadZip(files()).body, {
     headers: {
       "content-type": "application/zip",
-      "content-disposition": `attachment; filename="${slug}-${kind}.zip"`,
+      "content-disposition": `attachment; filename="${slug}-${kind}${one ? `-${one}` : ""}.zip"`,
     },
   });
 }

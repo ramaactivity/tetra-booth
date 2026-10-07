@@ -94,7 +94,24 @@ export function GalleryView({
     }
     return [...m.values()];
   }, [shown, filter]);
-  const hours = filter === "stage" ? [] : sections;
+  // Photo Stage (#191, desain C8/D9): rombongan dikelompokkan per jam mulai; chip Jam lompat ke blok jam.
+  const stageHours = useMemo(() => {
+    if (filter !== "stage") return [];
+    const m = new Map<
+      number,
+      { id: string; title: string; idx: number[]; groups: typeof sections }
+    >();
+    for (const sec of sections) {
+      const h = shown[sec.idx[0] ?? 0]?.hour ?? 0;
+      const b = m.get(h) ?? { id: `jam-${h}`, title: hh(h), idx: [], groups: [] };
+      b.groups.push(sec);
+      b.idx.push(...sec.idx);
+      m.set(h, b);
+    }
+    return [...m.values()];
+  }, [filter, sections, shown]);
+  const hours = filter === "stage" ? stageHours : sections;
+  const [zipped, setZipped] = useState<Set<string>>(new Set());
   const favCount = photos.filter((p) => p.favorite).length;
   const chips = CHIPS.filter(([k]) =>
     k === "favorit"
@@ -193,10 +210,62 @@ export function GalleryView({
       )}
       {!readOnly && filter !== "animation" && filter !== "favorit" && shown.length > 0 && !q && (
         <a href={`/api/g/${token}/zip?kind=${filter}`} className={`${btn} bg-sky`}>
-          ↓ Download Semua
+          {filter === "stage" ? "Unduh semua Photo Stage" : "↓ Download Semua"}
         </a>
       )}
     </div>
+  );
+
+  const groupSection = ({ id, title, sub, idx }: (typeof sections)[number]) => (
+    <section key={id} id={id} className="flex scroll-mt-32 flex-col gap-3 md:scroll-mt-20">
+      <div className="flex items-center gap-3">
+        <h2 className="text-lg font-extrabold tracking-[-0.02em] md:text-[22px]">{title}</h2>
+        {sub && <span className="font-mono text-xs text-text-2">{sub}</span>}
+        <span className="flex-1 border-t-[1.5px] border-dashed border-ink" />
+        <span className="font-mono text-xs text-text-2">{idx.length} foto</span>
+        {filter === "stage" && !readOnly && (
+          <a
+            href={`/api/g/${token}/zip?kind=stage&session=${id.slice(10)}`}
+            onClick={() => setZipped((z) => new Set(z).add(id))}
+            className={`${btn} h-9 ${zipped.has(id) ? "bg-mint-soft" : "bg-white"}`}
+          >
+            {zipped.has(id) ? "Diunduh ✓" : "Unduh rombongan"}
+          </a>
+        )}
+      </div>
+      <div className={`grid items-start gap-2 md:gap-3 ${grid.cols}`}>
+        {idx.map((i) => {
+          const p = shown[i];
+          if (!p) return null;
+          const w = p.kind === "animation" ? null : W[p.kind];
+          return (
+            <button
+              key={p.id}
+              type="button"
+              data-testid="gallery-photo"
+              aria-label={`Foto ${i + 1} dari ${shown.length}`}
+              onClick={() => setOpen(i)}
+              className={`relative block overflow-hidden rounded-xl border-[1.5px] border-ink bg-neutral p-1 transition-transform hover:-translate-y-0.5 motion-reduce:transition-none ${p.kind === "strip" ? "aspect-[1/3]" : "aspect-[3/2]"}`}
+            >
+              <img
+                src={w ? p.thumb : p.full}
+                srcSet={w ? `${p.thumb} ${w[0]}w, ${p.full} ${w[1]}w` : undefined}
+                sizes={w ? grid.sizes : undefined}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="size-full rounded-lg object-contain"
+              />
+              {p.favorite && (
+                <span className="absolute top-1.5 right-1.5 rounded-full border-[1.5px] border-ink bg-coral px-1.5 text-xs">
+                  ♥
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 
   return (
@@ -213,6 +282,11 @@ export function GalleryView({
               className={`${btn} ${filter === k ? "bg-lavender" : "bg-white"}`}
             >
               {k === "favorit" ? `${t} (${favCount})` : t}
+              {k === "stage" && (
+                <span className="ml-1.5 font-mono text-[11px] font-normal text-text-2">
+                  {new Set(photos.filter((p) => p.source === "stage").map((p) => p.sessionId)).size}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -258,48 +332,31 @@ export function GalleryView({
         {actions("hidden lg:ml-auto lg:flex")}
       </div>
 
-      {sections.map(({ id, title, sub, idx }) => (
-        <section key={id} id={id} className="flex scroll-mt-32 flex-col gap-3 md:scroll-mt-20">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-extrabold tracking-[-0.02em] md:text-[22px]">{title}</h2>
-            {sub && <span className="font-mono text-xs text-text-2">{sub}</span>}
-            <span className="flex-1 border-t-[1.5px] border-dashed border-ink" />
-            <span className="font-mono text-xs text-text-2">{idx.length} foto</span>
-          </div>
-          <div className={`grid items-start gap-2 md:gap-3 ${grid.cols}`}>
-            {idx.map((i) => {
-              const p = shown[i];
-              if (!p) return null;
-              const w = p.kind === "animation" ? null : W[p.kind];
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  data-testid="gallery-photo"
-                  aria-label={`Foto ${i + 1} dari ${shown.length}`}
-                  onClick={() => setOpen(i)}
-                  className={`relative block overflow-hidden rounded-xl border-[1.5px] border-ink bg-neutral p-1 transition-transform hover:-translate-y-0.5 motion-reduce:transition-none ${p.kind === "strip" ? "aspect-[1/3]" : "aspect-[3/2]"}`}
-                >
-                  <img
-                    src={w ? p.thumb : p.full}
-                    srcSet={w ? `${p.thumb} ${w[0]}w, ${p.full} ${w[1]}w` : undefined}
-                    sizes={w ? grid.sizes : undefined}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className="size-full rounded-lg object-contain"
-                  />
-                  {p.favorite && (
-                    <span className="absolute top-1.5 right-1.5 rounded-full border-[1.5px] border-ink bg-coral px-1.5 text-xs">
-                      ♥
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      ))}
+      {filter === "stage"
+        ? stageHours.map((h) => (
+            <section
+              key={h.id}
+              id={h.id}
+              className="flex scroll-mt-32 flex-col gap-5 md:scroll-mt-20"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="rounded-full border-[1.5px] border-ink bg-lavender px-3 py-1 text-[13px] font-extrabold">
+                  {h.title} – {hh((Number(h.id.slice(4)) + 1) % 24)}
+                </span>
+                <span className="font-mono text-xs text-text-2">{h.groups.length} rombongan</span>
+              </div>
+              {h.groups.map((g) => groupSection(g))}
+            </section>
+          ))
+        : sections.map((g) => groupSection(g))}
+      {filter === "stage" && q.trim() && !shown.length && (
+        <div className="rounded-[18px] border-[1.5px] border-dashed border-ink bg-white p-5 text-center">
+          <p className="text-base font-extrabold">“{q.trim()}” belum ketemu</p>
+          <p className="mt-1 text-sm text-text-2">
+            Rombongan tanpa nama tercatat sebagai “Tamu · jam”. Coba cari jamnya, mis. 19.42.
+          </p>
+        </div>
+      )}
       {!shown.length && (
         <p className="py-10 text-center text-sm text-text-2">Belum ada foto di sini.</p>
       )}
