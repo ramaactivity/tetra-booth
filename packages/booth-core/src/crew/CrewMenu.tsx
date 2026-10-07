@@ -40,6 +40,7 @@ import { BoothRecap } from "./BoothRecap";
 import { CameraProps } from "./CameraProps";
 import { DeviceSheet } from "./DeviceSheet";
 import { EventSettingsSheet } from "./EventSettingsSheet";
+import { PrintToneCard } from "./PrintTone";
 import { Sheet } from "./Sheet";
 import { StartDialog } from "./StartDialog";
 import { testPrint } from "./testPrint";
@@ -781,6 +782,7 @@ export function CrewMenu({
           <Button variant="plain" className={action} onClick={() => setSheet("device")}>
             {copy.crew.printerSource}
           </Button>
+          <PrintToneCard />
         </Group>
         <Group title={`${copy.crew.failedPrints} · ${failed.length}`} column>
           {failedList}

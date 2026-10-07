@@ -148,8 +148,14 @@ export const renderPiece = (
  * Lembar cetak 1200×1800 dari satu potong (DECISIONS #78). 4R = potong itu sendiri; 2R & polaroid =
  * dua potong (portrait berdampingan, landscape bertumpuk). Lembar yang melebar diputar 90° searah
  * jarum jam, jadi garis potong 2R tetap di tengah dan printer selalu menerima 1200×1800. TSD §6.
+ * `second` (#207): potong kedua berbeda (sisi kanan/bawah) untuk polaroid/2R "dua sisi berbeda".
  */
-export const toSheet = (spec: LayoutSpec, piece: CanvasLike, ctx: RenderContext): CanvasLike => {
+export const toSheet = (
+  spec: LayoutSpec,
+  piece: CanvasLike,
+  ctx: RenderContext,
+  second?: CanvasLike,
+): CanvasLike => {
   const { width: w, height: h } = piece;
   const two = spec.paper !== "4R";
   const side = w < h; // dua potong portrait berdampingan
@@ -164,7 +170,7 @@ export const toSheet = (spec: LayoutSpec, piece: CanvasLike, ctx: RenderContext)
     c.rotate(Math.PI / 2);
   }
   c.drawImage(piece, 0, 0, w, h);
-  if (two) c.drawImage(piece, side ? w : 0, side ? 0 : h, w, h);
+  if (two) c.drawImage(second ?? piece, side ? w : 0, side ? 0 : h, w, h);
   c.restore();
   return out;
 };

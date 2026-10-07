@@ -280,6 +280,7 @@ export async function applySettings(
     countdownSound: form.get("countdownSound") === "on",
     bumper: form.get("bumper") === "on",
     countdownVideo: form.get("countdownVideo") === "on",
+    pairDifferent: form.get("pairDifferent") === "on",
     // Filter pilihan tamu (#116): tanpa centang = langkah filter dilewati.
     filters: PHOTO_FILTERS.filter(
       (x) => x.id !== "normal" && form.get(`filter_${x.id}`) === "on",

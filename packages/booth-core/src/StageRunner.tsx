@@ -19,6 +19,7 @@ import { ORIGINAL_LONG_SIDE, THUMB_LONG_SIDE } from "./finalize";
 import { lutKey, parseCube, storedLut } from "./lut";
 import { usePlatform } from "./PlatformContext";
 import type { SessionAsset, StageRemote, StageStatus } from "./platform";
+import { toneForPrint } from "./printTone";
 import { StageColor } from "./StageColor";
 import { StageSetup } from "./StageSetup";
 import {
@@ -368,7 +369,7 @@ export function StageRunner({
           stagePresetCss(presetRef.current),
           `${guestBaseUrl}/s/${g.id}`,
         );
-        const blob = await sheet.convertToBlob({ type: "image/jpeg", quality: 0.92 });
+        const blob = await toneForPrint(sheet).convertToBlob({ type: "image/jpeg", quality: 0.92 });
         const stamp = Date.now().toString(36);
         const path = `${await p.storage.sessionDir(g.id)}/out/print_${stamp}.jpg`;
         await p.storage.writeFile(path, new Uint8Array(await blob.arrayBuffer()));

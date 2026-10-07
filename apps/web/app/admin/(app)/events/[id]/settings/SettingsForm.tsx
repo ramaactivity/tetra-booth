@@ -52,6 +52,8 @@ export type SettingsValues = {
   countdownSound: boolean;
   bumper: boolean;
   countdownVideo: boolean;
+  /** Polaroid & 2R: sisi kiri/kanan foto berbeda (#207). */
+  pairDifferent: boolean;
   /** Filter yang ditawarkan ke tamu (#116). */
   filters: string[];
   promptsBefore: string[];
@@ -1152,6 +1154,12 @@ export function SettingsForm({
               defaultChecked={v.countdownVideo}
               title="Rekam video saat hitung mundur"
               hint="Muncul di tab Video di halaman tamu. Bawaan: mati."
+            />
+            <ToggleRow
+              name="pairDifferent"
+              defaultChecked={v.pairDifferent}
+              title="Polaroid & 2R: kiri dan kanan foto berbeda"
+              hint="Satu kertas 4R berisi dua potong. Nyala = tamu foto 2× lebih banyak, sisi kiri & kanan beda foto (GIF ikut jadi). Mati = kedua sisi sama. Tidak berlaku untuk desain 4R."
             />
             <fieldset className="flex flex-col gap-2 md:col-span-2">
               <legend className="mb-1.5 text-[13px] font-bold">
