@@ -1,9 +1,11 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
 import {
+  EventDesignSchema,
   EventSettingsSchema,
   type GuestMe,
-  LayoutSpecSchema,
+  LAYOUT_PRESETS,
+  type LayoutSpec,
   parseRun,
   runState,
   StoredBundle,
@@ -82,30 +84,68 @@ export async function guestBranding(ev: GuestEvent) {
   };
 }
 
+/** Frame bawaan Tetra untuk Photo frame tamu (#212): 2R strip (default), 4R, polaroid. Latar putih, teks nama + tanggal. */
+const TETRA_FRAMES = [
+  ["strip-3", "Strip 2R"],
+  ["4r-grid", "4R"],
+  ["polaroid-1", "Polaroid"],
+] as const;
+
 /**
- * Desain utama event untuk strip virtual (#197): layout + URL bertanda tangan aset & font dari bundle, dirender di HP
- * lewat template engine yang sama dengan booth (aturan 2). Font pustaka `lib-*` dari /fonts (same origin).
+ * Desain Photo frame tamu (#197/#212): desain booth event dulu (bundle `designs`, atau layout utama, + layout photobox)
+ * supaya paket bundling memakai frame yang sama dengan booth, lalu frame bawaan Tetra 2R/4R/Polaroid. Layout + URL
+ * bertanda tangan aset & font dirender di HP lewat template engine yang sama dengan booth (aturan 2). Font pustaka
+ * `lib-*` dari /fonts (same origin).
  */
-async function guestDesign(ev: GuestEvent) {
+async function guestDesigns(ev: GuestEvent) {
   const b = StoredBundle.safeParse(ev.bundle);
-  const layout = LayoutSpecSchema.safeParse(b.success ? b.data.config.layout : null);
-  if (!b.success || !layout.success) return null;
-  const names = (b.data.config.assets ?? {}) as Record<string, string>;
+  const cfg = (b.success ? b.data.config : {}) as {
+    layout?: unknown;
+    designs?: unknown[];
+    photobox?: { layouts?: unknown[] };
+    assets?: Record<string, string>;
+  };
+  const booth = [
+    ...(cfg.designs ?? [{ id: "main", name: "Desain booth", info: "", layout: cfg.layout }]),
+    ...(cfg.photobox?.layouts ?? []),
+  ].flatMap((d) => {
+    const r = EventDesignSchema.safeParse(d);
+    return r.success ? [r.data] : [];
+  });
+  const names = cfg.assets ?? {};
   const url = async (id: string) => {
-    const key = b.data.files.find((f) => f.file === names[id])?.key;
+    const key = b.success ? b.data.files.find((f) => f.file === names[id])?.key : undefined;
     return key ? presignGet(key, 6 * 3600) : null;
   };
-  const assets: Record<string, string> = {};
-  for (const id of [layout.data.overlay?.assetId, layout.data.background?.assetId]) {
-    const u = id ? await url(id) : null;
-    if (id && u) assets[id] = u;
+  const out = [];
+  for (const d of booth.slice(0, 6)) {
+    const assets: Record<string, string> = {};
+    for (const id of [d.layout.overlay?.assetId, d.layout.background?.assetId]) {
+      const u = id ? await url(id) : null;
+      if (id && u) assets[id] = u;
+    }
+    const fonts: Record<string, string> = {};
+    for (const { fontAssetId: id } of d.layout.texts) {
+      const u = id.startsWith("lib-") ? `/fonts/${id.slice(4)}.woff2` : await url(id);
+      if (u) fonts[id] = u;
+    }
+    out.push({ id: `b-${d.id}`, name: d.name, booth: true, layout: d.layout, assets, fonts });
   }
-  const fonts: Record<string, string> = {};
-  for (const { fontAssetId: id } of layout.data.texts) {
-    const u = id.startsWith("lib-") ? `/fonts/${id.slice(4)}.woff2` : await url(id);
-    if (u) fonts[id] = u;
-  }
-  return { layout: layout.data, assets, fonts };
+  for (const [id, name] of TETRA_FRAMES)
+    out.push({
+      id,
+      name,
+      booth: false,
+      layout: {
+        ...LAYOUT_PRESETS[id].layout,
+        id,
+        version: 1,
+        background: { color: "#ffffff" },
+      } as LayoutSpec,
+      assets: {},
+      fonts: {},
+    });
+  return out;
 }
 
 /** Info publik untuk halaman Guest Cam (GET /api/c/{token} dan render awal /c/{token}). */
@@ -125,7 +165,7 @@ export async function guestInfo(ev: GuestEvent) {
     strip: ev.cam.strip,
     consentText: ev.cam.consentText,
     revealed: guestRevealed(ev),
-    design: ev.cam.strip ? await guestDesign(ev) : null,
+    designs: ev.cam.strip ? await guestDesigns(ev) : [],
     coverUrl: await guestCover(ev),
     closed: guestClosed(ev),
     publicGallery: ev.public_gallery,

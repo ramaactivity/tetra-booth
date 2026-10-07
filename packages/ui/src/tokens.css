@@ -170,3 +170,10 @@ html {
     transform: translateY(-50%);
   }
 }
+
+/* Guest Cam pembuka (#212): kartu foto mengambang pelan. */
+@keyframes float {
+  50% {
+    transform: translateY(-8px);
+  }
+}

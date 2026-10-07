@@ -187,6 +187,11 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await page.getByLabel("Akun Instagram").fill("@sari.e2e");
       await page.getByRole("checkbox").click();
       await page.getByRole("button", { name: "Mulai motret" }).click();
+      // Menu utama (#212): kamera, ucapan, photo frame, album.
+      await expect(page.getByText("Halo, Sari")).toBeVisible();
+      await page.waitForTimeout(700);
+      await shot("H1");
+      await page.getByRole("button", { name: "Mulai jepret" }).click();
       const open = page.getByRole("button", { name: "Buka kamera" });
       if (await open.isVisible().catch(() => false)) {
         await shot("A2a");
@@ -210,8 +215,8 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await expect(page.getByText("Film habis")).toBeVisible();
       await shot("A5");
 
-      // G3: ucapan suara (mic palsu Chromium) dan strip virtual dari 2 foto.
-      await page.getByRole("button", { name: /Titip ucapan suara/ }).click();
+      // G3: ucapan suara (mic palsu Chromium) dan photo frame dari 2 foto.
+      await page.getByRole("button", { name: /^Ucapan suara/ }).click();
       await page.getByRole("button", { name: "Mulai rekam" }).click();
       await page.waitForTimeout(1500);
       await shot("A8a");
@@ -221,18 +226,27 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await page.getByRole("button", { name: "Kirim ucapan" }).click();
       await expect(page.getByText("Ucapanmu sudah sampai")).toBeVisible();
       await shot("A8c");
-      await page.getByRole("button", { name: "Lanjut motret" }).click();
+      await page.getByRole("button", { name: "Menu utama" }).click();
+      await expect(page.getByText("Ucapanmu sudah terkirim")).toBeVisible();
+      await page.getByRole("button", { name: /^Album/ }).click();
       await expect(page.getByRole("listitem")).toHaveCount(2, { timeout: 60_000 });
       await shot("A7a");
-      await page.getByRole("button", { name: "Strip dari fotomu" }).click();
-      for (const _ of [0, 1]) await page.locator('button[aria-pressed="false"]').first().click();
+      await page.getByRole("button", { name: "Kembali" }).click();
+      await page.getByRole("button", { name: /^Photo frame/ }).click();
+      // Desain booth event dulu (bundling), lalu frame Tetra; 4R butuh 4 foto.
+      await expect(page.getByRole("button", { name: /^Desain booth/ })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      await expect(page.getByRole("button", { name: /^4R/ })).toBeDisabled();
+      for (const _ of [0, 1]) await page.locator('li button[aria-pressed="false"]').first().click();
       await expect(page.getByRole("img", { name: "Pratinjau strip" })).toBeVisible({
         timeout: 15_000,
       });
       await page.waitForTimeout(600);
       await shot("A9a");
-      await page.getByRole("button", { name: "Cetak strip" }).click();
-      await expect(page.getByRole("img", { name: "Strip kamu" })).toBeVisible();
+      await page.getByRole("button", { name: "Cetak", exact: true }).click();
+      await expect(page.getByRole("img", { name: "Frame kamu" })).toBeVisible();
       await shot("A9b");
       await page.getByRole("button", { name: "Kirim ke album" }).click();
       await expect(page.getByRole("listitem")).toHaveCount(3, { timeout: 60_000 });
@@ -292,6 +306,10 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await page.getByLabel("Nomor WhatsApp").fill("0812 3456 7890");
       await page.getByRole("checkbox").click();
       await page.getByRole("button", { name: "Mulai motret" }).click();
+      await expect(page.getByText("Terbuka setelah acara")).toBeVisible();
+      if (process.env.GC_SHOTS)
+        await page.screenshot({ path: `${process.env.GC_SHOTS}/after-H1.png` });
+      await page.getByRole("button", { name: "Mulai jepret" }).click();
       const open = page.getByRole("button", { name: "Buka kamera" });
       if (await open.isVisible().catch(() => false)) await open.click();
       const shutter = page.getByRole("button", { name: "Jepret" });

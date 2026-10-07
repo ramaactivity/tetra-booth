@@ -208,7 +208,7 @@ export function VoiceRecorder({
     <Screen
       bottom={
         sent ? (
-          <Primary onClick={onClose}>{t.keepShootingBtn}</Primary>
+          <Primary onClick={onClose}>{t.menu}</Primary>
         ) : reviewing ? (
           <div className="flex gap-3">
             <Secondary disabled={state === "sending"} onClick={() => void start()}>

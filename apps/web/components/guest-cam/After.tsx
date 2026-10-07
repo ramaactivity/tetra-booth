@@ -1,10 +1,10 @@
 "use client";
 import type { GuestMe } from "@tetra/shared";
+import { ChevronLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
-import { CameraArt } from "./CameraArt";
-import { firstName, H1, Lead, Primary, Screen, TextLink } from "./ui";
+import { firstName, H1, Lead, Primary } from "./ui";
 
 const t = copy.guestCam;
 type Item = {
@@ -15,111 +15,6 @@ type Item = {
   by?: string;
   waiting?: boolean;
 };
-
-/** Kartu aksi gelap (ucapan / strip). */
-function ActionCard({
-  icon,
-  title,
-  sub,
-  off,
-  onClick,
-}: {
-  icon: "tape" | "strip";
-  title: string;
-  sub: string;
-  off?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={off}
-      onClick={onClick}
-      className="flex w-full items-center gap-4 rounded-3xl bg-white/10 p-4 text-left transition-transform active:scale-[.98] disabled:opacity-50"
-    >
-      <span
-        className={`flex size-14 flex-none items-center justify-center rounded-2xl ${icon === "tape" ? "bg-peach" : "bg-lavender"}`}
-      >
-        {icon === "tape" ? (
-          <svg width="30" height="22" viewBox="0 0 30 22" aria-hidden>
-            <rect x="1" y="1" width="28" height="20" rx="3" fill="#1D1D1B" />
-            <rect x="5" y="5" width="20" height="8" rx="4" fill="#F8F7F4" />
-            <circle cx="10" cy="9" r="2.5" fill="#1D1D1B" />
-            <circle cx="20" cy="9" r="2.5" fill="#1D1D1B" />
-          </svg>
-        ) : (
-          <span className="flex h-9 w-5 flex-col gap-0.5 rounded-sm bg-white p-0.5" aria-hidden>
-            <span className="flex-1 bg-text-2" />
-            <span className="flex-1 bg-text-2" />
-            <span className="flex-1 bg-text-2" />
-          </span>
-        )}
-      </span>
-      <span className="flex-1">
-        <span className="block text-base font-extrabold">{title}</span>
-        <span className="mt-0.5 block text-[13px] text-paper/65">{sub}</span>
-      </span>
-      {!off && <span className="text-xl text-paper/60">›</span>}
-    </button>
-  );
-}
-
-/** Jatah habis. Tidak ada janji kabar WhatsApp (DECISIONS #203). */
-export function Done({
-  info,
-  me,
-  voice,
-  strip,
-  onVoice,
-  onStrip,
-  onMine,
-}: {
-  info: GuestInfo;
-  me: GuestMe;
-  voice: boolean;
-  strip: "on" | "locked" | "wait" | "off";
-  onVoice: () => void;
-  onStrip: () => void;
-  onMine: () => void;
-}) {
-  return (
-    <Screen bottom={<Primary onClick={onMine}>{t.seeMine}</Primary>}>
-      <div className="mt-[8dvh] flex items-end justify-center gap-3">
-        <CameraArt id="disposable" body="#8EDCCB" size={110} />
-        <span className="mb-3 rounded-full bg-peach px-3 py-1 font-mono text-sm text-ink">
-          {info.shots}/{info.shots}
-        </span>
-      </div>
-      <p className="mt-6 text-center text-xs font-bold tracking-[0.14em] text-muted uppercase">
-        {t.filmOut}
-      </p>
-      <H1 className="mt-2 text-center">{t.thanks(firstName(me.name))}</H1>
-      <Lead className="text-center">
-        {info.reveal === "after" && !me.revealed ? t.doneAfter : t.doneLive}
-      </Lead>
-      <div className="mt-8 flex flex-col gap-3">
-        {voice && (
-          <ActionCard icon="tape" title={t.voiceCard} sub={t.voiceCardSub} onClick={onVoice} />
-        )}
-        {strip !== "off" && (
-          <ActionCard
-            icon="strip"
-            title={t.stripCard}
-            sub={
-              strip === "locked"
-                ? t.stripCardLocked
-                : strip === "wait"
-                  ? t.stripCardWait
-                  : t.stripCardOpen
-            }
-            off={strip !== "on"}
-            onClick={onStrip}
-          />
-        )}
-      </div>
-    </Screen>
-  );
-}
 
 async function saveFiles(urls: string[]) {
   const files = await Promise.all(
@@ -144,23 +39,13 @@ export function Mine({
   info,
   me,
   pending,
-  left,
-  voice,
-  strip,
-  onCamera,
-  onVoice,
-  onStrip,
+  onBack,
 }: {
   token: string;
   info: GuestInfo;
   me: GuestMe;
   pending: number;
-  left: number;
-  voice: boolean;
-  strip: boolean;
-  onCamera: () => void;
-  onVoice: () => void;
-  onStrip: () => void;
+  onBack: () => void;
 }) {
   const [tab, setTab] = useState<"mine" | "album">("mine");
   const [album, setAlbum] = useState<Item[] | null>(null);
@@ -207,22 +92,21 @@ export function Mine({
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-black text-paper">
       <div className="sticky top-0 z-10 bg-black px-4 pt-[max(12px,env(safe-area-inset-top))] pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label={t.back}
+            className="flex size-11 flex-none items-center justify-center rounded-full bg-white/10 transition active:scale-90"
+          >
+            <ChevronLeft size={22} />
+          </button>
           <div className="min-w-0">
             <div className="truncate text-[17px] font-extrabold">{info.name}</div>
             <div className="font-mono text-[11px] text-muted">
               {t.mineSub(firstName(me.name), used, info.shots)}
             </div>
           </div>
-          {left > 0 && (
-            <button
-              type="button"
-              onClick={onCamera}
-              className="flex h-10 items-center gap-2 rounded-full bg-butter px-4 text-sm font-extrabold text-ink"
-            >
-              {t.keepShootingBtn} <span className="font-mono text-xs font-medium">{left}</span>
-            </button>
-          )}
         </div>
         <div className="mt-3 flex h-11 rounded-full bg-white/10 p-1">
           {(["mine", "album"] as const).map((k) => (
@@ -267,11 +151,6 @@ export function Mine({
               {t.opens}: <b className="text-paper">{t.afterEvent}</b>
             </p>
           </div>
-          {voice && (
-            <TextLink className="mt-4 self-start" onClick={onVoice}>
-              {t.recordVoice}
-            </TextLink>
-          )}
         </div>
       ) : (
         <>
@@ -323,28 +202,6 @@ export function Mine({
           )}
           <div className="flex-1" />
           <div className="flex flex-col gap-3 px-4 pt-5 pb-[max(20px,env(safe-area-inset-bottom))]">
-            {tab === "mine" && (voice || strip) && (
-              <div className="flex gap-2">
-                {voice && (
-                  <button
-                    type="button"
-                    onClick={onVoice}
-                    className="h-12 flex-1 rounded-full bg-white/10 text-sm font-bold"
-                  >
-                    {t.voiceCard}
-                  </button>
-                )}
-                {strip && (
-                  <button
-                    type="button"
-                    onClick={onStrip}
-                    className="h-12 flex-1 rounded-full bg-white/10 text-sm font-bold"
-                  >
-                    {t.stripCard}
-                  </button>
-                )}
-              </div>
-            )}
             {tab === "mine" && mine.length > 0 && (
               <Primary
                 disabled={busy}

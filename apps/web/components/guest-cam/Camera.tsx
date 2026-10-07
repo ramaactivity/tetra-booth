@@ -3,6 +3,7 @@ import { GUEST_PRESETS, guestPreset, stampText } from "@tetra/shared";
 import {
   CalendarDays,
   ChevronDown,
+  ChevronLeft,
   CloudOff,
   CloudUpload,
   Copy,
@@ -116,6 +117,7 @@ export function Camera({
   lastThumb,
   onShot,
   onMine,
+  onHome,
   onSendNow,
 }: {
   info: GuestInfo;
@@ -126,6 +128,7 @@ export function Camera({
   lastThumb: string | null;
   onShot: (video: HTMLVideoElement, preset: string, stamp: boolean) => Promise<void>;
   onMine: () => void;
+  onHome: () => void;
   onSendNow: () => void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
@@ -326,13 +329,23 @@ export function Camera({
   return (
     <main className="mx-auto flex h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-black text-paper select-none">
       <div className="flex flex-none items-center justify-between gap-2 px-4 pt-[max(10px,env(safe-area-inset-top))] pb-2">
-        <span
-          className="flex h-9 items-center gap-1.5 rounded-full bg-white/10 px-3 font-mono text-sm"
-          role="status"
-          aria-label={`${left} foto lagi`}
-        >
-          <Film size={16} strokeWidth={2.2} />
-          {left}
+        <span className="flex flex-none items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onHome}
+            aria-label={t.menu}
+            className="flex size-9 items-center justify-center rounded-full bg-white/10 transition active:scale-90"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <span
+            className="flex h-9 items-center gap-1.5 rounded-full bg-white/10 px-3 font-mono text-sm"
+            role="status"
+            aria-label={`${left} foto lagi`}
+          >
+            <Film size={16} strokeWidth={2.2} />
+            {left}
+          </span>
         </span>
         <button
           type="button"

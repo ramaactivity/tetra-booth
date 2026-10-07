@@ -9,9 +9,10 @@ import { longDateId, Primary, Secondary, TopBar } from "./ui";
 const t = copy.guestCam;
 
 /**
- * Photo strip (#209): pratinjau strip berubah langsung tiap foto dipilih (slot kosong abu), foto dipilih dari
- * carousel bawah (nomor urut), lalu "Cetak strip" = render penuh + animasi strip keluar dari slot printer →
- * simpan ke HP / kirim ke album. Render lewat template engine yang sama dengan booth.
+ * Photo frame (#209/#212): pilih frame (desain booth event dulu, lalu Strip 2R / 4R / Polaroid Tetra), pratinjau
+ * berubah langsung tiap foto dipilih (slot kosong abu), foto dipilih dari carousel bawah (nomor urut), lalu "Cetak"
+ * = render penuh + animasi keluar dari slot printer → simpan ke HP / kirim ke album. Render lewat template engine
+ * yang sama dengan booth.
  */
 export function StripPicker({
   info,
@@ -26,7 +27,9 @@ export function StripPicker({
   onSend: (shot: { main: Blob; thumb: Blob }) => Promise<void>;
   onClose: () => void;
 }) {
-  const design = info.design;
+  const fits = info.designs.filter((d) => d.layout.slots.length <= me.photos.length);
+  const [designId, setDesignId] = useState(fits[0]?.id);
+  const design = fits.find((d) => d.id === designId);
   const n = design?.layout.slots.length ?? 0;
   const [picked, setPicked] = useState<number[]>([]);
   const [preview, setPreview] = useState<string | null>(null);
@@ -53,7 +56,7 @@ export function StripPicker({
       }
     }, 120);
     return () => clearTimeout(timer);
-  }, [picked, made]);
+  }, [picked, made, designId]);
 
   if (!design) return null;
   const full = picked.length >= n;
@@ -73,7 +76,31 @@ export function StripPicker({
         }
       />
 
-      {/* Slot printer + strip */}
+      {!made && info.designs.length > 1 && (
+        <div className="-mx-4 mt-2 flex flex-none gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+          {info.designs.map((d) => {
+            const k = d.layout.slots.length;
+            return (
+              <button
+                key={d.id}
+                type="button"
+                aria-pressed={d.id === designId}
+                disabled={k > me.photos.length}
+                onClick={() => {
+                  setDesignId(d.id);
+                  setPicked((s) => s.slice(0, k));
+                }}
+                className={`flex h-10 flex-none items-center gap-1.5 rounded-full px-4 text-[13px] font-bold whitespace-nowrap transition disabled:opacity-35 ${d.id === designId ? "bg-paper text-ink" : "bg-white/10"}`}
+              >
+                {d.name}
+                <span className="font-mono text-[11px] opacity-60">{t.photos(k)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Slot printer + frame */}
       <div className="relative mt-3 flex min-h-0 flex-1 flex-col items-center">
         <div className="z-10 h-3 w-[72%] flex-none rounded-full bg-white/10 shadow-[inset_0_2px_4px_rgba(0,0,0,.6)]" />
         <div className="-mt-1.5 flex min-h-0 flex-1 justify-center overflow-hidden px-6 pt-1.5">
@@ -82,17 +109,22 @@ export function StripPicker({
             <img
               src={made.url}
               alt={t.yourStrip}
-              className="max-h-full w-auto self-start rounded-sm bg-white shadow-[0_16px_40px_rgba(0,0,0,.6)] motion-safe:animate-[strip-out_1.4s_cubic-bezier(.2,.7,.2,1)_both]"
+              className="max-h-full max-w-full w-auto self-start rounded-sm bg-white shadow-[0_16px_40px_rgba(0,0,0,.6)] motion-safe:animate-[strip-out_1.4s_cubic-bezier(.2,.7,.2,1)_both]"
             />
           ) : preview ? (
             // biome-ignore lint/performance/noImgElement: object URL hasil render lokal
             <img
               src={preview}
               alt="Pratinjau strip"
-              className="max-h-full w-auto self-start rounded-sm bg-white opacity-95"
+              className="max-h-full max-w-full w-auto self-start rounded-sm bg-white opacity-95"
             />
           ) : (
-            <div className="aspect-[1/3] h-full max-h-full animate-pulse rounded-sm bg-white/10" />
+            <div
+              className="h-full max-h-full max-w-full animate-pulse rounded-sm bg-white/10"
+              style={{
+                aspectRatio: `${design.layout.canvas.width}/${design.layout.canvas.height}`,
+              }}
+            />
           )}
         </div>
       </div>
@@ -101,7 +133,7 @@ export function StripPicker({
         <div className="mt-4 flex flex-none gap-3">
           <Secondary
             onClick={async () => {
-              const file = new File([made.main], `strip-${k}.jpg`, { type: "image/jpeg" });
+              const file = new File([made.main], `frame-${k}.jpg`, { type: "image/jpeg" });
               if (navigator.canShare?.({ files: [file] }))
                 return void (await navigator.share({ files: [file] }).catch(() => {}));
               const a = document.createElement("a");

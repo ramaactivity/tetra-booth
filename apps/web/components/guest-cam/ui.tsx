@@ -135,3 +135,34 @@ export const shortDateId = (iso: string) =>
   new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric" }).format(
     new Date(iso),
   );
+
+/** Logo Tetra Guest Cam (#212): ikon kamera butter + wordmark TETRA, dipakai di pembuka dan menu utama. */
+export function TetraMark({ sub = "Guest Cam" }: { sub?: string }) {
+  return (
+    <span className="flex items-center gap-2">
+      <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden>
+        <rect x="12" y="16" width="20" height="9" rx="3" fill="#3A3936" />
+        <rect
+          x="8"
+          y="21"
+          width="48"
+          height="27"
+          rx="7"
+          fill="#F8D98B"
+          stroke="#1D1D1B"
+          strokeWidth="3"
+        />
+        <circle cx="32" cy="34" r="9" fill="#1D1D1B" />
+        <circle cx="32" cy="34" r="5.5" fill="#3A3936" stroke="#8A8883" strokeWidth="1.2" />
+        <rect x="42" y="25" width="7" height="4" rx="1" fill="#fff" stroke="#1D1D1B" />
+        <rect x="18" y="52" width="28" height="4" rx="2" fill="#FF9A3C" />
+      </svg>
+      <span className="flex flex-col leading-none">
+        <span className="text-[17px] font-extrabold tracking-[0.14em]">TETRA</span>
+        <span className="mt-0.5 font-mono text-[9px] tracking-[0.22em] text-[#FF9A3C] uppercase">
+          {sub}
+        </span>
+      </span>
+    </span>
+  );
+}

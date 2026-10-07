@@ -1,8 +1,9 @@
 "use client";
 import { GUEST_MAX_STRIPS, type GuestMe } from "@tetra/shared";
 import { useCallback, useEffect, useState } from "react";
-import { Done, Mine } from "@/components/guest-cam/After";
+import { Mine } from "@/components/guest-cam/After";
 import { Camera } from "@/components/guest-cam/Camera";
+import { type FrameState, Home } from "@/components/guest-cam/Home";
 import { Join } from "@/components/guest-cam/Join";
 import { StripPicker } from "@/components/guest-cam/StripPicker";
 import { goFullscreen } from "@/components/guest-cam/ui";
@@ -11,7 +12,7 @@ import type { GuestInfo } from "@/lib/guest-cam";
 import { capture } from "./capture";
 import { enqueue, flush, itemId, type QueueItem, queued } from "./queue";
 
-type Phase = "join" | "cam" | "done" | "mine" | "voice" | "strip";
+type Phase = "join" | "home" | "cam" | "mine" | "voice" | "strip";
 
 /** idx foto berikutnya yang belum dipakai (server + antrean lokal), atau null kalau jatah habis. */
 const nextIdx = (shots: number, taken: Set<number>) => {
@@ -20,8 +21,8 @@ const nextIdx = (shots: number, taken: Set<number>) => {
 };
 
 /**
- * Guest Cam (#197, desain G5 · DECISIONS #203): A1 → A2/A3 kamera → A5 jatah habis → A7 foto saya, A8 ucapan,
- * A9 strip. Antrean unggah di IndexedDB dikirim saat dibuka, saat online lagi, dan tiap 15 detik.
+ * Guest Cam (#197, desain G5 · DECISIONS #203/#212): A1 pembuka → menu utama (kamera, ucapan, photo frame,
+ * album; juga layar film habis) → A2/A3 kamera, A7 album, A8 ucapan, A9 frame. Antrean unggah di IndexedDB dikirim saat dibuka, saat online lagi, dan tiap 15 detik.
  */
 export function GuestCam({
   token,
@@ -37,9 +38,7 @@ export function GuestCam({
   const [failing, setFailing] = useState(false);
   const [online, setOnline] = useState(true);
   const [lastThumb, setLastThumb] = useState<string | null>(null);
-  const [phase, setPhase] = useState<Phase>(() =>
-    !initialMe ? "join" : initialMe.shotsLeft > 0 ? "cam" : "done",
-  );
+  const [phase, setPhase] = useState<Phase>(initialMe ? "home" : "join");
 
   const refresh = useCallback(async () => setQ(await queued(token)), [token]);
   const sync = useCallback(async () => {
@@ -84,99 +83,89 @@ export function GuestCam({
         info={info}
         onJoined={(m) => {
           setMe(m);
-          setPhase(m.shotsLeft > 0 ? "cam" : "done");
+          setPhase("home");
         }}
       />
     );
 
   const pendingIdx = q.filter((i) => i.kind === "photo").map((i) => i.idx);
   const taken = new Set([...me.usedIdx, ...pendingIdx]);
-  // Acara selesai (A10): kamera ditutup, tamu tetap bisa membuka foto, ucapan, strip.
+  // Acara selesai (A10): kamera ditutup, tamu tetap bisa membuka foto, ucapan, frame.
   const left = info.closed ? 0 : Math.max(0, info.shots - taken.size);
   const strips = me.stripCount + q.filter((i) => i.kind === "strip").length;
-  const slots = info.design?.layout.slots.length ?? 0;
-  const canStrip =
-    !!info.design && me.revealed && me.photos.length >= slots && strips < GUEST_MAX_STRIPS;
+  const minSlots = Math.min(...info.designs.map((d) => d.layout.slots.length));
+  const frame: FrameState =
+    !info.strip || !info.designs.length
+      ? "off"
+      : !me.revealed
+        ? "locked"
+        : strips >= GUEST_MAX_STRIPS
+          ? "full"
+          : me.photos.length < minSlots
+            ? "wait"
+            : "on";
   const voiceSent = me.audio || q.some((i) => i.kind === "audio");
-  const voice = info.voice && !voiceSent;
+  const home = () => setPhase("home");
 
-  if (phase === "voice")
+  if (phase === "voice" && info.voice)
     return (
       <VoiceRecorder
         info={info}
         name={me.name}
         sent={voiceSent}
-        onClose={() => setPhase(left > 0 ? "cam" : "mine")}
+        onClose={home}
         onSend={(blob, audioType) => add({ kind: "audio", idx: 0, main: blob, audioType })}
       />
     );
-  if (phase === "strip" && canStrip)
+  if (phase === "strip" && frame === "on")
     return (
       <StripPicker
         info={info}
         me={me}
         k={strips + 1}
-        onClose={() => setPhase("mine")}
+        onClose={home}
         onSend={async (shot) => {
           await add({ kind: "strip", idx: strips, ...shot });
           setPhase("mine");
         }}
       />
     );
-  if (phase === "done")
+  if (phase === "mine")
+    return <Mine token={token} info={info} me={me} pending={pendingIdx.length} onBack={home} />;
+  if (phase === "cam" && left > 0)
     return (
-      <Done
+      <Camera
         info={info}
-        me={me}
-        voice={voice}
-        strip={
-          !info.strip || !info.design
-            ? "off"
-            : canStrip
-              ? "on"
-              : me.revealed && strips < GUEST_MAX_STRIPS
-                ? "wait"
-                : "locked"
-        }
-        onVoice={() => setPhase("voice")}
-        onStrip={() => setPhase("strip")}
-        onMine={() => setPhase("mine")}
-      />
-    );
-  if (phase === "mine" || left <= 0)
-    return (
-      <Mine
-        token={token}
-        info={info}
-        me={me}
-        pending={pendingIdx.length}
+        name={me.name}
         left={left}
-        voice={voice}
-        strip={canStrip}
-        onCamera={() => setPhase(left > 0 ? "cam" : "done")}
-        onVoice={() => setPhase("voice")}
-        onStrip={() => setPhase("strip")}
+        used={taken.size}
+        lastThumb={lastThumb}
+        upload={{ sent: me.usedIdx, waiting: pendingIdx, failing, online }}
+        onSendNow={() => void sync()}
+        onHome={home}
+        onMine={() => setPhase("mine")}
+        onShot={async (video, preset, stamp) => {
+          const idx = nextIdx(info.shots, taken);
+          if (idx === null) return;
+          const shot = await capture(video, preset, stamp);
+          if (lastThumb) URL.revokeObjectURL(lastThumb);
+          setLastThumb(URL.createObjectURL(shot.thumb));
+          await add({ kind: "photo", idx, ...shot });
+        }}
       />
     );
   return (
-    <Camera
+    <Home
       info={info}
-      name={me.name}
+      me={me}
       left={left}
       used={taken.size}
-      lastThumb={lastThumb}
-      upload={{ sent: me.usedIdx, waiting: pendingIdx, failing, online }}
-      onSendNow={() => void sync()}
-      onMine={() => setPhase("mine")}
-      onShot={async (video, preset, stamp) => {
-        const idx = nextIdx(info.shots, taken);
-        if (idx === null) return;
-        const shot = await capture(video, preset, stamp);
-        if (lastThumb) URL.revokeObjectURL(lastThumb);
-        setLastThumb(URL.createObjectURL(shot.thumb));
-        await add({ kind: "photo", idx, ...shot });
-        if (taken.size + 1 >= info.shots) setTimeout(() => setPhase("done"), 700);
-      }}
+      voice={!info.voice ? "off" : voiceSent ? "sent" : "on"}
+      frame={frame}
+      onCamera={() => setPhase("cam")}
+      onVoice={() => setPhase("voice")}
+      onFrame={() => setPhase("strip")}
+      onAlbum={() => setPhase("mine")}
     />
   );
 }
