@@ -178,8 +178,10 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
           ? page.screenshot({ path: `${process.env.GC_SHOTS}/${n}.png` })
           : Promise.resolve();
       await page.goto(`/c/${token}`);
-      await expect(page.getByRole("button", { name: "Mulai motret" })).toBeDisabled();
+      await expect(page.getByRole("button", { name: "Ikut motret" })).toBeVisible();
+      await page.waitForTimeout(1300);
       await shot("A1");
+      await page.getByRole("button", { name: "Ikut motret" }).click();
       await page.getByLabel("Namamu").fill("Sari");
       await page.getByRole("button", { name: "Instagram" }).click();
       await page.getByLabel("Akun Instagram").fill("@sari.e2e");
@@ -193,6 +195,8 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       const shutter = page.getByRole("button", { name: "Jepret" });
       await expect(shutter).toBeEnabled();
       await page.getByRole("button", { name: "Kamera: Original" }).click();
+      await page.waitForTimeout(400);
+      await shot("A3-drawer");
       await page.getByRole("button", { name: "Mono", exact: true }).click();
       await expect(page.getByRole("button", { name: "Kamera: Mono" })).toBeVisible();
       await expect(page.locator("video")).toHaveCSS("filter", /grayscale\(1\)/);
@@ -283,6 +287,7 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
     try {
       await page.goto(`/c/${token}`);
       await expect(page.getByText(/terbuka setelah acara/i)).toBeVisible();
+      await page.getByRole("button", { name: "Ikut motret" }).click();
       await page.getByLabel("Namamu").fill("Andi");
       await page.getByLabel("Nomor WhatsApp").fill("0812 3456 7890");
       await page.getByRole("checkbox").click();

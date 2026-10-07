@@ -1,53 +1,69 @@
-import { applyGuestPreset, guestPreset, stampText } from "@tetra/shared";
+import { stampText } from "@tetra/shared";
+import { processShot, type ShotJob, type ShotResult } from "./capture-core";
 
-const MAIN = 2048;
-const THUMB = 480;
+const LONG = 1920;
+let worker: Worker | null | undefined;
+let seq = 0;
+const waiting = new Map<number, (r: ShotResult | null) => void>();
 
-const toJpeg = (c: HTMLCanvasElement, q: number) =>
-  new Promise<Blob>((ok, fail) =>
-    c.toBlob((b) => (b ? ok(b) : fail(new Error("toBlob"))), "image/jpeg", q),
-  );
+const getWorker = () => {
+  if (worker !== undefined) return worker;
+  try {
+    worker =
+      typeof OffscreenCanvas === "undefined"
+        ? null
+        : new Worker(new URL("./capture.worker.ts", import.meta.url), { type: "module" });
+    worker?.addEventListener(
+      "message",
+      (e: MessageEvent<{ id: number; ok: boolean } & Partial<ShotResult>>) => {
+        const done = waiting.get(e.data.id);
+        waiting.delete(e.data.id);
+        done?.(
+          e.data.ok && e.data.main && e.data.thumb
+            ? { main: e.data.main, thumb: e.data.thumb }
+            : null,
+        );
+      },
+    );
+  } catch {
+    worker = null;
+  }
+  return worker;
+};
 
 /**
- * Satu jepretan Guest Cam (#209, gaya Dazz): frame video dipotong tengah ke 3:4 potret (sisi panjang ≤ 2048),
- * preset film dibakar ke piksel (matriks warna + vignette + grain, bukan `ctx.filter` yang tidak konsisten di
- * iOS), stempel tanggal oranye opsional, lalu JPEG + thumb 480. Hasil tidak di-mirror (sama dengan booth).
+ * Satu jepretan Guest Cam (#209): frame video dipotong tengah ke 3:4 potret (sisi panjang ≤ 1920) sebagai
+ * ImageBitmap, lalu diproses di Web Worker (preset, grain, stempel, JPEG) supaya layar tetap mulus. Cadangan:
+ * thread utama. Hasil tidak di-mirror (sama dengan booth).
  */
 export async function capture(video: HTMLVideoElement, presetId: string, stamp: boolean) {
   const vw = video.videoWidth;
   const vh = video.videoHeight;
-  // Potong tengah ke 3:4 (lebar:tinggi).
   const cw = Math.min(vw, (vh * 3) / 4);
   const ch = (cw * 4) / 3;
-  const k = Math.min(1, MAIN / ch);
-  const w = Math.round(cw * k);
-  const h = Math.round(ch * k);
-  const c = document.createElement("canvas");
-  c.width = w;
-  c.height = h;
-  const ctx = c.getContext("2d", { willReadFrequently: true });
-  if (!ctx) throw new Error("canvas");
-  ctx.drawImage(video, (vw - cw) / 2, (vh - ch) / 2, cw, ch, 0, 0, w, h);
-  const preset = guestPreset(presetId);
-  if (preset.css !== "none" || preset.grain || preset.vignette) {
-    const img = ctx.getImageData(0, 0, w, h);
-    applyGuestPreset(img.data, w, h, preset);
-    ctx.putImageData(img, 0, 0);
+  const k = Math.min(1, LONG / ch);
+  const job: ShotJob = {
+    bmp: await createImageBitmap(video, (vw - cw) / 2, (vh - ch) / 2, cw, ch),
+    w: Math.round(cw * k),
+    h: Math.round(ch * k),
+    presetId,
+    stamp: stamp ? stampText(new Date()) : null,
+  };
+  const wk = getWorker();
+  if (wk) {
+    const id = ++seq;
+    const r = await new Promise<ShotResult | null>((ok) => {
+      waiting.set(id, ok);
+      wk.postMessage({ id, ...job }, [job.bmp]);
+      setTimeout(() => {
+        if (waiting.delete(id)) ok(null);
+      }, 15_000);
+    });
+    if (r) return r;
+    // Worker gagal (bitmap sudah dipindah): matikan worker, ambil frame baru, proses di thread utama.
+    worker?.terminate();
+    worker = null;
+    return capture(video, presetId, stamp);
   }
-  if (stamp) {
-    const size = Math.round(h * 0.034);
-    ctx.font = `600 ${size}px "Geist Mono", ui-monospace, monospace`;
-    ctx.textAlign = "right";
-    ctx.textBaseline = "alphabetic";
-    ctx.shadowColor = "rgba(255,120,30,.8)";
-    ctx.shadowBlur = size * 0.5;
-    ctx.fillStyle = "#FF9A3C";
-    ctx.fillText(stampText(new Date()), w - size * 1.6, h - size * 1.4);
-    ctx.shadowBlur = 0;
-  }
-  const t = document.createElement("canvas");
-  t.width = Math.round((w * THUMB) / h);
-  t.height = THUMB;
-  t.getContext("2d")?.drawImage(c, 0, 0, t.width, t.height);
-  return { main: await toJpeg(c, 0.88), thumb: await toJpeg(t, 0.8) };
+  return processShot(job);
 }

@@ -66,7 +66,7 @@ export function StripPicker({
         sub={t.stripOf(k)}
         right={
           !made && (
-            <span className="rounded-full bg-text-3 px-2.5 py-1 font-mono text-xs">
+            <span className="rounded-full bg-white/10 px-2.5 py-1 font-mono text-xs">
               {picked.length}/{n}
             </span>
           )
@@ -75,7 +75,7 @@ export function StripPicker({
 
       {/* Slot printer + strip */}
       <div className="relative mt-3 flex min-h-0 flex-1 flex-col items-center">
-        <div className="z-10 h-3 w-[72%] flex-none rounded-full bg-text-3 shadow-[inset_0_2px_4px_rgba(0,0,0,.6)]" />
+        <div className="z-10 h-3 w-[72%] flex-none rounded-full bg-white/10 shadow-[inset_0_2px_4px_rgba(0,0,0,.6)]" />
         <div className="-mt-1.5 flex min-h-0 flex-1 justify-center overflow-hidden px-6 pt-1.5">
           {made ? (
             // biome-ignore lint/performance/noImgElement: object URL hasil render lokal
@@ -92,7 +92,7 @@ export function StripPicker({
               className="max-h-full w-auto self-start rounded-sm bg-white opacity-95"
             />
           ) : (
-            <div className="aspect-[1/3] h-full max-h-full animate-pulse rounded-sm bg-text-3" />
+            <div className="aspect-[1/3] h-full max-h-full animate-pulse rounded-sm bg-white/10" />
           )}
         </div>
       </div>
@@ -143,7 +143,7 @@ export function StripPicker({
                             : s,
                       )
                     }
-                    className={`relative block h-[92px] w-[69px] overflow-hidden rounded-xl bg-text-3 disabled:opacity-35 ${at >= 0 ? "ring-[3px] ring-butter" : ""}`}
+                    className={`relative block h-[92px] w-[69px] overflow-hidden rounded-xl bg-white/10 disabled:opacity-35 ${at >= 0 ? "ring-[3px] ring-butter" : ""}`}
                   >
                     {/* biome-ignore lint/performance/noImgElement: URL R2 bertanda tangan */}
                     <img src={p.thumbUrl ?? p.url} alt="" className="size-full object-cover" />

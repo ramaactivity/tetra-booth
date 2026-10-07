@@ -31,6 +31,10 @@ export const copy = {
     powered: "Powered by Tetra Photobooth",
     // A1 Pembuka
     invite: (name: string) => `Bantu isi album ${name}`,
+    heroKicker: "Kamera tamu",
+    heroLine: "Jepret dari HP-mu, langsung masuk album acara.",
+    join: "Ikut motret",
+    formTitle: "Kenalan dulu",
     perHp: "foto per HP",
     revealAfter: "Terbuka setelah acara",
     revealLive: "Langsung masuk album",

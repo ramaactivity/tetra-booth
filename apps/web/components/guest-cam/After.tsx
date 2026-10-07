@@ -3,7 +3,8 @@ import type { GuestMe } from "@tetra/shared";
 import { useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
-import { CameraIcon, firstName, H1, Lead, Primary, Screen, TextLink } from "./ui";
+import { CameraArt } from "./CameraArt";
+import { firstName, H1, Lead, Primary, Screen, TextLink } from "./ui";
 
 const t = copy.guestCam;
 type Item = {
@@ -34,7 +35,7 @@ function ActionCard({
       type="button"
       disabled={off}
       onClick={onClick}
-      className="flex w-full items-center gap-4 rounded-3xl bg-text-3 p-4 text-left transition-transform active:scale-[.98] disabled:opacity-50"
+      className="flex w-full items-center gap-4 rounded-3xl bg-white/10 p-4 text-left transition-transform active:scale-[.98] disabled:opacity-50"
     >
       <span
         className={`flex size-14 flex-none items-center justify-center rounded-2xl ${icon === "tape" ? "bg-peach" : "bg-lavender"}`}
@@ -84,7 +85,7 @@ export function Done({
   return (
     <Screen bottom={<Primary onClick={onMine}>{t.seeMine}</Primary>}>
       <div className="mt-[8dvh] flex items-end justify-center gap-3">
-        <CameraIcon body="#3A3936" size={96} />
+        <CameraArt id="disposable" body="#8EDCCB" size={110} />
         <span className="mb-3 rounded-full bg-peach px-3 py-1 font-mono text-sm text-ink">
           {info.shots}/{info.shots}
         </span>
@@ -223,7 +224,7 @@ export function Mine({
             </button>
           )}
         </div>
-        <div className="mt-3 flex h-11 rounded-full bg-text-3 p-1">
+        <div className="mt-3 flex h-11 rounded-full bg-white/10 p-1">
           {(["mine", "album"] as const).map((k) => (
             <button
               key={k}
@@ -245,7 +246,7 @@ export function Mine({
         <div className="flex flex-1 flex-col px-5 pt-6">
           <H1>{t.developing}</H1>
           <Lead>{t.developingBody}</Lead>
-          <div className="mt-6 rounded-3xl bg-text-3 p-5">
+          <div className="mt-6 rounded-3xl bg-white/10 p-5">
             <div className="flex items-baseline justify-between">
               <span className="text-sm font-bold">{t.roll(firstName(me.name))}</span>
               <span className="font-mono text-sm">
@@ -275,14 +276,14 @@ export function Mine({
       ) : (
         <>
           {tab === "mine" && info.approval === "manual" && (
-            <p className="mx-4 mb-2 rounded-2xl bg-text-3 px-3.5 py-2.5 text-xs leading-[1.5] text-paper/80">
+            <p className="mx-4 mb-2 rounded-2xl bg-white/10 px-3.5 py-2.5 text-xs leading-[1.5] text-paper/80">
               {t.reviewNote}
             </p>
           )}
           {list.length ? (
             <ul className="grid grid-cols-3 gap-[3px] px-[3px]">
               {list.map((p) => (
-                <li key={p.key} className="relative aspect-[3/4] overflow-hidden bg-text-3">
+                <li key={p.key} className="relative aspect-[3/4] overflow-hidden bg-white/10">
                   <button
                     type="button"
                     onClick={() => setView(p)}
@@ -328,7 +329,7 @@ export function Mine({
                   <button
                     type="button"
                     onClick={onVoice}
-                    className="h-12 flex-1 rounded-full bg-text-3 text-sm font-bold"
+                    className="h-12 flex-1 rounded-full bg-white/10 text-sm font-bold"
                   >
                     {t.voiceCard}
                   </button>
@@ -337,7 +338,7 @@ export function Mine({
                   <button
                     type="button"
                     onClick={onStrip}
-                    className="h-12 flex-1 rounded-full bg-text-3 text-sm font-bold"
+                    className="h-12 flex-1 rounded-full bg-white/10 text-sm font-bold"
                   >
                     {t.stripCard}
                   </button>
@@ -370,7 +371,7 @@ export function Mine({
               type="button"
               onClick={() => setView(null)}
               aria-label={t.close}
-              className="flex size-10 items-center justify-center rounded-full bg-text-3"
+              className="flex size-10 items-center justify-center rounded-full bg-white/10"
             >
               ✕
             </button>

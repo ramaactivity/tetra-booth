@@ -1,5 +1,6 @@
 "use client";
 import { GUEST_VOICE_MAX_SEC } from "@tetra/shared";
+import { Pause, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
@@ -273,12 +274,9 @@ export function VoiceRecorder({
                 className="flex size-[76px] items-center justify-center rounded-full bg-paper text-ink"
               >
                 {playing ? (
-                  <span className="flex gap-1.5">
-                    <span className="h-6 w-1.5 rounded-sm bg-ink" />
-                    <span className="h-6 w-1.5 rounded-sm bg-ink" />
-                  </span>
+                  <Pause size={30} fill="currentColor" />
                 ) : (
-                  <span className="ml-1 h-0 w-0 border-y-[11px] border-l-[18px] border-y-transparent border-l-ink" />
+                  <Play size={30} fill="currentColor" className="ml-1" />
                 )}
               </button>
             ) : (

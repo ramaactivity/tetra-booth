@@ -1,12 +1,29 @@
 "use client";
 import { GUEST_PRESETS, guestPreset, stampText } from "@tetra/shared";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  CalendarDays,
+  ChevronDown,
+  CloudOff,
+  CloudUpload,
+  Copy,
+  Film,
+  RefreshCw,
+  SwitchCamera,
+  Timer,
+  TimerOff,
+  X,
+  Zap,
+  ZapOff,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
-import { CameraIcon, firstName, goFullscreen, H1, Lead, Primary, Screen, Tag } from "./ui";
+import { CameraArt } from "./CameraArt";
+import { firstName, goFullscreen, H1, Lead, Primary, Screen, Tag } from "./ui";
 
 const t = copy.guestCam;
-type Cam = "ask" | "on" | "denied" | "inapp";
+type Cam = "ask" | "starting" | "on" | "denied" | "inapp";
+type Lens = { key: string; label: string; zoom?: number; deviceId?: string };
 
 /** Status kiriman dari antrean IndexedDB (pil kanan atas & lembar status). */
 export type Upload = { sent: number[]; waiting: number[]; failing: boolean; online: boolean };
@@ -15,7 +32,6 @@ const reduced = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Nama aplikasi kalau dibuka dari browser dalam aplikasi. */
 const inAppName = () => {
   const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
   return /Instagram/i.test(ua)
@@ -29,34 +45,67 @@ const inAppName = () => {
           : null;
 };
 
-/** Noise SVG kecil untuk pratinjau grain (piksel asli diproses applyGuestPreset). */
-const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
-
-function Icon({ d, size = 22 }: { d: string; size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d={d} />
-    </svg>
-  );
-}
-const FLASH = "M13 2 4 14h7l-1 8 9-12h-7z";
-const TIMER = "M12 8v5l3 2M9 2h6M12 22a8 8 0 1 0 0-16 8 8 0 0 0 0 16z";
-const FLIP = "M3 7h11a4 4 0 0 1 4 4v1M21 17H10a4 4 0 0 1-4-4v-1M15 4l3 3-3 3M9 20l-3-3 3-3";
+/** Noise statis sekali buat (pratinjau grain ringan, tanpa blend mode); piksel asli diproses worker. */
+let grainUrl: string | null = null;
+const grain = () => {
+  if (grainUrl || typeof document === "undefined") return grainUrl;
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d");
+  if (!g) return null;
+  const img = g.createImageData(128, 128);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = Math.random() * 255;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+    img.data[i + 3] = 40;
+  }
+  g.putImageData(img, 0, 0);
+  grainUrl = c.toDataURL();
+  return grainUrl;
+};
 
 /**
- * Kamera Guest Cam v2 (#209, gaya Dazz): viewfinder 3:4, laci "kamera" (preset film bernama Inggris), flash,
- * timer, stempel tanggal, ganti kamera. Pratinjau = CSS filter + overlay grain/vignette/tanggal; piksel asli
- * diproses capture.ts. Izin kamera (ask/denied/in-app) tetap berbahasa Indonesia.
+ * Lensa yang tersedia (#209): zoom optik bawaan (Chrome Android, mis. 0.5–10×) atau kamera terpisah menurut
+ * nama perangkat (iPhone: Ultra Wide / Back / Telephoto). Kamera depan: satu lensa.
+ */
+async function detectLenses(
+  track: MediaStreamTrack,
+  facing: "user" | "environment",
+): Promise<Lens[]> {
+  if (facing === "user") return [];
+  const z = (track.getCapabilities?.() as { zoom?: { min: number; max: number } } | undefined)
+    ?.zoom;
+  if (z && z.max > z.min) {
+    const out: Lens[] = [];
+    if (z.min < 0.95)
+      out.push({ key: "uw", label: z.min <= 0.55 ? "0.5" : z.min.toFixed(1), zoom: z.min });
+    out.push({ key: "1", label: "1×", zoom: Math.max(1, z.min) });
+    if (z.max >= 2) out.push({ key: "2", label: "2", zoom: 2 });
+    if (z.max >= 5) out.push({ key: "5", label: "5", zoom: 5 });
+    return out.length > 1 ? out : [];
+  }
+  const devs = (await navigator.mediaDevices.enumerateDevices()).filter(
+    (d) =>
+      d.kind === "videoinput" &&
+      /back|rear|belakang/i.test(d.label) &&
+      !/dual|triple/i.test(d.label),
+  );
+  const uw = devs.find((d) => /ultra ?wide/i.test(d.label));
+  const tele = devs.find((d) => /tele/i.test(d.label));
+  const main = devs.find((d) => d !== uw && d !== tele);
+  const out: Lens[] = [];
+  if (uw) out.push({ key: "uw", label: "0.5", deviceId: uw.deviceId });
+  if (main) out.push({ key: "1", label: "1×", deviceId: main.deviceId });
+  if (tele) out.push({ key: "tele", label: "Tele", deviceId: tele.deviceId });
+  return out.length > 1 ? out : [];
+}
+
+const round = "flex items-center justify-center rounded-full transition active:scale-90";
+
+/**
+ * Kamera Guest Cam v2 (#209, gaya Dazz): viewfinder 3:4, pilihan lensa, laci kamera berilustrasi (preset film
+ * bahasa Inggris), flash, timer, stempel tanggal, ganti kamera depan/belakang. Pratinjau = CSS filter + overlay
+ * ringan; piksel asli diproses Web Worker (capture.ts).
  */
 export function Camera({
   info,
@@ -82,8 +131,11 @@ export function Camera({
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const swipe = useRef<number | null>(null);
-  const [cam, setCam] = useState<Cam>("ask");
+  const [cam, setCam] = useState<Cam>("starting");
+  const [live, setLive] = useState(false);
   const [facing, setFacing] = useState<"user" | "environment">("environment");
+  const [lenses, setLenses] = useState<Lens[]>([]);
+  const [lens, setLens] = useState("1");
   const [pi, setPi] = useState(() => {
     try {
       return Math.max(
@@ -110,24 +162,35 @@ export function Camera({
   );
   const after = info.reveal === "after";
   const app = inAppName();
+  const noise = useMemo(() => grain(), []);
 
   const start = useCallback(
-    async (face: "user" | "environment") => {
+    async (face: "user" | "environment", deviceId?: string) => {
+      setLive(false);
       for (const tr of stream.current?.getTracks() ?? []) tr.stop();
       try {
         if (!navigator.mediaDevices?.getUserMedia) throw new Error("unsupported");
         const s = await navigator.mediaDevices.getUserMedia({
           audio: false,
-          video: { facingMode: face, width: { ideal: 2560 }, height: { ideal: 1920 } },
+          video: {
+            ...(deviceId ? { deviceId: { exact: deviceId } } : { facingMode: face }),
+            width: { ideal: 1920 },
+            height: { ideal: 1440 },
+          },
         });
         stream.current = s;
         setCam("on");
-        requestAnimationFrame(() => {
-          if (video.current) {
-            video.current.srcObject = s;
-            void video.current.play().catch(() => {});
-          }
-        });
+        const track = s.getVideoTracks()[0];
+        if (track && !deviceId) {
+          const ls = await detectLenses(track, face).catch(() => []);
+          setLenses(ls);
+          setLens("1");
+          const one = ls.find((l) => l.key === "1");
+          if (one?.zoom)
+            await track
+              .applyConstraints({ advanced: [{ zoom: one.zoom } as MediaTrackConstraintSet] })
+              .catch(() => {});
+        }
       } catch {
         setCam(app ? "inapp" : "denied");
       }
@@ -135,17 +198,32 @@ export function Camera({
     [app],
   );
 
+  // Pasang stream ke <video> setelah elemen ada (perbaikan: dulu kamera baru muncul setelah refresh).
   useEffect(() => {
-    navigator.permissions
-      ?.query({ name: "camera" as PermissionName })
-      .then((p) => {
-        if (p.state === "granted") void start("environment");
-      })
-      .catch(() => {});
+    const v = video.current;
+    if (cam !== "on" || !v || !stream.current || v.srcObject === stream.current) return;
+    v.srcObject = stream.current;
+    void v.play().catch(() => {});
+  });
+
+  // Izin sudah pernah diberikan → langsung nyala; belum → layar izin.
+  useEffect(() => {
+    let alive = true;
+    const p = navigator.permissions?.query({ name: "camera" as PermissionName });
+    if (!p) setCam("ask");
+    else
+      void p
+        .then((s) => {
+          if (!alive) return;
+          if (s.state === "granted") void start("environment");
+          else setCam(s.state === "denied" ? (app ? "inapp" : "denied") : "ask");
+        })
+        .catch(() => alive && setCam("ask"));
     return () => {
+      alive = false;
       for (const tr of stream.current?.getTracks() ?? []) tr.stop();
     };
-  }, [start]);
+  }, [start, app]);
 
   useEffect(() => {
     if (!toast) return;
@@ -169,6 +247,18 @@ export function Camera({
     } catch {}
   };
 
+  const chooseLens = async (l: Lens) => {
+    if (l.key === lens) return;
+    setLens(l.key);
+    navigator.vibrate?.(8);
+    const track = stream.current?.getVideoTracks()[0];
+    if (l.zoom !== undefined && track)
+      await track
+        .applyConstraints({ advanced: [{ zoom: l.zoom } as MediaTrackConstraintSet] })
+        .catch(() => {});
+    else if (l.deviceId) await start("environment", l.deviceId);
+  };
+
   const torch = async (on: boolean) => {
     const track = stream.current?.getVideoTracks()[0];
     await track
@@ -178,7 +268,7 @@ export function Camera({
 
   const shoot = async () => {
     const v = video.current;
-    if (!v || busy || left <= 0 || cam !== "on") return;
+    if (!v || busy || left <= 0 || cam !== "on" || !live) return;
     goFullscreen();
     setBusy(true);
     try {
@@ -190,15 +280,16 @@ export function Camera({
       const rm = reduced();
       if (flash && facing === "user") {
         setWhite(true);
-        await sleep(280);
+        await sleep(260);
       } else if (flash) {
         await torch(true);
-        await sleep(350);
-      } else await sleep(rm ? 0 : 120);
+        await sleep(320);
+      }
+      navigator.vibrate?.(14);
+      setWhite(!rm);
+      setTimeout(() => setWhite(false), 140);
       await onShot(v, preset.id, stamp);
       if (flash && facing !== "user") void torch(false);
-      setWhite(!rm);
-      setTimeout(() => setWhite(false), 150);
       setToast(
         rm
           ? t.saved
@@ -213,7 +304,7 @@ export function Camera({
     }
   };
 
-  if (cam !== "on")
+  if (cam !== "on" && cam !== "starting")
     return (
       <Permission
         cam={cam}
@@ -223,6 +314,7 @@ export function Camera({
         name={name}
         onOpen={() => {
           goFullscreen();
+          setCam("starting");
           void start(facing);
         }}
       />
@@ -230,54 +322,44 @@ export function Camera({
 
   const pending = upload.waiting.length;
   const failing = upload.failing && upload.online;
+  const toolBtn = `${round} size-11 bg-white/10 text-paper`;
   return (
     <main className="mx-auto flex h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-black text-paper select-none">
-      {/* Bar atas: sisa film · nama · status kiriman */}
       <div className="flex flex-none items-center justify-between gap-2 px-4 pt-[max(10px,env(safe-area-inset-top))] pb-2">
         <span
-          className="flex h-9 items-center gap-1.5 rounded-full bg-text-3 px-3 font-mono text-sm"
+          className="flex h-9 items-center gap-1.5 rounded-full bg-white/10 px-3 font-mono text-sm"
           role="status"
           aria-label={`${left} foto lagi`}
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            aria-hidden
-          >
-            <rect x="3" y="5" width="18" height="14" rx="2" />
-            <path d="M7 5v14M17 5v14" />
-          </svg>
+          <Film size={16} strokeWidth={2.2} />
           {left}
-        </span>
-        <span className="min-w-0 truncate text-[13px] font-bold text-paper/80">
-          {firstName(name)} · {info.name}
         </span>
         <button
           type="button"
-          onClick={() => setSheet(true)}
-          className={`flex h-9 flex-none items-center gap-1.5 rounded-full px-3 text-xs font-bold ${!pending ? "bg-text-3" : failing ? "bg-coral text-ink" : "bg-peach text-ink"}`}
+          onClick={() => setDrawer(true)}
+          className="flex h-9 min-w-0 items-center gap-1 rounded-full px-3 text-[15px] font-extrabold"
         >
-          <span
-            className={`size-2 rounded-full ${!pending ? "bg-green" : "border-[1.5px] border-dashed border-ink"}`}
-          />
-          {!pending
-            ? t.safe
-            : !upload.online
-              ? t.waiting(pending)
-              : failing
-                ? t.failing(pending)
-                : t.sending(pending)}
+          <span className="truncate">{preset.name}</span>
+          <ChevronDown size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setSheet(true)}
+          aria-label={!pending ? t.safe : t.waiting(pending)}
+          className={`flex h-9 flex-none items-center gap-1.5 rounded-full px-3 text-xs font-bold ${!pending ? "bg-white/10" : failing ? "bg-coral text-ink" : "bg-peach text-ink"}`}
+        >
+          {!upload.online && pending ? <CloudOff size={16} /> : <CloudUpload size={16} />}
+          {pending ? (
+            <span className="font-mono">{pending}</span>
+          ) : (
+            <span className="size-1.5 rounded-full bg-green" />
+          )}
         </button>
       </div>
 
-      {/* Viewfinder 3:4 */}
       <div className="flex min-h-0 flex-1 items-center justify-center px-3">
         <div
-          className="relative aspect-[3/4] max-h-full w-full overflow-hidden rounded-[22px] bg-text-3"
+          className="relative aspect-[3/4] max-h-full w-full overflow-hidden rounded-[20px] bg-[#111]"
           onPointerDown={(e) => {
             swipe.current = e.clientX;
           }}
@@ -293,9 +375,15 @@ export function Camera({
             playsInline
             muted
             autoPlay
-            className="absolute inset-0 size-full object-cover transition-[filter] duration-200"
+            onPlaying={() => setLive(true)}
+            className={`absolute inset-0 size-full object-cover transition-[opacity,filter] duration-300 ${live ? "opacity-100" : "opacity-0"}`}
             style={{ filter: preset.css, transform: facing === "user" ? "scaleX(-1)" : undefined }}
           />
+          {!live && (
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="size-8 animate-spin rounded-full border-2 border-white/20 border-t-white/80" />
+            </span>
+          )}
           {preset.vignette > 0 && (
             <div
               className="pointer-events-none absolute inset-0"
@@ -304,10 +392,10 @@ export function Camera({
               }}
             />
           )}
-          {preset.grain > 0 && (
+          {preset.grain > 0 && noise && (
             <div
-              className="pointer-events-none absolute inset-0 mix-blend-overlay"
-              style={{ backgroundImage: GRAIN, opacity: preset.grain * 1.6 }}
+              className="pointer-events-none absolute inset-0"
+              style={{ backgroundImage: `url(${noise})`, opacity: Math.min(1, preset.grain * 3) }}
             />
           )}
           {stamp && (
@@ -315,7 +403,9 @@ export function Camera({
               {stampText(new Date())}
             </span>
           )}
-          {white && <div className="pointer-events-none absolute inset-0 bg-white" />}
+          <div
+            className={`pointer-events-none absolute inset-0 bg-white transition-opacity duration-150 ${white ? "opacity-100" : "opacity-0"}`}
+          />
           {count > 0 && (
             <span
               key={count}
@@ -325,15 +415,12 @@ export function Camera({
             </span>
           )}
           {badge && (
-            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/60 px-4 py-2 text-lg font-extrabold">
+            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/60 px-4 py-2 text-lg font-extrabold motion-safe:animate-[fade_.15s_ease-out]">
               {badge}
             </span>
           )}
           {toast && (
-            <span
-              role="status"
-              className="absolute top-3 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-4 py-2 text-[13px] font-bold whitespace-nowrap motion-safe:animate-[fade_.15s_ease-out]"
-            >
+            <span className="absolute top-3 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-4 py-2 text-[13px] font-bold whitespace-nowrap motion-safe:animate-[fade_.15s_ease-out]">
               {toast}
             </span>
           )}
@@ -342,27 +429,41 @@ export function Camera({
               {t.few(left)}
             </span>
           )}
+          {lenses.length > 1 && (
+            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/45 p-1">
+              {lenses.map((l) => (
+                <button
+                  key={l.key}
+                  type="button"
+                  aria-pressed={lens === l.key}
+                  onClick={() => void chooseLens(l)}
+                  className={`${round} h-9 min-w-9 px-2 font-mono text-xs font-bold ${lens === l.key ? "bg-paper text-ink" : "text-paper"}`}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Alat: flash · timer · tanggal · ganti kamera */}
-      <div className="flex flex-none items-center justify-around px-6 pt-4">
+      <div className="flex flex-none items-center justify-around px-8 pt-4">
         <button
           type="button"
           aria-pressed={flash}
           aria-label="Flash"
           onClick={() => setFlash(!flash)}
-          className={`flex size-11 items-center justify-center rounded-full ${flash ? "bg-butter text-ink" : "bg-text-3"}`}
+          className={`${toolBtn} ${flash ? "!bg-butter !text-ink" : ""}`}
         >
-          <Icon d={FLASH} />
+          {flash ? <Zap size={20} /> : <ZapOff size={20} />}
         </button>
         <button
           type="button"
           aria-label={`Timer ${timer || "mati"}`}
           onClick={() => setTimer(timer === 0 ? 3 : timer === 3 ? 10 : 0)}
-          className={`flex h-11 min-w-11 items-center justify-center gap-1 rounded-full px-2 ${timer ? "bg-butter text-ink" : "bg-text-3"}`}
+          className={`${round} h-11 min-w-11 gap-1 px-2.5 ${timer ? "bg-butter text-ink" : "bg-white/10"}`}
         >
-          <Icon d={TIMER} />
+          {timer ? <Timer size={20} /> : <TimerOff size={20} />}
           {timer > 0 && <span className="font-mono text-xs font-bold">{timer}s</span>}
         </button>
         <button
@@ -370,9 +471,9 @@ export function Camera({
           aria-pressed={stamp}
           aria-label="Tanggal"
           onClick={() => setStamp(!stamp)}
-          className={`flex h-11 items-center justify-center rounded-full px-3 font-mono text-[13px] font-bold ${stamp ? "bg-[#FF9A3C] text-ink" : "bg-text-3"}`}
+          className={`${toolBtn} ${stamp ? "!bg-[#FF9A3C] !text-ink" : ""}`}
         >
-          ’26
+          <CalendarDays size={20} />
         </button>
         <button
           type="button"
@@ -382,25 +483,29 @@ export function Camera({
             setFacing(f);
             void start(f);
           }}
-          className="flex size-11 items-center justify-center rounded-full bg-text-3"
+          className={toolBtn}
         >
-          <Icon d={FLIP} />
+          <SwitchCamera size={20} />
         </button>
       </div>
 
-      {/* Rana */}
       <div className="grid flex-none grid-cols-[1fr_auto_1fr] items-center px-7 pt-4 pb-[max(18px,env(safe-area-inset-bottom))]">
         <button
           type="button"
           aria-label={t.lastShot}
           onClick={onMine}
-          className="relative size-[58px] justify-self-start overflow-hidden rounded-2xl bg-text-3"
+          className="relative size-[56px] justify-self-start overflow-hidden rounded-2xl bg-white/10 transition active:scale-90"
         >
           {lastThumb && !after ? (
             // biome-ignore lint/performance/noImgElement: object URL lokal
-            <img src={lastThumb} alt="" className="size-full object-cover" />
+            <img
+              key={lastThumb}
+              src={lastThumb}
+              alt=""
+              className="size-full object-cover motion-safe:animate-[enter_.3s_ease-out]"
+            />
           ) : used > 0 ? (
-            <span className="absolute inset-1.5 flex items-center justify-center rounded-xl border-[1.5px] border-dashed border-paper/60 font-mono text-sm">
+            <span className="absolute inset-1.5 flex items-center justify-center rounded-xl border-[1.5px] border-dashed border-paper/50 font-mono text-sm">
               {used}
             </span>
           ) : null}
@@ -408,7 +513,7 @@ export function Camera({
         <button
           type="button"
           aria-label={t.shutter}
-          disabled={left <= 0 || busy}
+          disabled={left <= 0 || busy || !live}
           onClick={() => void shoot()}
           className="flex size-[84px] items-center justify-center rounded-full border-4 border-paper disabled:opacity-40"
         >
@@ -420,61 +525,66 @@ export function Camera({
           type="button"
           aria-label={`Kamera: ${preset.name}`}
           onClick={() => setDrawer(true)}
-          className="flex flex-col items-center justify-self-end"
+          className="justify-self-end transition active:scale-90"
         >
-          <CameraIcon body={preset.body} size={58} />
-          <span className="-mt-1 max-w-[84px] truncate text-[11px] font-bold">{preset.name}</span>
+          <CameraArt id={preset.id} body={preset.body} size={62} />
         </button>
       </div>
 
-      {drawer && (
+      {/* Laci kamera: selalu ter-render, meluncur dengan transform supaya halus. */}
+      <div
+        className={`fixed inset-0 z-30 mx-auto max-w-[480px] transition-opacity duration-200 ${drawer ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        role="dialog"
+        aria-label="Pilih kamera"
+        aria-hidden={!drawer}
+      >
+        <button
+          type="button"
+          aria-label={t.close}
+          tabIndex={drawer ? 0 : -1}
+          onClick={() => setDrawer(false)}
+          className="absolute inset-0 bg-black/50"
+        />
         <div
-          className="fixed inset-0 z-30 mx-auto flex max-w-[480px] items-end"
-          role="dialog"
-          aria-label="Pilih kamera"
+          className={`absolute inset-x-0 bottom-0 rounded-t-[28px] bg-[#151514] pt-3 pb-[max(20px,env(safe-area-inset-bottom))] transition-transform duration-300 ease-out ${drawer ? "translate-y-0" : "translate-y-full"}`}
         >
-          <button
-            type="button"
-            aria-label={t.close}
-            onClick={() => setDrawer(false)}
-            className="absolute inset-0 bg-black/50"
-          />
-          <div className="relative w-full rounded-t-[28px] bg-ink pt-4 pb-[max(20px,env(safe-area-inset-bottom))] motion-safe:animate-[enter_.2s_ease-out]">
-            <div className="flex items-center justify-between px-5 pb-2">
-              <span className="text-[15px] font-extrabold">Cameras</span>
+          <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-white/25" />
+          <div className="flex items-center justify-between px-5 pb-1">
+            <span className="text-[15px] font-extrabold">Cameras</span>
+            <button
+              type="button"
+              tabIndex={drawer ? 0 : -1}
+              onClick={() => setDrawer(false)}
+              aria-label={t.close}
+              className={`${round} size-9 bg-white/10`}
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="flex snap-x gap-1 overflow-x-auto px-3 pt-1 pb-2 [scrollbar-width:none]">
+            {GUEST_PRESETS.map((p, i) => (
               <button
+                key={p.id}
                 type="button"
-                onClick={() => setDrawer(false)}
-                aria-label={t.close}
-                className="flex size-9 items-center justify-center rounded-full bg-text-3 text-sm"
+                tabIndex={drawer ? 0 : -1}
+                aria-pressed={i === pi}
+                onClick={() => {
+                  pick(i);
+                  setDrawer(false);
+                }}
+                className="flex w-[86px] flex-none snap-start flex-col items-center gap-1.5 py-2 transition active:scale-95"
               >
-                ✕
-              </button>
-            </div>
-            <div className="flex gap-1 overflow-x-auto px-3 pb-2 [scrollbar-width:none]">
-              {GUEST_PRESETS.map((p, i) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  aria-pressed={i === pi}
-                  onClick={() => {
-                    pick(i);
-                    setDrawer(false);
-                  }}
-                  className="flex w-[84px] flex-none flex-col items-center gap-1.5 py-2"
+                <CameraArt id={p.id} body={p.body} size={70} />
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap ${i === pi ? "bg-paper text-ink" : "text-paper/75"}`}
                 >
-                  <CameraIcon body={p.body} size={64} />
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap ${i === pi ? "bg-paper text-ink" : "text-paper/80"}`}
-                  >
-                    {p.name}
-                  </span>
-                </button>
-              ))}
-            </div>
+                  {p.name}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
-      )}
+      </div>
       {sheet && (
         <UploadSheet
           shots={info.shots}
@@ -487,7 +597,6 @@ export function Camera({
   );
 }
 
-/** Izin kamera: minta, diblokir (langkah iPhone/Android), dibuka dari aplikasi lain. */
 function Permission({
   cam,
   app,
@@ -513,8 +622,8 @@ function Permission({
           </>
         }
       >
-        <div className="mt-[14dvh] flex justify-center">
-          <CameraIcon body="#F8D98B" size={112} />
+        <div className="mt-[14dvh] flex justify-center motion-safe:animate-[enter_.4s_ease-out]">
+          <CameraArt id="disposable" body="#8EDCCB" size={128} />
         </div>
         <H1 className="mt-6 text-center">{t.askTitle(firstName(name))}</H1>
         <Lead className="text-center">{t.askBody}</Lead>
@@ -533,11 +642,11 @@ function Permission({
             <span className="flex size-8 items-center justify-center rounded-full bg-paper font-mono text-sm text-ink">
               1
             </span>
-            {t.inAppStep1[0]} <span className="rounded-md bg-text-3 px-2 font-extrabold">⋯</span>{" "}
+            {t.inAppStep1[0]} <span className="rounded-md bg-white/10 px-2 font-extrabold">⋯</span>{" "}
             {t.inAppStep1[1]}
           </li>
           <li className="flex items-center gap-3">
-            <span className="flex size-8 items-center justify-center rounded-full bg-text-3 font-mono text-sm">
+            <span className="flex size-8 items-center justify-center rounded-full bg-white/10 font-mono text-sm">
               2
             </span>
             Pilih <b>{t.inAppStep2}</b>
@@ -549,20 +658,26 @@ function Permission({
     );
   const steps = os === "ios" ? t.stepsIos : t.stepsAndroid;
   return (
-    <Screen bottom={<Primary onClick={() => location.reload()}>{t.retry}</Primary>}>
+    <Screen
+      bottom={
+        <Primary onClick={() => location.reload()}>
+          <RefreshCw size={18} /> {t.retry}
+        </Primary>
+      }
+    >
       <div className="mt-[10dvh]">
         <Tag bg="bg-coral">{t.deniedPill}</Tag>
       </div>
       <H1 className="mt-4">{t.deniedTitle}</H1>
       <Lead>{t.deniedBody}</Lead>
-      <div className="mt-6 flex h-11 rounded-full bg-text-3 p-1">
+      <div className="mt-6 flex h-11 rounded-full bg-white/10 p-1">
         {(["ios", "android"] as const).map((o) => (
           <button
             key={o}
             type="button"
             aria-pressed={os === o}
             onClick={() => setOs(o)}
-            className={`flex-1 rounded-full text-sm font-bold ${os === o ? "bg-paper text-ink" : "text-paper/70"}`}
+            className={`flex-1 rounded-full text-sm font-bold transition ${os === o ? "bg-paper text-ink" : "text-paper/70"}`}
           >
             {o === "ios" ? t.iphone : t.android}
           </button>
@@ -572,7 +687,7 @@ function Permission({
         {steps.map((s, i) => (
           <li key={s} className="flex items-start gap-3.5 text-[15px] leading-snug font-semibold">
             <span
-              className={`flex size-8 flex-none items-center justify-center rounded-full font-mono text-sm ${i === 0 ? "bg-paper text-ink" : "bg-text-3"}`}
+              className={`flex size-8 flex-none items-center justify-center rounded-full font-mono text-sm ${i === 0 ? "bg-paper text-ink" : "bg-white/10"}`}
             >
               {i + 1}
             </span>
@@ -584,7 +699,6 @@ function Permission({
   );
 }
 
-/** Lembar status kiriman (ketuk pil kanan atas). */
 function UploadSheet({
   shots,
   upload,
@@ -611,7 +725,8 @@ function UploadSheet({
         onClick={onClose}
         className="absolute inset-0 bg-black/50"
       />
-      <div className="relative flex w-full flex-col gap-4 rounded-t-[28px] bg-ink px-5 pt-4 pb-[max(22px,env(safe-area-inset-bottom))] text-paper motion-safe:animate-[enter_.2s_ease-out]">
+      <div className="relative flex w-full flex-col gap-4 rounded-t-[28px] bg-[#151514] px-5 pt-3 pb-[max(22px,env(safe-area-inset-bottom))] text-paper motion-safe:animate-[enter_.2s_ease-out]">
+        <div className="mx-auto h-1 w-10 rounded-full bg-white/25" />
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-xl font-extrabold">{t.sheetTitle}</h2>
@@ -621,9 +736,9 @@ function UploadSheet({
             type="button"
             onClick={onClose}
             aria-label={t.close}
-            className="flex size-9 items-center justify-center rounded-full bg-text-3 text-sm"
+            className={`${round} size-9 bg-white/10`}
           >
-            ✕
+            <X size={18} />
           </button>
         </div>
         <div className="grid grid-cols-8 gap-1.5" aria-hidden>
@@ -632,7 +747,7 @@ function UploadSheet({
             return (
               <span
                 key={i}
-                className={`flex aspect-square items-center justify-center rounded-lg font-mono text-[10px] ${s === "sent" ? "bg-mint text-ink" : s === "wait" ? "bg-peach text-ink" : s === "fail" ? "bg-coral text-ink" : "border border-dashed border-paper/30"}`}
+                className={`flex aspect-square items-center justify-center rounded-lg font-mono text-[10px] ${s === "sent" ? "bg-mint text-ink" : s === "wait" ? "bg-peach text-ink" : s === "fail" ? "bg-coral text-ink" : "border border-dashed border-white/25"}`}
               >
                 {s === "sent" ? "✓" : s === "fail" ? "↻" : ""}
               </span>
@@ -646,7 +761,7 @@ function UploadSheet({
           type="button"
           onClick={onSendNow}
           disabled={!waiting.size}
-          className="h-12 rounded-full bg-text-3 text-[15px] font-extrabold disabled:opacity-40"
+          className="h-12 rounded-full bg-white/10 text-[15px] font-extrabold disabled:opacity-40"
         >
           {t.sendNow}
         </button>
@@ -663,9 +778,14 @@ function CopyLink({ big }: { big?: boolean }) {
       setDone(true);
       setTimeout(() => setDone(false), 1800);
     });
-  if (big) return <Primary onClick={copyIt}>{done ? t.copied : t.copyLink}</Primary>;
+  if (big)
+    return (
+      <Primary onClick={copyIt}>
+        <Copy size={18} /> {done ? t.copied : t.copyLink}
+      </Primary>
+    );
   return (
-    <div className="mt-2 flex h-12 items-center gap-2 rounded-2xl bg-text-3 pr-1.5 pl-4">
+    <div className="mt-2 flex h-12 items-center gap-2 rounded-2xl bg-white/10 pr-1.5 pl-4">
       <span className="min-w-0 flex-1 truncate font-mono text-[13px]">
         {url.replace(/^https?:\/\//, "")}
       </span>

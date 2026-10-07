@@ -5,6 +5,7 @@ import { Done, Mine } from "@/components/guest-cam/After";
 import { Camera } from "@/components/guest-cam/Camera";
 import { Join } from "@/components/guest-cam/Join";
 import { StripPicker } from "@/components/guest-cam/StripPicker";
+import { goFullscreen } from "@/components/guest-cam/ui";
 import { VoiceRecorder } from "@/components/guest-cam/VoiceRecorder";
 import type { GuestInfo } from "@/lib/guest-cam";
 import { capture } from "./capture";
@@ -47,6 +48,13 @@ export function GuestCam({
     await refresh();
     setFailing(!ok && navigator.onLine);
   }, [token, refresh]);
+
+  // Layar penuh tanpa bar browser: ketukan pertama di mana pun (Android; iOS Safari menolak).
+  useEffect(() => {
+    const once = () => goFullscreen();
+    window.addEventListener("pointerdown", once, { once: true });
+    return () => window.removeEventListener("pointerdown", once);
+  }, []);
 
   useEffect(() => {
     if (!me) return;

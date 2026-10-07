@@ -1,3 +1,4 @@
+import { ChevronLeft } from "lucide-react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 /**
@@ -58,9 +59,9 @@ export function TopBar({
           type="button"
           onClick={onBack}
           aria-label="Kembali"
-          className="flex size-11 items-center justify-center rounded-full bg-text-3 text-xl font-bold"
+          className="flex size-11 items-center justify-center rounded-full bg-white/10 transition active:scale-90"
         >
-          ‹
+          <ChevronLeft size={22} />
         </button>
       ) : (
         <span />
@@ -88,7 +89,7 @@ export function Secondary({ className = "", ...p }: ButtonHTMLAttributes<HTMLBut
     <button
       type="button"
       {...p}
-      className={`flex h-14 items-center justify-center gap-2 rounded-full bg-text-3 px-6 text-[15px] font-bold text-paper transition-transform active:scale-[.98] disabled:opacity-50 ${className}`}
+      className={`flex h-14 items-center justify-center gap-2 rounded-full bg-white/10 px-6 text-[15px] font-bold whitespace-nowrap text-paper transition-transform active:scale-[.98] disabled:opacity-50 ${className}`}
     />
   );
 }
@@ -121,38 +122,6 @@ export function Tag({ bg, children }: { bg: string; children: ReactNode }) {
     >
       {children}
     </span>
-  );
-}
-
-/** Ikon kamera retro (laci pilihan preset, gaya Dazz): bodi berwarna, lensa, jendela bidik, flash. */
-export function CameraIcon({ body, size = 56 }: { body: string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden>
-      <rect x="18" y="12" width="14" height="7" rx="2" fill="#3A3936" />
-      <rect
-        x="6"
-        y="17"
-        width="52"
-        height="34"
-        rx="8"
-        fill={body}
-        stroke="#1D1D1B"
-        strokeWidth="2"
-      />
-      <rect
-        x="42"
-        y="21"
-        width="10"
-        height="6"
-        rx="1.5"
-        fill="#fff"
-        stroke="#1D1D1B"
-        strokeWidth="1.5"
-      />
-      <circle cx="30" cy="34" r="12" fill="#1D1D1B" />
-      <circle cx="30" cy="34" r="8" fill="#3A3936" stroke="#8A8883" strokeWidth="1.5" />
-      <circle cx="27" cy="31" r="2.5" fill="#fff" opacity=".7" />
-    </svg>
   );
 }
 
