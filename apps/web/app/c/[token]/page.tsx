@@ -6,7 +6,21 @@ import { GuestCam } from "./GuestCam";
 
 const t = copy.guestCam;
 
-export const metadata: Metadata = { title: t.meta, robots: { index: false, follow: false } };
+/** Metadata web app (#211): manifest per acara + mode layar penuh iOS saat dibuka dari Layar Utama. */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+  return {
+    title: t.meta,
+    robots: { index: false, follow: false },
+    manifest: `/c/${token}/manifest.webmanifest`,
+    appleWebApp: { capable: true, title: "Guest Cam", statusBarStyle: "black-translucent" },
+    icons: { apple: "/guest-cam/apple-touch-icon.png" },
+  };
+}
 export const dynamic = "force-dynamic";
 /** Gelap penuh seperti aplikasi kamera (#209): status bar hitam; color-scheme dark mencegah dark mode paksa
  * Samsung Internet/Chrome membalik warna. */

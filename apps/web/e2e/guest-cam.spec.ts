@@ -313,3 +313,64 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
     }
   });
 });
+
+test.describe("iPhone: panduan Tambah ke Layar Utama (#211)", () => {
+  test.use({
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+    viewport: { width: 390, height: 844 },
+  });
+
+  test("popup muncul sebelum daftar, bisa dilewati; manifest berisi link acara", async ({
+    page,
+    request,
+  }) => {
+    const db = createClient<Database>(url ?? "", key ?? "", { auth: { persistSession: false } });
+    const org = (await db.from("organizations").select("id").eq("slug", "tetra").single()).data;
+    const token = `e2e-gci-${Date.now()}`;
+    const { data: ev } = await db
+      .from("events")
+      .insert({
+        organization_id: org?.id ?? "",
+        name: `e2e guest cam ios ${Date.now()}`,
+        mode: "event",
+        event_date: "2026-12-31",
+        guest_token: token,
+        settings: { guestCam: { enabled: true } },
+      })
+      .select("id")
+      .single();
+    try {
+      const m = await (await request.get(`/c/${token}/manifest.webmanifest`)).json();
+      expect(m).toMatchObject({
+        start_url: `/c/${token}`,
+        scope: `/c/${token}`,
+        display: "fullscreen",
+      });
+      await page.goto(`/c/${token}`);
+      await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
+        "href",
+        `/c/${token}/manifest.webmanifest`,
+      );
+      await page.getByRole("button", { name: "Ikut motret" }).click();
+      await expect(
+        page.getByRole("heading", { name: "Biar layar penuh seperti aplikasi" }),
+      ).toBeVisible();
+      if (process.env.GC_SHOTS) {
+        await page.waitForTimeout(400);
+        await page.screenshot({ path: `${process.env.GC_SHOTS}/A2HS.png` });
+      }
+      await page.getByRole("button", { name: "Lanjut di browser saja" }).click();
+      await expect(page.getByLabel("Namamu")).toBeVisible();
+      // Dilewati sekali = tidak ditanya lagi di HP ini.
+      await page.reload();
+      await page.getByRole("button", { name: "Ikut motret" }).click();
+      await expect(page.getByLabel("Namamu")).toBeVisible();
+    } finally {
+      await db
+        .from("events")
+        .delete()
+        .eq("id", ev?.id ?? "");
+    }
+  });
+});

@@ -1,6 +1,6 @@
 "use client";
 import { type GuestMe, InstagramSchema, WhatsappSchema } from "@tetra/shared";
-import { Camera as CameraIcon, Check, X } from "lucide-react";
+import { Camera as CameraIcon, Check, Compass, Share, SquarePlus, X } from "lucide-react";
 import { useState } from "react";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
@@ -29,6 +29,46 @@ function Sprockets({ side }: { side: "left" | "right" }) {
   );
 }
 
+/** Satu langkah panduan Layar Utama. */
+function Step({
+  n,
+  icon,
+  children,
+}: {
+  n: number;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="flex items-center gap-3.5">
+      <span className="flex size-8 flex-none items-center justify-center rounded-full bg-white/10 font-mono text-sm">
+        {n}
+      </span>
+      <span className="flex-1 text-[15px] leading-snug">{children}</span>
+      <span className="flex size-11 flex-none items-center justify-center rounded-2xl bg-white/10">
+        {icon}
+      </span>
+    </li>
+  );
+}
+
+/** iPhone/iPad di Safari (bukan dari ikon Layar Utama): tawarkan pasang ke Layar Utama supaya layar penuh. */
+const wantsA2hs = () => {
+  if (typeof navigator === "undefined") return false;
+  const ios =
+    /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent));
+  const standalone =
+    (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: fullscreen)").matches;
+  try {
+    return ios && !standalone && localStorage.getItem("gc-a2hs-skip") !== "1";
+  } catch {
+    return ios && !standalone;
+  }
+};
+
 /**
  * Pembuka v3 (#209): sampul layar penuh (zoom pelan) berbingkai film, judul & kamera muncul berurutan, satu tombol
  * "Ikut motret" yang membuka lembar form dari bawah. Sekali isi per HP.
@@ -43,6 +83,7 @@ export function Join({
   onJoined: (me: GuestMe) => void;
 }) {
   const [sheet, setSheet] = useState(false);
+  const [a2hs, setA2hs] = useState(false);
   const [name, setName] = useState("");
   const [via, setVia] = useState<"whatsapp" | "instagram">("whatsapp");
   const [contact, setContact] = useState("");
@@ -149,13 +190,74 @@ export function Join({
           <Primary
             onClick={() => {
               goFullscreen();
-              setSheet(true);
+              if (wantsA2hs()) setA2hs(true);
+              else setSheet(true);
             }}
             className="h-[60px] text-[17px]"
           >
             <CameraIcon size={20} strokeWidth={2.4} /> {t.join}
           </Primary>
           <p className="mt-3 text-center text-[11px] text-paper/50">{t.joinFoot}</p>
+        </div>
+      </div>
+
+      {/* Panduan Tambah ke Layar Utama (iPhone, #211): iOS tidak mengizinkan pasang otomatis. */}
+      <div
+        className={`absolute inset-0 z-30 transition-opacity duration-200 ${a2hs ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        aria-hidden={!a2hs}
+        role="dialog"
+        aria-label={t.a2hsTitle}
+      >
+        <div className="absolute inset-0 bg-black/60" />
+        <div
+          className={`absolute inset-x-0 bottom-0 flex flex-col gap-4 rounded-t-[30px] bg-[#151514] px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] transition-transform duration-300 ease-out ${a2hs ? "translate-y-0" : "translate-y-full"}`}
+        >
+          <div className="mx-auto h-1 w-10 rounded-full bg-white/25" />
+          <div className="flex items-center gap-3.5">
+            {/* biome-ignore lint/performance/noImgElement: ikon statis kecil */}
+            <img src="/guest-cam/apple-touch-icon.png" alt="" className="size-14 rounded-[14px]" />
+            <div>
+              <h2 className="text-xl leading-tight font-extrabold">{t.a2hsTitle}</h2>
+              <p className="mt-1 text-[13px] text-paper/70">{t.a2hsBody}</p>
+            </div>
+          </div>
+          <ol className="flex flex-col gap-3">
+            <Step n={1} icon={<Share size={22} className="text-[#3B9BFF]" />}>
+              {t.a2hsStep1[0]} <b>{t.a2hsStep1[1]}</b> {t.a2hsStep1[2]}
+            </Step>
+            <Step n={2} icon={<SquarePlus size={22} />}>
+              {t.a2hsStep2[0]} <b>{t.a2hsStep2[1]}</b>
+            </Step>
+            <Step
+              n={3}
+              icon={
+                // biome-ignore lint/performance/noImgElement: ikon statis kecil
+                <img src="/guest-cam/apple-touch-icon.png" alt="" className="size-8 rounded-lg" />
+              }
+            >
+              {t.a2hsStep3[0]} <b>{t.a2hsStep3[1]}</b> {t.a2hsStep3[2]}
+            </Step>
+          </ol>
+          <p className="flex items-center gap-2 rounded-2xl bg-white/5 px-3.5 py-2.5 text-xs text-paper/70">
+            <Compass size={16} className="flex-none" /> {t.a2hsWa}
+          </p>
+          <Primary tabIndex={a2hs ? 0 : -1} onClick={() => setA2hs(false)}>
+            {t.a2hsOk}
+          </Primary>
+          <button
+            type="button"
+            tabIndex={a2hs ? 0 : -1}
+            onClick={() => {
+              try {
+                localStorage.setItem("gc-a2hs-skip", "1");
+              } catch {}
+              setA2hs(false);
+              setSheet(true);
+            }}
+            className="min-h-11 text-sm font-bold text-paper/70 underline underline-offset-4"
+          >
+            {t.a2hsSkip}
+          </button>
         </div>
       </div>
 
