@@ -377,7 +377,10 @@ export function openDb(file: string) {
         )
         .all() as { id: string }[];
       const want = new Set(ids);
-      return { pendingGroups: rows.length, pending: rows.map((r) => r.id).filter((id) => want.has(id)) };
+      return {
+        pendingGroups: rows.length,
+        pending: rows.map((r) => r.id).filter((id) => want.has(id)),
+      };
     },
     uploadPending(): number {
       return (db.prepare("select count(*) n from upload_queue").get() as { n: number }).n;
