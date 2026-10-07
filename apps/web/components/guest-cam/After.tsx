@@ -189,7 +189,7 @@ export function Mine({
                   )}
                   {p.strip && !p.by && (
                     <span className="absolute top-1.5 left-1.5 rounded-full bg-butter px-2 py-0.5 text-[10px] font-extrabold text-ink">
-                      Strip
+                      Frame
                     </span>
                   )}
                 </li>

@@ -182,13 +182,13 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await page.waitForTimeout(1300);
       await shot("A1");
       await page.getByRole("button", { name: "Ikut motret" }).click();
-      await page.getByLabel("Namamu").fill("Sari");
+      await page.getByLabel("Nama kamu").fill("Sari");
       await page.getByRole("button", { name: "Instagram" }).click();
       await page.getByLabel("Akun Instagram").fill("@sari.e2e");
       await page.getByRole("checkbox").click();
-      await page.getByRole("button", { name: "Mulai motret" }).click();
+      await page.getByRole("button", { name: "Masuk", exact: true }).click();
       // Menu utama (#212): kamera, ucapan, photo frame, album.
-      await expect(page.getByText("Halo, Sari")).toBeVisible();
+      await expect(page.getByText("Hai, Sari")).toBeVisible();
       await page.waitForTimeout(700);
       await shot("H1");
       await page.getByRole("button", { name: "Mulai jepret" }).click();
@@ -216,18 +216,18 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await shot("A5");
 
       // G3: ucapan suara (mic palsu Chromium) dan photo frame dari 2 foto.
-      await page.getByRole("button", { name: /^Ucapan suara/ }).click();
-      await page.getByRole("button", { name: "Mulai rekam" }).click();
+      await page.getByRole("button", { name: /^Voice note/ }).click();
+      await page.getByRole("button", { name: "Rekam" }).click();
       await page.waitForTimeout(1500);
       await shot("A8a");
-      await page.getByRole("button", { name: "Berhenti" }).click();
-      await expect(page.getByText("Dengar dulu sebelum dikirim")).toBeVisible();
+      await page.getByRole("button", { name: "Stop" }).click();
+      await expect(page.getByText(/^Dengerin dulu/)).toBeVisible();
       await shot("A8b");
-      await page.getByRole("button", { name: "Kirim ucapan" }).click();
-      await expect(page.getByText("Ucapanmu sudah sampai")).toBeVisible();
+      await page.getByRole("button", { name: "Kirim", exact: true }).click();
+      await expect(page.getByText("Terkirim ✓")).toBeVisible();
       await shot("A8c");
-      await page.getByRole("button", { name: "Menu utama" }).click();
-      await expect(page.getByText("Ucapanmu sudah terkirim")).toBeVisible();
+      await page.getByRole("button", { name: "Balik ke menu" }).click();
+      await expect(page.getByText("Udah kekirim, makasih!")).toBeVisible();
       await page.getByRole("button", { name: /^Album/ }).click();
       await expect(page.getByRole("listitem")).toHaveCount(2, { timeout: 60_000 });
       await shot("A7a");
@@ -239,13 +239,14 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
         "true",
       );
       await expect(page.getByRole("button", { name: /^4R/ })).toBeDisabled();
-      for (const _ of [0, 1]) await page.locator('li button[aria-pressed="false"]').first().click();
-      await expect(page.getByRole("img", { name: "Pratinjau strip" })).toBeVisible({
+      for (const _ of [0, 1])
+        await page.getByRole("button", { name: "Pilih foto" }).first().click();
+      await expect(page.getByRole("img", { name: "Preview frame" })).toBeVisible({
         timeout: 15_000,
       });
       await page.waitForTimeout(600);
       await shot("A9a");
-      await page.getByRole("button", { name: "Cetak", exact: true }).click();
+      await page.getByRole("button", { name: "Print", exact: true }).click();
       await expect(page.getByRole("img", { name: "Frame kamu" })).toBeVisible();
       await shot("A9b");
       await page.getByRole("button", { name: "Kirim ke album" }).click();
@@ -300,13 +301,13 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       .single();
     try {
       await page.goto(`/c/${token}`);
-      await expect(page.getByText(/terbuka setelah acara/i)).toBeVisible();
+      await expect(page.getByText(/kebuka setelah acara/i)).toBeVisible();
       await page.getByRole("button", { name: "Ikut motret" }).click();
-      await page.getByLabel("Namamu").fill("Andi");
+      await page.getByLabel("Nama kamu").fill("Andi");
       await page.getByLabel("Nomor WhatsApp").fill("0812 3456 7890");
       await page.getByRole("checkbox").click();
-      await page.getByRole("button", { name: "Mulai motret" }).click();
-      await expect(page.getByText("Terbuka setelah acara")).toBeVisible();
+      await page.getByRole("button", { name: "Masuk", exact: true }).click();
+      await expect(page.getByText("Kebuka setelah acara")).toBeVisible();
       if (process.env.GC_SHOTS)
         await page.screenshot({ path: `${process.env.GC_SHOTS}/after-H1.png` });
       await page.getByRole("button", { name: "Mulai jepret" }).click();
@@ -315,10 +316,10 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       const shutter = page.getByRole("button", { name: "Jepret" });
       await expect(shutter).toBeEnabled();
       await shutter.click();
-      await expect(page.getByText("Tersimpan. Terbuka setelah acara")).toBeVisible();
+      await expect(page.getByText("Saved! Kebuka setelah acara")).toBeVisible();
       if (process.env.GC_SHOTS)
         await page.screenshot({ path: `${process.env.GC_SHOTS}/after-A4.png` });
-      await page.getByRole("button", { name: "Foto saya" }).click();
+      await page.getByRole("button", { name: "Foto terakhir" }).click();
       await expect(page.getByText("Fotomu lagi dicuci")).toBeVisible();
       await expect(page.getByRole("listitem")).toHaveCount(0);
       if (process.env.GC_SHOTS)
@@ -371,19 +372,17 @@ test.describe("iPhone: panduan Tambah ke Layar Utama (#211)", () => {
         `/c/${token}/manifest.webmanifest`,
       );
       await page.getByRole("button", { name: "Ikut motret" }).click();
-      await expect(
-        page.getByRole("heading", { name: "Biar layar penuh seperti aplikasi" }),
-      ).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Biar full screen kayak app" })).toBeVisible();
       if (process.env.GC_SHOTS) {
         await page.waitForTimeout(400);
         await page.screenshot({ path: `${process.env.GC_SHOTS}/A2HS.png` });
       }
-      await page.getByRole("button", { name: "Lanjut di browser saja" }).click();
-      await expect(page.getByLabel("Namamu")).toBeVisible();
+      await page.getByRole("button", { name: "Nanti aja, lanjut di browser" }).click();
+      await expect(page.getByLabel("Nama kamu")).toBeVisible();
       // Dilewati sekali = tidak ditanya lagi di HP ini.
       await page.reload();
       await page.getByRole("button", { name: "Ikut motret" }).click();
-      await expect(page.getByLabel("Namamu")).toBeVisible();
+      await expect(page.getByLabel("Nama kamu")).toBeVisible();
     } finally {
       await db
         .from("events")
