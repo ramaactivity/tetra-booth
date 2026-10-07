@@ -52,6 +52,7 @@ import {
 import { allowQuit, autoStart, setAutoStart, setKioskOn } from "./kiosk";
 import { onPhase } from "./shots";
 import { stageInbox, stageListen } from "./stage";
+import { stageLanUrls } from "./stage-lan";
 import { downloadInstaller, runInstaller } from "./update";
 
 /** %APPDATA%/TetraBooth/sessions (TSD §3). Renderer hanya boleh baca/tulis di bawah folder ini. */
@@ -857,7 +858,7 @@ export function registerIpc(
       (r) => ({ connected: r.connected, model: r.model }),
       () => null,
     );
-    return { online: net.isOnline(), camera, ...db.stageUploads(list) };
+    return { online: net.isOnline(), camera, lanUrls: stageLanUrls(), ...db.stageUploads(list) };
   });
 
   ipcMain.handle("sessionStarted", (_e, x: unknown) => {

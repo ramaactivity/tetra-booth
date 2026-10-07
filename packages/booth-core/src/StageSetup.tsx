@@ -45,6 +45,7 @@ export function StageSetup({
   onDone,
   onShoot,
   shooting = false,
+  lanUrls = [],
 }: {
   event: BoothEvent;
   testShot: StageShot | undefined;
@@ -62,6 +63,8 @@ export function StageSetup({
   /** Kamera Canon: jepret foto tes dari laptop (#201); tidak ada = folder pantau. */
   onShoot?: (() => void) | undefined;
   shooting?: boolean;
+  /** Layar WiFi (#205): alamat untuk device kedua. */
+  lanUrls?: string[];
 }) {
   const [step, setStep] = useState(1);
   const folder = model === "Hot folder";
@@ -287,6 +290,21 @@ export function StageSetup({
               </div>
             </div>
             <div className="flex flex-col gap-4 rounded-[28px] border-2 border-dashed border-ink bg-sky px-[30px] py-7">
+              <div
+                className="flex flex-col gap-2 border-b-[1.5px] border-dashed border-ink pb-4"
+                data-testid="stage-lan"
+              >
+                <span className="text-2xl font-extrabold">{t.lanTitle}</span>
+                <span className="text-lg leading-[1.45] text-text-3">
+                  {lanUrls.length ? t.lanBody : t.lanNone}
+                </span>
+                {lanUrls.map((u) => (
+                  <span key={u} className="font-mono text-[26px] font-medium">
+                    {u}
+                  </span>
+                ))}
+                {!!lanUrls.length && <span className="text-base text-text-3">{t.lanFirewall}</span>}
+              </div>
               <span className="text-2xl font-extrabold">{t.tvHowTitle}</span>
               <span className="text-lg leading-[1.45] text-text-3">{t.tvHowBody}</span>
               <div className="flex flex-col">

@@ -254,6 +254,10 @@ export const copy = {
       next: ["Lanjut ke Kamera", "Lanjut ke TV", "Lanjut ke Warna", "", "Mulai Photo Stage"],
       hintNoTest: "Bisa lanjut tanpa foto tes, tapi tidak disarankan",
       hintColor: 'Tekan "Pakai untuk semua foto" untuk lanjut',
+      lanTitle: "Layar di device lain (tanpa kabel)",
+      lanBody: "Laptop/tablet/HP di WiFi atau hotspot yang sama buka alamat ini di browser:",
+      lanNone: "Sambungkan laptop ke WiFi/hotspot dulu supaya alamatnya muncul.",
+      lanFirewall: "Kalau Windows bertanya, izinkan Tetra Booth di jaringan Private.",
       tvTestScreen: "Uji tampilan TV",
       tvTestScreenSub:
         "Kalau tulisan ini terbaca dari jalur turun dan QR terbaca HP dari 2 m, TV siap.",
@@ -343,6 +347,7 @@ export const copy = {
     toastWaitSave: "Tunggu rombongan selesai disimpan dulu",
     toastTooMany: "Maksimal 20 foto per rombongan",
     autoOn: "Aktif",
+    lan: (url: string) => `Layar WiFi ${url}`,
     shoot: "Jepret",
     shooting: "Menjepret…",
     toastOpened: (n: number, prev: number) => `Rombongan #${n} dibuka. QR #${prev} tampil di TV`,

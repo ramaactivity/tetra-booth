@@ -293,6 +293,8 @@ export type StageStatus = {
   pendingGroups: number;
   /** Dari id yang ditanyakan: yang masih antre. */
   pending: string[];
+  /** Layar di device kedua lewat WiFi (#205): http://<IP>:<port>; kosong = tidak aktif. */
+  lanUrls?: string[];
 };
 /** Photo Stage (#178): ada hanya di laptop berperan `stage`. */
 export interface BoothStage {

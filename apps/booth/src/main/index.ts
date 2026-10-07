@@ -28,6 +28,7 @@ import { registerIpc } from "./ipc";
 import { APP_ID, allowQuit, applyKiosk } from "./kiosk";
 import { setupLogging } from "./log";
 import { startMetrics } from "./metrics";
+import { startStageLan } from "./stage-lan";
 import { startStageTv } from "./stage-tv";
 
 // Sentry hanya di build terpasang (dev & e2e tidak mengirim). Event antre di disk saat offline, tidak pernah menunggu jaringan.
@@ -165,12 +166,20 @@ app.whenReady().then(async () => {
   if (cameraServiceFlags.spawn) await startCameraService(log, db, alerts);
   else app.on("will-quit", watchPrintEvents(log, db, alerts));
   createWindow();
-  if (config.role === "stage")
-    startStageTv({
+  if (config.role === "stage") {
+    const tv = startStageTv({
       preload: join(__dirname, "../preload/index.js"),
       forceWindow: stageTvWindow,
       log,
     });
+    // Layar di device kedua lewat WiFi tanpa internet (#205).
+    startStageLan({
+      rendererDir: join(__dirname, "../renderer"),
+      sessionsRoot: () => join(app.getPath("userData"), "sessions"),
+      state: tv.last,
+      log,
+    });
+  }
   cloud.start();
   startMetrics(db, metricsEverySec, log);
 });

@@ -669,6 +669,7 @@ export function StageRunner({
           <span className="font-mono text-sm text-text-2">
             {event.date}
             {!!list.length && ` · ${list.length - next.length}/${list.length} grup`}
+            {status?.lanUrls?.[0] && ` · ${t.lan(status.lanUrls[0])}`}
           </span>
         </div>
         <div className="flex-1" />
@@ -1145,6 +1146,7 @@ export function StageRunner({
           setGap={setGap}
           onShoot={canShoot ? () => void shoot() : undefined}
           shooting={shooting}
+          lanUrls={status?.lanUrls ?? []}
           colorSummary={[PHOTO_FILTERS.find((f) => f.id === preset.filter)?.label, lut?.name]
             .filter(Boolean)
             .join(" · ")}

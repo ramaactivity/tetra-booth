@@ -91,4 +91,5 @@ export function startStageTv(o: {
   screen.on("display-removed", sync);
   screen.on("display-metrics-changed", sync);
   sync();
+  return { last: () => last };
 }

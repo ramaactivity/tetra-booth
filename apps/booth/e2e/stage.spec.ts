@@ -9,7 +9,7 @@ import {
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { _electron as electron, expect, test } from "@playwright/test";
+import { chromium, _electron as electron, expect, test } from "@playwright/test";
 
 /**
  * Photo Stage S1 (#178): laptop berperan stage + kamera folder pantau. Jepretan "fotografer" (JPEG yang masuk folder)
@@ -132,6 +132,28 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   // Lapisan aktif (B4): 1 foto rombongan #2; galeri idle tetap ter-mount di belakang (#189).
   await expect(tvWin.locator('[aria-hidden="false"] img')).toHaveCount(1, { timeout: 10_000 });
   await tvWin.screenshot({ path: "test-results/stage-tv.png" });
+  // Layar WiFi (#205): browser device lain membuka laptop stage → TV yang sama tanpa internet.
+  let lan = "";
+  for (const port of [47870, 47871, 47872]) {
+    const st = await fetch(`http://127.0.0.1:${port}/api/tv`)
+      .then((r) => r.json() as Promise<{ eventName?: string } | null>)
+      .catch(() => null);
+    if (st?.eventName) {
+      lan = `http://127.0.0.1:${port}/`;
+      break;
+    }
+  }
+  expect(lan).not.toBe("");
+  const browser = await chromium.launch();
+  const other = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  await other.goto(lan);
+  await expect(other.getByRole("heading", { name: "Keluarga Besar Bpk. Hadi" })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(other.locator('[aria-hidden="false"] img')).toHaveCount(1, { timeout: 15_000 });
+  await other.screenshot({ path: "test-results/stage-lan.png" });
+  await browser.close();
+
   // "Cari fotomu" (#200): tamu menyentuh TV → daftar rombongan → foto + QR → tutup.
   await tvWin.getByRole("button", { name: "Cari fotomu" }).click();
   await expect(tvWin.getByRole("heading", { name: "Cari fotomu" })).toBeVisible();
