@@ -832,6 +832,16 @@ export function registerIpc(
     cloud.kickUpload();
   });
 
+  // Status bar layar operator (#186): kamera, internet, rombongan yang belum terunggah. Tanpa crew.
+  ipcMain.handle("stageStatus", async (_e, ids: unknown) => {
+    const list = z.array(SessionId).max(50).parse(ids);
+    const camera = await request({ id: crypto.randomUUID(), type: "camera.status" }).then(
+      (r) => ({ connected: r.connected, model: r.model }),
+      () => null,
+    );
+    return { online: net.isOnline(), camera, ...db.stageUploads(list) };
+  });
+
   ipcMain.handle("sessionStarted", (_e, x: unknown) => {
     const s = SessionStarted.parse(x);
     db.sessionStarted(s);

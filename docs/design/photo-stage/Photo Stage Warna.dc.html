@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#F8F7F4;font-family:'Plus Jakarta Sans',sans-serif;color:#1D1D1B;-webkit-font-smoothing:antialiased}a{color:#1D1D1B}a:hover{color:#5F5E5A}*{box-sizing:border-box}</style>
+</helmet>
+<div style="width:1640px;height:880px;background:#FFFFFF;border:3px solid #1D1D1B;border-radius:36px;display:grid;grid-template-columns:minmax(0,1fr) 540px;gap:40px;padding:36px;font-family:'Plus Jakarta Sans',sans-serif;color:#1D1D1B">
+
+<div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+<div style="flex:1;min-height:0;position:relative;border:2.5px solid #1D1D1B;border-radius:20px;overflow:hidden;background:#EFEDE8">
+<img src="foto/stage/a3.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block">
+<img src="foto/stage/a3.png" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;filter:{{ filterCss }};clip-path:inset(0 0 0 {{ split }}%)">
+<div style="position:absolute;top:0;bottom:0;left:{{ split }}%;width:3px;margin-left:-1.5px;background:#FFFFFF;box-shadow:0 0 0 1.5px #1D1D1B"></div>
+<div style="position:absolute;top:50%;left:{{ split }}%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:#FFFFFF;border:2.5px solid #1D1D1B;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800">⇆</div>
+<span style="position:absolute;left:20px;top:20px;font-size:16px;font-weight:700;background:#FFFFFF;border:2px solid #1D1D1B;border-radius:999px;padding:6px 14px">Sebelum</span>
+<span style="position:absolute;right:20px;top:20px;font-size:16px;font-weight:700;background:#D6F1EA;border:2px solid #1D1D1B;border-radius:999px;padding:6px 14px">Sesudah</span>
+<input type="range" min="0" max="100" value="{{ split }}" onInput="{{ onSplit }}" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;margin:0">
+</div>
+<div style="display:flex;align-items:center;gap:14px;font-size:15px;color:#5F5E5A"><span style="font-family:'Geist Mono',monospace">foto tes · 19.02.44 · Canon R6</span><span style="flex:1"></span><span>Geser garis untuk membandingkan</span></div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:22px;min-height:0">
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:34px;font-weight:800;letter-spacing:-.03em">Warna foto stage</span><span style="font-size:17px;color:#5F5E5A;line-height:1.4">Diatur dari foto tes. Berlaku untuk semua foto berikutnya.</span></div>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;gap:12px;min-height:60px;border:2px solid #1D1D1B;border-radius:16px;padding:8px 10px 8px 16px;background:{{ lutBg }}">
+<span style="font-size:16px;font-weight:800;flex:none">LUT</span>
+<span style="flex:1;min-width:0;font-family:'Geist Mono',monospace;font-size:14px;color:#3A3936;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ lutLabel }}</span>
+<sc-if value="{{ hasLut }}" hint-placeholder-val="{{ false }}"><button onClick="{{ removeLut }}" style="height:40px;padding:0 14px;border:1.5px solid #1D1D1B;border-radius:11px;background:#FFFFFF;font:700 15px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">Hapus</button></sc-if>
+<button onClick="{{ pickLut }}" style="height:40px;padding:0 14px;border:1.5px solid #1D1D1B;border-radius:11px;background:#CEC8F6;font:700 15px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap">Pilih file .cube</button>
+</div>
+<sc-if value="{{ lutError }}" hint-placeholder-val="{{ false }}"><div style="font-size:15px;font-weight:600;line-height:1.4;background:#F7D5CC;border:1.5px dashed #1D1D1B;border-radius:12px;padding:10px 14px">{{ lutErrorText }}</div></sc-if>
+<div style="display:flex;gap:8px;align-items:center;font-size:13px;color:#8A8883"><span>LUT dipakai dulu, lalu filter dan slider.</span><span style="flex:1"></span><button onClick="{{ demoBroken }}" style="border:1px dashed #8A8883;border-radius:6px;background:transparent;font:600 12px 'Plus Jakarta Sans',sans-serif;color:#8A8883;padding:2px 8px;cursor:pointer">demo: rusak</button><button onClick="{{ demoBig }}" style="border:1px dashed #8A8883;border-radius:6px;background:transparent;font:600 12px 'Plus Jakarta Sans',sans-serif;color:#8A8883;padding:2px 8px;cursor:pointer">demo: terlalu besar</button></div>
+</div>
+
+<div style="display:flex;border:2px solid #1D1D1B;border-radius:14px;overflow:hidden;height:48px;flex:none">
+<sc-for list="{{ filters }}" as="fl" hint-placeholder-count="5">
+<button onClick="{{ fl.onPick }}" style="flex:1;border:none;border-right:{{ fl.sep }};background:{{ fl.bg }};font:700 15px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap;padding:0 6px">{{ fl.name }}</button>
+</sc-for>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:14px">
+<sc-for list="{{ sliders }}" as="s" hint-placeholder-count="4">
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700"><span>{{ s.label }}</span><span style="font-family:'Geist Mono',monospace;font-weight:500">{{ s.text }}</span></div>
+<div style="position:relative;height:30px">
+<div style="position:absolute;left:0;right:0;top:11px;height:8px;border:1.5px solid #1D1D1B;border-radius:999px;background:#FFFFFF"></div>
+<div style="position:absolute;top:11px;height:8px;left:{{ s.fillL }}%;width:{{ s.fillW }}%;background:#8EDCCB;border-top:1.5px solid #1D1D1B;border-bottom:1.5px solid #1D1D1B"></div>
+<div style="position:absolute;top:2px;left:50%;width:2px;height:26px;margin-left:-1px;background:#D6D3CC"></div>
+<div style="position:absolute;top:2px;left:{{ s.pos }}%;width:26px;height:26px;margin-left:-13px;border-radius:50%;background:#FFFFFF;border:2.5px solid #1D1D1B"></div>
+<input type="range" min="-50" max="50" value="{{ s.v }}" onInput="{{ s.onInput }}" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0">
+</div>
+</div>
+</sc-for>
+</div>
+
+<div style="flex:1"></div>
+<div style="display:flex;align-items:center;gap:10px;border-top:2px dashed #1D1D1B;padding-top:16px;font-size:15px"><span style="font-weight:700">Preset</span><span style="font-family:'Geist Mono',monospace;color:#3A3936;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ presetLabel }}</span><button onClick="{{ savePreset }}" style="height:38px;padding:0 14px;border:1.5px solid #1D1D1B;border-radius:11px;background:#FFFFFF;font:700 14px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">Simpan preset</button></div>
+<div style="display:grid;grid-template-columns:1fr 1.4fr;gap:16px">
+<button onClick="{{ reset }}" style="height:80px;border:2.5px solid #1D1D1B;border-radius:22px;background:#FFFFFF;box-shadow:7px 7px 0 -2.5px #FFFFFF,7px 7px 0 0 #1D1D1B;font:800 22px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">Kembalikan</button>
+<button onClick="{{ done }}" style="height:80px;border:2.5px solid #1D1D1B;border-radius:22px;background:#F8D98B;box-shadow:7px 7px 0 -2.5px #FFFFFF,7px 7px 0 0 #1D1D1B;font:800 22px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">{{ doneLabel }}</button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1640,&quot;height&quot;:880},&quot;doneLabel&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Selesai&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onDone&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+class Component extends DCLogic {
+  state = { split: 50, filter: 'Hangat', v: { b: 6, c: 8, s: 4, w: 10 }, lut: 'none', preset: null };
+  renderVals() {
+    const st = this.state;
+    const F = { 'Normal': '', 'Hitam Putih': 'grayscale(1)', 'Hangat': 'sepia(.18) saturate(1.1) hue-rotate(-6deg)', 'Pudar': 'contrast(.86) brightness(1.06) saturate(.8)', 'Vintage': 'sepia(.35) contrast(.92) saturate(.85)' };
+    const lutCss = st.lut === 'ok' ? 'contrast(1.06) saturate(1.12) sepia(.08) ' : '';
+    const { b, c, s, w } = st.v;
+    const warm = w >= 0 ? `sepia(${(w / 160).toFixed(3)})` : `hue-rotate(${(-w * 0.25).toFixed(1)}deg) saturate(${(1 + w / 400).toFixed(3)})`;
+    const filterCss = `${lutCss}${F[st.filter]} brightness(${1 + b / 100}) contrast(${1 + c / 100}) saturate(${1 + s / 100}) ${warm}`;
+    const defs = [['b', 'Kecerahan'], ['c', 'Kontras'], ['s', 'Saturasi'], ['w', 'Kehangatan']];
+    const sliders = defs.map(([k, label]) => {
+      const val = st.v[k]; const pos = (val + 50);
+      return { label, v: val, text: (val > 0 ? '+' : '') + val, pos, fillL: Math.min(50, pos), fillW: Math.abs(pos - 50),
+        onInput: (e) => { const n = parseInt(e.target.value, 10); this.setState(p => ({ v: { ...p.v, [k]: n } })); } };
+    });
+    const names = Object.keys(F);
+    const lutLabel = st.lut === 'ok' ? 'RinaDimas_Warm.cube · 1,2 MB' : st.lut === 'none' ? 'Belum ada file' : st.lut === 'broken' ? 'stage-v2.cube' : 'Cinematic_65.cube · 24 MB';
+    return {
+      split: st.split, onSplit: (e) => this.setState({ split: parseInt(e.target.value, 10) }), filterCss,
+      filters: names.map((name, i) => ({ name, bg: st.filter === name ? '#8EDCCB' : '#FFFFFF', sep: i < names.length - 1 ? '1.5px solid #1D1D1B' : 'none', onPick: () => this.setState({ filter: name }) })),
+      sliders,
+      hasLut: st.lut !== 'none', lutLabel, lutBg: st.lut === 'ok' ? '#D6F1EA' : st.lut === 'none' ? '#FFFFFF' : '#F7D5CC',
+      lutError: st.lut === 'broken' || st.lut === 'big',
+      lutErrorText: st.lut === 'broken' ? 'File LUT tidak bisa dibaca. Pastikan formatnya .cube 3D (LUT_3D_SIZE).' : 'File terlalu besar. Maksimal 8 MB (LUT 65 titik atau lebih kecil).',
+      pickLut: () => this.setState({ lut: 'ok' }), removeLut: () => this.setState({ lut: 'none' }),
+      demoBroken: () => this.setState({ lut: 'broken' }), demoBig: () => this.setState({ lut: 'big' }),
+      reset: () => this.setState({ filter: 'Normal', v: { b: 0, c: 0, s: 0, w: 0 }, lut: 'none' }),
+      presetLabel: st.preset || 'Belum disimpan',
+      savePreset: () => this.setState({ preset: 'Wedding hangat · 12.12' }),
+      doneLabel: this.props.doneLabel ?? 'Selesai',
+      done: () => this.props.onDone && this.props.onDone()
+    };
+  }
+}
+</script>
+</body>
+</html>

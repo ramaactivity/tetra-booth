@@ -369,6 +369,16 @@ export function openDb(file: string) {
         }
       ).n;
     },
+    /** Photo Stage (#186): rombongan yang masih punya aset di antrean upload (dari `ids`, plus total). */
+    stageUploads(ids: string[]): { pendingGroups: number; pending: string[] } {
+      const rows = db
+        .prepare(
+          "select distinct a.session_id id from upload_queue q join assets a on a.id = q.asset_id",
+        )
+        .all() as { id: string }[];
+      const want = new Set(ids);
+      return { pendingGroups: rows.length, pending: rows.map((r) => r.id).filter((id) => want.has(id)) };
+    },
     uploadPending(): number {
       return (db.prepare("select count(*) n from upload_queue").get() as { n: number }).n;
     },

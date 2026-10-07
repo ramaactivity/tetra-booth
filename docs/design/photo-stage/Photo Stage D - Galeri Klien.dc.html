@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#EDECE8;font-family:'Plus Jakarta Sans',sans-serif;color:#1D1D1B;-webkit-font-smoothing:antialiased}a{color:#1D1D1B}a:hover{color:#5F5E5A}*{box-sizing:border-box}input::placeholder{color:#8A8883}.hs::-webkit-scrollbar{display:none}</style>
+</helmet>
+<section style="padding:96px;display:flex;flex-direction:column;gap:64px">
+<div style="display:flex;flex-direction:column;gap:14px;max-width:1500px">
+<div style="display:flex;gap:10px;align-items:center"><span style="font-family:'Geist Mono',monospace;font-size:18px;background:#1D1D1B;color:#fff;padding:6px 14px;border-radius:999px">D</span><span style="font-size:20px;font-weight:600;color:#5F5E5A">Tetra Booth · Photo Stage</span></div>
+<div style="font-size:76px;font-weight:800;letter-spacing:-.035em;line-height:1">Galeri klien</div>
+<div style="font-size:24px;color:#5F5E5A;line-height:1.45;text-wrap:pretty">Untuk pengantin setelah acara. Tab Photo Stage: foto per rombongan dengan nama grup, cari nama, lompat per jam, unduh per rombongan atau semua. Kedua layar berbagi status.</div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:64px;align-items:flex-start">
+
+<div style="display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:center;gap:14px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:20px;padding:6px 14px;border-radius:10px">D9</span><span style="font-size:22px;font-weight:600;color:#3A3936">Desktop 1440 · interaktif</span></div>
+<div data-screen-label="D9 Galeri klien desktop" style="width:1440px;background:#F8F7F4;border:1.5px solid #1D1D1B;border-radius:22px;overflow:hidden;padding:24px 48px 64px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:10px"><span style="width:34px;height:34px;border-radius:9px;background:#8EDCCB;border:1.5px solid #1D1D1B;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">T</span><span style="font-size:20px;font-weight:800">tetra</span></div><span style="font-size:13px;color:#5F5E5A">Galeri privat · hanya dengan link</span></div>
+<div style="position:relative;height:440px;border:1.5px solid #1D1D1B;border-radius:28px;overflow:hidden"><img src="foto/stage/a3.png" style="width:100%;height:100%;object-fit:cover;object-position:50% 35%;display:block">
+<div style="position:absolute;left:28px;bottom:28px;width:560px;background:#FFFFFF;border:1.5px solid #1D1D1B;border-radius:22px;padding:24px 28px;box-shadow:5px 5px 0 -1.5px #FFFFFF,5px 5px 0 0 #1D1D1B;display:flex;flex-direction:column;gap:12px">
+<span style="align-self:flex-start;font-size:12px;font-weight:700;border:1.5px solid #1D1D1B;border-radius:999px;padding:3px 11px;background:#CEC8F6">The Wedding of</span>
+<span style="font-size:64px;font-weight:800;letter-spacing:-.05em;line-height:.95">Rina &amp; Dimas</span>
+<div style="border-top:1.5px dashed #1D1D1B;padding-top:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:13px"><div style="display:flex;flex-direction:column;gap:2px"><span style="color:#5F5E5A">Tanggal</span><span style="font-weight:700">12 Des 2026</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="color:#5F5E5A">Venue</span><span style="font-weight:700">Graha Bogor</span></div><div style="display:flex;flex-direction:column;gap:2px"><span style="color:#5F5E5A">Foto</span><span style="font-weight:700;font-family:'Geist Mono',monospace">1.284</span></div></div>
+</div>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;border:1.5px solid #1D1D1B;border-radius:20px;background:#FFFFFF;padding:10px 12px">
+<div style="display:flex;border:1.5px solid #1D1D1B;border-radius:12px;overflow:hidden;height:42px;flex:none">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.onPick }}" style="padding:0 18px;border:none;border-right:{{ t.sep }};background:{{ t.bg }};font:700 14px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:8px">{{ t.label }}<span style="font-family:'Geist Mono',monospace;font-size:12px;font-weight:500;color:#3A3936">{{ t.count }}</span></button></sc-for>
+</div>
+<sc-if value="{{ isStage }}" hint-placeholder-val="{{ true }}">
+<input value="{{ q }}" onChange="{{ onQ }}" placeholder="Cari nama grup, mis. Hadi" style="width:280px;height:42px;border:1.5px solid #1D1D1B;border-radius:12px;padding:0 14px;font:600 14px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;outline:none;background:#FFFFFF" style-focus="box-shadow:0 0 0 3px #8EDCCB">
+<div style="display:flex;gap:6px"><sc-for list="{{ hours }}" as="hr" hint-placeholder-count="3"><span style="height:34px;padding:0 12px;border:1.5px solid #1D1D1B;border-radius:999px;background:#FFFFFF;font-size:13px;font-weight:700;display:flex;align-items:center;white-space:nowrap">{{ hr }}</span></sc-for></div>
+</sc-if>
+<span style="flex:1"></span>
+<div style="display:flex;flex-direction:column;gap:4px;width:150px"><span style="font-size:11px;font-weight:700">Tersedia 72 hari lagi</span><div style="height:6px;border:1.5px solid #1D1D1B;border-radius:999px;overflow:hidden"><div style="width:80%;height:100%;background:#1D1D1B"></div></div></div>
+<button onClick="{{ dlAll }}" style="height:42px;padding:0 16px;border:1.5px solid #1D1D1B;border-radius:12px;background:{{ dlAllBg }};font:700 14px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap">{{ dlAllLabel }}</button>
+<button style="height:42px;padding:0 18px;border:1.5px solid #1D1D1B;border-radius:12px;background:#F8D98B;box-shadow:3px 3px 0 0 #1D1D1B;font:700 14px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap">▶ Putar Slideshow</button>
+</div>
+
+<sc-if value="{{ isStage }}" hint-placeholder-val="{{ true }}">
+<sc-for list="{{ sections }}" as="sec" hint-placeholder-count="2">
+<div style="display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;align-items:center;gap:14px;margin-top:8px"><span style="font-size:13px;font-weight:700;border:1.5px solid #1D1D1B;border-radius:999px;padding:4px 12px;background:#CEC8F6">{{ sec.label }}</span><span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A">{{ sec.count }}</span></div>
+<sc-for list="{{ sec.groups }}" as="g" hint-placeholder-count="3">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;gap:14px"><span style="font-size:22px;font-weight:800;letter-spacing:-.02em;white-space:nowrap">{{ g.name }}</span><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#5F5E5A;white-space:nowrap">#{{ g.no }} · {{ g.time }}</span><span style="flex:1;border-top:1.5px dashed #1D1D1B"></span><span style="font-family:'Geist Mono',monospace;font-size:13px;color:#3A3936;white-space:nowrap">{{ g.count }} foto</span><button onClick="{{ g.onDl }}" style="height:34px;padding:0 12px;border:1.5px solid #1D1D1B;border-radius:10px;background:{{ g.dlBg }};font:700 13px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap">{{ g.dlLabel }}</button></div>
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px"><sc-for list="{{ g.thumbs }}" as="th" hint-placeholder-count="3"><img src="{{ th.src }}" style="width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:12px;border:1.5px solid #1D1D1B;display:block"></sc-for></div>
+</div>
+</sc-for>
+</div>
+</sc-for>
+<sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="border:1.5px dashed #1D1D1B;border-radius:18px;background:#FFFFFF;padding:28px;text-align:center;font-size:16px"><b>"{{ q }}" belum ketemu.</b> Rombongan tanpa nama tercatat sebagai "Tamu · jam".</div></sc-if>
+</sc-if>
+<sc-if value="{{ isBooth }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px"><sc-for list="{{ strips }}" as="s" hint-placeholder-count="12"><img src="{{ s.src }}" style="width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:12px;border:1.5px solid #1D1D1B;display:block;background:#FFFFFF"></sc-for></div>
+</sc-if>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:center;gap:14px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:20px;padding:6px 14px;border-radius:10px">D9m</span><span style="font-size:22px;font-weight:600;color:#3A3936">HP 390</span></div>
+<div data-screen-label="D9 Galeri klien HP" style="width:390px;height:844px;background:#F8F7F4;border:1.5px solid #1D1D1B;border-radius:40px;overflow:hidden;display:flex;flex-direction:column">
+<div class="hs" style="flex:1;min-height:0;overflow-y:auto;padding:16px 16px 28px;display:flex;flex-direction:column;gap:16px;scrollbar-width:none">
+<div style="position:relative;height:300px;border:1.5px solid #1D1D1B;border-radius:28px;overflow:hidden;flex:none"><img src="foto/stage/a3.png" style="width:100%;height:100%;object-fit:cover;object-position:50% 30%;display:block">
+<div style="position:absolute;left:14px;right:14px;bottom:14px;background:#FFFFFF;border:1.5px solid #1D1D1B;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:34px;font-weight:800;letter-spacing:-.05em;line-height:1">Rina &amp; Dimas</span><div style="border-top:1.5px dashed #1D1D1B;padding-top:8px;display:flex;justify-content:space-between;font-size:12px"><span>12 Des 2026 · Graha Bogor</span><span style="font-family:'Geist Mono',monospace;font-weight:500">1.284</span></div></div>
+</div>
+<div style="display:flex;border:1.5px solid #1D1D1B;border-radius:13px;overflow:hidden;height:44px;flex:none">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.onPick }}" style="flex:1;border:none;border-right:{{ t.sep }};background:{{ t.bg }};font:700 14px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">{{ t.label }}</button></sc-for>
+</div>
+<sc-if value="{{ isStage }}" hint-placeholder-val="{{ true }}">
+<input value="{{ q }}" onChange="{{ onQ }}" placeholder="Cari nama grup" style="height:44px;border:1.5px solid #1D1D1B;border-radius:13px;padding:0 14px;font:600 15px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;outline:none;background:#FFFFFF;flex:none">
+<sc-for list="{{ flat }}" as="g" hint-placeholder-count="4">
+<div style="display:flex;flex-direction:column;gap:8px;flex:none">
+<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font-size:16px;font-weight:800;line-height:1.25">{{ g.name }}</span><span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A">#{{ g.no }} · {{ g.time }} · {{ g.count }} foto</span></div><button onClick="{{ g.onDl }}" style="height:34px;padding:0 10px;border:1.5px solid #1D1D1B;border-radius:10px;background:{{ g.dlBg }};font:700 12px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer;white-space:nowrap">{{ g.dlShort }}</button></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px"><sc-for list="{{ g.thumbs }}" as="th" hint-placeholder-count="2"><img src="{{ th.src }}" style="width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:9px;border:1.5px solid #1D1D1B;display:block"></sc-for></div>
+</div>
+</sc-for>
+</sc-if>
+<sc-if value="{{ isBooth }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px"><sc-for list="{{ strips }}" as="s" hint-placeholder-count="6"><img src="{{ s.src }}" style="width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:10px;border:1.5px solid #1D1D1B;display:block;background:#FFFFFF"></sc-for></div>
+</sc-if>
+</div>
+<div style="flex:none;border-top:1.5px dashed #1D1D1B;padding:12px 16px 16px;display:grid;grid-template-columns:1fr 1.3fr;gap:10px">
+<button style="height:50px;border:1.5px solid #1D1D1B;border-radius:13px;background:#FFFFFF;font:700 14px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B">▶ Slideshow</button>
+<button onClick="{{ dlAll }}" style="height:50px;border:1.5px solid #1D1D1B;border-radius:13px;background:#F8D98B;box-shadow:3px 3px 0 0 #1D1D1B;font:800 14px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">{{ dlAllLabel }}</button>
+</div>
+</div>
+</div>
+
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab: 'stage', q: '', dl: {}, all: 'idle' };
+  componentWillUnmount() { (this.ts || []).forEach(clearTimeout); }
+  later(fn, ms) { this.ts = this.ts || []; this.ts.push(setTimeout(fn, ms)); }
+  renderVals() {
+    const st = this.state;
+    const all = [
+      { h: '19', no: 47, name: 'Keluarga Besar Bpk. Hadi', time: '19.42', th: ['a1', 'a2', 'a3'] },
+      { h: '19', no: 46, name: 'Keluarga Mempelai Pria (Bekasi)', time: '19.40', th: ['b1', 'c1', 'b2', 'a3'] },
+      { h: '19', no: 45, name: 'Tamu · 19.37', time: '19.37', th: ['c1', 'c2'] },
+      { h: '19', no: 44, name: 'Rekan Dosen FT UI', time: '19.34', th: ['b2', 'b1', 'a3'] },
+      { h: '18', no: 12, name: 'Sahabat SMA Mempelai Wanita', time: '18.41', th: ['a2', 'b2', 'c1'] },
+      { h: '18', no: 11, name: 'Teman Kantor PT ABC', time: '18.36', th: ['a3', 'b1'] }
+    ];
+    const q = st.q.trim().toLowerCase();
+    const enrich = (g) => {
+      const d = st.dl[g.no] || 'idle';
+      return { ...g, count: g.th.length, thumbs: g.th.map(t => ({ src: `foto/stage/${t}.png` })),
+        dlLabel: d === 'idle' ? `Unduh rombongan` : d === 'busy' ? 'Menyiapkan ZIP…' : 'Terunduh ✓', dlShort: d === 'idle' ? 'Unduh' : d === 'busy' ? '…' : '✓',
+        dlBg: d === 'done' ? '#D6F1EA' : d === 'busy' ? '#FCE3C6' : '#FFFFFF',
+        onDl: () => { if (d !== 'idle') return; this.setState(s => ({ dl: { ...s.dl, [g.no]: 'busy' } })); this.later(() => this.setState(s => ({ dl: { ...s.dl, [g.no]: 'done' } })), 1300); } };
+    };
+    const hit = all.filter(g => !q || g.name.toLowerCase().includes(q)).map(enrich);
+    const sections = [['19', '19.00 – 20.00'], ['18', '18.00 – 19.00']].map(([h, label]) => { const gs = hit.filter(g => g.h === h); return { label, count: `${gs.length} rombongan`, groups: gs }; }).filter(s => s.groups.length);
+    const isStage = st.tab === 'stage';
+    return {
+      tabs: [{ k: 'booth', label: 'Photobooth', count: '212' }, { k: 'stage', label: 'Photo Stage', count: '47' }].map((t, i) => ({ ...t, bg: st.tab === t.k ? '#CEC8F6' : '#FFFFFF', sep: i === 0 ? '1.5px solid #1D1D1B' : 'none', onPick: () => this.setState({ tab: t.k }) })),
+      isStage, isBooth: !isStage, q: st.q, onQ: (e) => this.setState({ q: e.target.value }),
+      hours: ['17.00 · Akad', '18.00', '19.00'], sections, flat: hit, empty: !hit.length,
+      strips: Array.from({ length: 12 }, (_, i) => ({ n: i + 1, src: `foto/strip/s${(i % 6) + 1}.png` })),
+      dlAllLabel: st.all === 'idle' ? (isStage ? 'Unduh semua Photo Stage' : 'Unduh semua Photobooth') : st.all === 'busy' ? 'Menyiapkan ZIP · 38%' : 'ZIP siap ✓',
+      dlAllBg: st.all === 'done' ? '#D6F1EA' : st.all === 'busy' ? '#FCE3C6' : '#D6EEF8',
+      dlAll: () => { if (st.all !== 'idle') return; this.setState({ all: 'busy' }); this.later(() => this.setState({ all: 'done' }), 1800); }
+    };
+  }
+}
+</script>
+</body>
+</html>

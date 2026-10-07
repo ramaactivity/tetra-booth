@@ -101,3 +101,25 @@ describe("stagePrintLayout (#183)", () => {
     );
   });
 });
+
+describe("baki jeda (#186)", () => {
+  it("jadi rombongan baru menutup yang aktif; sembunyikan membuang dari layar", () => {
+    const base = run(
+      initialStage(null),
+      { type: "SHOT", shot: shot(1000), id: "a" },
+      { type: "PAUSE" },
+    );
+    const s = run(
+      base,
+      { type: "SHOT", shot: shot(2000), id: "x" },
+      { type: "LOOSE_TO_NEW", id: "b", now: 3000 },
+    );
+    expect(s.groups.map((g) => [g.id, g.shots.length, g.closedAt !== null])).toEqual([
+      ["a", 1, true],
+      ["b", 1, false],
+    ]);
+    expect(s.loose).toEqual([]);
+    const d = run(base, { type: "SHOT", shot: shot(2000), id: "x" }, { type: "DROP_LOOSE" });
+    expect([d.loose.length, d.groups.length]).toEqual([0, 1]);
+  });
+});

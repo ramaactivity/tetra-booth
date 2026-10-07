@@ -34,6 +34,9 @@ export type StageAction =
   | { type: "RESUME" }
   | { type: "RENAME"; id: string; name: string }
   | { type: "ASSIGN_LOOSE"; id: string; now: number }
+  /** Baki jeda (#186): foto tertampung jadi rombongan baru (yang aktif ditutup dulu), atau dibuang dari layar. */
+  | { type: "LOOSE_TO_NEW"; id: string; now: number }
+  | { type: "DROP_LOOSE" }
   | { type: "SET_GAP"; gapSec: number | null };
 
 export const initialStage = (gapSec: number | null, nextNo = 1): StageState => ({
@@ -109,6 +112,13 @@ export function stageReducer(s: StageState, a: StageAction): StageState {
       const base = cur ? s : open(s, a.id, a.now);
       return { ...addShots(base, s.loose), loose: [], lastShotAt: a.now };
     }
+    case "LOOSE_TO_NEW": {
+      if (!s.loose.length) return s;
+      const base = open(closeActive(s, a.now), a.id, a.now);
+      return { ...addShots(base, s.loose), loose: [], lastShotAt: a.now };
+    }
+    case "DROP_LOOSE":
+      return { ...s, loose: [] };
     case "SET_GAP":
       return { ...s, gapSec: a.gapSec };
   }

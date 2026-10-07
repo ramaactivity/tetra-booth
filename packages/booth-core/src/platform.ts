@@ -284,6 +284,15 @@ export interface BoothPayments {
 
 /** Jepretan fotografer yang sudah tersimpan di laptop (Photo Stage #178). */
 export type StageShotEvent = { path: string; width: number; height: number };
+/** Status bar laptop stage (#186). `camera` null = Camera Service tidak menjawab. */
+export type StageStatus = {
+  online: boolean;
+  camera: { connected: boolean; model: string | null } | null;
+  /** Rombongan yang asetnya masih antre upload. */
+  pendingGroups: number;
+  /** Dari id yang ditanyakan: yang masih antre. */
+  pending: string[];
+};
 /** Photo Stage (#178): ada hanya di laptop berperan `stage`. */
 export interface BoothStage {
   /** Mulai/berhenti menerima jepretan rana fotografer (Canon, atau folder pantau aplikasi tether). */
@@ -291,6 +300,7 @@ export interface BoothStage {
   onShot(cb: (s: StageShotEvent) => void): Unsubscribe;
   /** Ganti nama grup rombongan; tersinkron ke cloud walau fotonya sudah terunggah. */
   rename(sessionId: string, name: string | null): Promise<void>;
+  status(ids: string[]): Promise<StageStatus>;
   /** Jendela TV di layar kedua (#179). */
   tv: {
     publish(state: StageTvState): void;

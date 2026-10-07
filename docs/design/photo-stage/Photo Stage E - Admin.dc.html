@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#EDECE8;font-family:'Plus Jakarta Sans',sans-serif;color:#1D1D1B;-webkit-font-smoothing:antialiased}a{color:#1D1D1B}a:hover{color:#5F5E5A}*{box-sizing:border-box}textarea::placeholder{color:#8A8883}</style>
+</helmet>
+<section style="padding:96px;display:flex;flex-direction:column;gap:64px">
+<div style="display:flex;flex-direction:column;gap:14px;max-width:1500px">
+<div style="display:flex;gap:10px;align-items:center"><span style="font-family:'Geist Mono',monospace;font-size:18px;background:#1D1D1B;color:#fff;padding:6px 14px;border-radius:999px">E</span><span style="font-size:20px;font-weight:600;color:#5F5E5A">Tetra Booth · Photo Stage</span></div>
+<div style="font-size:76px;font-weight:800;letter-spacing:-.035em;line-height:1">Admin · Pengaturan event</div>
+<div style="font-size:24px;color:#5F5E5A;line-height:1.45;text-wrap:pretty">Bagian Photo Stage di halaman Pengaturan (E3). Daftar grup tersinkron ke laptop stage lewat bundle event.</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;align-items:center;gap:14px"><span style="background:#1D1D1B;color:#fff;font-weight:700;font-size:20px;padding:6px 14px;border-radius:10px">E10</span><span style="font-size:22px;font-weight:600;color:#3A3936">Photo Stage · daftar grup · interaktif</span><button onClick="{{ toggleSource }}" style="margin-left:12px;height:36px;padding:0 12px;border:1.5px dashed #8A8883;border-radius:10px;background:#FFFFFF;font:600 13px 'Plus Jakarta Sans',sans-serif;color:#5F5E5A;cursor:pointer">demo: {{ sourceDemo }}</button></div>
+<div data-screen-label="E10 Pengaturan Photo Stage" style="width:1440px;background:#F8F7F4;border-radius:18px;border:1.5px solid #1D1D1B;overflow:hidden;display:flex">
+<div style="width:236px;flex:none;border-right:1.5px solid #1D1D1B;background:#FFFFFF;padding:24px 14px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;padding:0 8px 24px"><span style="width:34px;height:34px;border-radius:9px;border:1.5px solid #1D1D1B;background:#8EDCCB;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">T</span><span style="font-weight:800;font-size:18px;letter-spacing:-.02em">tetra</span></div>
+<sc-for list="{{ nav }}" as="n" hint-placeholder-count="6"><div style="height:42px;border-radius:11px;padding:0 12px;display:flex;align-items:center;font-size:14px;font-weight:{{ n.w }};background:{{ n.bg }};border:{{ n.b }}">{{ n.t }}</div></sc-for>
+</div>
+<div style="flex:1;padding:28px 40px 48px;display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:28px;align-items:start;min-width:0">
+<div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+<div><div style="font-size:13px;color:#5F5E5A;font-weight:600">Wedding Rina &amp; Dimas ›</div><div style="font-size:28px;font-weight:800;letter-spacing:-.03em;margin-top:4px">Pengaturan</div></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ jumps }}" as="j" hint-placeholder-count="7"><span style="height:32px;padding:0 12px;border:1.5px solid #1D1D1B;border-radius:999px;background:{{ j.bg }};font-size:13px;font-weight:700;display:flex;align-items:center">{{ j.t }}</span></sc-for></div>
+
+<div style="background:#FFFFFF;border:1.5px solid #1D1D1B;border-radius:16px;overflow:hidden">
+<div style="padding:14px 20px;display:flex;align-items:center;gap:12px;border-bottom:1.5px dashed #1D1D1B"><span style="font-size:15px;font-weight:800">Photo Stage</span><span style="font-size:12px;font-weight:700;border:1.5px solid #1D1D1B;border-radius:999px;padding:2px 10px;background:#D6F1EA">Paket Standard</span><span style="flex:1"></span><span style="font-size:13px;font-weight:600;color:#3A3936">Aktif untuk event ini</span><div onClick="{{ toggleOn }}" style="width:46px;height:28px;border-radius:14px;border:1.5px solid #1D1D1B;background:{{ onBg }};position:relative;cursor:pointer"><span style="position:absolute;top:2.5px;left:{{ onX }}px;width:20px;height:20px;border-radius:50%;background:#FFFFFF;border:1.5px solid #1D1D1B"></span></div></div>
+<div style="padding:18px 20px 20px;display:flex;flex-direction:column;gap:16px">
+
+<sc-if value="{{ fromOps }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:12px;border:1.5px dashed #1D1D1B;border-radius:12px;background:#D6EEF8;padding:10px 14px;font-size:13px"><span style="flex:1;min-width:0;line-height:1.45"><b>Diisi dari daftar klien di Tetra Ops ({{ opsCount }} grup)</b> <span style="color:#3A3936">· disinkron 10 Des, 14.20. Perubahan di sini tidak dikirim balik ke Ops.</span></span><span style="font-weight:700;white-space:nowrap;flex:none">Buka di Ops ↗</span></div>
+</sc-if>
+
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px">
+<div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12px;font-weight:700">Daftar grup</span><span style="font-size:12px;color:#5F5E5A">Satu grup per baris. Urutan = urutan "Berikutnya" di laptop stage.</span></div>
+<textarea value="{{ text }}" onChange="{{ onText }}" placeholder="Keluarga Besar Bpk. Hadi&#10;Teman Kantor PT ABC&#10;…" style="height:360px;resize:vertical;border:1.5px solid #1D1D1B;border-radius:11px;padding:12px 14px;font:500 14px/1.7 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;outline:none;background:#FFFFFF" style-focus="box-shadow:0 0 0 3px #8EDCCB"></textarea>
+<div style="display:flex;align-items:center;gap:10px;font-size:12px;color:#5F5E5A"><span style="font-family:'Geist Mono',monospace;color:#1D1D1B">{{ countText }}</span><span>·</span><span>maks 120 karakter per nama</span></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<span style="font-size:12px;font-weight:700">Impor</span>
+<button onClick="{{ importCsv }}" style="height:46px;border:1.5px solid #1D1D1B;border-radius:12px;background:#FFFFFF;box-shadow:4px 4px 0 -1.5px #FFFFFF,4px 4px 0 0 #1D1D1B;font:700 14px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">Impor CSV / TXT</button>
+<span style="font-size:12px;color:#5F5E5A;line-height:1.45">Kolom pertama dipakai sebagai nama grup. Baris kosong dan judul kolom dilewati.</span>
+<sc-if value="{{ imported }}" hint-placeholder-val="{{ false }}"><div style="border:1.5px solid #1D1D1B;border-radius:12px;background:#D6F1EA;padding:10px 12px;font-size:13px;line-height:1.45"><b>5 grup ditambahkan</b> dari tamu-vip.csv</div></sc-if>
+<sc-if value="{{ hasDup }}" hint-placeholder-val="{{ false }}"><div style="border:1.5px solid #1D1D1B;border-radius:12px;background:#FCE3C6;padding:10px 12px;font-size:13px;line-height:1.45;display:flex;flex-direction:column;gap:8px"><span><b>{{ dupCount }} nama ganda:</b> {{ dupNames }}</span><button onClick="{{ dedupe }}" style="align-self:flex-start;height:32px;padding:0 12px;border:1.5px solid #1D1D1B;border-radius:9px;background:#FFFFFF;font:700 12px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">Hapus ganda</button></div></sc-if>
+<div style="flex:1"></div>
+<button onClick="{{ clear }}" style="height:40px;border:1.5px dashed #1D1D1B;border-radius:12px;background:#F7D5CC;font:700 13px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">Kosongkan daftar</button>
+</div>
+</div>
+
+<div style="border-top:1.5px dashed #1D1D1B;padding-top:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Pisah otomatis bawaan</span><div style="height:42px;border-radius:11px;border:1.5px solid #1D1D1B;padding:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:14px;background:#FFFFFF">45<span style="font-size:11px;color:#8A8883">dtk · 15–180</span></div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Lama tampil di TV</span><div style="height:42px;border-radius:11px;border:1.5px solid #1D1D1B;padding:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:14px;background:#FFFFFF">30<span style="font-size:11px;color:#8A8883">dtk</span></div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Frame cetak 4R</span><div style="height:42px;border-radius:11px;border:1.5px solid #1D1D1B;padding:0 6px 0 12px;display:flex;align-items:center;gap:10px;font-size:14px;background:#FFFFFF"><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Lengkung · Rina &amp; Dimas</span><span style="font-size:12px;font-weight:700;border:1.5px solid #1D1D1B;border-radius:8px;padding:3px 8px">Ganti</span></div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div style="background:#FCE3C6;border:1.5px solid #1D1D1B;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:4px 4px 0 -1.5px #F8F7F4,4px 4px 0 0 #1D1D1B">
+<span style="font-size:15px;font-weight:800">{{ saveTitle }}</span>
+<span style="font-size:13px;color:#3A3936;line-height:1.45">{{ saveSub }}</span>
+<button onClick="{{ save }}" style="height:46px;border:1.5px solid #1D1D1B;border-radius:12px;background:{{ saveBg }};box-shadow:4px 4px 0 -1.5px #FCE3C6,4px 4px 0 0 #1D1D1B;font:800 14px 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;cursor:pointer">{{ saveLabel }}</button>
+<div style="border-top:1.5px dashed #1D1D1B;padding-top:10px;display:flex;flex-direction:column;gap:6px;font-size:12px"><span style="font-weight:700">Laptop stage</span><span style="display:flex;justify-content:space-between"><span>Stage-01</span><span style="font-family:'Geist Mono',monospace;color:#3A3936">{{ syncText }}</span></span></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  base = ['Keluarga Besar Bpk. Hadi', 'Teman Kantor PT ABC', 'Sahabat SMA Mempelai Wanita', 'Keluarga Mempelai Pria (Bekasi)', 'Arisan Ibu-ibu Cibubur', 'Keluarga Bpk. Sutrisno', 'Teman Kuliah Mempelai Pria', 'Rekan Dosen FT UI', 'Keluarga Ibu Ratna', 'Rekan Kerja Bank Mandiri', 'Keluarga Tante Lies', 'Teman Kantor PT ABC'];
+  state = { text: this.base.join('\n'), fromOps: true, on: true, imported: false, dirty: false, saved: false };
+  renderVals() {
+    const st = this.state;
+    const lines = st.text.split('\n').map(s => s.trim()).filter(Boolean);
+    const seen = {}, dups = [];
+    lines.forEach(l => { const k = l.toLowerCase(); if (seen[k]) dups.push(l); seen[k] = true; });
+    const set = (patch) => this.setState({ ...patch, dirty: true, saved: false });
+    return {
+      nav: ['Event', 'Template', 'Device', 'Transaksi', 'Tim', 'Moderasi'].map((t, i) => ({ t, w: i === 0 ? 700 : 600, bg: i === 0 ? '#F8D98B' : 'transparent', b: i === 0 ? '1.5px solid #1D1D1B' : '1.5px solid transparent' })),
+      jumps: ['Informasi', 'Mode', 'Sesi', 'Halaman tamu', 'Galeri klien', 'Photo Stage', 'Device'].map(t => ({ t, bg: t === 'Photo Stage' ? '#CEC8F6' : '#FFFFFF' })),
+      onBg: st.on ? '#8EDCCB' : '#EFEDE8', onX: st.on ? 20 : 2.5, toggleOn: () => set({ on: !st.on }),
+      fromOps: st.fromOps, opsCount: new Set(this.base.map(s => s.toLowerCase())).size, sourceDemo: st.fromOps ? 'dari Tetra Ops' : 'diisi manual',
+      toggleSource: () => this.setState({ fromOps: !st.fromOps }),
+      text: st.text, onText: (e) => set({ text: e.target.value }),
+      countText: `${lines.length} grup`,
+      imported: st.imported,
+      importCsv: () => set({ imported: true, text: st.text.replace(/\s*$/, '') + '\nKeluarga Om Jaka\nTeman Futsal Mempelai Pria\nRekan Kerja RSUD Bogor\nKeluarga Besar Bpk. Hadi\nTetangga Perum Cibinong' }),
+      hasDup: dups.length > 0, dupCount: dups.length, dupNames: [...new Set(dups)].join(', '),
+      dedupe: () => { const s = {}; set({ text: lines.filter(l => { const k = l.toLowerCase(); if (s[k]) return false; s[k] = true; return true; }).join('\n') }); },
+      clear: () => set({ text: '', imported: false }),
+      saveTitle: st.saved ? 'Tersimpan' : st.dirty ? 'Perubahan belum disimpan' : 'Belum ada perubahan',
+      saveSub: st.saved ? 'Laptop stage mengambil daftar baru saat online. Grup yang sudah difoto tetap ditandai.' : 'Daftar dikirim ke laptop stage lewat bundle event.',
+      saveLabel: st.saved ? 'Tersimpan ✓' : 'Simpan', saveBg: st.saved ? '#D6F1EA' : '#F8D98B',
+      save: () => this.setState({ saved: true, dirty: false }),
+      syncText: st.saved ? 'menunggu sinkron' : 'sinkron 14.32'
+    };
+  }
+}
+</script>
+</body>
+</html>

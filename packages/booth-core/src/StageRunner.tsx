@@ -1,13 +1,13 @@
 import {
   DEFAULT_STAGE_PRESET,
   newSessionId,
-  PHOTO_FILTERS,
   STAGE_GAP,
   type StagePreset,
   StagePresetSchema,
   stagePresetCss,
 } from "@tetra/shared";
-import { Printer, Settings, SlidersHorizontal } from "lucide-react";
+import { Check } from "lucide-react";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { renderEvent } from "./compose";
 import { copy } from "./copy";
@@ -16,7 +16,8 @@ import type { BoothEvent } from "./event";
 import { ORIGINAL_LONG_SIDE, THUMB_LONG_SIDE } from "./finalize";
 import { lutKey, parseCube, storedLut } from "./lut";
 import { usePlatform } from "./PlatformContext";
-import type { SessionAsset } from "./platform";
+import type { SessionAsset, StageStatus } from "./platform";
+import { StageColor } from "./StageColor";
 import {
   activeGroup,
   groupLabel,
@@ -50,12 +51,28 @@ const loadGap = (): number | null => {
 const iso = (ms: number) => new Date(ms).toISOString();
 
 type SaveState = "saving" | "saved" | "failed";
+type PrintState = { st: "printing" | "done" | "failed"; n: number };
+const hms = (ms: number) =>
+  new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    .format(ms)
+    .replaceAll(":", ".");
+const hm = (ms: number) =>
+  new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(ms);
+
+/** Keycap kecil (⏎ Enter, Spasi, Tab). */
+const Key = ({ children, big }: { children: ReactNode; big?: boolean }) => (
+  <span
+    className={`rounded-[9px] border-2 border-b-4 border-ink bg-white px-3 py-0.5 font-mono font-medium ${big ? "text-xl" : "text-lg"}`}
+  >
+    {children}
+  </span>
+);
 
 /**
  * Layar operator Photo Stage (#178, docs/PLAN-PHOTO-STAGE.md §5): jepretan rana fotografer masuk otomatis,
  * dikelompokkan per rombongan (`stageReducer`), rombongan yang ditutup diproses (warna preset, 2400 px + thumb)
- * lalu jadi sesi `source: stage` di antrean upload yang sama dengan booth. Tampilan sementara; desain final dari
- * Claude Design. Jendela TV (S2) menyusul.
+ * lalu jadi sesi `source: stage` di antrean upload yang sama dengan booth. Tampilan final #186
+ * (docs/design/photo-stage, A2–A3): status bar, banner masalah, kartu rombongan aktif, baki jeda, daftar, riwayat.
  */
 export function StageRunner({
   event,
@@ -74,7 +91,19 @@ export function StageRunner({
   const [preset, setPreset] = useState(() => loadPreset(event.id));
   const [colorOpen, setColorOpen] = useState(false);
   const [retry, setRetry] = useState(0);
-  const [prints, setPrints] = useState<Record<string, "printing" | "sent" | "failed">>({});
+  const [prints, setPrints] = useState<Record<string, PrintState>>({});
+  const [toast, setToast] = useState<string | null>(null);
+  const [now, setNow] = useState(Date.now());
+  const [openHist, setOpenHist] = useState<string | null>(null);
+  const [status, setStatus] = useState<StageStatus | null | undefined>(undefined);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const say = useCallback((m: string) => {
+    clearTimeout(toastTimer.current);
+    setToast(m);
+    toastTimer.current = setTimeout(() => setToast(null), 2200);
+  }, []);
+  const sRef = useRef(s);
+  sRef.current = s;
   const presetRef = useRef(preset);
   presetRef.current = preset;
   const [lut, setLut] = useState(() => storedLut(lutKey(event.id)));
@@ -124,10 +153,24 @@ export function StageRunner({
     };
   }, [stage, makeThumb]);
 
+  // Detik berjalan: pisah otomatis (toast saat rombongan ditutup karena jeda) dan teks "… dtk lalu".
   useEffect(() => {
-    const id = setInterval(() => dispatch({ type: "TICK", now: Date.now() }), 1000);
+    const id = setInterval(() => {
+      const at = Date.now();
+      const st = sRef.current;
+      const a = activeGroup(st);
+      if (
+        a?.shots.length &&
+        st.gapSec !== null &&
+        st.lastShotAt !== null &&
+        at - st.lastShotAt > st.gapSec * 1000
+      )
+        say(t.toastAutoClosed(st.gapSec, a.no));
+      dispatch({ type: "TICK", now: at });
+      setNow(at);
+    }, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [say]);
 
   // Rombongan dengan foto pertama → sesi tercatat (nama grup ikut).
   useEffect(() => {
@@ -215,29 +258,16 @@ export function StageRunner({
     );
   }, [s, preset, lut, stage, event.id, event.name, event.settings.qrScreenSec, guestBaseUrl]);
 
-  const newGroup = useCallback(
-    () => dispatch({ type: "NEW_GROUP", id: newSessionId(), now: Date.now() }),
-    [],
-  );
+  const newGroup = useCallback(() => {
+    const a = activeGroup(sRef.current);
+    if (a && !a.shots.length) return say(t.toastEmpty(a.no));
+    dispatch({ type: "NEW_GROUP", id: newSessionId(), now: Date.now() });
+    if (a) say(t.toastOpened(sRef.current.nextNo, a.no));
+  }, [say]);
   const togglePause = useCallback(
     () => dispatch({ type: s.paused ? "RESUME" : "PAUSE" }),
     [s.paused],
   );
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (colorOpen || (e.target as HTMLElement | null)?.tagName === "INPUT") return;
-      if (e.key === "Enter") {
-        e.preventDefault();
-        newGroup();
-      } else if (e.key === " ") {
-        e.preventDefault();
-        togglePause();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [colorOpen, newGroup, togglePause]);
-
   const rename = (g: StageGroup, name: string) => {
     dispatch({ type: "RENAME", id: g.id, name });
     if (started.current.has(g.id))
@@ -248,7 +278,9 @@ export function StageRunner({
   };
   // Cetak instan 4R (#183): satu foto, warna preset, lewat antrean print yang sama dengan booth.
   const printShot = async (g: StageGroup, sh: StageShot) => {
-    setPrints((x) => ({ ...x, [sh.path]: "printing" }));
+    if (prints[sh.path]?.st === "printing") return;
+    const n = prints[sh.path]?.n ?? 0;
+    setPrints((x) => ({ ...x, [sh.path]: { st: "printing", n } }));
     try {
       const bmp = await createImageBitmap(new Blob([await p.storage.readFile(sh.path)]));
       try {
@@ -267,10 +299,10 @@ export function StageRunner({
       } finally {
         bmp.close();
       }
-      setPrints((x) => ({ ...x, [sh.path]: "sent" }));
+      setPrints((x) => ({ ...x, [sh.path]: { st: "done", n: n + 1 } }));
     } catch (e) {
       console.error(`[stage] cetak gagal: ${errText(e)}`);
-      setPrints((x) => ({ ...x, [sh.path]: "failed" }));
+      setPrints((x) => ({ ...x, [sh.path]: { st: "failed", n } }));
     }
   };
   const setGap = (gapSec: number | null) => {
@@ -313,98 +345,325 @@ export function StageRunner({
     dispatch({ type: "NEW_GROUP", id, now: Date.now() });
     dispatch({ type: "RENAME", id, name });
   };
-  const qrGroup = cur?.shots.length ? cur : [...s.groups].reverse().find((g) => g.shots.length);
+  const pickRef = useRef(pickName);
+  pickRef.current = () => next[0] && pickName(next[0]);
+
+  // Keyboard (#186): ⏎ rombongan baru, Spasi jeda/lanjut, Tab isi nama dari daftar (juga di isian), Esc tutup.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setColorOpen(false);
+        setOpenHist(null);
+        return;
+      }
+      if (colorOpen) return;
+      if (e.key === "Tab") {
+        e.preventDefault();
+        pickRef.current("");
+        return;
+      }
+      if ((e.target as HTMLElement | null)?.tagName === "INPUT") return;
+      if (e.key === "Enter") {
+        e.preventDefault();
+        newGroup();
+      } else if (e.key === " ") {
+        e.preventDefault();
+        togglePause();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [colorOpen, newGroup, togglePause]);
+
+  // Status bar: kamera, internet, antrean upload rombongan (polling 3 dtk).
+  const closed = s.groups.filter((g) => g.closedAt !== null).reverse();
+  const idsKey = closed
+    .slice(0, 12)
+    .map((g) => g.id)
+    .join(",");
+  useEffect(() => {
+    if (!stage) return;
+    let live = true;
+    const poll = () =>
+      stage.status(idsKey ? idsKey.split(",") : []).then(
+        (x) => live && setStatus(x),
+        () => live && setStatus(null),
+      );
+    void poll();
+    const id = setInterval(poll, 3000);
+    return () => {
+      live = false;
+      clearInterval(id);
+    };
+  }, [stage, idsKey]);
+
+  const cameraOk = status === undefined || !!status?.camera?.connected;
+  const model = status?.camera?.model === "Hot folder" ? "folder pantau" : status?.camera?.model;
+  const online = status?.online ?? true;
+  const queued = status?.pendingGroups ?? 0;
+  const banner: [string, string, string] | null = !cameraOk
+    ? ["bg-coral", ...(t.bannerCamera as [string, string])]
+    : s.paused
+      ? ["bg-peach", ...(t.bannerPaused as [string, string])]
+      : !tvOn
+        ? ["bg-peach", ...(t.bannerTv as [string, string])]
+        : !online
+          ? ["bg-sky", ...(t.bannerOffline(queued) as [string, string])]
+          : null;
+  const segments = [
+    cameraOk
+      ? { label: t.camera, sub: model ?? "", dot: "bg-green", bg: "bg-white" }
+      : { label: t.cameraLost, sub: "", dot: "bg-coral-strong", bg: "bg-coral" },
+    tvOn
+      ? { label: t.tv, sub: "", dot: "bg-green", bg: "bg-white", id: "tv-status" }
+      : { label: t.tvOff, sub: "", dot: "bg-butter", bg: "bg-peach", id: "tv-status" },
+    {
+      label: t.upload,
+      sub: queued ? t.queued(queued) : "",
+      dot: online ? "bg-mint" : "bg-butter",
+      bg: online ? "bg-white" : "bg-peach",
+    },
+    online
+      ? { label: t.internet, sub: "", dot: "bg-green", bg: "bg-white" }
+      : { label: t.offline, sub: "", dot: "bg-butter", bg: "bg-peach" },
+  ];
+
+  const shots = cur?.shots ?? [];
+  const n = shots.length;
+  const hero = shots.at(-1);
+  const rest = shots.slice(Math.max(0, n - 5), -1).reverse();
+  const elapsed = s.lastShotAt === null ? 0 : Math.max(0, Math.round((now - s.lastShotAt) / 1000));
+  const autoOn = s.gapSec !== null;
+  const autoPct = autoOn && n && !s.paused ? Math.min(100, (elapsed / (s.gapSec ?? 1)) * 100) : 0;
+  const autoText = !autoOn
+    ? t.autoOffText
+    : s.paused
+      ? t.autoPausedText
+      : n
+        ? t.autoIn(Math.max(0, (s.gapSec ?? 0) - elapsed))
+        : t.autoAfter(s.gapSec ?? 0);
+  const qrGroup = cur?.shots.length ? cur : closed[0];
   const lastThumb = Object.values(thumbs).at(-1);
   const css = stagePresetCss(preset);
-  const btn =
-    "pressable flex h-[88px] items-center justify-center gap-3 rounded-2xl border-[2.5px] border-ink px-8 text-[28px] font-extrabold";
+  const histRows = openHist
+    ? closed.filter((g) => g.id === openHist)
+    : closed.slice(0, banner ? 2 : 3);
+  const histStatus = (g: StageGroup): [string, string] =>
+    saves[g.id] === "failed"
+      ? [t.histFailed, "bg-coral"]
+      : saves[g.id] !== "saved"
+        ? [t.histSaving, "bg-sky"]
+        : status?.pending.includes(g.id)
+          ? online
+            ? [t.histUploading, "bg-sky"]
+            : [t.histQueued, "bg-peach"]
+          : [t.histUploaded, "bg-mint-soft"];
+  const big =
+    "pressable layered flex h-24 items-center gap-5 rounded-3xl border-[3px] border-ink px-8 text-[30px] font-extrabold tracking-[-0.02em] whitespace-nowrap [--lb:3px] [--lx:8px]";
 
-  return (
-    <div className="flex h-full flex-col gap-6 p-10" data-testid="stage-runner">
-      <header className="flex items-center justify-between">
-        <div>
-          <p className="text-2xl font-bold text-text-2">Photo Stage · {t.keys}</p>
-          <h1 className="text-[40px] font-extrabold tracking-[-0.02em]">{event.name}</h1>
+  const photo = (sh: StageShot, large: boolean) => {
+    const pr = prints[sh.path];
+    return (
+      <div
+        key={sh.path}
+        className={`flex min-h-0 flex-col rounded-[18px] border-[2.5px] border-ink bg-white ${large ? "layered p-3 pb-0 [--lb:2.5px] [--lx:6px] [--under:#fff]" : "p-2.5 pb-0"}`}
+      >
+        <div
+          className={`min-h-0 flex-1 overflow-hidden bg-neutral ${large ? "rounded-lg" : "rounded-[7px]"}`}
+        >
+          {thumbs[sh.path] && (
+            <img
+              src={thumbs[sh.path]}
+              alt=""
+              style={{ filter: css }}
+              className="size-full object-cover"
+            />
+          )}
         </div>
-        <div className="flex items-center gap-3">
+        <div
+          className={`flex flex-none items-center justify-between gap-2 ${large ? "h-[60px]" : "h-[54px]"}`}
+        >
           <span
-            data-testid="tv-status"
-            className={`rounded-full border-[2.5px] border-ink px-4 py-1.5 text-xl font-bold ${tvOn ? "bg-mint-soft" : "bg-peach"}`}
+            className={`whitespace-nowrap font-mono text-text-2 ${large ? "text-sm" : "text-[13px]"}`}
           >
-            {tvOn ? t.tvOn : t.tvOff}
+            {hms(sh.at)}
+            {large && ` · ${t.latest}`}
           </span>
           <button
             type="button"
-            onClick={() => setColorOpen(true)}
-            className={`${btn} h-16 bg-white text-2xl`}
+            disabled={pr?.st === "printing"}
+            onClick={() => cur && void printShot(cur, sh)}
+            className={`pressable flex items-center gap-1 whitespace-nowrap rounded-[11px] border-[1.5px] border-ink font-bold ${large ? "h-10 px-3.5 text-[15px]" : "h-9 px-[11px] text-sm"} ${pr?.st === "failed" ? "bg-coral" : pr?.st === "done" ? "bg-mint-soft" : pr?.st === "printing" ? "bg-peach" : "bg-white"}`}
           >
-            <SlidersHorizontal className="size-7" aria-hidden />
-            {t.color}
-          </button>
-          <button type="button" onClick={onCrew} className={`${btn} h-16 bg-white text-2xl`}>
-            <Settings className="size-7" aria-hidden />
-            {t.crew}
+            {pr?.st === "printing"
+              ? t.printing
+              : pr?.st === "failed"
+                ? t.printFailed
+                : pr?.st === "done"
+                  ? (pr.n > 1 ? t.printSentN(pr.n) : t.printSent).replace(" ✓", "")
+                  : t.print}
+            {pr?.st === "done" && <Check className="size-4" strokeWidth={3} aria-hidden />}
           </button>
         </div>
-      </header>
+      </div>
+    );
+  };
 
-      <div className="flex min-h-0 flex-1 gap-6">
-        <section className="flex min-w-0 flex-1 flex-col gap-5 rounded-3xl border-[2.5px] border-ink bg-white p-8">
-          {s.paused && (
-            <div className="flex items-center justify-between rounded-2xl border-[2.5px] border-ink bg-peach px-6 py-4 text-2xl font-bold">
-              <span>{s.loose.length ? t.loose(s.loose.length) : t.paused}</span>
-              {!!s.loose.length && (
-                <button
-                  type="button"
-                  className={`${btn} h-14 bg-butter text-xl`}
-                  onClick={() =>
-                    dispatch({ type: "ASSIGN_LOOSE", id: newSessionId(), now: Date.now() })
-                  }
-                >
-                  {t.assignLoose}
-                </button>
+  return (
+    <div className="relative flex h-full flex-col gap-6 px-10 py-8" data-testid="stage-runner">
+      <header className="flex h-16 flex-none items-center gap-5">
+        <div className="flex flex-none items-center gap-3">
+          <span className="flex size-11 items-center justify-center rounded-xl border-[2.5px] border-ink bg-mint text-[22px] font-extrabold">
+            T
+          </span>
+          <span className="text-2xl font-extrabold tracking-[-0.02em]">tetra</span>
+        </div>
+        <span className="flex-none whitespace-nowrap rounded-full border-2 border-ink bg-lavender px-4 py-1.5 text-lg font-bold">
+          Photo Stage
+        </span>
+        <div className="ml-2 flex min-w-0 flex-col gap-0.5">
+          <span className="truncate text-xl font-extrabold tracking-[-0.01em]">{event.name}</span>
+          <span className="font-mono text-sm text-text-2">
+            {event.date}
+            {!!list.length && ` · ${list.length - next.length}/${list.length} grup`}
+          </span>
+        </div>
+        <div className="flex-1" />
+        <div className="flex h-[52px] flex-none items-center overflow-hidden rounded-full border-2 border-ink bg-white">
+          {segments.map((x, i) => (
+            <div
+              key={x.label}
+              data-testid={x.id}
+              className={`flex h-full items-center gap-2.5 whitespace-nowrap px-[18px] text-[17px] font-bold ${x.bg} ${i ? "border-l-[1.5px] border-ink" : ""}`}
+            >
+              <span
+                className={`size-3 flex-none rounded-full border-[1.5px] border-ink ${x.dot}`}
+              />
+              {x.label}
+              {x.sub && (
+                <span className="font-mono text-[15px] font-medium text-text-3">{x.sub}</span>
               )}
             </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setColorOpen(true)}
+          className="pressable h-[52px] flex-none rounded-[14px] border-2 border-ink bg-white px-[22px] text-lg font-bold"
+        >
+          {t.color}
+        </button>
+        <button
+          type="button"
+          onClick={onCrew}
+          className="pressable h-[52px] flex-none rounded-[14px] border-2 border-ink bg-white px-[22px] text-lg font-bold"
+        >
+          {t.crew}
+        </button>
+      </header>
+
+      {banner && (
+        <div
+          role="status"
+          className={`-mt-1.5 flex min-h-[60px] flex-none items-center gap-3.5 rounded-[18px] border-[2.5px] border-ink px-6 py-2.5 text-[19px] font-bold ${banner[0]}`}
+        >
+          <span>{banner[1]}</span>
+          <span className="font-medium text-text-3">{banner[2]}</span>
+          <span className="flex-1" />
+          {s.paused && cameraOk && (
+            <span className="flex items-center gap-2.5 whitespace-nowrap font-medium text-text-3">
+              {t.press}
+              <Key>Spasi</Key>
+              {t.toResume}
+            </span>
           )}
-          {!!list.length && (
-            <div className="flex items-center gap-3 overflow-hidden" data-testid="stage-next">
-              <span className="flex-none text-xl font-bold text-text-2">{t.next}</span>
-              {next.slice(0, 5).map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => pickName(n)}
-                  className="pressable max-w-[320px] flex-none truncate rounded-full border-2 border-ink bg-lavender px-4 py-1.5 text-xl font-bold"
-                >
-                  {n}
-                </button>
-              ))}
-              <span className="flex-none text-lg text-text-2">
-                {t.doneCount(list.length - next.length, list.length)}
+        </div>
+      )}
+
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_452px] gap-8">
+        <section className="layered flex min-h-0 flex-col gap-6 rounded-[36px] border-[3px] border-ink bg-white px-10 pt-8 pb-7 [--lb:3px] [--lx:12px] [--under:var(--mint)]">
+          <div className="flex flex-none items-end gap-7">
+            <div className="flex flex-none flex-col gap-1">
+              <span className="font-mono text-base tracking-[0.06em] text-text-2">
+                {t.groupCaps}
+              </span>
+              <span className="text-[84px] leading-[0.85] font-extrabold tracking-[-0.05em]">
+                #{cur?.no ?? s.nextNo}
+              </span>
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-base font-bold text-text-2">{t.nameLabel}</span>
+                {!!next.length && (
+                  <span className="flex items-center gap-2 text-[15px] text-muted">
+                    <span className="rounded-md border-[1.5px] border-muted px-[7px] font-mono text-[13px]">
+                      Tab
+                    </span>
+                    {t.fillHint}
+                  </span>
+                )}
+              </div>
+              <input
+                aria-label={t.namePlaceholder}
+                placeholder={`Tamu · ${hm(cur?.startedAt ?? now)}`}
+                value={cur?.name ?? ""}
+                disabled={!cur}
+                onChange={(e) =>
+                  cur && dispatch({ type: "RENAME", id: cur.id, name: e.target.value })
+                }
+                onBlur={(e) => cur && rename(cur, e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                className="h-[76px] w-full rounded-[20px] border-[2.5px] border-ink bg-white px-6 text-[34px] font-extrabold tracking-[-0.02em] outline-none placeholder:text-muted focus:shadow-[0_0_0_4px_var(--mint)]"
+              />
+            </div>
+          </div>
+
+          {hero ? (
+            <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-6">
+              {photo(hero, true)}
+              <div className="grid min-h-0 grid-cols-2 grid-rows-2 gap-6">
+                {rest.map((sh) => photo(sh, false))}
+                {rest.length < 4 && (
+                  <div
+                    className={`flex flex-col items-center justify-center gap-1.5 rounded-[18px] border-2 border-dashed p-4 text-center ${!cameraOk ? "border-ink bg-coral" : s.paused ? "border-ink bg-peach" : "border-muted bg-white"}`}
+                  >
+                    <span className="text-base font-bold">
+                      {!cameraOk ? t.cameraLost : s.paused ? t.slotPaused : t.slotTitle}
+                    </span>
+                    <span className="text-sm leading-[1.4] text-text-3">
+                      {!cameraOk ? t.slotCameraSub : s.paused ? t.slotPausedSub : t.slotSub}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div
+              className={`flex min-h-0 flex-1 flex-col items-center justify-center gap-3 rounded-3xl border-[2.5px] border-dashed border-ink text-center ${!cameraOk ? "bg-coral" : s.paused ? "bg-peach" : "bg-white"}`}
+            >
+              <span className="text-[34px] font-extrabold tracking-[-0.02em]">
+                {!cameraOk ? t.cameraLost : s.paused ? t.slotPaused : t.emptyTitle}
+              </span>
+              <span className="text-[19px] text-text-3">
+                {!cameraOk ? t.emptyCameraSub : s.paused ? t.emptyPausedSub : t.emptySub}
               </span>
             </div>
           )}
-          {cur ? (
-            <>
-              <div className="flex items-center gap-5">
-                <span className="rounded-xl border-[2.5px] border-ink bg-mint px-4 py-1 text-3xl font-extrabold">
-                  {t.group(cur.no)}
-                </span>
-                <input
-                  aria-label={t.namePlaceholder}
-                  placeholder={t.namePlaceholder}
-                  value={cur.name ?? ""}
-                  onChange={(e) => dispatch({ type: "RENAME", id: cur.id, name: e.target.value })}
-                  onBlur={(e) => rename(cur, e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-                  className="h-16 flex-1 rounded-xl border-[2.5px] border-ink px-5 text-[28px] font-bold"
-                />
+
+          {s.loose.length ? (
+            <div
+              data-testid="stage-loose"
+              className="flex flex-none items-center gap-4 rounded-[20px] border-[2.5px] border-ink bg-peach py-3 pr-3.5 pl-5"
+            >
+              <div className="flex flex-none flex-col gap-0.5">
+                <span className="text-lg font-extrabold">{t.looseTitle}</span>
+                <span className="text-sm text-text-3">{t.looseSub(s.loose.length)}</span>
               </div>
-              <div className="grid min-h-0 flex-1 grid-cols-4 content-start gap-4 overflow-y-auto">
-                {cur.shots.map((sh) => (
+              <div className="flex min-w-0 flex-1 gap-2 overflow-hidden">
+                {s.loose.map((sh) => (
                   <div
                     key={sh.path}
-                    className="relative aspect-[3/2] overflow-hidden rounded-xl border-2 border-ink bg-neutral"
+                    className="h-14 w-[84px] flex-none overflow-hidden rounded-lg border-[1.5px] border-ink bg-neutral"
                   >
                     {thumbs[sh.path] && (
                       <img
@@ -414,243 +673,271 @@ export function StageRunner({
                         className="size-full object-cover"
                       />
                     )}
-                    <button
-                      type="button"
-                      disabled={prints[sh.path] === "printing"}
-                      onClick={() => void printShot(cur, sh)}
-                      className={`pressable absolute right-2 bottom-2 flex items-center gap-1.5 rounded-lg border-2 border-ink px-2.5 py-1 text-base font-bold ${prints[sh.path] === "failed" ? "bg-coral" : prints[sh.path] === "sent" ? "bg-mint-soft" : "bg-white"}`}
-                    >
-                      <Printer className="size-4" aria-hidden />
-                      {prints[sh.path] === "printing"
-                        ? t.printing
-                        : prints[sh.path] === "sent"
-                          ? t.printSent
-                          : prints[sh.path] === "failed"
-                            ? t.printFailed
-                            : t.print}
-                    </button>
                   </div>
                 ))}
               </div>
-              {!cur.shots.length && <p className="text-2xl text-text-2">{t.waiting}</p>}
-            </>
+              <button
+                type="button"
+                onClick={() =>
+                  dispatch({ type: "ASSIGN_LOOSE", id: newSessionId(), now: Date.now() })
+                }
+                className="pressable h-12 whitespace-nowrap rounded-[13px] border-2 border-ink bg-white px-4 text-base font-bold"
+              >
+                {t.looseToActive(cur?.no ?? s.nextNo)}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  dispatch({ type: "LOOSE_TO_NEW", id: newSessionId(), now: Date.now() })
+                }
+                className="pressable h-12 whitespace-nowrap rounded-[13px] border-2 border-ink bg-white px-4 text-base font-bold"
+              >
+                {t.looseToNew}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  dispatch({ type: "DROP_LOOSE" });
+                  say(t.looseHidden);
+                }}
+                className="h-12 whitespace-nowrap rounded-[13px] border-[1.5px] border-dashed border-ink px-3.5 text-base font-bold"
+              >
+                {t.looseHide}
+              </button>
+            </div>
           ) : (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-              <p className="text-[34px] font-extrabold">{t.waiting}</p>
-              <p className="max-w-[760px] text-2xl text-text-2">{t.waitingHint}</p>
+            <div className="flex flex-none items-center gap-[18px] whitespace-nowrap border-t-2 border-dashed border-ink pt-[18px]">
+              <span className="text-[17px] font-bold">{t.photos(n)}</span>
+              <span className="text-muted">·</span>
+              <span className="text-[17px] text-text-3">{n ? t.lastShot(elapsed) : t.noShot}</span>
+              <div className="mx-1.5 h-2.5 flex-1 overflow-hidden rounded-full border-[1.5px] border-ink bg-white">
+                <div className="h-full bg-mint" style={{ width: `${autoPct}%` }} />
+              </div>
+              <span className="text-base text-text-2">{autoText}</span>
             </div>
           )}
         </section>
 
-        <aside className="flex w-[520px] flex-col gap-5">
+        <aside className="flex min-h-0 flex-col gap-5">
           {qrGroup && (
-            <div className="flex items-center gap-5 rounded-3xl border-[2.5px] border-ink bg-white p-5">
-              <div className="rounded-xl bg-white p-2">
-                <QrCode url={`${guestBaseUrl}/s/${qrGroup.id}`} size={170} />
+            <div className="flex flex-none items-center gap-4 rounded-[28px] border-[2.5px] border-ink bg-white p-3.5">
+              <div className="flex-none rounded-[14px] border-2 border-ink bg-white p-1.5">
+                <QrCode url={`${guestBaseUrl}/s/${qrGroup.id}`} size={110} />
               </div>
-              <div className="min-w-0">
-                <p className="text-xl font-bold text-text-2">{t.group(qrGroup.no)}</p>
-                <p className="truncate text-2xl font-extrabold">{groupLabel(qrGroup)}</p>
+              <div className="flex min-w-0 flex-col gap-1">
+                <span className="text-[15px] font-bold text-text-2">{t.qrTitle(qrGroup.no)}</span>
+                <span className="line-clamp-2 text-[19px] leading-[1.2] font-extrabold tracking-[-0.02em]">
+                  {groupLabel(qrGroup)}
+                </span>
+                <span className="text-sm leading-[1.35] text-text-3">
+                  {tvOn ? t.qrNote : t.qrNoteNoTv}
+                </span>
               </div>
             </div>
           )}
-          <div className="flex min-h-0 flex-1 flex-col rounded-3xl border-[2.5px] border-ink bg-white p-5">
-            <p className="mb-3 text-xl font-bold text-text-2">{t.history}</p>
-            <ul className="flex min-h-0 flex-col gap-2 overflow-y-auto">
-              {s.groups
-                .filter((g) => g.closedAt !== null)
-                .slice(-12)
-                .reverse()
-                .map((g) => (
-                  <li
-                    key={g.id}
-                    className="flex items-center gap-3 rounded-xl border-2 border-line-soft px-3 py-2"
+
+          {!!list.length && (
+            <div
+              data-testid="stage-next"
+              className="flex flex-none flex-col gap-2.5 rounded-[28px] border-[2.5px] border-ink bg-white px-[22px] py-[18px]"
+            >
+              <div className="flex items-baseline justify-between">
+                <span className="text-xl font-extrabold tracking-[-0.02em]">{t.nextTitle}</span>
+                <span className="font-mono text-[15px] text-text-3">
+                  {list.length - next.length}/{list.length}
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full border-[1.5px] border-ink bg-white">
+                <div
+                  className="h-full bg-mint"
+                  style={{ width: `${((list.length - next.length) / list.length) * 100}%` }}
+                />
+              </div>
+              <div className="flex flex-col">
+                {next.slice(0, 5).map((g, i) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => pickName(g)}
+                    className="flex h-9 items-center gap-3 rounded-lg border-b-[1.5px] border-dashed border-line-soft px-1.5 text-left text-[17px] font-semibold hover:bg-paper"
                   >
-                    <span className="w-14 text-xl font-extrabold">#{g.no}</span>
-                    <input
-                      key={`${g.id}:${g.name ?? ""}`}
-                      aria-label={`${t.namePlaceholder} #${g.no}`}
-                      defaultValue={g.name ?? ""}
-                      placeholder={groupLabel(g)}
-                      onBlur={(e) => e.target.value !== (g.name ?? "") && rename(g, e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-                      className="min-w-0 flex-1 rounded-lg border-2 border-transparent px-2 text-xl font-semibold hover:border-line-soft focus:border-ink"
-                    />
-                    <span className="text-lg text-text-2">{t.photos(g.shots.length)}</span>
-                    <span
-                      className={`rounded-full border-2 border-ink px-2 text-sm font-bold ${saves[g.id] === "saved" ? "bg-mint-soft" : saves[g.id] === "failed" ? "bg-coral" : "bg-sky"}`}
-                    >
-                      {saves[g.id] === "saved"
-                        ? t.saved
-                        : saves[g.id] === "failed"
-                          ? t.failed
-                          : t.saving}
-                    </span>
-                  </li>
+                    <span className="w-[18px] font-mono text-[13px] text-muted">{i + 1}</span>
+                    <span className="flex-1 truncate">{g}</span>
+                    {i === 0 && <span className="font-mono text-xs text-text-2">Tab</span>}
+                  </button>
                 ))}
-            </ul>
+              </div>
+              <span className="whitespace-nowrap text-[13px] text-muted">
+                {t.nextHint(cur?.no ?? s.nextNo)}
+              </span>
+            </div>
+          )}
+
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-[28px] border-[2.5px] border-ink bg-white px-[22px] py-4">
+            <span className="mb-1 text-xl font-extrabold tracking-[-0.02em]">{t.history}</span>
+            {histRows.map((g) => {
+              const [label, bg] = histStatus(g);
+              const last = g.shots.at(-1);
+              const open = openHist === g.id;
+              return (
+                <div
+                  key={g.id}
+                  className="flex flex-none flex-col border-b-[1.5px] border-dashed border-line-soft"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenHist(open ? null : g.id)}
+                    className="flex h-[52px] items-center gap-3.5 text-left"
+                  >
+                    <span className="h-[38px] w-[57px] flex-none overflow-hidden rounded-[7px] border-[1.5px] border-ink bg-neutral">
+                      {last && thumbs[last.path] && (
+                        <img
+                          src={thumbs[last.path]}
+                          alt=""
+                          style={{ filter: css }}
+                          className="size-full object-cover"
+                        />
+                      )}
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate text-base font-bold">{groupLabel(g)}</span>
+                      <span className="font-mono text-[13px] text-text-2">
+                        #{g.no} · {t.photos(g.shots.length)} · {hm(g.startedAt)}
+                      </span>
+                    </span>
+                    <span
+                      className={`flex-none whitespace-nowrap rounded-full border-[1.5px] border-ink px-2.5 py-[3px] text-[13px] font-bold ${bg}`}
+                    >
+                      {label}
+                    </span>
+                  </button>
+                  {open && (
+                    <div className="flex flex-col gap-1.5 pt-0.5 pb-2.5">
+                      <input
+                        key={`${g.id}:${g.name ?? ""}`}
+                        aria-label={`${t.namePlaceholder} #${g.no}`}
+                        defaultValue={g.name ?? ""}
+                        placeholder={groupLabel(g)}
+                        onBlur={(e) =>
+                          e.target.value !== (g.name ?? "") && rename(g, e.target.value)
+                        }
+                        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                        className="h-9 rounded-xl border-2 border-ink bg-white px-3 text-base font-bold shadow-[0_0_0_3px_var(--mint-soft)] outline-none"
+                      />
+                      <div className="flex gap-1.5">
+                        {g.shots.map((sh) => (
+                          <span
+                            key={sh.path}
+                            className="h-8 w-12 flex-none overflow-hidden rounded-lg border-[1.5px] border-ink bg-neutral"
+                          >
+                            {thumbs[sh.path] && (
+                              <img
+                                src={thumbs[sh.path]}
+                                alt=""
+                                style={{ filter: css }}
+                                className="size-full object-cover"
+                              />
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {!openHist && !!closed.length && (
+              <span className="pt-2 text-[13px] text-muted">{t.histHint}</span>
+            )}
           </div>
         </aside>
       </div>
 
-      <footer className="flex items-center gap-4">
+      <footer className="flex h-[100px] flex-none items-center gap-5">
         <button
           type="button"
           onClick={newGroup}
-          className={`${btn} layered bg-butter [--lb:2.5px] [--lx:6px]`}
+          className={`${big} bg-butter [--under:var(--paper)]`}
         >
-          {t.newGroup} ⏎
+          {t.newGroup}
+          <Key big>⏎ Enter</Key>
         </button>
         <button
           type="button"
           onClick={togglePause}
-          className={`${btn} ${s.paused ? "bg-mint" : "bg-white"}`}
+          className={`${big} px-[30px] text-[28px] [--under:var(--paper)] ${s.paused ? "bg-mint" : "bg-white"}`}
         >
           {s.paused ? t.resume : t.pause}
+          <Key>Spasi</Key>
         </button>
-        <div className="ml-auto flex items-center gap-3 text-2xl font-bold">
-          <span className="text-text-2">{t.auto}</span>
+        <div className="flex-1" />
+        <span className="whitespace-nowrap text-lg font-bold text-text-3">{t.auto}</span>
+        <div
+          className={`flex h-16 items-center overflow-hidden rounded-[18px] border-[2.5px] border-ink ${autoOn ? "bg-white" : "bg-neutral"}`}
+        >
           <button
             type="button"
             aria-label="Kurangi"
-            disabled={s.gapSec === null || s.gapSec <= STAGE_GAP.min}
-            onClick={() => s.gapSec !== null && setGap(Math.max(STAGE_GAP.min, s.gapSec - 15))}
-            className={`${btn} h-14 w-14 px-0 bg-white disabled:opacity-40`}
+            disabled={!autoOn || (s.gapSec ?? 0) <= STAGE_GAP.min}
+            onClick={() => setGap(Math.max(STAGE_GAP.min, (s.gapSec ?? STAGE_GAP.default) - 15))}
+            className="h-full w-16 border-r-2 border-ink text-[26px] font-bold disabled:opacity-40"
           >
             −
           </button>
-          <span className="w-28 text-center">
-            {s.gapSec === null ? t.autoOff : t.sec(s.gapSec)}
+          <span
+            className={`w-[120px] text-center font-mono text-[22px] font-medium ${autoOn ? "" : "text-muted"}`}
+          >
+            {t.sec(s.gapSec ?? STAGE_GAP.default)}
           </span>
           <button
             type="button"
             aria-label="Tambah"
-            disabled={s.gapSec !== null && s.gapSec >= STAGE_GAP.max}
-            onClick={() =>
-              setGap(s.gapSec === null ? STAGE_GAP.default : Math.min(STAGE_GAP.max, s.gapSec + 15))
-            }
-            className={`${btn} h-14 w-14 px-0 bg-white disabled:opacity-40`}
+            disabled={!autoOn || (s.gapSec ?? 0) >= STAGE_GAP.max}
+            onClick={() => setGap(Math.min(STAGE_GAP.max, (s.gapSec ?? STAGE_GAP.default) + 15))}
+            className="h-full w-16 border-l-2 border-ink text-[26px] font-bold disabled:opacity-40"
           >
             +
           </button>
-          <button
-            type="button"
-            onClick={() => setGap(s.gapSec === null ? STAGE_GAP.default : null)}
-            className={`${btn} h-14 bg-white text-xl`}
-          >
-            {s.gapSec === null ? t.resume : t.autoOff}
-          </button>
         </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={autoOn}
+          onClick={() => setGap(autoOn ? null : STAGE_GAP.default)}
+          className={`flex h-16 items-center gap-3 whitespace-nowrap rounded-[18px] border-[2.5px] border-ink px-[18px] text-lg font-bold ${autoOn ? "bg-mint-soft" : "bg-white"}`}
+        >
+          <span
+            className={`relative h-[30px] w-[52px] flex-none rounded-full border-2 border-ink ${autoOn ? "bg-mint" : "bg-neutral"}`}
+          >
+            <span
+              className={`absolute top-0.5 size-[22px] rounded-full border-2 border-ink bg-white transition-[left] duration-150 motion-reduce:transition-none ${autoOn ? "left-6" : "left-0.5"}`}
+            />
+          </span>
+          {autoOn ? t.autoOn : t.autoOff}
+        </button>
       </footer>
 
-      {colorOpen && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-ink/40">
-          <div
-            className="flex w-[1400px] gap-8 rounded-3xl border-[2.5px] border-ink bg-white p-8"
-            role="dialog"
-            aria-label={t.colorTitle}
-          >
-            <div className="flex aspect-[3/2] w-[760px] items-center justify-center overflow-hidden rounded-2xl border-2 border-ink bg-neutral">
-              {lastThumb ? (
-                <img
-                  src={lastThumb}
-                  alt=""
-                  style={{ filter: css }}
-                  className="size-full object-contain"
-                />
-              ) : (
-                <p className="px-10 text-center text-2xl text-text-2">{t.noPhoto}</p>
-              )}
-            </div>
-            <div className="flex flex-1 flex-col gap-5">
-              <h2 className="text-[32px] font-extrabold">{t.colorTitle}</h2>
-              <p className="text-xl text-text-2">{t.colorHint}</p>
-              <div className="flex items-center gap-3 rounded-2xl border-2 border-line-soft p-3">
-                <span className="text-xl font-bold">{t.lut}</span>
-                <span
-                  className="min-w-0 flex-1 truncate text-lg text-text-2"
-                  data-testid="stage-lut"
-                >
-                  {lutError ?? lut?.name ?? t.lutNone}
-                </span>
-                {lut && (
-                  <button
-                    type="button"
-                    onClick={removeLut}
-                    className="rounded-full border-2 border-ink bg-white px-4 py-1.5 text-lg font-bold"
-                  >
-                    {t.lutRemove}
-                  </button>
-                )}
-                <label className="pressable cursor-pointer rounded-full border-2 border-ink bg-lavender px-4 py-1.5 text-lg font-bold has-focus-visible:outline-2">
-                  {t.lutPick}
-                  <input
-                    type="file"
-                    accept=".cube"
-                    className="sr-only"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) void pickLut(f);
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {PHOTO_FILTERS.map((f) => (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => savePreset({ ...preset, filter: f.id })}
-                    className={`rounded-full border-2 border-ink px-4 py-2 text-xl font-bold ${preset.filter === f.id ? "bg-mint" : "bg-white"}`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-              {(
-                [
-                  ["brightness", t.brightness, -50],
-                  ["contrast", t.contrast, -50],
-                  ["saturation", t.saturation, -50],
-                  ["warmth", t.warmth, 0],
-                ] as const
-              ).map(([k, label, min]) => (
-                <label key={k} className="flex flex-col gap-1 text-xl font-bold">
-                  <span className="flex justify-between">
-                    {label}
-                    <span className="font-mono">{preset[k]}</span>
-                  </span>
-                  <input
-                    type="range"
-                    min={min}
-                    max={50}
-                    step={1}
-                    value={preset[k]}
-                    onChange={(e) => savePreset({ ...preset, [k]: Number(e.target.value) })}
-                    className="accent-ink"
-                  />
-                </label>
-              ))}
-              <div className="mt-auto flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => savePreset(DEFAULT_STAGE_PRESET)}
-                  className={`${btn} h-16 bg-white text-2xl`}
-                >
-                  {t.reset}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setColorOpen(false)}
-                  className={`${btn} layered h-16 flex-1 bg-butter text-2xl [--lb:2.5px] [--lx:6px]`}
-                >
-                  {t.done}
-                </button>
-              </div>
-            </div>
-          </div>
+      {toast && (
+        <div
+          role="status"
+          className="absolute top-[110px] left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-full bg-ink px-7 py-3.5 text-[19px] font-bold text-paper"
+        >
+          {toast}
         </div>
+      )}
+
+      {colorOpen && (
+        <StageColor
+          preset={preset}
+          savePreset={savePreset}
+          lut={lut}
+          lutError={lutError}
+          pickLut={(f) => void pickLut(f)}
+          removeLut={removeLut}
+          lastThumb={lastThumb}
+          css={css}
+          onClose={() => setColorOpen(false)}
+        />
       )}
     </div>
   );

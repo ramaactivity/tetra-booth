@@ -55,9 +55,9 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   const w = await byHash(false);
   const tvWin = await byHash(true);
   await expect(w.getByTestId("stage-runner")).toBeVisible();
-  await expect(w.getByTestId("tv-status")).toHaveText("TV tersambung");
+  await expect(w.getByTestId("tv-status")).toHaveText("TV");
   await expect(tvWin.getByText("Foto dari pelaminan akan tampil di sini")).toBeVisible();
-  await expect(w.getByText("Menunggu jepretan fotografer…")).toBeVisible();
+  await expect(w.getByText("Menunggu jepretan fotografer", { exact: true })).toBeVisible();
 
   const jpeg = async (n: number) =>
     Buffer.from(
@@ -76,15 +76,17 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   await w.waitForTimeout(800);
   writeFileSync(join(hot, "DSC0001.JPG"), await jpeg(1));
   writeFileSync(join(hot, "DSC0002.JPG"), await jpeg(2));
-  await expect(w.locator("section").getByText("Rombongan #1")).toBeVisible({ timeout: 10_000 });
+  await expect(w.locator("section").getByText("#1", { exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
   await expect(w.locator("section img")).toHaveCount(2, { timeout: 10_000 });
 
   // Rombongan baru (Enter), nama diisi sebelum foto masuk.
   await w.keyboard.press("Enter");
-  await expect(w.locator("section").getByText("Rombongan #2")).toBeVisible();
+  await expect(w.locator("section").getByText("#2", { exact: true })).toBeVisible();
   await w.getByLabel("Nama grup (boleh kosong)", { exact: true }).fill("Keluarga Besar Bpk. Hadi");
   await w.keyboard.press("Enter"); // simpan nama (blur), bukan rombongan baru
-  await expect(w.locator("section").getByText("Rombongan #2")).toBeVisible();
+  await expect(w.locator("section").getByText("#2", { exact: true })).toBeVisible();
   writeFileSync(join(hot, "DSC0003.JPG"), await jpeg(3));
   await expect(w.locator("section img")).toHaveCount(1, { timeout: 10_000 });
   await w.screenshot({ path: "test-results/stage-operator.png" });
@@ -113,7 +115,7 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   await w.screenshot({ path: "test-results/stage-printed.png" });
 
   // Rombongan #1 sudah ditutup → diproses & tersimpan.
-  await expect(w.getByText("tersimpan")).toHaveCount(1, { timeout: 15_000 });
+  await expect(w.getByText(/^(terunggah|mengunggah|antre)$/)).toHaveCount(1, { timeout: 15_000 });
   // Folder rombongan #2 sudah ada karena cetak instan; yang selesai diproses hanya rombongan #1.
   const sessions = readdirSync(join(data, "sessions")).filter((d) =>
     existsSync(join(data, "sessions", d, "out", "original_1.jpg")),
@@ -149,7 +151,7 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   await w.screenshot({ path: "test-results/stage-lut.png" });
   await dlg.getByRole("button", { name: "Selesai" }).click();
   await w.keyboard.press("Enter");
-  await expect(w.getByText("tersimpan")).toHaveCount(2, { timeout: 15_000 });
+  await expect(w.getByText(/^(terunggah|mengunggah|antre)$/)).toHaveCount(2, { timeout: 15_000 });
   const second = readdirSync(join(data, "sessions")).find(
     (d) => d !== sessions[0] && existsSync(join(data, "sessions", d, "out", "original_1.jpg")),
   );
@@ -216,13 +218,13 @@ test("stage: daftar grup dari klien jadi pilihan cepat nama rombongan (#181)", a
   await w.getByRole("button", { name: /Mode Event/ }).click();
   await w.getByRole("button", { name: /Rina & Dimas/ }).click();
   const next = w.getByTestId("stage-next");
-  await expect(next).toContainText("0/3 grup sudah");
+  await expect(next).toContainText("0/3");
   await next.getByRole("button", { name: "Keluarga Inti" }).click();
   await expect(w.getByLabel("Nama grup (boleh kosong)", { exact: true })).toHaveValue(
     "Keluarga Inti",
   );
   await expect(next.getByRole("button", { name: "Keluarga Inti" })).toHaveCount(0);
-  await expect(next).toContainText("1/3 grup sudah");
+  await expect(next).toContainText("1/3");
   // Rombongan kedua dari daftar: rombongan aktif masih kosong → nama diganti, bukan rombongan baru.
   await next.getByRole("button", { name: "Keluarga Besar Bpk. Hadi" }).click();
   await expect(w.getByLabel("Nama grup (boleh kosong)", { exact: true })).toHaveValue(
