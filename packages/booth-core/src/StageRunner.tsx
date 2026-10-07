@@ -7,16 +7,23 @@ import {
   StagePresetSchema,
   stagePresetCss,
 } from "@tetra/shared";
-import { cpuCanvas } from "@tetra/template-engine";
 import { Settings, SlidersHorizontal } from "lucide-react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { copy } from "./copy";
 import { errText } from "./errors";
 import type { BoothEvent } from "./event";
-import { fit, ORIGINAL_LONG_SIDE, THUMB_LONG_SIDE } from "./finalize";
+import { ORIGINAL_LONG_SIDE, THUMB_LONG_SIDE } from "./finalize";
 import { usePlatform } from "./PlatformContext";
 import type { SessionAsset } from "./platform";
-import { activeGroup, groupLabel, initialStage, type StageGroup, stageReducer } from "./stage";
+import {
+  activeGroup,
+  groupLabel,
+  initialStage,
+  type StageGroup,
+  stageReducer,
+  tvState,
+} from "./stage";
+import { renderJpeg } from "./stageImage";
 import { QrCode } from "./ui";
 
 const t = copy.stage;
@@ -37,30 +44,6 @@ const loadGap = (): number | null => {
   return n >= STAGE_GAP.min && n <= STAGE_GAP.max ? n : STAGE_GAP.default;
 };
 const iso = (ms: number) => new Date(ms).toISOString();
-
-/** JPEG dari file kamera: sisi panjang `max`, warna preset (`ctx.filter`, sama dengan pratinjau CSS). */
-async function renderJpeg(
-  bytes: Uint8Array<ArrayBuffer>,
-  max: number,
-  filter: string,
-  quality: number,
-) {
-  const bmp = await createImageBitmap(new Blob([bytes]));
-  try {
-    const { width, height } = fit(bmp.width, bmp.height, max);
-    const c = cpuCanvas(width, height);
-    const g = c.getContext("2d");
-    if (!g) throw new Error("canvas 2d tidak tersedia");
-    g.filter = filter;
-    g.imageSmoothingQuality = "high";
-    g.drawImage(bmp, 0, 0, width, height);
-    return new Uint8Array(
-      await (await c.convertToBlob({ type: "image/jpeg", quality })).arrayBuffer(),
-    );
-  } finally {
-    bmp.close();
-  }
-}
 
 type SaveState = "saving" | "saved" | "failed";
 
@@ -188,6 +171,25 @@ export function StageRunner({
         void complete(g);
   }, [s.groups, complete, retry]);
 
+  // Layar TV (#179): keadaan rombongan dikirim tiap berubah; status sambungan TV untuk operator.
+  const [tvOn, setTvOn] = useState(false);
+  useEffect(() => {
+    const tv = stage?.tv;
+    if (!tv) return;
+    void tv.connected().then(setTvOn, () => {});
+    return tv.onConnected(setTvOn);
+  }, [stage]);
+  useEffect(() => {
+    stage?.tv.publish(
+      tvState(s, {
+        eventName: event.name,
+        guestBaseUrl,
+        filter: stagePresetCss(preset),
+        activeSec: event.settings.qrScreenSec,
+      }),
+    );
+  }, [s, preset, stage, event.name, event.settings.qrScreenSec, guestBaseUrl]);
+
   const newGroup = useCallback(
     () => dispatch({ type: "NEW_GROUP", id: newSessionId(), now: Date.now() }),
     [],
@@ -242,7 +244,13 @@ export function StageRunner({
           <p className="text-2xl font-bold text-text-2">Photo Stage · {t.keys}</p>
           <h1 className="text-[40px] font-extrabold tracking-[-0.02em]">{event.name}</h1>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
+          <span
+            data-testid="tv-status"
+            className={`rounded-full border-[2.5px] border-ink px-4 py-1.5 text-xl font-bold ${tvOn ? "bg-mint-soft" : "bg-peach"}`}
+          >
+            {tvOn ? t.tvOn : t.tvOff}
+          </span>
           <button
             type="button"
             onClick={() => setColorOpen(true)}

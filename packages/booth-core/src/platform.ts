@@ -13,6 +13,7 @@ import type {
   RunAction,
   RunState,
 } from "@tetra/shared";
+import type { StageTvState } from "./stage";
 
 /**
  * Satu-satunya pintu booth-core ke perangkat. TSD §0.
@@ -290,6 +291,16 @@ export interface BoothStage {
   onShot(cb: (s: StageShotEvent) => void): Unsubscribe;
   /** Ganti nama grup rombongan; tersinkron ke cloud walau fotonya sudah terunggah. */
   rename(sessionId: string, name: string | null): Promise<void>;
+  /** Jendela TV di layar kedua (#179). */
+  tv: {
+    publish(state: StageTvState): void;
+    /** Keadaan terakhir (TV yang baru tersambung). */
+    last(): Promise<StageTvState | null>;
+    onState(cb: (s: StageTvState) => void): Unsubscribe;
+    /** TV tersambung (jendela TV terbuka). */
+    connected(): Promise<boolean>;
+    onConnected(cb: (on: boolean) => void): Unsubscribe;
+  };
 }
 
 export interface BoothPlatform {

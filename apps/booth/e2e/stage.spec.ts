@@ -26,11 +26,30 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   delete env.ELECTRON_RUN_AS_NODE;
   const app = await electron.launch({
     executablePath: electronPath,
-    args: [appDir, "--camera=hotfolder", "--hot-folder", hot, "--role", "stage", "--data", data],
+    args: [
+      appDir,
+      "--camera=hotfolder",
+      "--hot-folder",
+      hot,
+      "--role",
+      "stage",
+      "--tv-window",
+      "--data",
+      data,
+    ],
     env: env as Record<string, string>,
   });
-  const w = await app.firstWindow();
+  // Dua jendela: operator + TV (#179, `--tv-window` = TV di layar utama untuk uji).
+  await expect.poll(() => app.windows().length, { timeout: 15_000 }).toBe(2);
+  const byHash = async (tv: boolean) => {
+    for (const x of app.windows()) if (x.url().endsWith("#tv") === tv) return x;
+    throw new Error("jendela tidak ditemukan");
+  };
+  const w = await byHash(false);
+  const tvWin = await byHash(true);
   await expect(w.getByTestId("stage-runner")).toBeVisible();
+  await expect(w.getByTestId("tv-status")).toHaveText("TV tersambung");
+  await expect(tvWin.getByText("Foto dari pelaminan akan tampil di sini")).toBeVisible();
   await expect(w.getByText("Menunggu jepretan fotografer…")).toBeVisible();
 
   const jpeg = async (n: number) =>
@@ -62,6 +81,12 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   writeFileSync(join(hot, "DSC0003.JPG"), await jpeg(3));
   await expect(w.locator("section img")).toHaveCount(1, { timeout: 10_000 });
   await w.screenshot({ path: "test-results/stage-operator.png" });
+  // TV: rombongan terbaru (nama grup + QR), rombongan #1 di "Rombongan sebelumnya".
+  await expect(tvWin.getByRole("heading", { name: "Keluarga Besar Bpk. Hadi" })).toBeVisible();
+  await expect(tvWin.getByText("Scan untuk ambil fotomu")).toBeVisible();
+  await expect(tvWin.getByText("Rombongan sebelumnya")).toBeVisible();
+  await expect(tvWin.locator("img")).toHaveCount(1, { timeout: 10_000 });
+  await tvWin.screenshot({ path: "test-results/stage-tv.png" });
 
   // Rombongan #1 sudah ditutup → diproses & tersimpan.
   await expect(w.getByText("tersimpan")).toHaveCount(1, { timeout: 15_000 });

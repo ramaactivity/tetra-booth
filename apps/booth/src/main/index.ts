@@ -13,6 +13,7 @@ import {
   kioskFlag,
   metricsEverySec,
   RESUME_KEY,
+  stageTvWindow,
   startScreenFlag,
   userDir,
   windowSize,
@@ -25,6 +26,7 @@ import { registerIpc } from "./ipc";
 import { APP_ID, allowQuit, applyKiosk } from "./kiosk";
 import { setupLogging } from "./log";
 import { startMetrics } from "./metrics";
+import { startStageTv } from "./stage-tv";
 
 // Sentry hanya di build terpasang (dev & e2e tidak mengirim). Event antre di disk saat offline, tidak pernah menunggu jaringan.
 if (app.isPackaged)
@@ -149,6 +151,12 @@ app.whenReady().then(async () => {
   if (cameraServiceFlags.spawn) await startCameraService(log, db, alerts);
   else app.on("will-quit", watchPrintEvents(log, db, alerts));
   createWindow();
+  if (config.role === "stage")
+    startStageTv({
+      preload: join(__dirname, "../preload/index.js"),
+      forceWindow: stageTvWindow,
+      log,
+    });
   cloud.start();
   startMetrics(db, metricsEverySec, log);
 });

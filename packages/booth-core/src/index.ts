@@ -8,4 +8,6 @@ export { buildOutputs, fit } from "./finalize";
 export { PlatformProvider, usePlatform } from "./PlatformContext";
 export type * from "./platform";
 export { SessionRunner } from "./SessionRunner";
+export { StageTv } from "./StageTv";
 export * from "./session";
+export type { StageTvState } from "./stage";

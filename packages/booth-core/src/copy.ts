@@ -216,6 +216,11 @@ export const copy = {
     noPhoto: "Jepret satu foto tes dulu untuk melihat hasilnya.",
     crew: "Crew",
     keys: "⏎ rombongan baru · Spasi jeda/lanjut",
+    tvOn: "TV tersambung",
+    tvOff: "TV tidak tersambung",
+    tvScan: "Scan untuk ambil fotomu",
+    tvPrev: "Rombongan sebelumnya",
+    tvIdle: "Foto dari pelaminan akan tampil di sini",
   },
   crew: {
     nav: {

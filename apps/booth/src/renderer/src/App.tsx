@@ -1,4 +1,4 @@
-import { BoothApp, PlatformProvider } from "@tetra/booth-core";
+import { BoothApp, PlatformProvider, StageTv } from "@tetra/booth-core";
 import { type BoothConfig, createElectronPlatform } from "@tetra/platform-electron";
 import { useEffect, useMemo } from "react";
 
@@ -13,6 +13,13 @@ export function App({ cfg }: { cfg: BoothConfig }) {
       .catch((e: Error) => console.warn(`[boot] camera service: tidak terhubung (${e.message})`));
   }, [platform, cfg]);
 
+  // Jendela TV Photo Stage (#179) memuat renderer yang sama dengan hash #tv.
+  if (location.hash === "#tv")
+    return (
+      <PlatformProvider platform={platform}>
+        <StageTv />
+      </PlatformProvider>
+    );
   return (
     <PlatformProvider platform={platform}>
       <BoothApp

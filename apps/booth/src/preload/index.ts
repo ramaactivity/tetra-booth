@@ -69,6 +69,19 @@ const bridge: TetraBridge = {
   },
   stageListen: (on) => ipcRenderer.invoke("stageListen", on),
   stageRename: (id, name) => ipcRenderer.invoke("stageRename", id, name),
+  stageTvPublish: (st) => ipcRenderer.invoke("stageTvPublish", st),
+  stageTvLast: () => ipcRenderer.invoke("stageTvLast"),
+  stageTvStatus: () => ipcRenderer.invoke("stageTvStatus"),
+  onStageTv: (cb) => {
+    const h = (_e: IpcRendererEvent, st: unknown) => cb(st);
+    ipcRenderer.on("stageTv", h);
+    return () => ipcRenderer.off("stageTv", h);
+  },
+  onStageTvStatus: (cb) => {
+    const h = (_e: IpcRendererEvent, on: boolean) => cb(on);
+    ipcRenderer.on("stageTvStatus", h);
+    return () => ipcRenderer.off("stageTvStatus", h);
+  },
   onStageShot: (cb) => {
     const h = (_e: IpcRendererEvent, s: Parameters<typeof cb>[0]) => cb(s);
     ipcRenderer.on("stageShot", h);

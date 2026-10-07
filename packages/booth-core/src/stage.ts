@@ -118,3 +118,45 @@ export function stageReducer(s: StageState, a: StageAction): StageState {
 export const groupLabel = (g: StageGroup) =>
   g.name ??
   `Tamu · ${new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" }).format(g.startedAt)}`;
+
+/** Keadaan yang dikirim layar operator ke jendela TV (#179). Foto = path file kamera di laptop. */
+export type StageTvState = {
+  eventName: string;
+  guestBaseUrl: string;
+  /** CSS filter preset warna (pratinjau = hasil). */
+  filter: string;
+  /** Rombongan terbaru yang punya foto; `at` = jepretan terakhirnya. */
+  active: { id: string; no: number; label: string; shots: string[]; at: number } | null;
+  /** Dua rombongan sebelumnya (tamu yang turunnya lambat). */
+  previous: { id: string; no: number; label: string }[];
+  /** Foto terbaru acara untuk galeri berjalan saat idle. */
+  recent: string[];
+  /** Lama tampilan aktif setelah jepretan terakhir (detik). */
+  activeSec: number;
+};
+
+/** Ringkasan untuk TV dari keadaan rombongan. */
+export function tvState(
+  s: StageState,
+  base: Pick<StageTvState, "eventName" | "guestBaseUrl" | "filter" | "activeSec">,
+): StageTvState {
+  const withShots = s.groups.filter((g) => g.shots.length);
+  const a = withShots.at(-1);
+  return {
+    ...base,
+    active: a
+      ? {
+          id: a.id,
+          no: a.no,
+          label: groupLabel(a),
+          shots: a.shots.map((x) => x.path),
+          at: a.shots.at(-1)?.at ?? a.startedAt,
+        }
+      : null,
+    previous: withShots
+      .slice(-3, -1)
+      .reverse()
+      .map((g) => ({ id: g.id, no: g.no, label: groupLabel(g) })),
+    recent: withShots.flatMap((g) => g.shots.map((x) => x.path)).slice(-30),
+  };
+}

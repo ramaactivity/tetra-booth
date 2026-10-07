@@ -208,6 +208,9 @@ export const windowSize = size
 /** Folder screenshot per fase (uji jarak jauh tanpa melihat layar). */
 export const shotsDir = flags.value("shots");
 
+/** Photo Stage (#179): `--tv-window` = jendela TV biasa di layar utama (uji tanpa layar kedua). */
+export const stageTvWindow = flags.has("tv-window");
+
 /**
  * Camera Service: `--no-spawn` = sambung ke service yang dijalankan manual (port 8765, token dev).
  * Diteruskan apa adanya sampai config device ada: --printer, --printer-2x6x2 (antrean potong 2 inci, #52),
