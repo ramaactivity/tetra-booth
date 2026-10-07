@@ -1,10 +1,17 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { EventSettingsSchema, type GuestMe, LayoutSpecSchema, StoredBundle } from "@tetra/shared";
+import {
+  EventSettingsSchema,
+  type GuestMe,
+  LayoutSpecSchema,
+  parseRun,
+  runState,
+  StoredBundle,
+} from "@tetra/shared";
 import { cookies } from "next/headers";
 import { sha256 } from "@/lib/booth";
 import type { EventBranding } from "@/lib/event-bundle";
-import { guestPhotosVisible } from "@/lib/events";
+import { eventPhase, guestPhotosVisible, ymdWib } from "@/lib/events";
 import { byLinkGuest, LINK } from "@/lib/gallery";
 import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -19,7 +26,7 @@ export async function guestEvent(token: string) {
   const { data } = await createServiceClient()
     .from("events")
     .select(
-      "id, organization_id, slug, name, event_date, branding, settings, bundle, run, guest_revealed_at, guest_expires_at, purged_at",
+      "id, organization_id, slug, name, event_date, branding, settings, bundle, run, guest_revealed_at, guest_expires_at, purged_at, public_gallery, live_token",
     )
     .or(byLinkGuest(token))
     .not("guest_token", "is", null)
@@ -35,6 +42,35 @@ export type GuestEvent = NonNullable<Awaited<ReturnType<typeof guestEvent>>>;
 
 /** Foto boleh dilihat: reveal live, dibuka owner, atau acara sudah selesai (Hentikan Acara / tanggal lewat). */
 export const guestRevealed = (ev: GuestEvent, now = Date.now()) => guestPhotosVisible(ev, now);
+
+/**
+ * Kamera tamu ditutup setelah acara (desain A10 "Acara selesai"): Hentikan Acara atau tanggal lewat. Daftar baru
+ * ditolak; unggahan yang masih antre di HP tetap diterima. "Segera dibuka" (sebelum tanggal) sengaja tidak ada,
+ * supaya owner/crew bisa mencoba H-1 (DECISIONS #203).
+ */
+export const guestClosed = (ev: GuestEvent, now = Date.now()) => {
+  const run = runState(parseRun(ev.run));
+  return run === "finished" || eventPhase(ev.event_date, run, ymdWib(now)) === "selesai";
+};
+
+/** Foto sampul pembuka (A1): original booth/Photo Stage pertama event ini, atau null (belum ada foto). */
+async function guestCover(ev: GuestEvent) {
+  const { data } = await createServiceClient()
+    .from("assets")
+    .select("r2_key, sessions!inner(event_id, source, is_test, hidden_at, deleted_at)")
+    .eq("organization_id", ev.organization_id)
+    .eq("kind", "original")
+    .is("hidden_at", null)
+    .eq("sessions.event_id", ev.id)
+    .in("sessions.source", ["booth", "stage"])
+    .eq("sessions.is_test", false)
+    .is("sessions.hidden_at", null)
+    .is("sessions.deleted_at", null)
+    .order("created_at")
+    .limit(1)
+    .maybeSingle();
+  return data ? presignGet(data.r2_key.split("#")[0] ?? data.r2_key, 6 * 3600) : null;
+}
 
 /** Header halaman tamu: warna + logo (URL bertanda tangan), sama dengan halaman tamu booth. */
 export async function guestBranding(ev: GuestEvent) {
@@ -90,6 +126,12 @@ export async function guestInfo(ev: GuestEvent) {
     consentText: ev.cam.consentText,
     revealed: guestRevealed(ev),
     design: ev.cam.strip ? await guestDesign(ev) : null,
+    coverUrl: await guestCover(ev),
+    closed: guestClosed(ev),
+    publicGallery: ev.public_gallery,
+    /** Galeri publik dari luar sesi tamu (A10 "Acara selesai"): `/l/{slug}`, perlu link live aktif. */
+    eventGallery: ev.public_gallery && ev.live_token ? `/l/${ev.slug}` : null,
+    galleryUntil: ev.guest_expires_at,
     /** Isi elemen QR di desain strip: halaman Guest Cam acara ini. */
     link: `/c/${ev.slug}`,
   };

@@ -1,6 +1,6 @@
 import { GuestJoinRequest, newSessionId } from "@tetra/shared";
 import { apiError, clientIp, parseBody, rateOk } from "@/lib/booth";
-import { guestEvent, guestMe, guestSession, newGuestKey } from "@/lib/guest-cam";
+import { guestClosed, guestEvent, guestMe, guestSession, newGuestKey } from "@/lib/guest-cam";
 import { consentVersion } from "@/lib/leads";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -14,6 +14,8 @@ export async function POST(req: Request, ctx: Ctx) {
   if (!(await rateOk(`gjoin:${clientIp(req)}`, 600, 30))) return apiError("rate_limited", 429);
   const ev = await guestEvent((await ctx.params).token);
   if (!ev) return apiError("not_found", 404);
+  // Acara selesai (A10): tidak menerima tamu baru.
+  if (guestClosed(ev)) return apiError("not_found", 404);
   const body = await parseBody(req, GuestJoinRequest);
   if (!body) return apiError("bad_request", 400);
   const existing = await guestSession(ev);

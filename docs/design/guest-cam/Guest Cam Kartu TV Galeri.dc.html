@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet"><style>body{margin:0;background:#EDECE8;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1D1D1B}a{color:#1D1D1B}a:hover{color:#3A3936}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 16px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.g-row{display:flex;flex-direction:column;gap:12px;margin:0 0 56px}.g-lbl{display:flex;gap:10px;align-items:baseline;font:400 12px/1.45 system-ui,sans-serif;color:rgba(0,0,0,.6);max-width:900px}.g-lbl b{color:#1D1D1B}.g-ph{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start}.dv-next{margin:8px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Kartu QR meja (B11) · Live TV (C12) · Galeri klien (D13)</span></div>
+
+<div class="g-row">
+<div class="g-lbl"><span class="dv-oid">B11</span><span><b>Kartu QR meja, A6 105×148 mm.</b> Di layar ditampilkan 4 px/mm, file cetaknya 1240×1748 px pada 300 dpi. Ruang aman QR minimal 4 modul putih dan tidak ada elemen lain dalam jarak 6 mm. Versi wedding dibuat lebih lapang dan tipis. Versi corporate lebih padat dan menyebut moderasi.</span></div>
+<div class="g-ph">
+
+<div data-screen-label="B11a Kartu wedding" style="flex:none;width:420px;height:592px;background:#F8F7F4;border:1.5px solid #1D1D1B;box-sizing:border-box;padding:34px 34px 26px;display:flex;flex-direction:column;align-items:center;text-align:center">
+<div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:#3A3936">THE WEDDING OF</div>
+<div style="margin-top:10px;font-size:44px;line-height:.98;font-weight:800;letter-spacing:-.045em">Rina &amp; Dimas</div>
+<div style="margin-top:10px;font-family:'Geist Mono',monospace;font-size:13px;color:#3A3936">12.12.2026</div>
+<div style="margin-top:22px;width:212px;height:212px;border-radius:18px;border:1.5px solid #1D1D1B;background:#fff;box-shadow:6px 6px 0 -1.5px #CEC8F6,6px 6px 0 0 #1D1D1B;padding:16px;box-sizing:border-box">
+<div style="position:relative;width:100%;height:100%">
+<div style="display:grid;grid-template-columns:repeat(25,1fr);width:100%;height:100%">
+<sc-for list="{{ qrA }}" as="q" hint-placeholder-count="625"><div style="background:{{ q }}"></div></sc-for>
+</div>
+<div style="position:absolute;left:0;top:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div>
+<div style="position:absolute;right:0;top:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div>
+<div style="position:absolute;left:0;bottom:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div>
+</div>
+</div>
+<div style="margin-top:22px;font-size:19px;font-weight:800;letter-spacing:-.02em">Bantu isi album kami</div>
+<div style="margin-top:14px;width:100%;display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1.5px dashed #1D1D1B;border-bottom:1.5px dashed #1D1D1B">
+<div style="padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;border-right:1.5px dashed #1D1D1B"><span style="font-family:'Geist Mono',monospace;font-size:11px">01</span><span style="font-size:14px;font-weight:800">Scan</span><span style="font-size:10px;color:#3A3936">kamera HP</span></div>
+<div style="padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;border-right:1.5px dashed #1D1D1B"><span style="font-family:'Geist Mono',monospace;font-size:11px">02</span><span style="font-size:14px;font-weight:800">Isi nama</span><span style="font-size:10px;color:#3A3936">sekali saja</span></div>
+<div style="padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font-family:'Geist Mono',monospace;font-size:11px">03</span><span style="font-size:14px;font-weight:800">Jepret</span><span style="font-size:10px;color:#3A3936">15 foto</span></div>
+</div>
+<div style="flex:1"></div>
+<div style="width:100%;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#3A3936"><span>Foto terbuka setelah acara · tanpa install</span><span style="display:flex;align-items:center;gap:5px;font-weight:800;color:#1D1D1B"><span style="width:16px;height:16px;border-radius:5px;border:1.2px solid #1D1D1B;background:#8EDCCB;font-size:9px;display:flex;align-items:center;justify-content:center">T</span>tetra</span></div>
+</div>
+
+<div data-screen-label="B11b Kartu corporate" style="flex:none;width:420px;height:592px;background:#F8F7F4;border:1.5px solid #1D1D1B;box-sizing:border-box;display:flex;flex-direction:column">
+<div style="background:#D6EEF8;border-bottom:1.5px solid #1D1D1B;padding:28px 28px 22px;display:flex;flex-direction:column;gap:10px">
+<div style="align-self:flex-start;height:26px;padding:0 11px;border-radius:999px;border:1.5px solid #1D1D1B;background:#F8D98B;font-size:12px;font-weight:800;display:flex;align-items:center">Kamera Tamu</div>
+<div style="font-size:31px;line-height:1.02;font-weight:800;letter-spacing:-.04em">Employee Day<br>PT Maju Bersama 2026</div>
+</div>
+<div style="padding:24px 28px 0;display:flex;gap:20px;align-items:flex-start">
+<div style="flex:none;width:184px;height:184px;border-radius:16px;border:1.5px solid #1D1D1B;background:#fff;box-shadow:5px 5px 0 -1.5px #F8D98B,5px 5px 0 0 #1D1D1B;padding:14px;box-sizing:border-box">
+<div style="position:relative;width:100%;height:100%">
+<div style="display:grid;grid-template-columns:repeat(25,1fr);width:100%;height:100%">
+<sc-for list="{{ qrB }}" as="q" hint-placeholder-count="625"><div style="background:{{ q }}"></div></sc-for>
+</div>
+<div style="position:absolute;left:0;top:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div>
+<div style="position:absolute;right:0;top:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div>
+<div style="position:absolute;left:0;bottom:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div>
+</div>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:14px;padding-top:4px">
+<div style="display:flex;gap:10px;align-items:center"><span style="width:26px;height:26px;flex:none;border-radius:50%;background:#1D1D1B;color:#fff;font-family:'Geist Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center">1</span><span style="font-size:14px;font-weight:800">Scan QR</span></div>
+<div style="display:flex;gap:10px;align-items:center"><span style="width:26px;height:26px;flex:none;border-radius:50%;border:1.5px solid #1D1D1B;font-family:'Geist Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center;box-sizing:border-box">2</span><span style="font-size:14px;font-weight:800">Isi nama</span></div>
+<div style="display:flex;gap:10px;align-items:center"><span style="width:26px;height:26px;flex:none;border-radius:50%;border:1.5px solid #1D1D1B;font-family:'Geist Mono',monospace;font-size:12px;display:flex;align-items:center;justify-content:center;box-sizing:border-box">3</span><span style="font-size:14px;font-weight:800">Jepret</span></div>
+</div>
+</div>
+<div style="margin:24px 28px 0;border-radius:14px;border:1.5px solid #1D1D1B;background:#fff;display:flex;align-items:center;gap:14px;padding:12px 16px">
+<span style="font-family:'Geist Mono',monospace;font-size:38px;line-height:1;font-weight:500">10</span>
+<span style="font-size:12px;line-height:1.45;font-weight:600">foto per orang. Muncul di layar utama setelah dicek panitia.</span>
+</div>
+<div style="flex:1"></div>
+<div style="margin:0 28px;padding:12px 0 22px;border-top:1.5px dashed #1D1D1B;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#3A3936"><span style="font-family:'Geist Mono',monospace">booth.tetraphoto.com/c/maju-bersama</span><span style="display:flex;align-items:center;gap:5px;font-weight:800;color:#1D1D1B"><span style="width:16px;height:16px;border-radius:5px;border:1.2px solid #1D1D1B;background:#8EDCCB;font-size:9px;display:flex;align-items:center;justify-content:center">T</span>tetra</span></div>
+</div>
+
+</div>
+</div>
+
+<div class="g-row">
+<div class="g-lbl"><span class="dv-oid">C12</span><span><b>Live slideshow TV 1920×1080, di sini ditampilkan 50%.</b> Foto tamu ikut berputar dengan pil "oleh Sari". Foto tamu memakai bingkai polaroid supaya beda dari strip booth. Setiap 6 slide, kartu ajakan muncul selama 12 detik. Foto baru tampil setelah dibuka (reveal) dan disetujui.</span></div>
+<div class="g-ph">
+
+<div style="flex:none;width:960px;height:540px;overflow:hidden;border:1.5px solid #1D1D1B;box-sizing:border-box">
+<div data-screen-label="C12a TV foto tamu" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:0 0;background:#F8F7F4;position:relative;overflow:hidden">
+<div style="position:absolute;left:-260px;bottom:-320px;width:820px;height:820px;border-radius:50%;background:#D6F1EA"></div>
+<div style="position:absolute;left:960px;top:-240px;width:440px;height:440px;border-radius:50%;background:#FCE3C6"></div>
+<div style="position:absolute;left:80px;top:72px;display:flex;flex-direction:column;gap:18px;width:520px">
+<div style="align-self:flex-start;height:52px;padding:0 22px;border-radius:999px;border:2.5px solid #1D1D1B;background:#CEC8F6;font-size:24px;font-weight:700;display:flex;align-items:center">The Wedding of</div>
+<div style="font-size:112px;line-height:.92;font-weight:800;letter-spacing:-.05em">Rina &amp; Dimas</div>
+<div style="font-family:'Geist Mono',monospace;font-size:28px;color:#3A3936">12.12.2026</div>
+</div>
+<div style="position:absolute;left:80px;bottom:80px;width:420px;border-radius:28px;border:2.5px solid #1D1D1B;background:#D6EEF8;box-shadow:8px 8px 0 -2.5px #F8F7F4,8px 8px 0 0 #1D1D1B;padding:24px;display:flex;gap:22px;align-items:center;box-sizing:border-box">
+<div style="flex:none;width:132px;height:132px;border-radius:14px;border:2.5px solid #1D1D1B;background:#fff;padding:10px;box-sizing:border-box;position:relative">
+<div style="position:relative;width:100%;height:100%"><div style="display:grid;grid-template-columns:repeat(25,1fr);width:100%;height:100%"><sc-for list="{{ qrA }}" as="q" hint-placeholder-count="625"><div style="background:{{ q }}"></div></sc-for></div><div style="position:absolute;left:0;top:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div><div style="position:absolute;right:0;top:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div><div style="position:absolute;left:0;bottom:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div></div>
+</div>
+<div style="font-size:26px;line-height:1.15;font-weight:800;letter-spacing:-.02em">Ikut isi album dari HP-mu</div>
+</div>
+<div style="position:absolute;left:640px;top:96px;width:620px;height:860px;border-radius:12px;border:3px solid #1D1D1B;background:#fff;box-shadow:14px 14px 0 -3px #F8F7F4,14px 14px 0 0 #1D1D1B;padding:28px 28px 0;box-sizing:border-box;transform:rotate(-1.5deg)">
+<div style="width:100%;height:700px;border-radius:4px;background:#EFEDE8 url(foto/g-wed8.jpg) -46px -28px/1820px auto no-repeat;filter:sepia(0.25) saturate(1.2) brightness(1.03)"></div>
+<div style="height:104px;display:flex;align-items:center;justify-content:space-between">
+<div style="height:56px;padding:0 22px 0 8px;border-radius:999px;border:2.5px solid #1D1D1B;background:#FCE3C6;display:flex;align-items:center;gap:14px;font-size:28px;font-weight:800"><span style="width:40px;height:40px;border-radius:50%;border:2.5px solid #1D1D1B;background:#fff;font-size:18px;display:flex;align-items:center;justify-content:center">S</span>oleh Sari</div>
+<span style="font-family:'Geist Mono',monospace;font-size:22px;color:#3A3936">20.41</span>
+</div>
+</div>
+<div style="position:absolute;left:1150px;top:70px;height:64px;padding:0 26px;border-radius:16px;border:2.5px solid #1D1D1B;background:#F8D98B;font-size:28px;font-weight:800;display:flex;align-items:center;transform:rotate(6deg)">Kamera Tamu</div>
+<div style="position:absolute;right:0;top:0;bottom:0;width:480px;background:#fff;border-left:2.5px solid #1D1D1B;padding:56px 44px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:34px;font-weight:800;letter-spacing:-.02em">Terbaru</div><div style="display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700"><span style="width:14px;height:14px;border-radius:50%;background:#5DB978;border:2px solid #1D1D1B"></span>Live</div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:22px">
+<sc-for list="{{ tvSide }}" as="t" hint-placeholder-count="4">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="aspect-ratio:3/4;border-radius:10px;border:2.5px solid #1D1D1B;background:#EFEDE8 url({{ t.img }}) {{ t.pos }}/{{ t.size }} no-repeat"></div>
+<div style="font-size:20px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.by }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+
+<div style="flex:none;width:960px;height:540px;overflow:hidden;border:1.5px solid #1D1D1B;box-sizing:border-box">
+<div data-screen-label="C12b TV kartu ajakan" style="width:1920px;height:1080px;transform:scale(.5);transform-origin:0 0;background:#F8F7F4;position:relative;overflow:hidden">
+<div style="position:absolute;right:-200px;bottom:-260px;width:760px;height:760px;border-radius:50%;background:#FCE3C6"></div>
+<div style="position:absolute;left:96px;top:96px;bottom:96px;width:900px;display:flex;flex-direction:column">
+<div style="align-self:flex-start;height:52px;padding:0 22px;border-radius:999px;border:2.5px solid #1D1D1B;background:#CEC8F6;font-size:24px;font-weight:700;display:flex;align-items:center">Rina &amp; Dimas · Kamera Tamu</div>
+<div style="margin-top:40px;font-size:168px;line-height:.9;font-weight:800;letter-spacing:-.05em">Ikut isi<br>album!</div>
+<div style="margin-top:36px;font-size:34px;line-height:1.35;font-weight:500;color:#3A3936;max-width:760px">Scan QR ini, isi nama, lalu jepret dari HP-mu. Tanpa install aplikasi.</div>
+<div style="flex:1"></div>
+<div style="display:flex;gap:20px">
+<div style="height:88px;padding:0 30px;border-radius:24px;border:2.5px solid #1D1D1B;background:#fff;display:flex;align-items:center;gap:16px;font-size:30px;font-weight:800"><span style="font-family:'Geist Mono',monospace;font-weight:500">01</span>Scan</div>
+<div style="height:88px;padding:0 30px;border-radius:24px;border:2.5px solid #1D1D1B;background:#fff;display:flex;align-items:center;gap:16px;font-size:30px;font-weight:800"><span style="font-family:'Geist Mono',monospace;font-weight:500">02</span>Isi nama</div>
+<div style="height:88px;padding:0 30px;border-radius:24px;border:2.5px solid #1D1D1B;background:#F8D98B;display:flex;align-items:center;gap:16px;font-size:30px;font-weight:800"><span style="font-family:'Geist Mono',monospace;font-weight:500">03</span>Jepret 15 foto</div>
+</div>
+</div>
+<div style="position:absolute;left:1180px;top:150px;width:600px;border-radius:36px;border:3px solid #1D1D1B;background:#D6EEF8;box-shadow:16px 16px 0 -3px #F8F7F4,16px 16px 0 0 #1D1D1B;padding:44px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:28px">
+<div style="width:440px;height:440px;border-radius:24px;border:3px solid #1D1D1B;background:#fff;padding:30px;box-sizing:border-box">
+<div style="position:relative;width:100%;height:100%"><div style="display:grid;grid-template-columns:repeat(25,1fr);width:100%;height:100%"><sc-for list="{{ qrA }}" as="q" hint-placeholder-count="625"><div style="background:{{ q }}"></div></sc-for></div><div style="position:absolute;left:0;top:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div><div style="position:absolute;right:0;top:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div><div style="position:absolute;left:0;bottom:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div></div>
+</div>
+<div style="font-family:'Geist Mono',monospace;font-size:26px">booth.tetraphoto.com/c/rina-dimas</div>
+</div>
+<div style="position:absolute;left:1180px;bottom:96px;font-family:'Geist Mono',monospace;font-size:24px;color:#3A3936">1.420 foto dari 128 tamu</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<div class="g-row">
+<div class="g-lbl"><span class="dv-oid">D13</span><span><b>Galeri klien, tab Guest Cam dan Ucapan.</b> Chip kategori melanjutkan pola tab Photo Stage. Foto dikelompokkan per tamu, dan strip virtual tamu tampil di awal deret dengan pil "Strip". Ucapan diputar berurutan. Baris yang sedang diputar berlatar mint-soft dan berlabel "Diputar".</span></div>
+<div class="g-ph">
+
+<div data-screen-label="D13a Galeri HP · Guest Cam" style="flex:none;width:390px;height:844px;background:#F8F7F4;position:relative;overflow:hidden;border-radius:40px;border:1.5px solid #1D1D1B;display:flex;flex-direction:column;padding:52px 0 0;box-sizing:border-box">
+<div style="padding:0 20px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:24px;font-weight:800;letter-spacing:-.03em">Rina &amp; Dimas</div><div style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A;margin-top:2px">12 Desember 2026</div></div><div style="width:40px;height:40px;border-radius:12px;border:1.5px solid #1D1D1B;background:#8EDCCB;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center">T</div></div>
+<div style="margin-top:18px;display:flex;gap:8px;padding:0 20px;overflow:hidden">
+<div style="flex:none;height:36px;padding:0 14px;border-radius:999px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;font-weight:700;display:flex;align-items:center">Photobooth</div>
+<div style="flex:none;height:36px;padding:0 14px;border-radius:999px;border:1.5px solid #1D1D1B;background:#CEC8F6;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">Guest Cam <span style="font-family:'Geist Mono',monospace;font-weight:500">1.420</span></div>
+<div style="flex:none;height:36px;padding:0 14px;border-radius:999px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">Ucapan <span style="font-family:'Geist Mono',monospace;font-weight:500">37</span></div>
+<div style="flex:none;height:36px;padding:0 14px;border-radius:999px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;font-weight:700;display:flex;align-items:center">Photo Stage</div>
+</div>
+<div style="margin:16px 20px 0;display:flex;justify-content:space-between;align-items:center;font-size:13px"><span><b>128 tamu</b> ikut memotret</span><span style="font-weight:700;text-decoration:underline">Cari nama</span></div>
+<div style="margin-top:10px;display:flex;flex-direction:column">
+<sc-for list="{{ guests }}" as="g" hint-placeholder-count="3">
+<div style="padding:16px 0 18px;border-top:1.5px dashed #1D1D1B;display:flex;flex-direction:column;gap:12px">
+<div style="padding:0 20px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:16px;font-weight:800">{{ g.name }}</div><div style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A;margin-top:2px">{{ g.meta }}</div></div><div style="height:34px;padding:0 12px;border-radius:10px;border:1.5px solid #1D1D1B;background:#fff;font-size:12px;font-weight:800;display:flex;align-items:center">Unduh</div></div>
+<div style="display:flex;gap:8px;padding:0 20px;overflow:hidden">
+<sc-if value="{{ g.hasStrip }}" hint-placeholder-val="{{ false }}"><div style="flex:none;position:relative;width:58px;height:136px;border-radius:6px;border:1.5px solid #1D1D1B;background:#fff;padding:4px;box-sizing:border-box;display:flex;flex-direction:column;gap:3px"><div style="flex:1;border-radius:2px;background:url(foto/g-wed8.jpg) 0% 4%/330% auto"></div><div style="flex:1;border-radius:2px;background:url(foto/g-wed8.jpg) 50% 4%/330% auto"></div><div style="flex:1;border-radius:2px;background:url(foto/g-wed3.jpg) 30% 6%/150% auto"></div><div style="position:absolute;left:-1px;bottom:-8px;height:18px;padding:0 6px;border-radius:999px;border:1.5px solid #1D1D1B;background:#F8D98B;font-size:9px;font-weight:800;display:flex;align-items:center">Strip</div></div></sc-if>
+<sc-for list="{{ g.photos }}" as="p" hint-placeholder-count="4"><div style="flex:none;width:102px;height:136px;border-radius:10px;border:1.5px solid #1D1D1B;background:#EFEDE8 url({{ p.img }}) {{ p.pos }}/{{ p.size }} no-repeat"></div></sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div data-screen-label="D13b Galeri HP · Ucapan" style="flex:none;width:390px;height:844px;background:#F8F7F4;position:relative;overflow:hidden;border-radius:40px;border:1.5px solid #1D1D1B;display:flex;flex-direction:column;padding:52px 20px 0;box-sizing:border-box">
+<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:24px;font-weight:800;letter-spacing:-.03em">Rina &amp; Dimas</div><div style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A;margin-top:2px">12 Desember 2026</div></div><div style="width:40px;height:40px;border-radius:12px;border:1.5px solid #1D1D1B;background:#8EDCCB;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center">T</div></div>
+<div style="margin:18px -20px 0;display:flex;gap:8px;padding:0 20px;overflow:hidden">
+<div style="flex:none;height:36px;padding:0 14px;border-radius:999px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;font-weight:700;display:flex;align-items:center">Photobooth</div>
+<div style="flex:none;height:36px;padding:0 14px;border-radius:999px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">Guest Cam <span style="font-family:'Geist Mono',monospace;font-weight:500">1.420</span></div>
+<div style="flex:none;height:36px;padding:0 14px;border-radius:999px;border:1.5px solid #1D1D1B;background:#CEC8F6;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">Ucapan <span style="font-family:'Geist Mono',monospace;font-weight:500">37</span></div>
+<div style="flex:none;height:36px;padding:0 14px;border-radius:999px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;font-weight:700;display:flex;align-items:center">Photo Stage</div>
+</div>
+<div style="margin-top:22px;border-radius:20px;border:1.5px solid #1D1D1B;background:#CEC8F6;box-shadow:5px 5px 0 -1.5px #F8F7F4,5px 5px 0 0 #1D1D1B;padding:18px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:19px;font-weight:800;letter-spacing:-.02em">37 ucapan dari tamu</div><div style="font-family:'Geist Mono',monospace;font-size:13px">14:52</div></div>
+<div style="height:52px;border-radius:14px;border:1.5px solid #1D1D1B;background:#F8D98B;display:flex;align-items:center;justify-content:center;gap:10px;font-size:15px;font-weight:800"><span style="width:0;height:0;border-left:11px solid #1D1D1B;border-top:7px solid transparent;border-bottom:7px solid transparent"></span>Putar semua berurutan</div>
+</div>
+<div style="margin-top:18px;display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ voices }}" as="v" hint-placeholder-count="6">
+<div style="border-radius:16px;border:1.5px solid #1D1D1B;background:{{ v.bg }};padding:12px 14px;display:flex;align-items:center;gap:12px">
+<div style="width:40px;height:40px;flex:none;border-radius:50%;border:1.5px solid #1D1D1B;background:#fff;display:flex;align-items:center;justify-content:center">
+<sc-if value="{{ v.on }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:4px"><div style="width:4px;height:14px;border-radius:2px;background:#1D1D1B"></div><div style="width:4px;height:14px;border-radius:2px;background:#1D1D1B"></div></div></sc-if>
+<sc-if value="{{ v.off }}" hint-placeholder-val="{{ true }}"><div style="width:0;height:0;border-left:11px solid #1D1D1B;border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:3px"></div></sc-if>
+</div>
+<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ v.name }}</div><div style="font-size:11px;font-weight:600;color:#3A3936;margin-top:2px">{{ v.sub }}</div></div>
+<div style="font-family:'Geist Mono',monospace;font-size:13px">{{ v.dur }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+</div>
+<div class="g-ph" style="margin-top:12px">
+
+<div data-screen-label="D13c Galeri desktop · Guest Cam" style="flex:none;width:1440px;height:1000px;background:#F8F7F4;position:relative;overflow:hidden;border:1.5px solid #1D1D1B;box-sizing:border-box;padding:28px 48px;display:flex;flex-direction:column">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:center;gap:10px"><div style="width:34px;height:34px;border-radius:10px;border:1.5px solid #1D1D1B;background:#8EDCCB;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center">T</div><span style="font-size:18px;font-weight:800">tetra</span></div><span style="font-size:13px;color:#5F5E5A">Galeri privat · hanya dengan link</span></div>
+<div style="margin-top:28px;display:flex;justify-content:space-between;align-items:flex-end">
+<div><div style="align-self:flex-start;display:inline-flex;height:26px;padding:0 10px;border-radius:999px;border:1.5px solid #1D1D1B;background:#CEC8F6;font-size:12px;font-weight:700;align-items:center">The Wedding of</div><div style="margin-top:10px;font-size:56px;line-height:.95;font-weight:800;letter-spacing:-.045em">Rina &amp; Dimas</div></div>
+<div style="display:flex;gap:28px;font-size:13px;padding-bottom:6px"><div><div style="color:#5F5E5A">Tanggal</div><div style="font-weight:700;margin-top:2px">12 Des 2026</div></div><div><div style="color:#5F5E5A">Semua foto</div><div style="font-family:'Geist Mono',monospace;margin-top:2px">2.496</div></div><div><div style="color:#5F5E5A">Tersedia</div><div style="font-weight:700;margin-top:2px">30 hari lagi</div></div></div>
+</div>
+<div style="margin-top:22px;border-radius:16px;border:1.5px solid #1D1D1B;background:#fff;padding:10px 12px;display:flex;align-items:center;gap:8px">
+<div style="height:38px;padding:0 14px;border-radius:10px;border:1.5px solid #1D1D1B;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">Photobooth <span style="font-family:'Geist Mono',monospace;font-weight:500">862</span></div>
+<div style="height:38px;padding:0 14px;border-radius:10px;border:1.5px solid #1D1D1B;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">Photo Stage <span style="font-family:'Geist Mono',monospace;font-weight:500">214</span></div>
+<div style="height:38px;padding:0 14px;border-radius:10px;border:1.5px solid #1D1D1B;background:#CEC8F6;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">Guest Cam <span style="font-family:'Geist Mono',monospace;font-weight:500">1.420</span></div>
+<div style="height:38px;padding:0 14px;border-radius:10px;border:1.5px solid #1D1D1B;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">Ucapan <span style="font-family:'Geist Mono',monospace;font-weight:500">37</span></div>
+<div style="flex:1"></div>
+<div style="height:38px;padding:0 14px;border-radius:10px;border:1.5px solid #1D1D1B;font-size:13px;font-weight:700;display:flex;align-items:center">Pilih</div>
+<div style="height:38px;padding:0 14px;border-radius:10px;border:1.5px solid #1D1D1B;font-size:13px;font-weight:700;display:flex;align-items:center">Unduh Guest Cam</div>
+<div style="height:38px;padding:0 16px;border-radius:10px;border:1.5px solid #1D1D1B;background:#F8D98B;box-shadow:3px 3px 0 0 #1D1D1B;font-size:13px;font-weight:800;display:flex;align-items:center">Putar Slideshow</div>
+</div>
+<div style="margin-top:26px;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:32px">
+<div style="display:flex;flex-direction:column;gap:26px;overflow:hidden">
+<sc-for list="{{ guests }}" as="g" hint-placeholder-count="3">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;gap:14px"><span style="font-size:22px;font-weight:800;letter-spacing:-.02em;white-space:nowrap">{{ g.name }}</span><div style="flex:1;border-top:1.5px dashed #1D1D1B"></div><span style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A;white-space:nowrap">{{ g.meta }}</span><span style="font-size:13px;font-weight:700;text-decoration:underline;white-space:nowrap">Unduh</span></div>
+<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px">
+<sc-if value="{{ g.hasStrip }}" hint-placeholder-val="{{ false }}"><div style="position:relative;aspect-ratio:3/4;border-radius:10px;border:1.5px solid #1D1D1B;background:#fff;padding:6px 22px;box-sizing:border-box;display:flex;flex-direction:column;gap:3px"><div style="flex:1;border-radius:2px;background:url(foto/g-wed8.jpg) 0% 4%/330% auto"></div><div style="flex:1;border-radius:2px;background:url(foto/g-wed8.jpg) 50% 4%/330% auto"></div><div style="flex:1;border-radius:2px;background:url(foto/g-wed3.jpg) 30% 6%/150% auto"></div><div style="position:absolute;left:6px;top:6px;height:20px;padding:0 7px;border-radius:999px;border:1.5px solid #1D1D1B;background:#F8D98B;font-size:10px;font-weight:800;display:flex;align-items:center">Strip</div></div></sc-if>
+<sc-for list="{{ g.photosWide }}" as="p" hint-placeholder-count="6"><div style="aspect-ratio:3/4;border-radius:10px;border:1.5px solid #1D1D1B;background:#EFEDE8 url({{ p.img }}) {{ p.pos }}/{{ p.size }} no-repeat"></div></sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="align-self:start;border-radius:20px;border:1.5px solid #1D1D1B;background:#fff;box-shadow:5px 5px 0 -1.5px #CEC8F6,5px 5px 0 0 #1D1D1B;padding:20px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:19px;font-weight:800;letter-spacing:-.02em">Ucapan suara</div><div style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A">37 · 14:52</div></div>
+<div style="height:46px;border-radius:12px;border:1.5px solid #1D1D1B;background:#F8D98B;display:flex;align-items:center;justify-content:center;gap:10px;font-size:14px;font-weight:800"><span style="width:0;height:0;border-left:10px solid #1D1D1B;border-top:6px solid transparent;border-bottom:6px solid transparent"></span>Putar semua berurutan</div>
+<div style="display:flex;flex-direction:column">
+<sc-for list="{{ voices }}" as="v" hint-placeholder-count="6">
+<div style="display:flex;align-items:center;gap:12px;padding:10px;margin:0 -10px;border-radius:12px;background:{{ v.bg }}">
+<div style="width:34px;height:34px;flex:none;border-radius:50%;border:1.5px solid #1D1D1B;background:#fff;display:flex;align-items:center;justify-content:center">
+<sc-if value="{{ v.on }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:3px"><div style="width:4px;height:12px;border-radius:2px;background:#1D1D1B"></div><div style="width:4px;height:12px;border-radius:2px;background:#1D1D1B"></div></div></sc-if>
+<sc-if value="{{ v.off }}" hint-placeholder-val="{{ true }}"><div style="width:0;height:0;border-left:9px solid #1D1D1B;border-top:6px solid transparent;border-bottom:6px solid transparent;margin-left:2px"></div></sc-if>
+</div>
+<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ v.name }}</div><div style="font-size:11px;color:#3A3936;margin-top:1px">{{ v.sub }}</div></div>
+<div style="font-family:'Geist Mono',monospace;font-size:12px">{{ v.dur }}</div>
+</div>
+</sc-for>
+</div>
+<div style="font-size:13px;font-weight:700;text-decoration:underline;text-align:center">Lihat 31 ucapan lain</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<p class="dv-next">Coba berikutnya: "lanjut admin E14 pengaturan + E15 dashboard approval" · "kartu QR versi landscape" · "TV: kolom kanan khusus foto tamu"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  qr(seed) {
+    const n = 25, out = []; let x = seed;
+    const inF = (r, c) => (r < 8 && c < 8) || (r < 8 && c > n - 9) || (r > n - 9 && c < 8);
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+      x = (x * 1103515245 + 12345) % 2147483648;
+      out.push(inF(r, c) ? '#fff' : ((x >> 16) & 1 ? '#1D1D1B' : '#fff'));
+    }
+    return out;
+  }
+  renderVals() {
+    const P = {
+      a: { img: 'foto/g-wed8.jpg', pos: '1% 5%', size: '390% auto' },
+      b: { img: 'foto/g-wed8.jpg', pos: '50% 5%', size: '390% auto' },
+      c: { img: 'foto/g-wed8.jpg', pos: '99% 5%', size: '390% auto' },
+      d: { img: 'foto/g-wed3.jpg', pos: '25% 8%', size: '175% auto' },
+      e: { img: 'foto/g-wed3.jpg', pos: '25% 88%', size: '175% auto' },
+      f: { img: 'foto/g-wed4.jpg', pos: '42% 22%', size: 'auto 175%' },
+      g: { img: 'foto/g-wed9.jpg', pos: '3% 14%', size: '265% auto' },
+      h: { img: 'foto/g-wed5.jpg', pos: '50% 10%', size: '175% auto' },
+      i: { img: 'foto/g-wed6.jpg', pos: '50% 6%', size: '150% auto' },
+      j: { img: 'foto/g-wed9.jpg', pos: '97% 14%', size: '265% auto' },
+      k: { img: 'foto/g-wed2.jpg', pos: '50% 20%', size: '175% auto' },
+      l: { img: 'foto/g-wed5.jpg', pos: '50% 76%', size: '175% auto' },
+    };
+    const pk = s => s.split('').map(k => P[k]);
+    return {
+      qrA: this.qr(91), qrB: this.qr(17),
+      tvSide: [
+        { ...P.d, by: 'oleh Andi (Bekasi)' }, { ...P.g, by: 'Photobooth' },
+        { ...P.f, by: 'oleh Tante Lusi' }, { ...P.h, by: 'oleh @dimas.fotografi' },
+      ],
+      guests: [
+        { name: 'Sari', meta: '15 foto · 1 strip · 1 ucapan', hasStrip: true, photos: pk('abc'), photosWide: pk('abcdef') },
+        { name: 'Andi (Bekasi)', meta: '12 foto · 1 ucapan', hasStrip: false, photos: pk('degf'), photosWide: pk('degfhij') },
+        { name: 'Tante Lusi', meta: '15 foto · 2 strip', hasStrip: true, photos: pk('hik'), photosWide: pk('hikljb') },
+      ],
+      voices: [
+        { name: 'Tante Lusi', sub: 'Diputar · 00:09', dur: '00:28', bg: '#D6F1EA', on: true, off: false },
+        { name: 'Sari', sub: '20.14', dur: '00:18', bg: '#fff', on: false, off: true },
+        { name: 'Andi (Bekasi)', sub: '20.31', dur: '00:30', bg: '#fff', on: false, off: true },
+        { name: '@dimas.fotografi', sub: '20.47', dur: '00:12', bg: '#fff', on: false, off: true },
+        { name: 'Om Hendra & Keluarga', sub: '21.02', dur: '00:25', bg: '#fff', on: false, off: true },
+        { name: 'Nadia (teman kantor Rina)', sub: '21.10', dur: '00:21', bg: '#fff', on: false, off: true },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

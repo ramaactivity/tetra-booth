@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet"><style>body{margin:0;background:#EDECE8;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1D1D1B}a{color:#1D1D1B}a:hover{color:#3A3936}textarea,input{font:inherit;color:#1D1D1B}textarea:focus,input:focus{outline:none;box-shadow:0 0 0 3px #8EDCCB}.dv-turn{padding:40px 44px 32px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 16px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.g-row{display:flex;flex-direction:column;gap:12px;margin:0 0 56px}.g-lbl{display:flex;gap:10px;align-items:baseline;font:400 12px/1.45 system-ui,sans-serif;color:rgba(0,0,0,.6);max-width:900px}.g-lbl b{color:#1D1D1B}.dv-next{margin:8px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+<section class="dv-turn" id="t4">
+<div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">Admin web 1440: Pengaturan → Guest Cam (E14) · Dashboard → Guest Cam (E15)</span></div>
+
+<div class="g-row">
+<div class="g-lbl"><span class="dv-oid">E14</span><span><b>Pengaturan event → Guest Cam.</b> Section baru di kelompok "Tamu &amp; Data", mengikuti pola R05. Pilihan reveal dan moderasi ditampilkan sebagai kartu pilihan, bukan dropdown, karena dampaknya ke tamu besar. Filter tidak diatur di sini, karena daftarnya mengikuti setelan Sesi. Kartu, toggle, dan teks persetujuan bisa dicoba langsung.</span></div>
+<div data-screen-label="E14 Pengaturan Guest Cam" style="width:1440px;height:1480px;background:#F8F7F4;border:1.5px solid #1D1D1B;box-sizing:border-box;display:grid;grid-template-columns:236px 236px minmax(0,1fr);overflow:hidden">
+
+<div style="background:#fff;border-right:1.5px solid #1D1D1B;padding:24px 18px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:22px"><div style="width:34px;height:34px;border-radius:10px;border:1.5px solid #1D1D1B;background:#8EDCCB;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center">T</div><span style="font-size:18px;font-weight:800">tetra</span></div>
+<div style="height:38px;display:flex;align-items:center;padding:0 10px;font-size:14px;font-weight:700">Operasional</div>
+<div style="height:36px;display:flex;align-items:center;padding:0 10px 0 26px;font-size:14px;border-radius:10px;border:1.5px solid #1D1D1B;background:#F8D98B;font-weight:700">Event</div>
+<div style="height:36px;display:flex;align-items:center;padding:0 10px 0 26px;font-size:14px;color:#3A3936">Photobox</div>
+<div style="height:38px;display:flex;align-items:center;padding:0 10px;font-size:14px;color:#3A3936">Template</div>
+<div style="height:38px;display:flex;align-items:center;padding:0 10px;font-size:14px;color:#3A3936">Device</div>
+<div style="height:38px;display:flex;align-items:center;padding:0 10px;font-size:14px;color:#3A3936">Transaksi</div>
+<div style="height:38px;display:flex;align-items:center;padding:0 10px;font-size:14px;color:#3A3936">Tim</div>
+<div style="flex:1"></div>
+<div style="border:1.5px dashed #1D1D1B;border-radius:14px;padding:10px;display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;border:1.5px solid #1D1D1B;background:#FCE3C6;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center">R</div><div style="flex:1"><div style="font-size:13px;font-weight:700">Rama</div><div style="font-size:11px;color:#5F5E5A">Owner</div></div><span style="font-size:12px;font-weight:700;text-decoration:underline">Keluar</span></div>
+</div>
+
+<div style="padding:28px 16px;display:flex;flex-direction:column;gap:2px;border-right:1.5px dashed #D6D3CC">
+<sc-for list="{{ nav }}" as="n" hint-placeholder-count="14">
+<div style="height:{{ n.h }}px;display:flex;align-items:{{ n.al }};justify-content:space-between;padding:0 10px;border-radius:10px;border:1.5px solid {{ n.bd }};background:{{ n.bg }};font-size:{{ n.fs }}px;font-weight:{{ n.fw }};letter-spacing:{{ n.ls }};color:{{ n.fg }}"><span>{{ n.t }}</span><span style="font-size:11px;font-weight:500;color:#8A8883">{{ n.r }}</span></div>
+</sc-for>
+</div>
+
+<div style="padding:28px 40px 0;display:flex;flex-direction:column;gap:20px;min-width:0;position:relative">
+<div style="font-size:13px;color:#5F5E5A">‹ Wedding Rina &amp; Dimas · Pengaturan</div>
+<div style="border-radius:22px;border:1.5px solid #1D1D1B;background:#fff;display:flex;flex-direction:column">
+<div style="padding:22px 26px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px">
+<div><div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px;font-weight:800;letter-spacing:-.02em">Guest Cam</span><span style="height:22px;padding:0 9px;border-radius:999px;border:1.5px solid #1D1D1B;background:#D6EEF8;font-size:11px;font-weight:700;display:flex;align-items:center">Eksklusif klien Tetra</span></div><div style="font-size:13px;color:#3A3936;margin-top:6px">Tamu memotret dari HP sendiri lewat QR. Fotonya masuk album yang sama dengan foto booth dan Photo Stage.</div></div>
+<div onClick="{{ tgOn }}" style="flex:none;width:52px;height:30px;border-radius:999px;border:1.5px solid #1D1D1B;background:{{ onBg }};position:relative;cursor:pointer;box-sizing:border-box"><div style="position:absolute;top:2px;left:{{ onX }}px;width:23px;height:23px;border-radius:50%;border:1.5px solid #1D1D1B;background:#fff;box-sizing:border-box;transition:left .15s ease-out"></div></div>
+</div>
+<div style="border-top:1.5px dashed #1D1D1B"></div>
+<div style="padding:22px 26px 26px;display:flex;flex-direction:column;gap:26px">
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:28px">
+<div style="display:flex;flex-direction:column;gap:8px"><div style="font-size:14px;font-weight:800">Jatah foto per HP</div><div style="display:flex;align-items:center;gap:12px"><input value="15" style="width:120px;height:46px;border-radius:12px;border:1.5px solid #1D1D1B;padding:0 14px;font-size:15px;box-sizing:border-box;font-family:'Geist Mono',monospace"><span style="font-size:14px;color:#3A3936">foto</span></div><div style="font-size:12px;color:#5F5E5A">Tanpa hapus atau ulang: setiap jepretan memakai jatah. <b style="color:#1D1D1B">Bawaan: 15.</b> Maks. 50.</div></div>
+<div style="display:flex;flex-direction:column;gap:8px"><div style="font-size:14px;font-weight:800">Filter di kamera tamu</div><div style="display:flex;gap:8px;flex-wrap:wrap"><span style="height:32px;padding:0 11px;border-radius:999px;border:1.5px solid #1D1D1B;background:#D6F1EA;font-size:12px;font-weight:700;display:flex;align-items:center">Normal</span><span style="height:32px;padding:0 11px;border-radius:999px;border:1.5px solid #1D1D1B;background:#D6F1EA;font-size:13px;font-weight:700;display:flex;align-items:center">Hitam Putih</span><span style="height:32px;padding:0 11px;border-radius:999px;border:1.5px solid #1D1D1B;background:#D6F1EA;font-size:13px;font-weight:700;display:flex;align-items:center">Hangat</span><span style="height:32px;padding:0 11px;border-radius:999px;border:1.5px dashed #1D1D1B;color:#8A8883;font-size:13px;font-weight:700;display:flex;align-items:center">Pudar</span><span style="height:32px;padding:0 11px;border-radius:999px;border:1.5px dashed #1D1D1B;color:#8A8883;font-size:13px;font-weight:700;display:flex;align-items:center">Vintage</span></div><div style="font-size:12px;color:#5F5E5A">Sama dengan filter pilihan tamu di booth. <span style="font-weight:700;text-decoration:underline;color:#1D1D1B">Ubah di Sesi</span></div></div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:14px;font-weight:800">Kapan foto tamu terlihat</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<sc-for list="{{ revealOpts }}" as="o" hint-placeholder-count="2">
+<div onClick="{{ o.pick }}" style="border-radius:16px;border:1.5px solid #1D1D1B;background:{{ o.bg }};box-shadow:{{ o.sh }};padding:16px 18px;display:flex;gap:14px;cursor:pointer">
+<div style="width:22px;height:22px;flex:none;border-radius:50%;border:1.5px solid #1D1D1B;background:{{ o.dot }};color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px">{{ o.mark }}</div>
+<div><div style="font-size:15px;font-weight:800">{{ o.t }}</div><div style="font-size:12px;line-height:1.5;color:#3A3936;margin-top:4px">{{ o.d }}</div></div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="font-size:14px;font-weight:800">Moderasi</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<sc-for list="{{ modOpts }}" as="o" hint-placeholder-count="2">
+<div onClick="{{ o.pick }}" style="border-radius:16px;border:1.5px solid #1D1D1B;background:{{ o.bg }};box-shadow:{{ o.sh }};padding:16px 18px;display:flex;gap:14px;cursor:pointer">
+<div style="width:22px;height:22px;flex:none;border-radius:50%;border:1.5px solid #1D1D1B;background:{{ o.dot }};color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px">{{ o.mark }}</div>
+<div><div style="font-size:15px;font-weight:800">{{ o.t }}</div><div style="font-size:12px;line-height:1.5;color:#3A3936;margin-top:4px">{{ o.d }}</div></div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<sc-for list="{{ toggles }}" as="t" hint-placeholder-count="2">
+<div style="border-radius:16px;border:1.5px solid #1D1D1B;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;gap:16px">
+<div><div style="font-size:15px;font-weight:800">{{ t.t }}</div><div style="font-size:12px;color:#3A3936;margin-top:4px">{{ t.d }}</div></div>
+<div onClick="{{ t.tg }}" style="flex:none;width:52px;height:30px;border-radius:999px;border:1.5px solid #1D1D1B;background:{{ t.bg }};position:relative;cursor:pointer;box-sizing:border-box"><div style="position:absolute;top:2px;left:{{ t.x }}px;width:23px;height:23px;border-radius:50%;border:1.5px solid #1D1D1B;background:#fff;box-sizing:border-box;transition:left .15s ease-out"></div></div>
+</div>
+</sc-for>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:14px;font-weight:800">Teks persetujuan data</div><div style="font-family:'Geist Mono',monospace;font-size:12px;color:#5F5E5A">{{ consentLen }}/600</div></div>
+<textarea onInput="{{ onConsent }}" style="height:84px;border-radius:12px;border:1.5px solid #1D1D1B;padding:12px 14px;font-size:14px;line-height:1.5;resize:none;box-sizing:border-box">Saya setuju nama dan kontak saya disimpan penyelenggara acara dan Tetra Photobooth untuk mengirim foto dan kabar acara ini.</textarea>
+<div style="font-size:12px;color:#5F5E5A">Tamu wajib mencentang ini sebelum motret (UU PDP). Tamu mengisi nama + WhatsApp atau Instagram, minimal salah satu.</div>
+</div>
+
+<div style="border-radius:18px;border:1.5px solid #1D1D1B;background:#F8F7F4;padding:20px;display:grid;grid-template-columns:132px minmax(0,1fr);gap:22px;align-items:start">
+<div style="width:132px;height:132px;border-radius:14px;border:1.5px solid #1D1D1B;background:#fff;padding:12px;box-sizing:border-box">
+<div style="position:relative;width:100%;height:100%"><div style="display:grid;grid-template-columns:repeat(25,1fr);width:100%;height:100%"><sc-for list="{{ qr }}" as="q" hint-placeholder-count="625"><div style="background:{{ q }}"></div></sc-for></div><div style="position:absolute;left:0;top:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div><div style="position:absolute;right:0;top:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div><div style="position:absolute;left:0;bottom:0;width:28%;height:28%;border-radius:24%;background:#1D1D1B"><div style="position:absolute;inset:14.28%;border-radius:18%;background:#fff"><div style="position:absolute;inset:20%;border-radius:24%;background:#1D1D1B"></div></div></div></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+<div style="font-size:14px;font-weight:800">Link &amp; QR Guest Cam</div>
+<div style="display:flex;gap:10px">
+<div style="flex:1;min-width:0;height:46px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;display:flex;align-items:center;padding:0 14px;gap:10px"><span style="flex:1;min-width:0;font-family:'Geist Mono',monospace;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">https://booth.tetraphoto.com/c/rina-dimas-2026-12-12</span><span onClick="{{ doCopy }}" style="font-size:13px;font-weight:700;text-decoration:underline;cursor:pointer">{{ copyLabel }}</span></div>
+<div style="height:46px;padding:0 16px;border-radius:12px;border:1.5px solid #1D1D1B;background:#F7D5CC;font-size:13px;font-weight:700;display:flex;align-items:center;white-space:nowrap">Cabut &amp; buat ulang</div>
+</div>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+<div style="height:44px;padding:0 16px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;box-shadow:4px 4px 0 -1.5px #F8F7F4,4px 4px 0 0 #1D1D1B;font-size:13px;font-weight:800;display:flex;align-items:center">Unduh kartu QR meja · PDF A6</div>
+<div style="display:flex;height:44px;border-radius:12px;border:1.5px solid #1D1D1B;overflow:hidden;background:#fff"><div style="padding:0 14px;display:flex;align-items:center;font-size:13px;font-weight:700;background:#CEC8F6;border-right:1.5px solid #1D1D1B">Wedding</div><div style="padding:0 14px;display:flex;align-items:center;font-size:13px;font-weight:700">Corporate</div></div>
+<div style="height:44px;padding:0 14px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;font-weight:700;display:flex;align-items:center">Unduh QR · PNG</div>
+</div>
+<div style="font-size:12px;color:#5F5E5A">Cabut = link dan QR lama berhenti bekerja, termasuk kartu yang sudah dicetak. Link galeri klien dan live tidak ikut berubah.</div>
+</div>
+</div>
+
+</div>
+</div>
+<div style="position:absolute;left:40px;right:40px;bottom:28px;border-radius:18px;border:1.5px solid #1D1D1B;background:#fff;box-shadow:4px 4px 0 -1.5px #FCE3C6,4px 4px 0 0 #1D1D1B;padding:14px 16px 14px 22px;display:flex;align-items:center;gap:20px">
+<span style="font-size:13px;font-weight:800;white-space:nowrap">{{ dirtyLabel }}</span>
+<span style="flex:1;font-size:13px;color:#3A3936">Perubahan berlaku untuk tamu yang membuka link setelah disimpan. Foto yang sudah masuk tidak berubah.</span>
+<div style="height:44px;padding:0 26px;border-radius:12px;border:1.5px solid #1D1D1B;background:#F8D98B;box-shadow:4px 4px 0 -1.5px #fff,4px 4px 0 0 #1D1D1B;font-size:14px;font-weight:800;display:flex;align-items:center">Simpan</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<div class="g-row">
+<div class="g-lbl"><span class="dv-oid">E15</span><span><b>Dashboard event → Guest Cam.</b> Contoh ini memakai mode setelah acara dan moderasi perlu disetujui. Klik foto untuk memilih (Shift untuk banyak foto). Tekan <b>A</b> untuk setujui, <b>X</b> untuk tolak, dan <b>← →</b> untuk pindah fokus. Bar tinta muncul saat ada foto terpilih. Tombol "Buka foto sekarang" meminta konfirmasi.</span></div>
+<div data-screen-label="E15 Dashboard Guest Cam" style="width:1440px;height:1240px;background:#F8F7F4;border:1.5px solid #1D1D1B;box-sizing:border-box;display:grid;grid-template-columns:236px minmax(0,1fr);overflow:hidden">
+
+<div style="background:#fff;border-right:1.5px solid #1D1D1B;padding:24px 18px;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:22px"><div style="width:34px;height:34px;border-radius:10px;border:1.5px solid #1D1D1B;background:#8EDCCB;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center">T</div><span style="font-size:18px;font-weight:800">tetra</span></div>
+<div style="height:38px;display:flex;align-items:center;padding:0 10px;font-size:14px;font-weight:700">Operasional</div>
+<div style="height:36px;display:flex;align-items:center;padding:0 10px 0 26px;font-size:14px;border-radius:10px;border:1.5px solid #1D1D1B;background:#F8D98B;font-weight:700">Event</div>
+<div style="height:36px;display:flex;align-items:center;padding:0 10px 0 26px;font-size:14px;color:#3A3936">Photobox</div>
+<div style="height:38px;display:flex;align-items:center;padding:0 10px;font-size:14px;color:#3A3936">Template</div>
+<div style="height:38px;display:flex;align-items:center;padding:0 10px;font-size:14px;color:#3A3936">Device</div>
+<div style="height:38px;display:flex;align-items:center;padding:0 10px;font-size:14px;color:#3A3936">Transaksi</div>
+<div style="height:38px;display:flex;align-items:center;padding:0 10px;font-size:14px;color:#3A3936">Tim</div>
+<div style="flex:1"></div>
+<div style="border:1.5px dashed #1D1D1B;border-radius:14px;padding:10px;display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;border:1.5px solid #1D1D1B;background:#FCE3C6;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center">R</div><div style="flex:1"><div style="font-size:13px;font-weight:700">Rama</div><div style="font-size:11px;color:#5F5E5A">Owner</div></div><span style="font-size:12px;font-weight:700;text-decoration:underline">Keluar</span></div>
+</div>
+
+<div style="padding:28px 40px;display:flex;flex-direction:column;gap:20px;min-width:0;position:relative">
+<div style="font-size:13px;color:#5F5E5A">‹ Event</div>
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:20px">
+<div><div style="font-size:30px;font-weight:800;letter-spacing:-.035em">Wedding Rina &amp; Dimas</div><div style="display:flex;gap:10px;align-items:center;margin-top:6px"><span style="font-size:14px;color:#3A3936">12 Des 2026</span><span style="height:24px;padding:0 10px;border-radius:999px;border:1.5px solid #1D1D1B;background:#D6F1EA;font-size:12px;font-weight:700;display:flex;align-items:center">Berlangsung</span></div></div>
+<div style="display:flex;gap:10px"><div style="height:42px;padding:0 16px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;font-size:14px;font-weight:700;display:flex;align-items:center">Buka Galeri Klien ↗</div><div style="height:42px;padding:0 16px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;font-size:14px;font-weight:700;display:flex;align-items:center">Buka Slideshow ↗</div><div style="height:42px;padding:0 16px;border-radius:12px;border:1.5px solid #1D1D1B;background:#1D1D1B;color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center">Pengaturan</div></div>
+</div>
+<div style="display:flex;gap:4px;border-bottom:1.5px solid #1D1D1B">
+<div style="height:42px;padding:0 16px;display:flex;align-items:center;font-size:14px;font-weight:700;color:#5F5E5A">Ringkasan</div>
+<div style="height:42px;padding:0 16px;display:flex;align-items:center;font-size:14px;font-weight:700;color:#5F5E5A">Sesi booth</div>
+<div style="height:42px;padding:0 16px;display:flex;align-items:center;font-size:14px;font-weight:700;color:#5F5E5A">Photo Stage</div>
+<div style="height:42px;padding:0 16px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;border:1.5px solid #1D1D1B;border-bottom:0;border-radius:12px 12px 0 0;background:#CEC8F6;margin-bottom:-1.5px">Guest Cam <span style="height:20px;padding:0 7px;border-radius:999px;border:1.5px solid #1D1D1B;background:#FCE3C6;font-family:'Geist Mono',monospace;font-size:11px;display:flex;align-items:center">{{ pendingN }}</span></div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+<sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+<div style="border-radius:18px;border:1.5px solid #1D1D1B;background:#fff;box-shadow:5px 5px 0 -1.5px {{ s.under }},5px 5px 0 0 #1D1D1B;padding:16px 18px;display:flex;flex-direction:column;gap:6px">
+<div style="font-size:13px;color:#3A3936">{{ s.t }}</div>
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:32px;font-weight:800;letter-spacing:-.03em">{{ s.v }}</span><span style="font-size:12px;color:#5F5E5A">{{ s.s }}</span></div>
+</div>
+</sc-for>
+</div>
+
+<div style="border-radius:18px;border:1.5px solid #1D1D1B;background:{{ revBg }};padding:16px 18px 16px 22px;display:flex;align-items:center;gap:18px">
+<div style="width:44px;height:44px;flex:none;border-radius:12px;border:1.5px dashed #1D1D1B;background:#fff;display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',monospace;font-size:13px">{{ revIcon }}</div>
+<div style="flex:1"><div style="font-size:15px;font-weight:800">{{ revTitle }}</div><div style="font-size:13px;color:#3A3936;margin-top:3px">{{ revSub }}</div></div>
+<sc-if value="{{ revAsk }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:10px;align-items:center"><span style="font-size:13px;font-weight:700">Buka 1.408 foto untuk semua tamu?</span><div onClick="{{ revCancel }}" style="height:42px;padding:0 14px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;cursor:pointer">Batal</div><div onClick="{{ revDo }}" style="height:42px;padding:0 16px;border-radius:12px;border:1.5px solid #1D1D1B;background:#F8D98B;box-shadow:4px 4px 0 -1.5px #FCE3C6,4px 4px 0 0 #1D1D1B;font-size:13px;font-weight:800;display:flex;align-items:center;cursor:pointer">Ya, buka</div></div></sc-if>
+<sc-if value="{{ revIdle }}" hint-placeholder-val="{{ true }}"><div onClick="{{ revOpen }}" style="height:44px;padding:0 18px;border-radius:12px;border:1.5px solid #1D1D1B;background:#F8D98B;box-shadow:4px 4px 0 -1.5px #FCE3C6,4px 4px 0 0 #1D1D1B;font-size:14px;font-weight:800;display:flex;align-items:center;cursor:pointer;white-space:nowrap">Buka foto sekarang</div></sc-if>
+</div>
+
+<div style="border-radius:22px;border:1.5px solid #1D1D1B;background:#fff;display:flex;flex-direction:column;min-height:0">
+<div style="padding:18px 22px;display:flex;justify-content:space-between;align-items:center;gap:16px">
+<div style="display:flex;align-items:center;gap:12px"><span style="font-size:18px;font-weight:800;letter-spacing:-.02em;white-space:nowrap">Perlu disetujui</span><span style="height:24px;padding:0 9px;border-radius:999px;border:1.5px solid #1D1D1B;background:#FCE3C6;font-family:'Geist Mono',monospace;font-size:12px;display:flex;align-items:center">{{ pendingN }}</span></div>
+<div style="display:flex;align-items:center;gap:14px;font-size:12px;color:#3A3936">
+<span style="display:flex;align-items:center;gap:6px"><span style="min-width:22px;height:22px;padding:0 5px;box-sizing:border-box;border-radius:6px;border:1.5px solid #1D1D1B;background:#D6F1EA;font-family:'Geist Mono',monospace;font-size:11px;display:flex;align-items:center;justify-content:center">A</span>setujui</span>
+<span style="display:flex;align-items:center;gap:6px"><span style="min-width:22px;height:22px;padding:0 5px;box-sizing:border-box;border-radius:6px;border:1.5px solid #1D1D1B;background:#F7D5CC;font-family:'Geist Mono',monospace;font-size:11px;display:flex;align-items:center;justify-content:center">X</span>tolak</span>
+<span style="display:flex;align-items:center;gap:6px"><span style="min-width:22px;height:22px;padding:0 5px;box-sizing:border-box;border-radius:6px;border:1.5px solid #1D1D1B;font-family:'Geist Mono',monospace;font-size:11px;display:flex;align-items:center;justify-content:center">←→</span>pindah</span>
+<span onClick="{{ selAll }}" style="font-weight:700;text-decoration:underline;color:#1D1D1B;cursor:pointer">Pilih semua</span>
+</div>
+</div>
+<div style="border-top:1.5px dashed #1D1D1B"></div>
+<sc-if value="{{ hasItems }}" hint-placeholder-val="{{ true }}">
+<div style="padding:20px 22px 24px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px">
+<sc-for list="{{ queue }}" as="q" hint-placeholder-count="12">
+<div onClick="{{ q.click }}" style="display:flex;flex-direction:column;gap:8px;cursor:pointer">
+<div style="position:relative;aspect-ratio:3/4;border-radius:12px;border:1.5px solid #1D1D1B;box-shadow:{{ q.ring }};background:#EFEDE8 url({{ q.img }}) {{ q.pos }}/{{ q.size }} no-repeat">
+<div style="position:absolute;left:8px;top:8px;width:24px;height:24px;border-radius:7px;border:1.5px solid #1D1D1B;background:{{ q.chk }};color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">{{ q.mark }}</div>
+<sc-if value="{{ q.focus }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:8px;right:8px;bottom:8px;display:flex;gap:6px"><div onClick="{{ q.ok }}" style="flex:1;height:32px;border-radius:9px;border:1.5px solid #1D1D1B;background:#D6F1EA;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">Setujui</div><div onClick="{{ q.no }}" style="flex:1;height:32px;border-radius:9px;border:1.5px solid #1D1D1B;background:#F7D5CC;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">Tolak</div></div></sc-if>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px"><span style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ q.by }}</span><span style="font-family:'Geist Mono',monospace;font-size:11px;color:#5F5E5A">{{ q.t }}</span></div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ noItems }}" hint-placeholder-val="{{ false }}">
+<div style="padding:56px 22px;display:flex;flex-direction:column;align-items:center;gap:12px"><div style="width:52px;height:52px;border-radius:50%;border:1.5px solid #1D1D1B;background:#5DB978;color:#fff;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center">✓</div><div style="font-size:16px;font-weight:800">Antrean kosong</div><div style="font-size:13px;color:#5F5E5A">Foto baru dari tamu akan muncul di sini.</div></div>
+</sc-if>
+</div>
+
+<sc-if value="{{ hasSel }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:50%;bottom:32px;transform:translateX(-50%);height:60px;border-radius:16px;border:1.5px solid #1D1D1B;background:#1D1D1B;color:#fff;display:flex;align-items:center;gap:14px;padding:0 10px 0 22px">
+<span style="font-size:14px;font-weight:800;white-space:nowrap"><span style="font-family:'Geist Mono',monospace;font-weight:500">{{ selN }}</span> dipilih</span>
+<div onClick="{{ bulkOk }}" style="height:40px;padding:0 16px;border-radius:10px;border:1.5px solid #fff;background:#D6F1EA;color:#1D1D1B;font-size:13px;font-weight:800;display:flex;align-items:center;cursor:pointer">Setujui</div>
+<div onClick="{{ bulkNo }}" style="height:40px;padding:0 16px;border-radius:10px;border:1.5px solid #fff;background:#F7D5CC;color:#1D1D1B;font-size:13px;font-weight:800;display:flex;align-items:center;cursor:pointer">Tolak</div>
+<div onClick="{{ bulkClear }}" style="height:40px;padding:0 12px;display:flex;align-items:center;font-size:13px;font-weight:700;text-decoration:underline;cursor:pointer">Batal</div>
+</div>
+</sc-if>
+</div>
+
+</div>
+</div>
+
+<p class="dv-next">Coba berikutnya: "tulis spesifikasi komponen + token untuk developer" · "satukan A1–A10 jadi prototipe klik" · "E15 versi tamu ditolak / riwayat"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  P = [
+    ['foto/g-wed8.jpg', '1% 5%', '390% auto', 'Sari', '20.41'],
+    ['foto/g-wed3.jpg', '25% 8%', '175% auto', 'Andi (Bekasi)', '20.43'],
+    ['foto/g-wed4.jpg', '42% 22%', 'auto 175%', 'Tante Lusi', '20.44'],
+    ['foto/g-wed9.jpg', '3% 14%', '265% auto', '@dimas.fotografi', '20.46'],
+    ['foto/g-wed8.jpg', '50% 5%', '390% auto', 'Sari', '20.47'],
+    ['foto/g-wed5.jpg', '50% 10%', '175% auto', 'Om Hendra', '20.49'],
+    ['foto/g-wed6.jpg', '50% 6%', '150% auto', 'Nadia', '20.50'],
+    ['foto/g-wed3.jpg', '25% 88%', '175% auto', 'Andi (Bekasi)', '20.52'],
+    ['foto/g-wed8.jpg', '99% 5%', '390% auto', 'Tante Lusi', '20.53'],
+    ['foto/g-wed9.jpg', '97% 14%', '265% auto', 'Rizky', '20.55'],
+    ['foto/g-wed2.jpg', '50% 20%', '175% auto', '@dimas.fotografi', '20.56'],
+    ['foto/g-wed5.jpg', '50% 76%', '175% auto', 'Sari', '20.58'],
+  ];
+  state = { on: true, reveal: 'after', mod: 'manual', voice: true, strip: true, consentLen: 124, dirty: false, copied: false,
+    items: this.P.map((p, i) => i), sel: [], focus: 0, revealed: false, ask: false, done: 0 };
+  componentDidMount() {
+    this.onKey = e => {
+      if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+      const k = e.key.toLowerCase(), it = this.state.items;
+      if (!it.length) return;
+      if (k === 'arrowright') this.setState(s => ({ focus: Math.min(s.focus + 1, it.length - 1) }));
+      else if (k === 'arrowleft') this.setState(s => ({ focus: Math.max(s.focus - 1, 0) }));
+      else if (k === 'a' || k === 'x') { const ids = this.state.sel.length ? this.state.sel : [it[this.state.focus]]; this.drop(ids); }
+    };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKey); }
+  drop(ids) { this.setState(s => { const items = s.items.filter(i => !ids.includes(i)); return { items, sel: [], focus: Math.min(s.focus, Math.max(items.length - 1, 0)), done: s.done + ids.length }; }); }
+  set(p) { this.setState({ ...p, dirty: true }); }
+  opt(cur, key, list) {
+    return list.map(o => {
+      const on = cur === o.v;
+      return { ...o, bg: on ? '#D6F1EA' : '#fff', sh: on ? '4px 4px 0 -1.5px #8EDCCB,4px 4px 0 0 #1D1D1B' : 'none', dot: on ? '#5DB978' : '#fff', mark: on ? '✓' : '', pick: () => this.set({ [key]: o.v }) };
+    });
+  }
+  qr(seed) { const n = 25, out = []; let x = seed; const f = (r, c) => (r < 8 && c < 8) || (r < 8 && c > n - 9) || (r > n - 9 && c < 8);
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) { x = (x * 1103515245 + 12345) % 2147483648; out.push(f(r, c) ? '#fff' : ((x >> 16) & 1 ? '#1D1D1B' : '#fff')); } return out; }
+  renderVals() {
+    const s = this.state;
+    const navRaw = [
+      ['h', 'WAJIB'], ['i', 'Informasi', '✓'], ['i', 'Mode', '✓'], ['i', 'Desain frame', '✓'],
+      ['h', 'SESI'], ['i', 'Sesi', '✓'], ['i', 'Photo Stage', 'opsional'],
+      ['h', 'TAMU & DATA'], ['i', 'Halaman tamu', 'opsional'], ['a', 'Guest Cam', 'aktif'], ['i', 'Lead', 'opsional'], ['i', 'Masa simpan', '✓'], ['i', 'Link klien', '✓'],
+    ];
+    const nav = navRaw.map(([k, t, r]) => k === 'h'
+      ? { t, r: '', h: 44, al: 'flex-end', bd: 'transparent', bg: 'transparent', fs: 11, fw: 800, ls: '.06em', fg: '#3A3936' }
+      : { t, r: r || '', h: 40, al: 'center', bd: k === 'a' ? '#1D1D1B' : 'transparent', bg: k === 'a' ? '#F8D98B' : 'transparent', fs: 14, fw: 700, ls: '0', fg: '#1D1D1B' });
+    const items = s.items, pendingN = items.length;
+    const queue = items.map((id, idx) => {
+      const [img, pos, size, by, t] = this.P[id];
+      const sel = s.sel.includes(id), focus = idx === s.focus;
+      return { img, pos, size, by, t, focus, ring: focus ? '0 0 0 3px #8EDCCB' : 'none', chk: sel ? '#5DB978' : '#fff', mark: sel ? '✓' : '',
+        click: e => { if (e && e.shiftKey || s.sel.length) this.setState(st => ({ sel: st.sel.includes(id) ? st.sel.filter(x => x !== id) : [...st.sel, id], focus: idx })); else this.setState({ focus: idx }); },
+        ok: e => { e && e.stopPropagation(); this.drop([id]); }, no: e => { e && e.stopPropagation(); this.drop([id]); } };
+    });
+    const tog = (on, fn) => ({ bg: on ? '#8EDCCB' : '#fff', x: on ? 24 : 2, tg: fn });
+    return {
+      nav, qr: this.qr(91),
+      onBg: s.on ? '#8EDCCB' : '#fff', onX: s.on ? 24 : 2, tgOn: () => this.set({ on: !s.on }),
+      revealOpts: this.opt(s.reveal, 'reveal', [
+        { v: 'live', t: 'Langsung', d: 'Tamu melihat fotonya dan album acara saat itu juga. Foto ikut tampil di TV.' },
+        { v: 'after', t: 'Setelah acara', d: 'Gaya kamera sekali pakai. Tamu hanya melihat hitungan; semua foto terbuka saat acara dihentikan atau lewat tombol di dashboard.' },
+      ]),
+      modOpts: this.opt(s.mod, 'mod', [
+        { v: 'auto', t: 'Tampil otomatis', d: 'Foto langsung masuk album dan TV. Kamu tetap bisa menyembunyikannya kapan saja.' },
+        { v: 'manual', t: 'Perlu disetujui', d: 'Foto masuk antrean di dashboard dulu. Tamu tetap melihat fotonya sendiri dengan label "Ditinjau".' },
+      ]),
+      toggles: [
+        { t: 'Ucapan suara', d: 'Maks. 30 detik, satu per tamu. Muncul di tab Ucapan galeri.', ...tog(s.voice, () => this.set({ voice: !s.voice })) },
+        { t: 'Strip virtual', d: 'Pakai desain frame event · 3 slot. Maks. 5 strip per tamu.', ...tog(s.strip, () => this.set({ strip: !s.strip })) },
+      ],
+      consentLen: s.consentLen, onConsent: e => this.set({ consentLen: e.target.value.length }),
+      doCopy: () => { this.setState({ copied: true }); setTimeout(() => this.setState({ copied: false }), 1600); },
+      copyLabel: s.copied ? 'Tersalin ✓' : 'Salin',
+      dirtyLabel: s.dirty ? 'Ada perubahan' : 'Tidak ada perubahan',
+      pendingN,
+      stats: [
+        { t: 'Tamu ikut', v: '128', s: 'dari ±300 undangan', under: '#FCE3C6' },
+        { t: 'Foto', v: '1.420', s: '11 rata-rata/tamu', under: '#D6EEF8' },
+        { t: 'Ucapan', v: '37', s: '14:52 total', under: '#CEC8F6' },
+        { t: 'Perlu disetujui', v: String(pendingN), s: s.done ? s.done + ' baru ditinjau' : 'antre', under: '#D6F1EA' },
+      ],
+      revBg: s.revealed ? '#D6F1EA' : '#FCE3C6',
+      revIcon: s.revealed ? '✓' : '1.4k',
+      revTitle: s.revealed ? 'Foto tamu sudah terbuka' : 'Foto tamu masih tertutup',
+      revSub: s.revealed ? 'Dibuka 21.30 oleh Rama. Tamu menerima kabar lewat WhatsApp.' : 'Terbuka otomatis saat kamu menekan Hentikan Acara. Foto yang belum disetujui tetap tersembunyi.',
+      revAsk: !s.revealed && s.ask, revIdle: !s.revealed && !s.ask,
+      revOpen: () => this.setState({ ask: true }), revCancel: () => this.setState({ ask: false }), revDo: () => this.setState({ revealed: true, ask: false }),
+      queue, hasItems: pendingN > 0, noItems: pendingN === 0,
+      selAll: () => this.setState({ sel: [...s.items] }),
+      hasSel: s.sel.length > 0, selN: s.sel.length,
+      bulkOk: () => this.drop(s.sel), bulkNo: () => this.drop(s.sel), bulkClear: () => this.setState({ sel: [] }),
+    };
+  }
+}
+</script>
+</body>
+</html>

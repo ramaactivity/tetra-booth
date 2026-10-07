@@ -72,17 +72,21 @@ async function send(item: QueueItem): Promise<boolean | GuestMe> {
 }
 
 let running = false;
-/** Kirim semua yang antre untuk link ini. Berhenti di kegagalan pertama (sinyal); dipanggil ulang oleh UI. */
-export async function flush(token: string, onMe: (me: GuestMe) => void) {
-  if (running) return;
+/**
+ * Kirim semua yang antre untuk link ini. Berhenti di kegagalan pertama (sinyal); dipanggil ulang oleh UI.
+ * true = antrean kosong; false = masih ada yang gagal / sedang dikirim proses lain.
+ */
+export async function flush(token: string, onMe: (me: GuestMe) => void): Promise<boolean> {
+  if (running) return false;
   running = true;
   try {
     for (const item of (await queued(token)).sort((a, b) => a.idx - b.idx)) {
       const r = await send(item).catch(() => false);
-      if (r === false) return;
+      if (r === false) return false;
       await remove(item.id);
       if (typeof r === "object") onMe(r);
     }
+    return true;
   } finally {
     running = false;
   }
