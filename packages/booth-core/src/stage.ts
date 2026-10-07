@@ -133,12 +133,14 @@ export type StageTvState = {
   recent: string[];
   /** Lama tampilan aktif setelah jepretan terakhir (detik). */
   activeSec: number;
+  /** LUT `.cube` aktif (#184): kunci localStorage + waktu simpan; jendela TV membacanya sendiri. */
+  lut: { key: string; at: number } | null;
 };
 
 /** Ringkasan untuk TV dari keadaan rombongan. */
 export function tvState(
   s: StageState,
-  base: Pick<StageTvState, "eventName" | "guestBaseUrl" | "filter" | "activeSec">,
+  base: Pick<StageTvState, "eventName" | "guestBaseUrl" | "filter" | "activeSec" | "lut">,
 ): StageTvState {
   const withShots = s.groups.filter((g) => g.shots.length);
   const a = withShots.at(-1);

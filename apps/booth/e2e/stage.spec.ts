@@ -133,6 +133,38 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   await w.screenshot({ path: "test-results/stage-color.png" });
   await dlg.getByRole("button", { name: "Selesai" }).click();
   await expect(dlg).toBeHidden();
+
+  // LUT .cube (#184): LUT invers dipasang, rombongan #2 diproses dengan LUT (biru 200 → 55).
+  const rows = ["LUT_3D_SIZE 2"];
+  for (const b of [0, 1])
+    for (const g of [0, 1]) for (const r of [0, 1]) rows.push(`${1 - r} ${1 - g} ${1 - b}`);
+  await w.getByRole("button", { name: "Warna" }).click();
+  await dlg.getByRole("button", { name: "Kembalikan" }).click();
+  await dlg.locator("input[type=file]").setInputFiles({
+    name: "invert.cube",
+    mimeType: "text/plain",
+    buffer: Buffer.from(rows.join("\n")),
+  });
+  await expect(dlg.getByTestId("stage-lut")).toHaveText("invert.cube");
+  await w.screenshot({ path: "test-results/stage-lut.png" });
+  await dlg.getByRole("button", { name: "Selesai" }).click();
+  await w.keyboard.press("Enter");
+  await expect(w.getByText("tersimpan")).toHaveCount(2, { timeout: 15_000 });
+  const second = readdirSync(join(data, "sessions")).find(
+    (d) => d !== sessions[0] && existsSync(join(data, "sessions", d, "out", "original_1.jpg")),
+  );
+  const px = await app.evaluate(
+    ({ nativeImage }, f) => {
+      const img = nativeImage.createFromPath(f);
+      const { width, height } = img.getSize();
+      const bmp = img.toBitmap();
+      const i = 4 * (Math.floor(height / 2) * width + Math.floor(width / 2));
+      return [bmp[i], bmp[i + 1], bmp[i + 2]];
+    },
+    join(data, "sessions", second ?? "", "out", "original_1.jpg"),
+  );
+  // Asal [120,120,200] → invers [135,135,55]; urutan kanal bitmap tergantung OS.
+  expect([...px].sort((a, b) => (a ?? 0) - (b ?? 0))[0]).toBeLessThan(80);
   await app.close();
 });
 

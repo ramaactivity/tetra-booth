@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { copy } from "./copy";
+import { storedLut } from "./lut";
 import { usePlatform } from "./PlatformContext";
 import type { StageTvState } from "./stage";
 import { renderJpeg } from "./stageImage";
@@ -8,13 +9,22 @@ import { QrCode, Stage } from "./ui";
 const t = copy.stage;
 const IDLE_SLIDE_MS = 5000;
 /** Foto TV cukup 1280 px (layar 1080p); object URL disimpan per path, dibuang saat path tidak dipakai lagi. */
-function usePhotos(paths: string[]) {
+function usePhotos(paths: string[], lut: StageTvState["lut"]) {
   const p = usePlatform();
   const [urls, setUrls] = useState<Record<string, string>>({});
   const cache = useRef(new Map<string, string>());
   const key = paths.join("\n");
+  const lutId = lut ? `${lut.key}@${lut.at}` : "";
+  const lutSeen = useRef(lutId);
   useEffect(() => {
     let live = true;
+    // LUT berganti → semua foto dirender ulang.
+    if (lutSeen.current !== lutId) {
+      for (const url of cache.current.values()) URL.revokeObjectURL(url);
+      cache.current.clear();
+      lutSeen.current = lutId;
+    }
+    const l = lutId ? (storedLut(lutId.slice(0, lutId.lastIndexOf("@")))?.lut ?? null) : null;
     const want = new Set(key ? key.split("\n") : []);
     for (const [path, url] of cache.current)
       if (!want.has(path)) {
@@ -26,7 +36,7 @@ function usePhotos(paths: string[]) {
       cache.current.set(path, "");
       void p.storage
         .readFile(path)
-        .then((b) => renderJpeg(b, 1280, "none", 0.85))
+        .then((b) => renderJpeg(b, 1280, "none", 0.85, l))
         .then((j) => {
           const url = URL.createObjectURL(new Blob([j], { type: "image/jpeg" }));
           cache.current.set(path, url);
@@ -38,7 +48,7 @@ function usePhotos(paths: string[]) {
     return () => {
       live = false;
     };
-  }, [key, p]);
+  }, [key, lutId, p]);
   return urls;
 }
 
@@ -62,7 +72,7 @@ export function StageTv() {
     return () => clearInterval(id);
   }, []);
   const active = st?.active && now - st.active.at < st.activeSec * 1000 ? st.active : null;
-  const photos = usePhotos(active ? active.shots : (st?.recent ?? []));
+  const photos = usePhotos(active ? active.shots : (st?.recent ?? []), st?.lut ?? null);
   const slide = st?.recent.length
     ? st.recent[Math.floor(now / IDLE_SLIDE_MS) % st.recent.length]
     : undefined;

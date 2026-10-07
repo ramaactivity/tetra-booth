@@ -14,6 +14,7 @@ import { copy } from "./copy";
 import { errText } from "./errors";
 import type { BoothEvent } from "./event";
 import { ORIGINAL_LONG_SIDE, THUMB_LONG_SIDE } from "./finalize";
+import { lutKey, parseCube, storedLut } from "./lut";
 import { usePlatform } from "./PlatformContext";
 import type { SessionAsset } from "./platform";
 import {
@@ -26,7 +27,7 @@ import {
   stageReducer,
   tvState,
 } from "./stage";
-import { renderJpeg } from "./stageImage";
+import { renderJpeg, stageCanvas } from "./stageImage";
 import { QrCode } from "./ui";
 
 const t = copy.stage;
@@ -76,8 +77,36 @@ export function StageRunner({
   const [prints, setPrints] = useState<Record<string, "printing" | "sent" | "failed">>({});
   const presetRef = useRef(preset);
   presetRef.current = preset;
+  const [lut, setLut] = useState(() => storedLut(lutKey(event.id)));
+  const [lutError, setLutError] = useState<string | null>(null);
+  const lutRef = useRef(lut);
+  lutRef.current = lut;
   const started = useRef(new Map<string, Promise<void>>());
   const busy = useRef(new Set<string>());
+
+  // Pratinjau 480 px dengan LUT (#184); filter preset dipasang lewat CSS supaya slider langsung terlihat.
+  const makeThumb = useCallback(
+    (path: string) =>
+      void p.storage
+        .readFile(path)
+        .then((b) => renderJpeg(b, 480, "none", 0.8, lutRef.current?.lut ?? null))
+        .then((j) =>
+          setThumbs((x) => {
+            if (x[path]) URL.revokeObjectURL(x[path]);
+            return { ...x, [path]: URL.createObjectURL(new Blob([j], { type: "image/jpeg" })) };
+          }),
+        )
+        .catch((e: unknown) => console.warn(`[stage] pratinjau gagal: ${errText(e)}`)),
+    [p],
+  );
+  // LUT berganti → pratinjau yang tampil (rombongan aktif + foto tes terakhir) dirender ulang.
+  const lutAt = lut?.at ?? 0;
+  const thumbPaths = useRef<string[]>([]);
+  thumbPaths.current = Object.keys(thumbs);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: dipicu pergantian LUT saja
+  useEffect(() => {
+    for (const path of thumbPaths.current.slice(-40)) makeThumb(path);
+  }, [lutAt, makeThumb]);
 
   // Dengar rana fotografer selama layar ini terbuka.
   useEffect(() => {
@@ -87,22 +116,13 @@ export function StageRunner({
       .catch((e: unknown) => console.error(`[stage] dengar rana gagal: ${errText(e)}`));
     const off = stage.onShot((sh) => {
       dispatch({ type: "SHOT", shot: { ...sh, at: Date.now() }, id: newSessionId() });
-      void p.storage
-        .readFile(sh.path)
-        .then((b) => renderJpeg(b, 480, "none", 0.8))
-        .then((j) =>
-          setThumbs((x) => ({
-            ...x,
-            [sh.path]: URL.createObjectURL(new Blob([j], { type: "image/jpeg" })),
-          })),
-        )
-        .catch((e: unknown) => console.warn(`[stage] pratinjau gagal: ${errText(e)}`));
+      makeThumb(sh.path);
     });
     return () => {
       off();
       void stage.listen(false).catch(() => {});
     };
-  }, [stage, p]);
+  }, [stage, makeThumb]);
 
   useEffect(() => {
     const id = setInterval(() => dispatch({ type: "TICK", now: Date.now() }), 1000);
@@ -142,7 +162,7 @@ export function StageRunner({
             ["original", ORIGINAL_LONG_SIDE, 0.92],
             ["thumb_original", THUMB_LONG_SIDE, 0.85],
           ] as const) {
-            const bytes = await renderJpeg(raw, max, css, q);
+            const bytes = await renderJpeg(raw, max, css, q, lutRef.current?.lut ?? null);
             const path = `${dir}/out/${kind}_${i + 1}.jpg`;
             await p.storage.writeFile(path, bytes);
             assets.push({ kind, idx: i + 1, path, bytes: bytes.length });
@@ -190,9 +210,10 @@ export function StageRunner({
         guestBaseUrl,
         filter: stagePresetCss(preset),
         activeSec: event.settings.qrScreenSec,
+        lut: lut ? { key: lutKey(event.id), at: lut.at } : null,
       }),
     );
-  }, [s, preset, stage, event.name, event.settings.qrScreenSec, guestBaseUrl]);
+  }, [s, preset, lut, stage, event.id, event.name, event.settings.qrScreenSec, guestBaseUrl]);
 
   const newGroup = useCallback(
     () => dispatch({ type: "NEW_GROUP", id: newSessionId(), now: Date.now() }),
@@ -231,9 +252,10 @@ export function StageRunner({
     try {
       const bmp = await createImageBitmap(new Blob([await p.storage.readFile(sh.path)]));
       try {
+        const photo = stageCanvas(bmp, ORIGINAL_LONG_SIDE, "none", lutRef.current?.lut ?? null);
         const { sheet } = await renderEvent(
           { ...event, layout: stagePrintLayout(event.layout, bmp) },
-          [bmp],
+          [photo],
           stagePresetCss(presetRef.current),
           `${guestBaseUrl}/s/${g.id}`,
         );
@@ -254,6 +276,26 @@ export function StageRunner({
   const setGap = (gapSec: number | null) => {
     localStorage.setItem(GAP_KEY, gapSec === null ? "off" : String(gapSec));
     dispatch({ type: "SET_GAP", gapSec });
+  };
+  const pickLut = async (f: File) => {
+    try {
+      const text = await f.text();
+      parseCube(text);
+      const at = Date.now();
+      try {
+        localStorage.setItem(lutKey(event.id), JSON.stringify({ name: f.name, text, at }));
+      } catch {
+        throw new Error(t.lutTooBig);
+      }
+      setLut(storedLut(lutKey(event.id)));
+      setLutError(null);
+    } catch (e) {
+      setLutError(errText(e));
+    }
+  };
+  const removeLut = () => {
+    localStorage.removeItem(lutKey(event.id));
+    setLut(null);
   };
   const savePreset = (next: StagePreset) => {
     setPreset(next);
@@ -523,6 +565,37 @@ export function StageRunner({
             <div className="flex flex-1 flex-col gap-5">
               <h2 className="text-[32px] font-extrabold">{t.colorTitle}</h2>
               <p className="text-xl text-text-2">{t.colorHint}</p>
+              <div className="flex items-center gap-3 rounded-2xl border-2 border-line-soft p-3">
+                <span className="text-xl font-bold">{t.lut}</span>
+                <span
+                  className="min-w-0 flex-1 truncate text-lg text-text-2"
+                  data-testid="stage-lut"
+                >
+                  {lutError ?? lut?.name ?? t.lutNone}
+                </span>
+                {lut && (
+                  <button
+                    type="button"
+                    onClick={removeLut}
+                    className="rounded-full border-2 border-ink bg-white px-4 py-1.5 text-lg font-bold"
+                  >
+                    {t.lutRemove}
+                  </button>
+                )}
+                <label className="pressable cursor-pointer rounded-full border-2 border-ink bg-lavender px-4 py-1.5 text-lg font-bold has-focus-visible:outline-2">
+                  {t.lutPick}
+                  <input
+                    type="file"
+                    accept=".cube"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void pickLut(f);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {PHOTO_FILTERS.map((f) => (
                   <button
