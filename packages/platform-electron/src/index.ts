@@ -185,5 +185,14 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
     },
     health: () => bridge.health(),
     phaseChanged: (phase) => bridge.phaseChanged(phase),
+    ...(cfg.role === "stage"
+      ? {
+          stage: {
+            listen: (on: boolean) => bridge.stageListen(on),
+            onShot: (cb: Parameters<TetraBridge["onStageShot"]>[0]) => bridge.onStageShot(cb),
+            rename: (id: string, name: string | null) => bridge.stageRename(id, name),
+          },
+        }
+      : {}),
   };
 };

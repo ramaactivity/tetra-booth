@@ -60,7 +60,7 @@ export const cameraHealth = () => request({ id: randomUUID(), type: "system.heal
  * Koneksi tetap untuk event Camera Service (print.done/print.failed/printer.status, nanti kamera).
  * Sambung ulang tiap 2 detik kalau putus (Camera Service di-restart supervisor). Kembalikan fungsi stop.
  */
-export function listenEvents(onEvent: (e: ServiceEvent) => void): () => void {
+export function listenEvents(onEvent: (e: ServiceEvent) => void, onOpen?: () => void): () => void {
   let ws: WebSocket | null = null;
   let stopped = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -68,6 +68,9 @@ export function listenEvents(onEvent: (e: ServiceEvent) => void): () => void {
     if (stopped) return;
     const s = new WebSocket(url());
     ws = s;
+    // Tersambung (lagi): Camera Service mungkin baru di-restart supervisor, keadaan per proses (mis. Photo Stage
+    // capture.listen, #178) dipasang ulang pemanggil.
+    s.onopen = () => onOpen?.();
     s.onmessage = (e) => {
       try {
         const msg = EventSchema.safeParse(JSON.parse(String(e.data)));

@@ -14,6 +14,7 @@ import {
 } from "./camera-client";
 import { cameraServiceFlags } from "./config";
 import type { BoothDb } from "./db";
+import { stageReassert, stageShot } from "./stage";
 import { createSupervisor } from "./supervisor";
 import { waitUntil } from "./wait";
 
@@ -148,21 +149,28 @@ export async function startCameraService(log: (m: string) => void, db: BoothDb, 
 
 /** Hasil cetak datang sebagai event, bukan balasan print.submit: catat ke print_jobs + log (M-007). */
 export function watchPrintEvents(log: (m: string) => void, db: BoothDb, alerts: Alerts) {
-  return listenEvents((e) => {
-    if (e.type === "print.done") {
-      db.printJobResult(e.payload.jobId, "done");
-      alerts.onPrintDone(e.payload.jobId);
-      log(`[print] selesai ${e.payload.jobId} · kertas ${db.paper().remaining}`);
-    } else if (e.type === "print.failed") {
-      db.printJobResult(e.payload.jobId, "failed", `${e.payload.code}: ${e.payload.message}`);
-      alerts.onPrintFailed(e.payload.jobId, `${e.payload.code}: ${e.payload.message}`);
-      log(`[print] GAGAL ${e.payload.jobId}: ${e.payload.code} ${e.payload.message}`);
-    } else if (e.type === "printer.status") {
-      alerts.onPrinterStatus(e.payload.status, e.payload.message);
-      const msg = e.payload.message ? `: ${e.payload.message}` : "";
-      log(`[print] printer ${e.payload.status}${msg}`);
-    }
-  });
+  return listenEvents(
+    (e) => {
+      if (e.type === "capture.shot") {
+        stageShot(e.payload);
+        return;
+      }
+      if (e.type === "print.done") {
+        db.printJobResult(e.payload.jobId, "done");
+        alerts.onPrintDone(e.payload.jobId);
+        log(`[print] selesai ${e.payload.jobId} · kertas ${db.paper().remaining}`);
+      } else if (e.type === "print.failed") {
+        db.printJobResult(e.payload.jobId, "failed", `${e.payload.code}: ${e.payload.message}`);
+        alerts.onPrintFailed(e.payload.jobId, `${e.payload.code}: ${e.payload.message}`);
+        log(`[print] GAGAL ${e.payload.jobId}: ${e.payload.code} ${e.payload.message}`);
+      } else if (e.type === "printer.status") {
+        alerts.onPrinterStatus(e.payload.status, e.payload.message);
+        const msg = e.payload.message ? `: ${e.payload.message}` : "";
+        log(`[print] printer ${e.payload.status}${msg}`);
+      }
+    },
+    () => stageReassert(log),
+  );
 }
 
 /** Batas tunggu print selesai saat app ditutup (M-012). */

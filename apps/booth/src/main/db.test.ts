@@ -235,4 +235,31 @@ describe("log harian", () => {
     expect(pruneLogs(dir, new Date("2026-09-24T12:00:00Z"))).toEqual(["2026-09-01.log"]);
     expect(readdirSync(dir).sort()).toEqual(["2026-09-10.log", "2026-09-24.log", "catatan.txt"]);
   });
+
+  it("Photo Stage (#178): sumber + nama grup ikut metadata; ganti nama setelah terunggah = dueMeta", () => {
+    const db = openDb(":memory:");
+    db.sessionStarted({ ...start, source: "stage", groupName: "Keluarga Inti" });
+    db.sessionCompleted({ ...done, assets: [done.assets[2], done.assets[3]].filter((a) => !!a) });
+    expect(db.sessionMeta(start.id)).toMatchObject({ source: "stage", groupName: "Keluarga Inti" });
+    expect(db.dueMeta(10)).toEqual([]);
+    for (const u of db.dueUploads("9999", 10))
+      db.uploadDone(u.assetId, `k/${u.assetId}`, "2026-09-24T10:02:00Z");
+    db.sessionMetaSynced(start.id);
+    expect(db.dueMeta(10)).toEqual([]);
+    db.sessionRename(start.id, "Keluarga Besar Bpk. Hadi");
+    expect(db.dueMeta(10)).toEqual([start.id]);
+    expect(db.sessionMeta(start.id).groupName).toBe("Keluarga Besar Bpk. Hadi");
+    db.sessionMetaSynced(start.id);
+    expect(db.dueMeta(10)).toEqual([]);
+  });
+
+  it("sesi booth biasa tidak membawa field Photo Stage dan tidak bisa diganti nama", () => {
+    const db = openDb(":memory:");
+    db.sessionStarted(start);
+    db.sessionCompleted(done);
+    const m = db.sessionMeta(start.id);
+    expect("source" in m).toBe(false);
+    db.sessionRename(start.id, "x");
+    expect(db.query("select group_name from sessions")).toEqual([{ group_name: null }]);
+  });
 });

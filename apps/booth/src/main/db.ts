@@ -68,6 +68,9 @@ export type SessionMeta = {
   printCount: number;
   assetCount: number;
   isTest?: boolean;
+  /** Photo Stage (#178). */
+  source?: "stage";
+  groupName?: string | null;
 };
 /** Rekap booth (#154): sesi asli (bukan tes) yang selesai di laptop ini. */
 export type LocalRecap = {
@@ -95,6 +98,9 @@ export type SessionStart = {
   paymentId?: string | undefined;
   /** Sesi mode "Tes dulu" crew (#153). */
   isTest?: boolean | undefined;
+  /** Photo Stage (#178): sesi = rombongan fotografer pelaminan. */
+  source?: "stage" | undefined;
+  groupName?: string | null | undefined;
 };
 export type SessionDone = {
   id: string;
@@ -147,6 +153,8 @@ export function openDb(file: string) {
   );
   if (!cols.has("is_test"))
     db.exec("alter table sessions add column is_test int not null default 0");
+  if (!cols.has("source")) db.exec("alter table sessions add column source text");
+  if (!cols.has("group_name")) db.exec("alter table sessions add column group_name text");
   // Sesi yang masih berjalan saat app mati tidak akan pernah selesai.
   const abandoned = db
     .prepare("update sessions set status = 'abandoned' where status = 'in_progress'")
@@ -165,8 +173,8 @@ export function openDb(file: string) {
   };
 
   const insertStart = db.prepare(
-    `insert into sessions (id, event_id, layout_version_id, payment_id, status, started_at, photo_count, retake_count, print_count, is_test)
-     values (?, ?, ?, ?, 'in_progress', ?, 0, 0, 0, ?)
+    `insert into sessions (id, event_id, layout_version_id, payment_id, status, started_at, photo_count, retake_count, print_count, is_test, source, group_name)
+     values (?, ?, ?, ?, 'in_progress', ?, 0, 0, 0, ?, ?, ?)
      on conflict (id) do nothing`,
   );
   const complete = db.prepare(
@@ -227,6 +235,8 @@ export function openDb(file: string) {
         s.paymentId ?? null,
         s.startedAt,
         s.isTest ? 1 : 0,
+        s.source ?? null,
+        s.groupName ?? null,
       );
     },
 
@@ -375,16 +385,54 @@ export function openDb(file: string) {
     },
     /** Metadata sesi untuk upsert cloud (POST /api/booth/sessions). */
     sessionMeta(id: string): SessionMeta & { paymentId?: string } {
-      const { paymentId, isTest, ...m } = db
+      const { paymentId, isTest, source, groupName, ...m } = db
         .prepare(
           `select id, event_id eventId, started_at startedAt, completed_at completedAt,
              photo_count photoCount, retake_count retakeCount, print_count printCount,
              (select count(*) from assets where session_id = sessions.id) assetCount,
-             payment_id paymentId, is_test isTest
+             payment_id paymentId, is_test isTest, source, group_name groupName
            from sessions where id = ?`,
         )
-        .get(id) as Omit<SessionMeta, "isTest"> & { paymentId: string | null; isTest: number };
-      return { ...m, ...(paymentId && { paymentId }), ...(isTest && { isTest: true }) };
+        .get(id) as Omit<SessionMeta, "isTest" | "source" | "groupName"> & {
+        paymentId: string | null;
+        isTest: number;
+        source: string | null;
+        groupName: string | null;
+      };
+      return {
+        ...m,
+        ...(paymentId && { paymentId }),
+        ...(isTest && { isTest: true }),
+        ...(source === "stage" && { source: "stage" as const, groupName }),
+      };
+    },
+    /** Photo Stage (#178): ganti nama grup; metadata dikirim ulang ke cloud (dueMeta). */
+    sessionRename(id: string, groupName: string | null) {
+      db.prepare(
+        "update sessions set group_name = ?, synced_meta = 0 where id = ? and source = 'stage'",
+      ).run(groupName, id);
+    },
+    /**
+     * Sesi selesai di event cloud yang metadatanya belum terkirim padahal tidak ada aset yang antre (mis. nama grup
+     * diganti setelah semua foto terunggah). Sesi yang masih punya antrean ikut terkirim bersama asetnya.
+     */
+    dueMeta(limit: number): string[] {
+      return (
+        db
+          .prepare(
+            `select id from sessions s where status = 'completed' and synced_meta = 0
+               and not exists (select 1 from assets a join upload_queue q on q.asset_id = a.id where a.session_id = s.id)
+             limit ?`,
+          )
+          .all(limit) as { id: string }[]
+      )
+        .map((r) => r.id)
+        .filter((id) => {
+          const ev = (
+            db.prepare("select event_id from sessions where id = ?").get(id) as { event_id: string }
+          ).event_id;
+          return UUID.test(ev);
+        });
     },
     sessionMetaSynced(id: string) {
       db.prepare("update sessions set synced_meta = 1 where id = ?").run(id);

@@ -61,6 +61,9 @@ export interface BoothDb {
     paymentId?: string;
     /** Sesi mode "Tes dulu" crew (#153): tidak dihitung, tidak tampil di galeri. */
     isTest?: boolean;
+    /** Photo Stage (#178): sesi = rombongan; nama grup boleh kosong. */
+    source?: "stage";
+    groupName?: string | null;
   }): Promise<void>;
   /** Sesi + aset + antrean upload dalam satu transaksi (TSD §4.2). */
   sessionCompleted(s: {
@@ -124,6 +127,8 @@ export type DeviceSettings = {
   hotFolder?: string;
   hotFolderTrigger?: string;
   printer?: string;
+  /** Peran laptop (#178): `stage` = Photo Stage; bawaan booth. */
+  role?: "booth" | "stage";
 };
 /** `locked` = flag yang dipaksa baris perintah (tidak bisa diubah dari mode crew). */
 export type DeviceInfo = { now: DeviceSettings; locked: string[]; printers: string[] };
@@ -276,6 +281,17 @@ export interface BoothPayments {
   status(paymentId: string): Promise<PaymentStatus>;
 }
 
+/** Jepretan fotografer yang sudah tersimpan di laptop (Photo Stage #178). */
+export type StageShotEvent = { path: string; width: number; height: number };
+/** Photo Stage (#178): ada hanya di laptop berperan `stage`. */
+export interface BoothStage {
+  /** Mulai/berhenti menerima jepretan rana fotografer (Canon, atau folder pantau aplikasi tether). */
+  listen(on: boolean): Promise<void>;
+  onShot(cb: (s: StageShotEvent) => void): Unsubscribe;
+  /** Ganti nama grup rombongan; tersinkron ke cloud walau fotonya sudah terunggah. */
+  rename(sessionId: string, name: string | null): Promise<void>;
+}
+
 export interface BoothPlatform {
   camera: BoothCamera;
   /** Gagal = reject. Sesi tetap selesai walau print gagal (FSD §1.10). */
@@ -296,4 +312,6 @@ export interface BoothPlatform {
   phaseChanged(phase: string): void;
   /** Live view di-mirror (bawaan true); false = seperti yang dilihat kamera. */
   mirrorLiveView?: boolean;
+  /** Laptop Photo Stage (#178); tidak ada = booth biasa. */
+  stage?: BoothStage;
 }

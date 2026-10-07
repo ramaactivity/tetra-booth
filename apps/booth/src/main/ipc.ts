@@ -51,6 +51,7 @@ import {
 } from "./event-override";
 import { allowQuit, autoStart, setAutoStart, setKioskOn } from "./kiosk";
 import { onPhase } from "./shots";
+import { stageInbox, stageListen } from "./stage";
 import { downloadInstaller, runInstaller } from "./update";
 
 /** %APPDATA%/TetraBooth/sessions (TSD §3). Renderer hanya boleh baca/tulis di bawah folder ini. */
@@ -83,6 +84,8 @@ const SessionStarted = z.object({
   startedAt: Iso,
   paymentId: z.uuid().optional(),
   isTest: z.boolean().optional(),
+  source: z.literal("stage").optional(),
+  groupName: z.string().trim().max(120).nullable().optional(),
 });
 const SessionCompleted = z.object({
   id: z.string().regex(SESSION_ID_PATTERN),
@@ -812,6 +815,19 @@ export function registerIpc(
     // Aset desain yang diedit di booth ada di folder local/, bukan di bundle.
     const local = designOf(b.id).assets[a];
     return new Uint8Array(await readFile(local ? join(localDir(b.id), local) : assetPath(b, a)));
+  });
+
+  // Photo Stage (#178): dengar rana fotografer; jepretan masuk ke _stage-inbox (di dalam folder sesi, jadi bisa
+  // dibaca renderer lewat readFile). Ganti nama grup tersinkron ke cloud lewat uploader (dueMeta).
+  ipcMain.handle("stageListen", (_e, on: unknown) =>
+    stageListen(z.boolean().parse(on) ? stageInbox(sessionsRoot()) : null),
+  );
+  ipcMain.handle("stageRename", (_e, id: unknown, name: unknown) => {
+    db.sessionRename(
+      SessionId.parse(id),
+      z.string().trim().max(120).nullable().parse(name) || null,
+    );
+    cloud.kickUpload();
   });
 
   ipcMain.handle("sessionStarted", (_e, x: unknown) => {

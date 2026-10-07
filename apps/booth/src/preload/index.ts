@@ -67,6 +67,13 @@ const bridge: TetraBridge = {
     ipcRenderer.on("updateProgress", h);
     return () => ipcRenderer.off("updateProgress", h);
   },
+  stageListen: (on) => ipcRenderer.invoke("stageListen", on),
+  stageRename: (id, name) => ipcRenderer.invoke("stageRename", id, name),
+  onStageShot: (cb) => {
+    const h = (_e: IpcRendererEvent, s: Parameters<typeof cb>[0]) => cb(s);
+    ipcRenderer.on("stageShot", h);
+    return () => ipcRenderer.off("stageShot", h);
+  },
   onPrintUpdated: (cb) => {
     const h = (_e: IpcRendererEvent, u: Parameters<typeof cb>[0]) => cb(u);
     ipcRenderer.on("printUpdated", h);

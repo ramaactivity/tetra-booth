@@ -23,6 +23,8 @@ export const VALUE_FLAGS = [
   "printer-2x6x2",
   "canon",
   "sony",
+  /** Peran laptop (#178): `--role stage` = Photo Stage. */
+  "role",
 ] as const;
 type ValueFlag = (typeof VALUE_FLAGS)[number];
 
@@ -79,6 +81,8 @@ export const DeviceSettings = z.object({
   hotFolder: z.string().min(1).max(260).optional(),
   hotFolderTrigger: z.url().max(512).optional(),
   printer: z.string().min(1).max(256).optional(),
+  /** Peran laptop (#178): `stage` = Photo Stage. Bawaan booth. */
+  role: z.enum(["booth", "stage"]).optional(),
 });
 export type DeviceSettings = z.infer<typeof DeviceSettings>;
 export const deviceFile = join(userDir, "device.json");
@@ -192,6 +196,7 @@ export const config: BoothConfig = {
   ...(device.webcamId ? { webcamId: device.webcamId } : {}),
   mirrorLiveView: device.mirrorLiveView ?? true,
   mirrorPhoto: device.mirrorPhoto ?? false,
+  ...((device.role ?? flags.value("role")) === "stage" ? { role: "stage" as const } : {}),
 };
 
 const size = /^(\d+)x(\d+)$/.exec(flags.value("size") ?? "");
@@ -249,6 +254,7 @@ export const deviceNow: DeviceSettings = {
     ? { hotFolderTrigger: flags.value("hot-folder-trigger") }
     : {}),
   ...(printerName ? { printer: printerName } : {}),
+  ...(config.role ? { role: config.role } : {}),
 };
 
 /** Interval log metrik (detik), default 60. Stress test memakai nilai kecil. */

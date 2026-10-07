@@ -30,6 +30,8 @@ export type BoothConfig = {
   mirrorLiveView?: boolean;
   /** Opsi crew: hasil foto ikut dibalik (bawaan mati). */
   mirrorPhoto?: boolean;
+  /** Peran laptop (#178): `stage` = Photo Stage (fotografer pelaminan); bawaan booth. */
+  role?: "booth" | "stage";
 };
 
 /**
@@ -103,6 +105,10 @@ export type TetraBridge = {
   eventsRecentPieces: BoothEvents["recentPieces"];
   paymentCreate: BoothPayments["create"];
   paymentStatus: BoothPayments["status"];
+  /** Photo Stage (#178). */
+  stageListen(on: boolean): Promise<void>;
+  onStageShot(cb: (s: { path: string; width: number; height: number }) => void): () => void;
+  stageRename(sessionId: string, name: string | null): Promise<void>;
 };
 
 declare global {
