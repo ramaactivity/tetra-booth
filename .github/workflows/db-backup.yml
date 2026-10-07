@@ -1,0 +1,52 @@
+name: Backup database (mingguan)
+
+# Supabase Free tidak punya backup otomatis (DECISIONS #172/#175). Tiap Minggu 03.00 WIB: pg_dump schema public +
+# auth → enkripsi AES-256 (BACKUP_PASSPHRASE) → R2 `backups/db/`, simpan 12 terbaru. Bucket R2 punya URL publik,
+# jadi file wajib terenkripsi dan namanya diberi akhiran acak.
+#
+# Pulihkan:
+#   aws s3 cp s3://$R2_BUCKET/backups/db/<file>.enc . --endpoint-url https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com
+#   openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in <file>.enc -out tetra.dump   # minta passphrase
+#   pg_restore --no-owner --no-privileges -d "<url database tujuan>" tetra.dump
+# Passphrase di Mac: security find-generic-password -s tetra-db-backup-passphrase -w
+on:
+  schedule:
+    - cron: "0 20 * * 6"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Pasang pg_dump 17 (sama dengan server Supabase)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+      - name: Dump, enkripsi, unggah ke R2
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+        run: |
+          set -euo pipefail
+          f="tetra-db-$(date -u +%Y%m%d-%H%M)-$(openssl rand -hex 6).dump"
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" -Fc --no-owner --no-privileges -n public -n auth -f "$f"
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_PASSPHRASE -in "$f" -out "$f.enc"
+          ls -l "$f" "$f.enc"
+          aws s3 cp "$f.enc" "s3://$R2_BUCKET/backups/db/$f.enc" --endpoint-url "$R2_ENDPOINT" --only-show-errors
+          aws s3 ls "s3://$R2_BUCKET/backups/db/" --endpoint-url "$R2_ENDPOINT" | awk '{print $4}' | sort | head -n -12 \
+            | xargs -r -I{} aws s3 rm "s3://$R2_BUCKET/backups/db/{}" --endpoint-url "$R2_ENDPOINT" --only-show-errors
+          echo "Backup tersimpan: backups/db/$f.enc"
