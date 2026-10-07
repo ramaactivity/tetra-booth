@@ -12,6 +12,9 @@ namespace TetraCamera.Canon;
 public sealed class CanonCamera : ICameraSource, IDisposable
 {
     public static readonly TimeSpan CaptureTimeout = TimeSpan.FromSeconds(10);
+    /// <summary>Coba ulang ubah setelan jepret saat kamera sibuk: total ±1 s.</summary>
+    private const int SetRetries = 5;
+    private static readonly TimeSpan SetRetryDelay = TimeSpan.FromMilliseconds(200);
     /// <summary>
     /// Thread SDK tanpa detak selama ini = macet (mis. OpenSession 60D yang sibuk tidak pernah kembali, 2026-09-30).
     /// Operasi terlama yang wajar: jepret (10 s) atau sambung dengan coba ulang BUSY (±2 s).
@@ -215,14 +218,40 @@ public sealed class CanonCamera : ICameraSource, IDisposable
                 if (want is not { } w || w == CanonProps.SameAsLive) continue;
                 var live = _driver.GetProp(o.PropId);
                 if (live == w) continue;
-                _driver.SetProp(o.PropId, w);
+                // Kamera menolak (700D: DEVICE_BUSY 0x81 terus, 2026-10-07) → tetap jepret dengan setelan live view,
+                // jangan batalkan jepretan (tamu menunggu "menyiapkan kamera" tanpa akhir).
+                if (!TrySet(o.PropId, w, o.Name)) continue;
                 restore.Add((o.PropId, live));
             }
             return _driver.Capture(CaptureTimeout);
         }
         finally
         {
-            for (var i = restore.Count - 1; i >= 0; i--) _driver.SetProp(restore[i].Prop, restore[i].Live);
+            for (var i = restore.Count - 1; i >= 0; i--) TrySet(restore[i].Prop, restore[i].Live, "kembalikan");
+        }
+    }
+
+    /// <summary>Ubah setelan dengan coba ulang singkat saat kamera sibuk; gagal = false + log (tidak melempar).</summary>
+    private bool TrySet(uint prop, uint value, string what)
+    {
+        for (var i = 0; ; i++)
+        {
+            try
+            {
+                _driver.SetProp(prop, value);
+                return true;
+            }
+            catch (Exception e) when (i < SetRetries)
+            {
+                _ = e;
+                Thread.Sleep(SetRetryDelay);
+                try { _driver.Pump(); } catch { /* event dicek lagi berikutnya */ }
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"[canon] setelan jepret {what} dilewati: {e.Message}");
+                return false;
+            }
         }
     }
 
