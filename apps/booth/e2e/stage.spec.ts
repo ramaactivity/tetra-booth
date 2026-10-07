@@ -147,7 +147,8 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
     mimeType: "text/plain",
     buffer: Buffer.from(rows.join("\n")),
   });
-  await expect(dlg.getByTestId("stage-lut")).toHaveText("invert.cube");
+  await expect(dlg.getByTestId("stage-lut")).toContainText("invert.cube");
+  await w.waitForTimeout(800); // foto tes sebelum/sesudah dirender ulang dengan LUT
   await w.screenshot({ path: "test-results/stage-lut.png" });
   await dlg.getByRole("button", { name: "Selesai" }).click();
   await w.keyboard.press("Enter");

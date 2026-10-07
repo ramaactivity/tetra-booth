@@ -12,8 +12,8 @@ export const StagePresetSchema = z.object({
   brightness: z.number().int().min(-50).max(50).default(0),
   contrast: z.number().int().min(-50).max(50).default(0),
   saturation: z.number().int().min(-50).max(50).default(0),
-  /** 0…50: makin hangat (kekuningan). */
-  warmth: z.number().int().min(0).max(50).default(0),
+  /** -50…50: positif makin hangat (kekuningan), negatif makin dingin (#187). */
+  warmth: z.number().int().min(-50).max(50).default(0),
 });
 export type StagePreset = z.infer<typeof StagePresetSchema>;
 export const DEFAULT_STAGE_PRESET: StagePreset = StagePresetSchema.parse({});
@@ -26,7 +26,8 @@ export function stagePresetCss(p: StagePreset): string {
     p.brightness ? `brightness(${f(1 + p.brightness / 100)})` : "",
     p.contrast ? `contrast(${f(1 + p.contrast / 100)})` : "",
     p.saturation ? `saturate(${f(1 + p.saturation / 100)})` : "",
-    p.warmth ? `sepia(${f(p.warmth / 100)}) saturate(${f(1 + p.warmth / 200)})` : "",
+    p.warmth > 0 ? `sepia(${f(p.warmth / 100)}) saturate(${f(1 + p.warmth / 200)})` : "",
+    p.warmth < 0 ? `hue-rotate(${f(-p.warmth * 0.25)}deg) saturate(${f(1 + p.warmth / 400)})` : "",
   ].filter(Boolean);
   return parts.length ? parts.join(" ") : "none";
 }

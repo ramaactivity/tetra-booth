@@ -311,8 +311,13 @@ export function StageRunner({
   };
   const pickLut = async (f: File) => {
     try {
+      if (f.size > 8e6) throw new Error(t.lutTooBig);
       const text = await f.text();
-      parseCube(text);
+      try {
+        parseCube(text);
+      } catch {
+        throw new Error(t.lutBroken);
+      }
       const at = Date.now();
       try {
         localStorage.setItem(lutKey(event.id), JSON.stringify({ name: f.name, text, at }));
@@ -443,7 +448,6 @@ export function StageRunner({
         ? t.autoIn(Math.max(0, (s.gapSec ?? 0) - elapsed))
         : t.autoAfter(s.gapSec ?? 0);
   const qrGroup = cur?.shots.length ? cur : closed[0];
-  const lastThumb = Object.values(thumbs).at(-1);
   const css = stagePresetCss(preset);
   const histRows = openHist
     ? closed.filter((g) => g.id === openHist)
@@ -934,8 +938,10 @@ export function StageRunner({
           lutError={lutError}
           pickLut={(f) => void pickLut(f)}
           removeLut={removeLut}
-          lastThumb={lastThumb}
-          css={css}
+          shot={[...s.groups.flatMap((g) => g.shots), ...s.loose]
+            .sort((a, b) => a.at - b.at)
+            .at(-1)}
+          model={model}
           onClose={() => setColorOpen(false)}
         />
       )}

@@ -14,6 +14,9 @@ describe("preset warna Photo Stage (#178)", () => {
   });
   it("nilai di luar batas ditolak", () => {
     expect(StagePresetSchema.safeParse({ brightness: 80 }).success).toBe(false);
-    expect(StagePresetSchema.safeParse({ warmth: -5 }).success).toBe(false);
+    expect(StagePresetSchema.safeParse({ warmth: -60 }).success).toBe(false);
+    expect(stagePresetCss({ ...StagePresetSchema.parse({}), warmth: -20 })).toBe(
+      "hue-rotate(5deg) saturate(0.95)",
+    );
   });
 });
