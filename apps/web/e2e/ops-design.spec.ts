@@ -40,7 +40,9 @@ function framePng(W: number, H: number) {
   ]);
 }
 
-test("dashboard event: desain ACC dari Tetra Ops dipasang sebagai desain utama", async ({ page }) => {
+test("dashboard event: desain ACC dari Tetra Ops dipasang sebagai desain utama", async ({
+  page,
+}) => {
   test.setTimeout(120_000);
   const name = `e2e ops design ${Date.now()}`;
   const png = framePng(1200, 1800);
@@ -106,10 +108,17 @@ test("dashboard event: desain ACC dari Tetra Ops dipasang sebagai desain utama",
       .select("settings, ops_sync")
       .eq("slug", slug)
       .single();
-    const layoutId = (ev?.settings as { template?: { layoutId?: string } }).template?.layoutId;
-    const { data: l } = await db.from("layouts").select("name").eq("id", layoutId ?? "").single();
+    const layoutId = (ev?.settings as { template?: { layoutId?: string } } | undefined)?.template
+      ?.layoutId;
+    const { data: l } = await db
+      .from("layouts")
+      .select("name")
+      .eq("id", layoutId ?? "")
+      .single();
     expect(l?.name).toBe(`${name} · Desain Tetra Ops`);
-    expect((ev?.ops_sync as { design_installed_at?: string }).design_installed_at).toBeTruthy();
+    expect(
+      (ev?.ops_sync as { design_installed_at?: string } | undefined)?.design_installed_at,
+    ).toBeTruthy();
   } finally {
     server.close();
     const { data: ev } = await db.from("events").select("id").eq("name", name).maybeSingle();
