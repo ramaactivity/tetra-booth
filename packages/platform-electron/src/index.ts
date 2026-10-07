@@ -192,6 +192,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
           stage: {
             listen: (on: boolean) => bridge.stageListen(on),
             onShot: (cb: Parameters<TetraBridge["onStageShot"]>[0]) => bridge.onStageShot(cb),
+            onRemote: (cb: Parameters<TetraBridge["onStageRemote"]>[0]) => bridge.onStageRemote(cb),
             rename: (id: string, name: string | null) => bridge.stageRename(id, name),
             status: (ids: string[]) => bridge.stageStatus(ids),
             hide: (id: string, idx: number[]) => bridge.stageHide(id, idx),

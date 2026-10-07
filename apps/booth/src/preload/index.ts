@@ -86,6 +86,11 @@ const bridge: TetraBridge = {
     ipcRenderer.on("stageTvStatus", h);
     return () => ipcRenderer.off("stageTvStatus", h);
   },
+  onStageRemote: (cb) => {
+    const h = (_e: IpcRendererEvent, m: Parameters<typeof cb>[0]) => cb(m);
+    ipcRenderer.on("stageRemote", h);
+    return () => ipcRenderer.off("stageRemote", h);
+  },
   onStageShot: (cb) => {
     const h = (_e: IpcRendererEvent, s: Parameters<typeof cb>[0]) => cb(s);
     ipcRenderer.on("stageShot", h);

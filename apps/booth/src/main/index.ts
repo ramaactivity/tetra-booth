@@ -177,6 +177,10 @@ app.whenReady().then(async () => {
       rendererDir: join(__dirname, "../renderer"),
       sessionsRoot: () => join(app.getPath("userData"), "sessions"),
       state: tv.last,
+      // HP helper (#206) → layar operator (jendela TV mengabaikan).
+      remote: (m) => {
+        for (const w of BrowserWindow.getAllWindows()) w.webContents.send("stageRemote", m);
+      },
       log,
     });
   }

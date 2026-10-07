@@ -152,6 +152,24 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   });
   await expect(other.locator('[aria-hidden="false"] img')).toHaveCount(1, { timeout: 15_000 });
   await other.screenshot({ path: "test-results/stage-lan.png" });
+
+  // HP helper (#206): kode dari dialog "HP crew" → HP ganti nama rombongan #1 → laptop ikut.
+  await w.getByRole("button", { name: "HP crew" }).click();
+  const helperUrl = await w.getByTestId("stage-helper-url").textContent();
+  await w.keyboard.press("Escape");
+  const key = /#helper=(\d{4})/.exec(helperUrl ?? "")?.[1] ?? "";
+  expect(key).toMatch(/^\d{4}$/);
+  const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await phone.goto(`${lan}#helper=${key}`);
+  await phone.getByLabel("Nama rombongan #1").fill("Keluarga Bpk. Sutrisno");
+  await phone.getByLabel("Nama rombongan #1").press("Enter");
+  await expect(phone.getByRole("button", { name: "Tersimpan" })).toBeVisible();
+  await phone.screenshot({ path: "test-results/stage-helper.png", fullPage: true });
+  await expect(
+    w.getByTestId("stage-history-row").filter({ hasText: "Keluarga Bpk. Sutrisno" }),
+  ).toBeVisible({
+    timeout: 10_000,
+  });
   await browser.close();
 
   // "Cari fotomu" (#200): tamu menyentuh TV → daftar rombongan → foto + QR → tutup.

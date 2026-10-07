@@ -5,6 +5,7 @@ import type {
   BoothPayments,
   BoothPlatform,
   SessionAsset,
+  StageRemote,
   StageStatus,
 } from "@tetra/booth-core";
 import type { CommandResult, Paper } from "@tetra/shared";
@@ -110,6 +111,7 @@ export type TetraBridge = {
   /** Photo Stage (#178). */
   stageListen(on: boolean): Promise<void>;
   onStageShot(cb: (s: { path: string; width: number; height: number }) => void): () => void;
+  onStageRemote(cb: (m: StageRemote) => void): () => void;
   stageRename(sessionId: string, name: string | null): Promise<void>;
   stageStatus(ids: string[]): Promise<StageStatus>;
   stageHide(sessionId: string, idx: number[]): Promise<void>;

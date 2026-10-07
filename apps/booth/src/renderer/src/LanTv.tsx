@@ -1,6 +1,7 @@
 import {
   type BoothPlatform,
   PlatformProvider,
+  StageHelper,
   StageTv,
   type StageTvState,
 } from "@tetra/booth-core";
@@ -37,6 +38,9 @@ const platform = {
 } as unknown as BoothPlatform;
 
 export function LanTv() {
+  // HP helper crew (#206): `#helper=<kode>` dari QR "HP crew" di laptop.
+  const key = /^#helper=(\d{4})$/.exec(location.hash)?.[1];
+  if (key) return <StageHelper helperKey={key} />;
   return (
     <PlatformProvider platform={platform}>
       <StageTv />

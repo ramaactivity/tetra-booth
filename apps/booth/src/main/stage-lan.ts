@@ -1,8 +1,11 @@
+import { randomInt } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { networkInterfaces } from "node:os";
 import { extname, join, normalize, sep } from "node:path";
+import { SESSION_ID_PATTERN } from "@tetra/shared";
 import { nativeImage } from "electron";
+import { z } from "zod";
 
 /**
  * Layar Photo Stage di device kedua lewat WiFi/hotspot tanpa internet (#205, opsi B dari #204): laptop stage
@@ -11,6 +14,15 @@ import { nativeImage } from "electron";
  * Windows menanyakan izin firewall sekali (pilih jaringan Private).
  */
 const PORTS = [47870, 47871, 47872];
+const Helper = z.union([
+  z.object({
+    key: z.string(),
+    kind: z.literal("rename"),
+    id: z.string().regex(SESSION_ID_PATTERN),
+    name: z.string().max(120),
+  }),
+  z.object({ key: z.string(), kind: z.literal("pick"), name: z.string().min(1).max(120) }),
+]);
 const TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript",
@@ -32,6 +44,9 @@ export const lanAddresses = () =>
     .filter(Boolean);
 
 let livePort: number | null = null;
+/** Kode HP helper (#206): acak per jalan, ditampilkan di laptop; tamu di WiFi yang sama tidak bisa mengubah nama. */
+const helperKey = String(1000 + randomInt(9000));
+export const stageHelperKey = () => helperKey;
 /** Alamat layar WiFi yang sedang aktif (untuk operator & wizard); kosong = belum/tidak aktif. */
 export const stageLanUrls = () =>
   livePort ? lanAddresses().map((a) => `http://${a}:${livePort}`) : [];
@@ -40,6 +55,10 @@ export function startStageLan(o: {
   rendererDir: string;
   sessionsRoot: () => string;
   state: () => unknown;
+  /** Perintah HP helper yang sudah divalidasi (#206), diteruskan ke layar operator. */
+  remote: (
+    m: { kind: "rename"; id: string; name: string } | { kind: "pick"; name: string },
+  ) => void;
   log: (m: string) => void;
 }): { port: () => number | null; close: () => void } {
   let port: number | null = null;
@@ -47,7 +66,16 @@ export function startStageLan(o: {
 
   const handler = async (
     url: URL,
+    post?: string,
   ): Promise<{ status: number; type: string; body: Buffer | string }> => {
+    if (url.pathname === "/api/helper") {
+      const m = Helper.safeParse(JSON.parse(post || "null"));
+      if (!m.success || m.data.key !== helperKey)
+        return { status: 403, type: "application/json", body: '{"error":"kode salah"}' };
+      const { key: _, ...cmd } = m.data;
+      o.remote(cmd);
+      return { status: 200, type: "application/json", body: '{"ok":true}' };
+    }
     if (url.pathname === "/api/tv")
       return { status: 200, type: "application/json", body: JSON.stringify(o.state() ?? null) };
     if (url.pathname === "/api/file") {
@@ -83,8 +111,14 @@ export function startStageLan(o: {
       o.log("[stage-lan] semua port dipakai, layar WiFi tidak aktif");
       return;
     }
-    const s = createServer((req, res) => {
-      void handler(new URL(req.url ?? "/", "http://lan")).then(
+    const s = createServer(async (req, res) => {
+      let post = "";
+      if (req.method === "POST")
+        for await (const c of req) {
+          post += c;
+          if (post.length > 4096) return void res.destroy();
+        }
+      void handler(new URL(req.url ?? "/", "http://lan"), post).then(
         (r) => {
           res.writeHead(r.status, { "content-type": r.type, "cache-control": "no-store" });
           res.end(r.body);

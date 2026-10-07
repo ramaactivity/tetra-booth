@@ -226,6 +226,8 @@ export type StageTvState = {
   groups?: { id: string; no: string; label: string; time: string; shots: string[] }[];
   /** Lama tampilan aktif setelah jepretan terakhir (detik). */
   activeSec: number;
+  /** Nama berikutnya dari daftar klien (#206): pilihan cepat di HP helper. */
+  next?: string[];
   /** Layar uji dari wizard persiapan (#188). */
   test?: boolean;
   /** LUT `.cube` aktif (#184): kunci localStorage + waktu simpan; jendela TV membacanya sendiri. */

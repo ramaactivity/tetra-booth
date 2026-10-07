@@ -18,7 +18,7 @@ import type { BoothEvent } from "./event";
 import { ORIGINAL_LONG_SIDE, THUMB_LONG_SIDE } from "./finalize";
 import { lutKey, parseCube, storedLut } from "./lut";
 import { usePlatform } from "./PlatformContext";
-import type { SessionAsset, StageStatus } from "./platform";
+import type { SessionAsset, StageRemote, StageStatus } from "./platform";
 import { StageColor } from "./StageColor";
 import { StageSetup } from "./StageSetup";
 import {
@@ -128,6 +128,7 @@ export function StageRunner({
   const [testShot, setTestShot] = useState<StageShot>();
   const [tvTest, setTvTest] = useState(false);
   const [shooting, setShooting] = useState(false);
+  const [helperOpen, setHelperOpen] = useState(false);
   const presetRef = useRef(preset);
   presetRef.current = preset;
   const [lut, setLut] = useState(() => storedLut(lutKey(event.id)));
@@ -274,6 +275,11 @@ export function StageRunner({
         void complete(g);
   }, [s.groups, complete, retry]);
 
+  // Nama berikutnya untuk HP helper (#206); kunci string supaya publish TV tidak jalan tiap render.
+  const nextKey = event.settings.stageGroups
+    .filter((n) => !s.groups.some((g) => g.name?.toLowerCase() === n.toLowerCase()))
+    .slice(0, 8)
+    .join("\n");
   // Layar TV (#179): keadaan rombongan dikirim tiap berubah; status sambungan TV untuk operator.
   const [tvOn, setTvOn] = useState(false);
   useEffect(() => {
@@ -294,9 +300,11 @@ export function StageRunner({
         activeSec: event.settings.stageTvSec,
         lut: lut ? { key: lutKey(event.id), at: lut.at } : null,
         test: setupOpen && tvTest,
+        next: nextKey ? nextKey.split("\n") : [],
       }),
     );
   }, [
+    nextKey,
     s,
     preset,
     lut,
@@ -482,6 +490,14 @@ export function StageRunner({
     dispatch({ type: "NEW_GROUP", id, now: Date.now() });
     dispatch({ type: "RENAME", id, name });
   };
+  // HP helper lewat WiFi (#206): ganti nama / pasang nama dari daftar, sama seperti operator mengetik.
+  const remoteRef = useRef<(m: StageRemote) => void>(() => {});
+  remoteRef.current = (m) => {
+    if (m.kind === "pick") return pickName(m.name);
+    const g = s.groups.find((x) => x.id === m.id);
+    if (g) rename(g, m.name);
+  };
+  useEffect(() => stage?.onRemote?.((m) => remoteRef.current(m)), [stage]);
   const pickRef = useRef(pickName);
   pickRef.current = () => next[0] && pickName(next[0]);
 
@@ -491,6 +507,7 @@ export function StageRunner({
       if (e.key === "Escape") {
         setColorOpen(false);
         setOpenHist(null);
+        setHelperOpen(false);
         return;
       }
       if (colorOpen || setupRef.current) return;
@@ -696,6 +713,13 @@ export function StageRunner({
           className="pressable h-[52px] flex-none rounded-[14px] border-2 border-ink bg-white px-[22px] text-lg font-bold"
         >
           {t.color}
+        </button>
+        <button
+          type="button"
+          onClick={() => setHelperOpen(true)}
+          className="pressable h-[52px] flex-none rounded-[14px] border-2 border-ink bg-white px-[22px] text-lg font-bold"
+        >
+          {t.helper.button}
         </button>
         <button
           type="button"
@@ -1173,6 +1197,39 @@ export function StageRunner({
             setSetupOpen(false);
           }}
         />
+      )}
+
+      {helperOpen && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-[rgba(29,29,27,.42)]">
+          <div
+            role="dialog"
+            aria-label={t.helper.title}
+            className="flex w-[900px] flex-col items-center gap-6 rounded-[36px] border-[3px] border-ink bg-white p-10 text-center"
+          >
+            <h2 className="text-[40px] font-extrabold tracking-[-0.03em]">{t.helper.title}</h2>
+            {status?.lanUrls?.[0] && status.helperKey ? (
+              <>
+                <p className="max-w-[680px] text-xl leading-[1.45] text-text-3">{t.helper.body}</p>
+                <div className="rounded-3xl border-[3px] border-ink bg-white p-5">
+                  <QrCode url={`${status.lanUrls[0]}/#helper=${status.helperKey}`} size={320} />
+                </div>
+                <p className="font-mono text-xl" data-testid="stage-helper-url">
+                  {`${status.lanUrls[0]}/#helper=${status.helperKey}`}
+                </p>
+                <p className="text-lg font-bold">{t.helper.code(status.helperKey)}</p>
+              </>
+            ) : (
+              <p className="text-xl text-text-3">{t.helper.none}</p>
+            )}
+            <button
+              type="button"
+              onClick={() => setHelperOpen(false)}
+              className="pressable layered h-16 rounded-[20px] border-[2.5px] border-ink bg-butter px-10 text-2xl font-extrabold [--lb:2.5px] [--lx:6px]"
+            >
+              {t.helper.close}
+            </button>
+          </div>
+        </div>
       )}
 
       {colorOpen && (

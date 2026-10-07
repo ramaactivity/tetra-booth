@@ -285,6 +285,10 @@ export interface BoothPayments {
 
 /** Jepretan fotografer yang sudah tersimpan di laptop (Photo Stage #178). */
 export type StageShotEvent = { path: string; width: number; height: number };
+/** HP helper crew lewat WiFi (#206): ganti nama rombongan, atau pasang nama dari daftar ke rombongan aktif. */
+export type StageRemote =
+  | { kind: "rename"; id: string; name: string }
+  | { kind: "pick"; name: string };
 /** Status bar laptop stage (#186). `camera` null = Camera Service tidak menjawab. */
 export type StageStatus = {
   online: boolean;
@@ -295,12 +299,16 @@ export type StageStatus = {
   pending: string[];
   /** Layar di device kedua lewat WiFi (#205): http://<IP>:<port>; kosong = tidak aktif. */
   lanUrls?: string[];
+  /** Kode 4 digit HP helper (#206), dipasang di alamat `#helper=<kode>`. */
+  helperKey?: string;
 };
 /** Photo Stage (#178): ada hanya di laptop berperan `stage`. */
 export interface BoothStage {
   /** Mulai/berhenti menerima jepretan rana fotografer (Canon, atau folder pantau aplikasi tether). */
   listen(on: boolean): Promise<void>;
   onShot(cb: (s: StageShotEvent) => void): Unsubscribe;
+  /** Perintah dari HP helper (#206); tidak ada = platform tanpa layar WiFi. */
+  onRemote?(cb: (m: StageRemote) => void): Unsubscribe;
   /** Ganti nama grup rombongan; tersinkron ke cloud walau fotonya sudah terunggah. */
   rename(sessionId: string, name: string | null): Promise<void>;
   status(ids: string[]): Promise<StageStatus>;
