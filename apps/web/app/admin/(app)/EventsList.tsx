@@ -1,6 +1,5 @@
 import { durationText, fileSize, hhmm, parseRun, runElapsedMs, runState } from "@tetra/shared";
 import {
-  CalendarClock,
   CalendarDays,
   HardDrive,
   Images,
