@@ -108,6 +108,8 @@ export const GuestMe = z.object({
   /** Foto/strip hanya diisi kalau reveal live atau sudah dibuka; `after` = HP cuma lihat hitungan. */
   photos: z.array(GuestItem),
   strips: z.array(GuestItem),
+  /** Jumlah strip yang sudah tercatat (termasuk yang disembunyikan), dasar idx strip berikutnya. */
+  stripCount: z.number().int(),
   audio: z.boolean(),
   revealed: z.boolean(),
 });

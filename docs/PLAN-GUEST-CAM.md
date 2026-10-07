@@ -1,6 +1,6 @@
 # Rencana Guest Cam
 
-Status: **keputusan produk dari owner** (7 Okt 2026, §6). Progres: G1 selesai (e836db7), G2 selesai dengan UI sementara (CORS R2 PUT dari browser disetel Rama 7 Okt). Produk B2C eksklusif Tetra (tidak dijual ke vendor SaaS). Pola kerja sama dengan Photo Stage: kode inti dulu dengan UI sederhana yang mengikuti token v2, lalu tampilan final diganti sesuai desain Claude Design. Latar bisnis: `riset-bisnis-2026-10/competitors-b2c.md` §B dan §D (Guest Cam Digital Rp750rb sebagai add-on; pembeda Tetra = satu album bersama foto booth dan Photo Stage).
+Status: **keputusan produk dari owner** (7 Okt 2026, §6). Progres: G1 selesai (e836db7), G2 selesai dengan UI sementara (CORS R2 PUT dari browser disetel Rama 7 Okt). G3 selesai: ucapan suara + strip virtual (strip hanya setelah foto boleh dilihat; mode "setelah acara" = setelah dibuka). Event uji HP: `/c/uji-guest-cam-2026-10-07`. Produk B2C eksklusif Tetra (tidak dijual ke vendor SaaS). Pola kerja sama dengan Photo Stage: kode inti dulu dengan UI sederhana yang mengikuti token v2, lalu tampilan final diganti sesuai desain Claude Design. Latar bisnis: `riset-bisnis-2026-10/competitors-b2c.md` §B dan §D (Guest Cam Digital Rp750rb sebagai add-on; pembeda Tetra = satu album bersama foto booth dan Photo Stage).
 
 ## 1. Alur tamu
 

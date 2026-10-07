@@ -128,7 +128,7 @@ test("guest cam: join → unggah sampai jatah habis → batas ukuran → approva
 
 test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
   test.use({
-    permissions: ["camera"],
+    permissions: ["camera", "microphone"],
     viewport: { width: 390, height: 844 },
   });
 
@@ -146,6 +146,29 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
         event_date: "2026-12-31",
         guest_token: token,
         settings: { filters: ["bw"], guestCam: { enabled: true, shots: 2, reveal: "live" } },
+        bundle: {
+          config: {
+            layout: {
+              id: "strip-e2e",
+              version: 1,
+              paper: "2x6x2",
+              canvas: { width: 600, height: 1800, dpi: 300 },
+              background: { color: "#ffffff" },
+              slots: [0, 1].map((i) => ({
+                id: `s${i}`,
+                x: 30,
+                y: 30 + i * 600,
+                w: 540,
+                h: 540,
+                fit: "cover",
+                z: "below_overlay",
+              })),
+              texts: [],
+            },
+            assets: {},
+          },
+          files: [],
+        },
       })
       .select("id, slug")
       .single();
@@ -169,6 +192,32 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await expect(page.getByText("Semua foto terkirim")).toBeVisible({ timeout: 60_000 });
       await page.getByRole("button", { name: "Foto saya" }).click();
       await expect(page.getByRole("listitem")).toHaveCount(2);
+
+      // G3: ucapan suara (mic palsu Chromium) dan strip virtual dari 2 foto.
+      await page.getByRole("button", { name: "Rekam ucapan" }).click();
+      await page.getByRole("button", { name: "Mulai rekam" }).click();
+      await page.waitForTimeout(1500);
+      await page.getByRole("button", { name: "Selesai" }).click();
+      await page.getByRole("button", { name: "Kirim ucapan" }).click();
+      await expect(page.getByText("Ucapanmu sudah terkirim")).toBeVisible();
+      await page.getByRole("button", { name: "Buat strip" }).click();
+      for (const _ of [0, 1]) await page.locator('button[aria-pressed="false"]').first().click();
+      await page.getByRole("button", { name: "Buat strip" }).click();
+      await page.getByRole("button", { name: "Kirim ke album" }).click();
+      await expect(page.getByText("Strip saya")).toBeVisible({ timeout: 60_000 });
+      const { data: kinds } = await db
+        .from("assets")
+        .select("kind, sessions!inner(event_id)")
+        .eq("sessions.event_id", ev?.id ?? "");
+      expect(kinds?.map((k) => k.kind).sort()).toEqual([
+        "audio",
+        "original",
+        "original",
+        "strip_web",
+        "thumb_original",
+        "thumb_original",
+        "thumb_strip",
+      ]);
       const { data: s } = await db
         .from("sessions")
         .select("photo_count, group_name")

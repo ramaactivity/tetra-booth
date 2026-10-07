@@ -1,16 +1,23 @@
 "use client";
-import { filterCss, type GuestMe, PHOTO_FILTERS } from "@tetra/shared";
+import {
+  filterCss,
+  GUEST_MAX_STRIPS,
+  GUEST_VOICE_MAX_SEC,
+  type GuestMe,
+  PHOTO_FILTERS,
+} from "@tetra/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
 import { capture } from "./capture";
-import { enqueue, flush, itemId, queued } from "./queue";
+import { enqueue, flush, itemId, type QueueItem, queued } from "./queue";
+import { renderStrip } from "./strip";
 
 const t = copy.guestCam;
 const btn =
   "flex h-12 items-center justify-center rounded-[12px] border-[1.5px] border-ink px-5 text-[15px] font-bold disabled:opacity-50";
 
-type Phase = "join" | "camera" | "mine";
+type Phase = "join" | "camera" | "mine" | "voice" | "strip";
 type Cam = "idle" | "on" | "denied";
 
 /** idx foto berikutnya yang belum dipakai (server + antrean lokal), atau null kalau jatah habis. */
@@ -30,12 +37,14 @@ export function GuestCam({
 }) {
   const [me, setMe] = useState(initialMe);
   const [phase, setPhase] = useState<Phase>(initialMe ? "camera" : "join");
-  const [pendingIdx, setPendingIdx] = useState<number[]>([]);
-  const refreshQueue = useCallback(
-    async () =>
-      setPendingIdx((await queued(token)).filter((i) => i.kind === "photo").map((i) => i.idx)),
-    [token],
-  );
+  const [q, setQ] = useState<QueueItem[]>([]);
+  const refreshQueue = useCallback(async () => setQ(await queued(token)), [token]);
+  const pendingIdx = q.filter((i) => i.kind === "photo").map((i) => i.idx);
+  const add = async (item: Omit<QueueItem, "id" | "token">) => {
+    await enqueue({ ...item, id: itemId(token, item.kind, item.idx), token });
+    await refreshQueue();
+    void sync();
+  };
   const sync = useCallback(async () => {
     await flush(token, setMe);
     await refreshQueue();
@@ -92,15 +101,45 @@ export function GuestCam({
           pending={pendingIdx.length}
           onShot={async (shot) => {
             const idx = nextIdx(info.shots, taken);
-            if (idx === null) return;
-            await enqueue({ id: itemId(token, "photo", idx), token, kind: "photo", idx, ...shot });
-            await refreshQueue();
-            void sync();
+            if (idx !== null) await add({ kind: "photo", idx, ...shot });
           }}
           onMine={() => setPhase("mine")}
         />
+      ) : phase === "voice" ? (
+        <Voice
+          onBack={() => setPhase("mine")}
+          onSend={async (blob, audioType) => {
+            await add({ kind: "audio", idx: 0, main: blob, audioType });
+            setPhase("mine");
+          }}
+        />
+      ) : phase === "strip" && info.design ? (
+        <StripMaker
+          info={info}
+          me={me}
+          onBack={() => setPhase("mine")}
+          onSend={async (shot) => {
+            const idx = me.stripCount + q.filter((i) => i.kind === "strip").length;
+            if (idx < GUEST_MAX_STRIPS) await add({ kind: "strip", idx, ...shot });
+            setPhase("mine");
+          }}
+        />
       ) : (
-        <Mine me={me} pending={pendingIdx.length} onCamera={() => setPhase("camera")} />
+        <Mine
+          me={me}
+          pending={pendingIdx.length}
+          voice={info.voice && !me.audio && !q.some((i) => i.kind === "audio")}
+          strip={
+            !!info.design &&
+            me.revealed &&
+            me.photos.length >= (info.design?.layout.slots.length ?? 1) &&
+            me.stripCount + q.filter((i) => i.kind === "strip").length < GUEST_MAX_STRIPS
+          }
+          voiceSent={me.audio || q.some((i) => i.kind === "audio")}
+          onCamera={() => setPhase("camera")}
+          onVoice={() => setPhase("voice")}
+          onStrip={() => setPhase("strip")}
+        />
       )}
     </main>
   );
@@ -376,7 +415,39 @@ function CopyLink() {
   );
 }
 
-function Mine({ me, pending, onCamera }: { me: GuestMe; pending: number; onCamera: () => void }) {
+const Thumb = ({ item }: { item: GuestMe["photos"][number] }) => (
+  <li className="relative overflow-hidden rounded-[10px] border-[1.5px] border-ink">
+    <a href={item.url} target="_blank" rel="noreferrer">
+      {/* biome-ignore lint/performance/noImgElement: URL R2 bertanda tangan, bukan aset Next */}
+      <img src={item.thumbUrl ?? item.url} alt="" className="aspect-[3/4] w-full object-cover" />
+    </a>
+    {item.waiting && (
+      <span className="absolute inset-x-1 bottom-1 rounded-full border border-ink bg-peach px-1.5 py-0.5 text-center text-[10px] font-bold">
+        {t.waiting}
+      </span>
+    )}
+  </li>
+);
+
+function Mine({
+  me,
+  pending,
+  voice,
+  voiceSent,
+  strip,
+  onCamera,
+  onVoice,
+  onStrip,
+}: {
+  me: GuestMe;
+  pending: number;
+  voice: boolean;
+  voiceSent: boolean;
+  strip: boolean;
+  onCamera: () => void;
+  onVoice: () => void;
+  onStrip: () => void;
+}) {
   const count = me.usedIdx.length + pending;
   return (
     <section className="flex flex-1 flex-col gap-4 p-5">
@@ -394,30 +465,248 @@ function Mine({ me, pending, onCamera }: { me: GuestMe; pending: number; onCamer
       ) : (
         <ul className="grid grid-cols-3 gap-2">
           {me.photos.map((p) => (
-            <li
-              key={p.idx}
-              className="relative overflow-hidden rounded-[10px] border-[1.5px] border-ink"
-            >
-              <a href={p.url} target="_blank" rel="noreferrer">
-                {/* biome-ignore lint/performance/noImgElement: URL R2 bertanda tangan, bukan aset Next */}
-                <img
-                  src={p.thumbUrl ?? p.url}
-                  alt=""
-                  className="aspect-[3/4] w-full object-cover"
-                />
-              </a>
-              {p.waiting && (
-                <span className="absolute inset-x-1 bottom-1 rounded-full border border-ink bg-peach px-1.5 py-0.5 text-center text-[10px] font-bold">
-                  {t.waiting}
-                </span>
-              )}
-            </li>
+            <Thumb key={p.idx} item={p} />
           ))}
         </ul>
       )}
-      <button type="button" onClick={onCamera} className={`${btn} mt-auto bg-butter`}>
-        {t.camera}
-      </button>
+      {me.strips.length > 0 && (
+        <>
+          <h3 className="font-extrabold">{t.stripsMine}</h3>
+          <ul className="grid grid-cols-3 gap-2">
+            {me.strips.map((p) => (
+              <Thumb key={p.idx} item={p} />
+            ))}
+          </ul>
+        </>
+      )}
+      {voiceSent && <p className="text-sm font-bold">{t.voiceSent}</p>}
+      <div className="mt-auto flex flex-col gap-2">
+        {(voice || strip) && (
+          <div className="grid grid-cols-2 gap-2">
+            {voice && (
+              <button type="button" onClick={onVoice} className={`${btn} bg-sky`}>
+                {t.voice}
+              </button>
+            )}
+            {strip && (
+              <button type="button" onClick={onStrip} className={`${btn} bg-lavender`}>
+                {t.strip}
+              </button>
+            )}
+          </div>
+        )}
+        <button type="button" onClick={onCamera} className={`${btn} bg-butter`}>
+          {t.camera}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function Voice({
+  onBack,
+  onSend,
+}: {
+  onBack: () => void;
+  onSend: (blob: Blob, type: "audio/webm" | "audio/mp4") => Promise<void>;
+}) {
+  const rec = useRef<MediaRecorder | null>(null);
+  const [secs, setSecs] = useState(0);
+  const [take, setTake] = useState<{ blob: Blob; url: string; type: "audio/webm" | "audio/mp4" }>();
+  const [error, setError] = useState(false);
+  const recording = !!rec.current && rec.current.state === "recording";
+
+  useEffect(() => {
+    if (!recording) return;
+    const id = setInterval(
+      () =>
+        setSecs((s) => {
+          if (s + 1 >= GUEST_VOICE_MAX_SEC) rec.current?.stop();
+          return s + 1;
+        }),
+      1000,
+    );
+    return () => clearInterval(id);
+  }, [recording]);
+
+  const start = async () => {
+    setError(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4";
+      const mr = new MediaRecorder(
+        stream,
+        MediaRecorder.isTypeSupported(mime) ? { mimeType: mime } : {},
+      );
+      const chunks: Blob[] = [];
+      mr.ondataavailable = (e) => chunks.push(e.data);
+      mr.onstop = () => {
+        for (const tr of stream.getTracks()) tr.stop();
+        const type = mr.mimeType.startsWith("audio/mp4") ? "audio/mp4" : "audio/webm";
+        const blob = new Blob(chunks, { type });
+        setTake({ blob, url: URL.createObjectURL(blob), type });
+        rec.current = null;
+        setSecs(0);
+      };
+      rec.current = mr;
+      mr.start();
+      setSecs(0);
+      setTake(undefined);
+    } catch {
+      setError(true);
+    }
+  };
+
+  return (
+    <section className="flex flex-1 flex-col gap-4 p-5">
+      <h2 className="text-xl font-extrabold">{t.voiceTitle}</h2>
+      <p className="text-sm text-text-2">{t.voiceBody(GUEST_VOICE_MAX_SEC)}</p>
+      <p className="text-center font-mono text-5xl font-bold" aria-live="polite">
+        0:{String(recording ? secs : 0).padStart(2, "0")}
+      </p>
+      {take && (
+        // biome-ignore lint/a11y/useMediaCaption: rekaman ucapan tamu sendiri, tanpa teks
+        <audio controls src={take.url} className="w-full" />
+      )}
+      {error && <p className="text-sm font-bold text-coral-strong">{t.micDenied}</p>}
+      <div className="mt-auto flex flex-col gap-2">
+        {recording ? (
+          <button type="button" onClick={() => rec.current?.stop()} className={`${btn} bg-coral`}>
+            {t.stop}
+          </button>
+        ) : take ? (
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => void start()} className={`${btn} bg-white`}>
+              {t.again}
+            </button>
+            <button
+              type="button"
+              onClick={() => void onSend(take.blob, take.type)}
+              className={`${btn} bg-butter`}
+            >
+              {t.send}
+            </button>
+          </div>
+        ) : (
+          <button type="button" onClick={() => void start()} className={`${btn} bg-butter`}>
+            {t.record}
+          </button>
+        )}
+        <button type="button" onClick={onBack} className="text-sm font-bold underline">
+          {t.back}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+const longDate = (iso: string) =>
+  new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(
+    new Date(`${iso}T12:00:00`),
+  );
+
+function StripMaker({
+  info,
+  me,
+  onBack,
+  onSend,
+}: {
+  info: GuestInfo;
+  me: GuestMe;
+  onBack: () => void;
+  onSend: (shot: { main: Blob; thumb: Blob }) => Promise<void>;
+}) {
+  const design = info.design;
+  const n = design?.layout.slots.length ?? 0;
+  const [picked, setPicked] = useState<number[]>([]);
+  const [made, setMade] = useState<{ main: Blob; thumb: Blob; url: string }>();
+  const [busy, setBusy] = useState(false);
+  if (!design) return null;
+  const toggle = (idx: number) =>
+    setPicked((p) =>
+      p.includes(idx) ? p.filter((x) => x !== idx) : p.length < n ? [...p, idx] : p,
+    );
+
+  return (
+    <section className="flex flex-1 flex-col gap-4 p-5">
+      <h2 className="text-xl font-extrabold">{t.stripTitle(n)}</h2>
+      {made ? (
+        // biome-ignore lint/performance/noImgElement: object URL hasil render lokal
+        <img
+          src={made.url}
+          alt={t.strip}
+          className="mx-auto max-h-[60dvh] border-[1.5px] border-ink"
+        />
+      ) : (
+        <ul className="grid grid-cols-3 gap-2">
+          {me.photos.map((p) => {
+            const at = picked.indexOf(p.idx);
+            return (
+              <li key={p.idx}>
+                <button
+                  type="button"
+                  aria-pressed={at >= 0}
+                  onClick={() => toggle(p.idx)}
+                  className={`relative block w-full overflow-hidden rounded-[10px] border-[1.5px] border-ink ${at >= 0 ? "ring-4 ring-mint" : ""}`}
+                >
+                  {/* biome-ignore lint/performance/noImgElement: URL R2 bertanda tangan */}
+                  <img
+                    src={p.thumbUrl ?? p.url}
+                    alt=""
+                    className="aspect-[3/4] w-full object-cover"
+                  />
+                  {at >= 0 && (
+                    <span className="absolute top-1 left-1 flex size-6 items-center justify-center rounded-full border border-ink bg-mint font-mono text-xs font-bold">
+                      {at + 1}
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div className="mt-auto flex flex-col gap-2">
+        {made ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              await onSend(made);
+            }}
+            className={`${btn} bg-butter`}
+          >
+            {t.stripSend}
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={picked.length !== n || busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                const urls = picked.map((i) => me.photos.find((p) => p.idx === i)?.url ?? "");
+                const r = await renderStrip(
+                  design,
+                  urls,
+                  { event_name: info.name, date: longDate(info.date) },
+                  location.origin + info.link,
+                );
+                setMade({ ...r, url: URL.createObjectURL(r.main) });
+              } finally {
+                setBusy(false);
+              }
+            }}
+            className={`${btn} bg-butter`}
+          >
+            {busy ? t.stripMaking : t.stripMake}
+          </button>
+        )}
+        <button type="button" onClick={onBack} className="text-sm font-bold underline">
+          {t.back}
+        </button>
+      </div>
     </section>
   );
 }
