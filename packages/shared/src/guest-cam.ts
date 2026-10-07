@@ -1,0 +1,141 @@
+import { z } from "zod";
+
+/**
+ * Guest Cam (#197, docs/PLAN-GUEST-CAM.md): tamu memotret dari HP lewat `/c/{slug}`. Kontrak API publik
+ * `/api/c/{token}/…` + setelan per event (`EventSettings.guestCam`).
+ */
+
+export const GUEST_CONSENT_DEFAULT =
+  "Saya setuju nama dan kontak saya disimpan penyelenggara acara dan Tetra Photobooth untuk mengirim foto dan kabar acara ini.";
+
+export const GuestCamSettingsSchema = z.object({
+  enabled: z.boolean().default(false),
+  /** Jatah foto per tamu (per HP). */
+  shots: z.number().int().min(1).max(50).default(15),
+  /** live = foto langsung tampil di album/TV; after = terbuka setelah acara (gaya kamera sekali pakai). */
+  reveal: z.enum(["live", "after"]).default("after"),
+  /** auto = tampil otomatis (bisa disembunyikan); manual = harus disetujui owner/crew dulu. */
+  approval: z.enum(["auto", "manual"]).default("auto"),
+  voice: z.boolean().default(true),
+  strip: z.boolean().default(true),
+  consentText: z.string().min(1).max(600).default(GUEST_CONSENT_DEFAULT),
+});
+export type GuestCamSettings = z.infer<typeof GuestCamSettingsSchema>;
+
+export const GUEST_VOICE_MAX_SEC = 30;
+/** Batas ukuran yang dicek server setelah unggah (HEAD R2); lebih besar = dihapus. */
+export const GUEST_MAX_BYTES = { photo: 8_000_000, thumb: 600_000, audio: 2_000_000 } as const;
+export const GUEST_MAX_STRIPS = 5;
+
+/** 0812… / +62 812… / 812… → 62812…; sama dengan lead halaman tamu. */
+export const WhatsappSchema = z
+  .string()
+  .transform((s) => s.replace(/\D/g, "").replace(/^0/, "62").replace(/^8/, "628"))
+  .pipe(z.string().regex(/^62\d{8,13}$/));
+/** "@Nama.Akun" / "instagram.com/nama.akun" → "nama.akun". */
+export const InstagramSchema = z
+  .string()
+  .trim()
+  .transform((s) =>
+    s
+      .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
+      .replace(/^@/, "")
+      .replace(/\/.*$/, "")
+      .toLowerCase(),
+  )
+  .pipe(z.string().regex(/^[a-z0-9._]{1,30}$/));
+
+/** POST /api/c/{token}/join: nama + WhatsApp atau Instagram (minimal satu) + persetujuan. */
+export const GuestJoinRequest = z
+  .object({
+    name: z.string().trim().min(2).max(80),
+    whatsapp: z.string().max(30).optional(),
+    instagram: z.string().max(80).optional(),
+    consent: z.literal(true),
+  })
+  .transform((b, ctx) => {
+    const wa = b.whatsapp?.trim() ? WhatsappSchema.safeParse(b.whatsapp) : null;
+    const ig = b.instagram?.trim() ? InstagramSchema.safeParse(b.instagram) : null;
+    if (wa && !wa.success) ctx.addIssue({ code: "custom", path: ["whatsapp"], message: "invalid" });
+    if (ig && !ig.success)
+      ctx.addIssue({ code: "custom", path: ["instagram"], message: "invalid" });
+    if (!wa && !ig) ctx.addIssue({ code: "custom", path: ["whatsapp"], message: "required" });
+    return {
+      name: b.name,
+      whatsapp: wa?.success ? wa.data : undefined,
+      instagram: ig?.success ? ig.data : undefined,
+    };
+  });
+export type GuestJoin = z.infer<typeof GuestJoinRequest>;
+
+/**
+ * Unggahan tamu. Nomor `idx` dipilih HP (urutan lokal yang disimpan) supaya kirim ulang = menimpa key yang sama
+ * (idempoten). Jatah ditegakkan lewat rentang idx: foto 0…shots−1, strip 0…GUEST_MAX_STRIPS−1, suara hanya 0.
+ */
+export const GuestUploadKind = z.enum(["photo", "strip", "audio"]);
+export type GuestUploadKind = z.infer<typeof GuestUploadKind>;
+export const GuestAudioType = z.enum(["audio/webm", "audio/mp4"]);
+
+export const GuestSignRequest = z.object({
+  kind: GuestUploadKind,
+  idx: z.number().int().min(0).max(49),
+  audioType: GuestAudioType.optional(),
+});
+export type GuestSignRequest = z.infer<typeof GuestSignRequest>;
+export const GuestSignResponse = z.object({
+  uploads: z.array(
+    z.object({ part: z.enum(["main", "thumb"]), url: z.url(), contentType: z.string() }),
+  ),
+});
+export type GuestSignResponse = z.infer<typeof GuestSignResponse>;
+
+export const GuestDoneRequest = GuestSignRequest;
+
+const GuestItem = z.object({
+  idx: z.number().int(),
+  url: z.string(),
+  thumbUrl: z.string().optional(),
+});
+/** GET /api/c/{token}/me (dan respons join/done): isi milik tamu ini. */
+export const GuestMe = z.object({
+  sessionId: z.string(),
+  name: z.string(),
+  shotsLeft: z.number().int(),
+  /** Idx foto yang sudah tercatat server (HP melewati idx ini saat lanjut). */
+  usedIdx: z.array(z.number().int()),
+  /** Foto/strip hanya diisi kalau reveal live atau sudah dibuka; `after` = HP cuma lihat hitungan. */
+  photos: z.array(GuestItem),
+  strips: z.array(GuestItem),
+  audio: z.boolean(),
+  revealed: z.boolean(),
+});
+export type GuestMe = z.infer<typeof GuestMe>;
+
+/** Aset per unggahan tamu: utama + thumb (foto/strip), atau satu file (suara). */
+export const guestParts = (kind: GuestUploadKind, audioType?: string) =>
+  kind === "photo"
+    ? [
+        { part: "main", kind: "original", ext: "jpg", contentType: "image/jpeg" },
+        { part: "thumb", kind: "thumb_original", ext: "jpg", contentType: "image/jpeg" },
+      ]
+    : kind === "strip"
+      ? [
+          { part: "main", kind: "strip_web", ext: "jpg", contentType: "image/jpeg" },
+          { part: "thumb", kind: "thumb_strip", ext: "jpg", contentType: "image/jpeg" },
+        ]
+      : [
+          {
+            part: "main",
+            kind: "audio",
+            ext: audioType === "audio/mp4" ? "m4a" : "webm",
+            contentType: audioType === "audio/mp4" ? "audio/mp4" : "audio/webm",
+          },
+        ];
+
+/** idx masih dalam jatah: foto < shots, strip < 5, suara hanya 0. */
+export const idxAllowed = (cam: GuestCamSettings, kind: GuestUploadKind, idx: number) =>
+  kind === "photo"
+    ? idx < cam.shots
+    : kind === "strip"
+      ? cam.strip && idx < GUEST_MAX_STRIPS
+      : cam.voice && idx === 0;

@@ -3,6 +3,7 @@ import "server-only";
 import {
   DeleteObjectsCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
@@ -73,6 +74,13 @@ export const putObject = (key: string, body: Uint8Array, contentType: string) =>
       CacheControl: "public, max-age=31536000, immutable",
     }),
   );
+
+/** Ukuran objek dalam byte, atau null kalau belum ada (cek unggahan publik Guest Cam, #197). */
+export const objectBytes = (key: string) =>
+  client()
+    .send(new HeadObjectCommand({ Bucket: env("R2_BUCKET"), Key: key }))
+    .then((r) => r.ContentLength ?? 0)
+    .catch(() => null);
 
 /** Hapus objek (moderasi, retensi). Maks 1000 key per panggilan S3. */
 export async function deleteObjects(keys: string[]) {

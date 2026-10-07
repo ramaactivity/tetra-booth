@@ -206,4 +206,31 @@ describe("migrasi & RLS", () => {
     await add(null, null, "A4");
     await add(null, null, "A5");
   });
+  it("guest cam (#197): sesi tamu tanpa device, sesi booth tetap wajib device, kunci tamu unik per event", async () => {
+    await c.query("reset role");
+    const ev = (
+      await c.query(
+        "insert into events(organization_id, name, mode, event_date) values ($1,'Guest Cam','event','2026-10-12') returning id",
+        [org],
+      )
+    ).rows[0].id;
+    const ins = (id: string, source: string, key: string | null) =>
+      c.query(
+        "insert into sessions(id, organization_id, event_id, device_id, started_at, source, guest_key_hash) values ($1,$2,$3,null,now(),$4,$5)",
+        [id, org, ev, source, key],
+      );
+    await ins("guest00001", "guest", "k1");
+    await expect(ins("booth00001", "booth", null)).rejects.toThrow(/sessions_device_required/);
+    await expect(ins("guest00002", "guest", "k1")).rejects.toThrow(/sessions_guest_key/);
+    await c.query(
+      "insert into assets(organization_id, session_id, kind, r2_key, review_status) values ($1,'guest00001','audio','k/audio_0.webm','pending')",
+      [org],
+    );
+    await expect(
+      c.query(
+        "insert into assets(organization_id, session_id, kind, r2_key, review_status) values ($1,'guest00001','original','k/o.jpg','x')",
+        [org],
+      ),
+    ).rejects.toThrow(/review_status/);
+  });
 });
