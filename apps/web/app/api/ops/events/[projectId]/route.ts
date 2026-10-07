@@ -26,7 +26,11 @@ async function preview(db: Db, org: string, eventId: string, withPhotos: boolean
   const { data: stage } = await visible().eq("source", "stage").limit(1);
   const modules = stage?.length ? ["photobooth", "photo_stage"] : ["photobooth"];
   if (!withPhotos) return { modules, cover_url: null, thumbs: [] };
-  const { data: sessions } = await visible().order("started_at", { ascending: false }).limit(6);
+  // Hanya sesi yang fotonya sudah lengkap terunggah (rombongan stage yang masih dikirim belum punya foto).
+  const { data: sessions } = await visible()
+    .eq("upload_status", "complete")
+    .order("started_at", { ascending: false })
+    .limit(6);
   const ids = (sessions ?? []).map((s) => s.id);
   const { data: assets } = ids.length
     ? await db

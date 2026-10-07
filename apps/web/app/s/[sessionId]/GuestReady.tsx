@@ -8,7 +8,7 @@ import { track } from "./track";
 const t = copy.guest;
 
 /** Simpan lewat share sheet (masuk galeri HP); fallback unduh; tanpa CORS → buka gambarnya di tab baru. */
-async function save(assets: GuestAsset[], sessionId: string) {
+export async function save(assets: GuestAsset[], sessionId: string) {
   let files: File[];
   try {
     files = await Promise.all(

@@ -35,6 +35,7 @@ test("Photo Stage di galeri klien, halaman tamu, dan live", async ({ browser, re
   const booth = `skb${tag}a`;
   const inti = `skc${tag}a`;
   const tamu = `skd${tag}a`;
+  const kirim = `ske${tag}a`;
   try {
     await db.from("sessions").insert(
       [
@@ -46,12 +47,21 @@ test("Photo Stage di galeri klien, halaman tamu, dan live", async ({ browser, re
           group_name: "Keluarga Inti",
         },
         { id: tamu, started_at: "2026-12-12T05:20:00Z", source: "stage", group_name: null },
+        {
+          id: kirim,
+          started_at: "2026-12-12T05:30:00Z",
+          source: "stage",
+          group_name: "Teman Kantor PT ABC",
+          upload_status: "partial",
+          asset_count: 8,
+        },
       ].map((s) => ({
         ...s,
         organization_id: org,
         event_id: eventId,
         device_id: device,
         upload_status: "complete",
+        ...s,
       })),
     );
     const files = (sid: string, booth: boolean) =>
@@ -88,8 +98,17 @@ test("Photo Stage di galeri klien, halaman tamu, dan live", async ({ browser, re
     await s.goto(`/s/${inti}`);
     await expect(s.getByRole("heading", { name: "Keluarga Inti" })).toBeVisible();
     await expect(s.getByRole("tablist")).toHaveCount(0);
-    await expect(s.getByRole("button", { name: "Simpan Semua Foto" })).toBeEnabled();
+    await expect(s.getByText("1 / 2")).toBeVisible();
+    await expect(s.getByRole("button", { name: "Simpan semua (2 foto)" })).toBeEnabled();
     await s.screenshot({ path: "test-results/guest-stage.png", fullPage: true });
+
+    // C7b (#190): rombongan yang masih dikirim dari laptop stage.
+    await s.goto(`/s/${kirim}`);
+    await expect(s.getByRole("heading", { name: "Teman Kantor PT ABC" })).toBeVisible();
+    await expect(s.getByText("Foto sedang dikirim…")).toBeVisible();
+    await expect(s.getByText("0 dari 4")).toBeVisible();
+    await expect(s.getByRole("button", { name: "Simpan semua" })).toBeDisabled();
+    await s.screenshot({ path: "test-results/guest-stage-sending.png", fullPage: true });
 
     const live = await (await request.get(`/api/live/e2e-stage-live-${tag}`)).json();
     expect((live as { id: string }[]).map((x) => x.id).sort()).toEqual([booth, inti, tamu].sort());

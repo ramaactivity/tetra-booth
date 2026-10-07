@@ -22,6 +22,8 @@ export type GuestState =
       assets: GuestAsset[];
       total: number;
       lead: GuestLead | null;
+      /** Photo Stage (#190): nama rombongan; null = sesi booth. */
+      group: string | null;
     }
   | {
       state: "ready";
@@ -33,6 +35,7 @@ export type GuestState =
       publicGallery: boolean;
       /** Photo Stage (#180): nama rombongan (sesi fotografer pelaminan); null = sesi booth. */
       group: string | null;
+      startedAt: string;
     };
 
 export async function loadGuest(sessionId: string, now = new Date()): Promise<GuestState> {
@@ -92,6 +95,7 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
       ),
     })),
   );
+  const group = s.source === "stage" ? (s.group_name ?? `Tamu · ${clock(s.started_at)}`) : null;
   if (s.upload_status !== "complete")
     return {
       state: "pending",
@@ -100,9 +104,18 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
       assets,
       total: s.asset_count ?? 0,
       lead,
+      group,
     };
-  const group = s.source === "stage" ? (s.group_name ?? `Tamu · ${clock(s.started_at)}`) : null;
-  return { state: "ready", event, assets, expiresAt, lead, publicGallery: e.public_gallery, group };
+  return {
+    state: "ready",
+    event,
+    assets,
+    expiresAt,
+    lead,
+    publicGallery: e.public_gallery,
+    group,
+    startedAt: s.started_at,
+  };
 }
 
 const tz = { timeZone: "Asia/Jakarta" } as const;
