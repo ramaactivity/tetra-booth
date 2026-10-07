@@ -1,4 +1,13 @@
-import { paperLabel, printPaper, type RunAction } from "@tetra/shared";
+import {
+  clockOn,
+  durationText,
+  type EventRun,
+  localYmd,
+  paperLabel,
+  printPaper,
+  type RunAction,
+  runElapsedMs,
+} from "@tetra/shared";
 import { Button } from "@tetra/ui";
 import {
   ArrowRight,
@@ -304,6 +313,20 @@ export function CrewMenu({
     if (!hasEvent) return;
     p.crew.runState(event.id).then(setRun, () => {});
   }, [p, event, hasEvent]);
+  // Jam mulai & lama berjalan di kartu Jalannya acara (masukan Rama): segmen timer dari rekap, diperbarui tiap 30 dtk.
+  const [segs, setSegs] = useState<EventRun | null>(null);
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (!hasEvent || !run || run === "idle" || run === "waiting") return setSegs(null);
+    p.crew.recap(event.id).then(
+      (r) => setSegs(r.run?.segments.length ? r.run : null),
+      () => {},
+    );
+    if (run !== "running") return;
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, [p, event, hasEvent, run]);
+  const startAt = segs?.segments[0]?.start;
   const runAct = (a: RunAction | "arm") =>
     p.crew.eventRun(event.id, a).then(
       (s) => {
@@ -615,6 +638,14 @@ export function CrewMenu({
               <p className="text-lg font-semibold text-text-2">
                 {finishAsk ? copy.crew.run.confirm : copy.crew.run[run]}
               </p>
+              {startAt && (
+                <p data-testid="crew-run-time" className="text-lg font-bold">
+                  {copy.crew.run.since(
+                    clockOn(startAt, localYmd(now)),
+                    durationText(runElapsedMs(segs, now) / 60_000),
+                  )}
+                </p>
+              )}
             </div>
             <div className="flex flex-wrap gap-4">
               {finishAsk ? (

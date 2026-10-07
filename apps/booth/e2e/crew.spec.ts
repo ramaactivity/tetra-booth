@@ -482,6 +482,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await openCrew(w);
   await typePin(w, "2468");
   await expect(run).toHaveAttribute("data-state", "running");
+  await expect(w.getByTestId("crew-run-time")).toHaveText(/^Mulai \d{2}\.\d{2} · sudah berjalan /);
   await w.screenshot({ path: "test-results/crew-run.png" });
   await run.getByRole("button", { name: "Jeda Acara" }).click();
   await expect(run).toHaveAttribute("data-state", "paused");

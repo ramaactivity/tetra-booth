@@ -736,6 +736,7 @@ export const copy = {
       confirmYes: "Ya, Hentikan",
       cancel: "Batal",
       offline: "Tersimpan di laptop, dikirim ke cloud saat online",
+      since: (start: string, dur: string) => `Mulai ${start} · sudah berjalan ${dur}`,
     },
     /** Pop-up Buka untuk Tamu (#152): mulai acara sungguhan atau tes dulu. */
     go: {
