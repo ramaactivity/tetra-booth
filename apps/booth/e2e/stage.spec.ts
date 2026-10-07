@@ -24,6 +24,17 @@ const serviceBin = join(
   process.platform === "win32" ? "TetraCamera.exe" : "TetraCamera",
 );
 
+/** Lanjutkan wizard dari tombol `from` sampai selesai. */
+async function skipSetupFrom(w: import("@playwright/test").Page, from: string) {
+  const setup = w.getByTestId("stage-setup");
+  const steps = ["Lanjut ke Kamera", "Lanjut ke TV", "Lanjut ke Warna"];
+  for (const name of steps.slice(steps.indexOf(from)))
+    await setup.getByRole("button", { name }).click();
+  await setup.getByRole("button", { name: "Pakai untuk semua foto" }).click();
+  await setup.getByRole("button", { name: "Mulai Photo Stage" }).click();
+  await expect(setup).toBeHidden();
+}
+
 /** Wizard persiapan (#188) sekali per event: lewati semua langkah. */
 async function skipSetup(w: import("@playwright/test").Page) {
   const setup = w.getByTestId("stage-setup");
@@ -151,9 +162,9 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
 
   // Rombongan #1 sudah ditutup → diproses & tersimpan.
   await expect(w.getByText(/^(terunggah|mengunggah|antre)$/)).toHaveCount(1, { timeout: 15_000 });
-  // Folder rombongan #2 sudah ada karena cetak instan; yang selesai diproses hanya rombongan #1.
+  // Foto diproses begitu masuk (#202): rombongan #2 (aktif, 1 foto) juga sudah punya original_1; #1 punya 2 foto.
   const sessions = readdirSync(join(data, "sessions")).filter((d) =>
-    existsSync(join(data, "sessions", d, "out", "original_1.jpg")),
+    existsSync(join(data, "sessions", d, "out", "original_2.jpg")),
   );
   expect(sessions).toHaveLength(1);
   expect(readdirSync(join(data, "sessions", sessions[0] ?? "", "out")).sort()).toEqual([
@@ -186,11 +197,17 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   await w.waitForTimeout(800); // foto tes sebelum/sesudah dirender ulang dengan LUT
   await w.screenshot({ path: "test-results/stage-lut.png" });
   await dlg.getByRole("button", { name: "Selesai" }).click();
+  // Foto berikutnya rombongan #2 diproses dengan LUT (yang sudah masuk sebelumnya tidak berubah).
+  writeFileSync(join(hot, "DSC0004.JPG"), await jpeg(3));
+  await expect(w.locator("section img")).toHaveCount(2, { timeout: 10_000 });
   await w.keyboard.press("Enter");
   await expect(w.getByText(/^(terunggah|mengunggah|antre)$/)).toHaveCount(2, { timeout: 15_000 });
   const second = readdirSync(join(data, "sessions")).find(
     (d) => d !== sessions[0] && existsSync(join(data, "sessions", d, "out", "original_1.jpg")),
   );
+  await expect
+    .poll(() => existsSync(join(data, "sessions", second ?? "", "out", "original_2.jpg")))
+    .toBe(true);
   const px = await app.evaluate(
     ({ nativeImage }, f) => {
       const img = nativeImage.createFromPath(f);
@@ -199,7 +216,7 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
       const i = 4 * (Math.floor(height / 2) * width + Math.floor(width / 2));
       return [bmp[i], bmp[i + 1], bmp[i + 2]];
     },
-    join(data, "sessions", second ?? "", "out", "original_1.jpg"),
+    join(data, "sessions", second ?? "", "out", "original_2.jpg"),
   );
   // Asal [120,120,200] → invers [135,135,55]; urutan kanal bitmap tergantung OS.
   expect([...px].sort((a, b) => (a ?? 0) - (b ?? 0))[0]).toBeLessThan(80);
@@ -221,8 +238,10 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   await hist.filter({ hasText: "#2 ·" }).getByRole("button", { name: "Gabung ke #1" }).click();
   await expect(w.getByText("#2 digabung ke #1")).toBeVisible({ timeout: 15_000 });
   await expect(hist.filter({ hasText: "#2 ·" })).toHaveCount(0);
-  await expect(hist.filter({ hasText: "#1 ·" })).toContainText("2 foto · 1 disembunyikan");
-  expect(readdirSync(join(data, "sessions", sessions[0] ?? "", "out"))).toContain("original_3.jpg");
+  await expect(hist.filter({ hasText: "#1 ·" })).toContainText("3 foto · 1 disembunyikan");
+  await expect
+    .poll(() => readdirSync(join(data, "sessions", sessions[0] ?? "", "out")))
+    .toEqual(expect.arrayContaining(["original_3.jpg", "original_4.jpg"]));
   await app.close();
 });
 
@@ -288,5 +307,29 @@ test("stage: daftar grup dari klien jadi pilihan cepat nama rombongan (#181)", a
     "Keluarga Besar Bpk. Hadi",
   );
   await w.screenshot({ path: "test-results/stage-list.png" });
+  await app.close();
+});
+
+test("stage: jepret dari laptop dengan Canon (#201)", async () => {
+  test.skip(!existsSync(serviceBin), "Camera Service belum di-build");
+  test.setTimeout(90_000);
+  const data = mkdtempSync(join(tmpdir(), "tb-stage-canon-"));
+  const env = { ...process.env };
+  delete env.ELECTRON_RUN_AS_NODE;
+  const app = await electron.launch({
+    executablePath: electronPath,
+    args: [appDir, "--camera=canon", "--canon", "fake", "--role", "stage", "--data", data],
+    env: env as Record<string, string>,
+  });
+  const w = await app.firstWindow();
+  const setup = w.getByTestId("stage-setup");
+  await setup.getByRole("button", { name: "Lanjut ke Kamera" }).click();
+  await setup.getByRole("button", { name: "Jepret dari laptop" }).click();
+  await expect(setup.getByText("Foto tes masuk")).toBeVisible({ timeout: 15_000 });
+  await skipSetupFrom(w, "Lanjut ke TV");
+  await w.getByRole("button", { name: /^Jepret/ }).click();
+  await expect(w.locator("section img")).toHaveCount(1, { timeout: 15_000 });
+  await w.keyboard.press("j");
+  await expect(w.locator("section img")).toHaveCount(2, { timeout: 15_000 });
   await app.close();
 });

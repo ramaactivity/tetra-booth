@@ -8,7 +8,7 @@ import {
   StagePresetSchema,
   stagePresetCss,
 } from "@tetra/shared";
-import { Check, EyeOff } from "lucide-react";
+import { Camera, Check, EyeOff } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { renderEvent } from "./compose";
@@ -127,6 +127,7 @@ export function StageRunner({
   setupRef.current = setupOpen;
   const [testShot, setTestShot] = useState<StageShot>();
   const [tvTest, setTvTest] = useState(false);
+  const [shooting, setShooting] = useState(false);
   const presetRef = useRef(preset);
   presetRef.current = preset;
   const [lut, setLut] = useState(() => storedLut(lutKey(event.id)));
@@ -214,36 +215,47 @@ export function StageRunner({
     }
   }, [s.groups, p, event.id]);
 
+  // Foto diproses & diunggah begitu masuk (#202): QR rombongan bisa dipakai beberapa detik setelah jepretan, foto
+  // berikutnya menyusul ke sesi yang sama (`stage.append`). Sebelumnya baru diproses saat rombongan ditutup.
+  const done = useRef(new Map<string, number>());
   const complete = useCallback(
     async (g: StageGroup) => {
       busy.current.add(g.id);
       setSaves((x) => ({ ...x, [g.id]: "saving" }));
       try {
         await started.current.get(g.id);
+        const from = done.current.get(g.id) ?? 0;
         const dir = await p.storage.sessionDir(g.id);
         const css = stagePresetCss(presetRef.current);
         const assets: SessionAsset[] = [];
-        for (const [i, shot] of g.shots.entries()) {
+        for (const [k, shot] of g.shots.slice(from).entries()) {
           const raw = await p.storage.readFile(shot.path);
+          const idx = from + k + 1;
           for (const [kind, max, q] of [
             ["original", ORIGINAL_LONG_SIDE, 0.92],
             ["thumb_original", THUMB_LONG_SIDE, 0.85],
           ] as const) {
             const bytes = await renderJpeg(raw, max, css, q, lutRef.current?.lut ?? null);
-            const path = `${dir}/out/${kind}_${i + 1}.jpg`;
+            const path = `${dir}/out/${kind}_${idx}.jpg`;
             await p.storage.writeFile(path, bytes);
-            assets.push({ kind, idx: i + 1, path, bytes: bytes.length });
+            assets.push({ kind, idx, path, bytes: bytes.length });
           }
         }
-        await p.db.sessionCompleted({
-          id: g.id,
-          completedAt: iso(g.closedAt ?? Date.now()),
-          photoCount: g.shots.length,
-          retakeCount: 0,
-          printCount: 0,
-          assets,
-        });
+        if (from === 0)
+          await p.db.sessionCompleted({
+            id: g.id,
+            completedAt: iso(Date.now()),
+            photoCount: g.shots.length,
+            retakeCount: 0,
+            printCount: 0,
+            assets,
+          });
+        else await stage?.append(g.id, g.shots.length, assets);
+        done.current.set(g.id, g.shots.length);
         setSaves((x) => ({ ...x, [g.id]: "saved" }));
+        busy.current.delete(g.id);
+        // Foto yang masuk selama diproses ikut di putaran berikutnya.
+        setRetry((n) => n + 1);
       } catch (e) {
         console.error(`[stage] rombongan ${g.no} gagal disimpan: ${errText(e)}`);
         setSaves((x) => ({ ...x, [g.id]: "failed" }));
@@ -251,14 +263,14 @@ export function StageRunner({
         setTimeout(() => setRetry((n) => n + 1), 5000);
       }
     },
-    [p],
+    [p, stage],
   );
 
-  // Rombongan yang ditutup (tombol / jeda otomatis / batas foto) → proses & antre upload.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `retry` memicu percobaan ulang yang gagal
+  // Rombongan yang punya foto belum diproses (aktif maupun ditutup, hasil Pisah/Gabung) → proses & antre upload.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `retry` memicu putaran berikutnya / percobaan ulang
   useEffect(() => {
     for (const g of s.groups)
-      if (g.closedAt !== null && !busy.current.has(g.id) && saves[g.id] !== "saved")
+      if (!g.merged && !busy.current.has(g.id) && (done.current.get(g.id) ?? 0) < g.shots.length)
         void complete(g);
   }, [s.groups, complete, retry]);
 
@@ -362,6 +374,29 @@ export function StageRunner({
       setPrints((x) => ({ ...x, [sh.path]: { st: "failed", n } }));
     }
   };
+  // Jepret dari laptop (#201): Canon lewat Camera Service, hasilnya masuk seperti jepretan rana fotografer.
+  const shoot = useCallback(async () => {
+    if (shooting) return;
+    setShooting(true);
+    try {
+      const a = activeGroup(sRef.current);
+      const r = await p.camera.capture({
+        sessionId: a?.id ?? newSessionId(),
+        index: (a?.shots.length ?? 0) + 1,
+      });
+      const shot = { path: r.path, width: r.width, height: r.height, at: Date.now() };
+      if (setupRef.current) setTestShot(shot);
+      else dispatch({ type: "SHOT", shot, id: newSessionId() });
+      makeThumb(r.path);
+    } catch (e) {
+      say(errText(e));
+    } finally {
+      setShooting(false);
+    }
+  }, [shooting, p, makeThumb, say]);
+  const shootRef = useRef(shoot);
+  shootRef.current = shoot;
+
   // Riwayat (#195): sembunyikan, pisah, gabung. Cloud diperbarui lewat metadata sesi (hiddenIdx) & aset baru.
   const sync = (g: StageGroup, hidden: number[]) =>
     void started.current
@@ -389,40 +424,18 @@ export function StageRunner({
     setSel([]);
     setOpenHist(null);
   };
-  const mergePhotos = async (g: StageGroup, into: StageGroup) => {
-    if (saves[g.id] !== "saved" || saves[into.id] !== "saved") return say(t.toastWaitSave);
+  const mergePhotos = (g: StageGroup, into: StageGroup) => {
     const moved = g.shots.filter((_, i) => !g.hidden?.includes(i + 1));
     if (into.shots.length + moved.length > STAGE_MAX_SHOTS) return say(t.toastTooMany);
-    try {
-      const dir = await p.storage.sessionDir(into.id);
-      const css = stagePresetCss(presetRef.current);
-      const assets: SessionAsset[] = [];
-      for (const [k, shot] of moved.entries()) {
-        const raw = await p.storage.readFile(shot.path);
-        const idx = into.shots.length + k + 1;
-        for (const [kind, max, q] of [
-          ["original", ORIGINAL_LONG_SIDE, 0.92],
-          ["thumb_original", THUMB_LONG_SIDE, 0.85],
-        ] as const) {
-          const bytes = await renderJpeg(raw, max, css, q, lutRef.current?.lut ?? null);
-          const path = `${dir}/out/${kind}_${idx}.jpg`;
-          await p.storage.writeFile(path, bytes);
-          assets.push({ kind, idx, path, bytes: bytes.length });
-        }
-      }
-      await stage?.append(into.id, into.shots.length + moved.length, assets);
-      await stage?.hide(
-        g.id,
-        g.shots.map((_, i) => i + 1),
-      );
-      dispatch({ type: "MERGE", id: g.id, into: into.id });
-      setSel([]);
-      setOpenHist(null);
-      say(t.toastMerged(groupNo(g), groupNo(into)));
-    } catch (e) {
-      console.error(`[stage] gabung gagal: ${errText(e)}`);
-      say(errText(e));
-    }
+    // Foto pindah ke rombongan lama lewat reducer; pemrosesan & unggahnya mengikuti jalur foto baru (#202).
+    dispatch({ type: "MERGE", id: g.id, into: into.id });
+    sync(
+      g,
+      g.shots.map((_, i) => i + 1),
+    );
+    setSel([]);
+    setOpenHist(null);
+    say(t.toastMerged(groupNo(g), groupNo(into)));
   };
   const setGap = (gapSec: number | null) => {
     localStorage.setItem(GAP_KEY, gapSec === null ? "off" : String(gapSec));
@@ -493,6 +506,9 @@ export function StageRunner({
       } else if (e.key === " ") {
         e.preventDefault();
         togglePause();
+      } else if ((e.key === "j" || e.key === "J") && canShootRef.current) {
+        e.preventDefault();
+        void shootRef.current();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -522,6 +538,10 @@ export function StageRunner({
   }, [stage, idsKey]);
 
   const cameraOk = status === undefined || !!status?.camera?.connected;
+  // Folder pantau (merek lain lewat aplikasi tether) tidak bisa dipicu dari laptop.
+  const canShoot = !!status?.camera?.connected && status.camera.model !== "Hot folder";
+  const canShootRef = useRef(canShoot);
+  canShootRef.current = canShoot;
   const model = status?.camera?.model === "Hot folder" ? "folder pantau" : status?.camera?.model;
   const online = status?.online ?? true;
   const queued = status?.pendingGroups ?? 0;
@@ -998,7 +1018,7 @@ export function StageRunner({
                         <button
                           type="button"
                           disabled={!into}
-                          onClick={() => into && void mergePhotos(g, into)}
+                          onClick={() => into && mergePhotos(g, into)}
                           className="h-8 flex-1 whitespace-nowrap rounded-[10px] border-[1.5px] border-ink bg-white text-[13px] font-bold disabled:opacity-45"
                         >
                           {into ? t.mergeInto(groupNo(into)) : t.merge}
@@ -1043,6 +1063,18 @@ export function StageRunner({
           {s.paused ? t.resume : t.pause}
           <Key>Spasi</Key>
         </button>
+        {canShoot && (
+          <button
+            type="button"
+            disabled={shooting}
+            onClick={() => void shoot()}
+            className={`${big} px-[30px] text-[28px] [--under:var(--paper)] bg-white disabled:opacity-60`}
+          >
+            <Camera className="size-8" strokeWidth={2.5} aria-hidden />
+            {shooting ? t.shooting : t.shoot}
+            <Key>J</Key>
+          </button>
+        )}
         <div className="flex-1" />
         <span className="whitespace-nowrap text-lg font-bold text-text-3">{t.auto}</span>
         <div
@@ -1111,6 +1143,8 @@ export function StageRunner({
           setTvTest={setTvTest}
           gapSec={s.gapSec}
           setGap={setGap}
+          onShoot={canShoot ? () => void shoot() : undefined}
+          shooting={shooting}
           colorSummary={[PHOTO_FILTERS.find((f) => f.id === preset.filter)?.label, lut?.name]
             .filter(Boolean)
             .join(" · ")}

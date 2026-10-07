@@ -43,6 +43,8 @@ export function StageSetup({
   colorSummary,
   renderColor,
   onDone,
+  onShoot,
+  shooting = false,
 }: {
   event: BoothEvent;
   testShot: StageShot | undefined;
@@ -57,6 +59,9 @@ export function StageSetup({
   colorSummary: string;
   renderColor: (onDone: () => void) => ReactNode;
   onDone: () => void;
+  /** Kamera Canon: jepret foto tes dari laptop (#201); tidak ada = folder pantau. */
+  onShoot?: (() => void) | undefined;
+  shooting?: boolean;
 }) {
   const [step, setStep] = useState(1);
   const folder = model === "Hot folder";
@@ -225,6 +230,16 @@ export function StageSetup({
                   <span className="max-w-[520px] text-xl leading-[1.45] text-text-3">
                     {t.testBody}
                   </span>
+                  {onShoot && (
+                    <button
+                      type="button"
+                      disabled={shooting}
+                      onClick={onShoot}
+                      className="pressable layered mt-2 h-20 rounded-[22px] border-[2.5px] border-ink bg-butter px-8 text-2xl font-extrabold disabled:opacity-60 [--lb:2.5px] [--lx:7px]"
+                    >
+                      {t.shootFromLaptop}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
