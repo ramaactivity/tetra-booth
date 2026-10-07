@@ -1,17 +1,10 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import {
-  EventSettingsSchema,
-  type GuestMe,
-  LayoutSpecSchema,
-  parseRun,
-  runState,
-  StoredBundle,
-} from "@tetra/shared";
+import { EventSettingsSchema, type GuestMe, LayoutSpecSchema, StoredBundle } from "@tetra/shared";
 import { cookies } from "next/headers";
 import { sha256 } from "@/lib/booth";
 import type { EventBranding } from "@/lib/event-bundle";
-import { eventPhase, ymdWib } from "@/lib/events";
+import { guestPhotosVisible } from "@/lib/events";
 import { byLinkGuest, LINK } from "@/lib/gallery";
 import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -41,11 +34,7 @@ export async function guestEvent(token: string) {
 export type GuestEvent = NonNullable<Awaited<ReturnType<typeof guestEvent>>>;
 
 /** Foto boleh dilihat: reveal live, dibuka owner, atau acara sudah selesai (Hentikan Acara / tanggal lewat). */
-export const guestRevealed = (ev: GuestEvent, now = Date.now()) => {
-  if (ev.cam.reveal === "live" || ev.guest_revealed_at) return true;
-  const run = runState(parseRun(ev.run));
-  return run === "finished" || eventPhase(ev.event_date, run, ymdWib(now)) === "selesai";
-};
+export const guestRevealed = (ev: GuestEvent, now = Date.now()) => guestPhotosVisible(ev, now);
 
 /** Header halaman tamu: warna + logo (URL bertanda tangan), sama dengan halaman tamu booth. */
 export async function guestBranding(ev: GuestEvent) {

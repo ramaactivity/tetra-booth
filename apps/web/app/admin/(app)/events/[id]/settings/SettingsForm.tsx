@@ -1,6 +1,7 @@
 "use client";
 import {
   EVENT_PRESETS,
+  type GuestCamSettings,
   LAYOUT_PRESETS,
   type LayoutPaper,
   PHOTO_FILTERS,
@@ -59,6 +60,9 @@ export type SettingsValues = {
   stageGroups: string[];
   stageGapSec: number;
   stageTvSec: number;
+  /** Guest Cam (#197): kamera HP tamu lewat /c/{slug}. */
+  guestCam: GuestCamSettings;
+  gc_shots: number;
   /** Usulan daftar grup dari portal Ops saat daftar masih kosong (#182). */
   opsStageGroups: string[];
   /** Suara per cue (#104): nyala/mati + URL file pengganti (presigned) kalau ada. */
@@ -376,6 +380,7 @@ export function SettingsForm({
   slug,
   v,
   links,
+  guestLinks,
 }: {
   eventId: string;
   /** Segmen URL saat ini; simpan yang mengganti slug membuka URL barunya. */
@@ -383,6 +388,8 @@ export function SettingsForm({
   v: SettingsValues;
   /** Panel link klien (di luar data form, aksi sendiri). */
   links: ReactNode;
+  /** Panel link /c Guest Cam + kartu QR meja (#197). */
+  guestLinks: ReactNode;
 }) {
   const [name, setName] = useState(v.name);
   const [date, setDate] = useState(v.event_date);
@@ -398,6 +405,7 @@ export function SettingsForm({
   const [sold, setSold] = useState(() => new Set(Object.keys(v.prices)));
   const [soundOn, setSoundOn] = useState(v.countdownSound);
   const [leadOn, setLeadOn] = useState(!!v.lead?.enabled);
+  const [gcOn, setGcOn] = useState(v.guestCam.enabled);
   const [dirty, setDirty] = useState(false);
   const [active, setActive] = useState("informasi");
   const [r, action, pending] = useActionState<SaveResult, FormData>(
@@ -519,6 +527,9 @@ export function SettingsForm({
                 Badge,
               ],
             ]
+          : []),
+        ...(!pb
+          ? [["guest-cam", "Guest Cam", gcOn ? "ok" : "opsional"] as [string, string, Badge]]
           : []),
         ...(pb
           ? [["photobox", "Photobox", ok.photobox ? "ok" : "wajib"] as [string, string, Badge]]
@@ -1202,6 +1213,103 @@ export function SettingsForm({
             >
               {num("stageTvSec", 10, 120)}
             </Field>
+          </Section>
+
+          {/* Guest Cam (#197): disembunyikan di photobox tapi tetap di form (setelan tidak hilang saat simpan). */}
+          <Section
+            id="guest-cam"
+            title="Guest Cam"
+            hidden={pb}
+            badge={gcOn ? "ok" : "opsional"}
+            desc="Tamu scan QR lalu memotret dari HP sendiri, tanpa install aplikasi. Fotonya masuk album yang sama dengan foto booth."
+          >
+            <input type="hidden" name="gc_present" value="1" />
+            <ToggleRow
+              name="gc_enabled"
+              checked={gcOn}
+              onChange={(e) => setGcOn(e.target.checked)}
+              title="Nyalakan Guest Cam"
+              hint="Tamu mengisi nama + WhatsApp atau Instagram, lalu memotret dengan jatah foto. Bawaan: mati."
+            />
+            <div hidden={!gcOn} className="md:col-span-2">
+              <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
+                <Field
+                  id="gc_shots"
+                  label="Jatah foto per tamu"
+                  unit="foto"
+                  hint="Dihitung per HP. Tidak bisa dihapus atau diulang, seperti kamera sekali pakai."
+                  def="15 foto"
+                >
+                  {num("gc_shots", 1, 50)}
+                </Field>
+                <fieldset className="flex flex-col gap-2.5 text-sm">
+                  <legend className="mb-2 text-[13px] font-bold">Kapan foto terlihat</legend>
+                  {(
+                    [
+                      ["after", "Setelah acara selesai (kejutan, gaya kamera sekali pakai)"],
+                      ["live", "Langsung masuk album dan TV"],
+                    ] as const
+                  ).map(([m, l]) => (
+                    <label key={m} className="flex cursor-pointer items-center gap-2.5">
+                      <Box
+                        radio
+                        name="gc_reveal"
+                        value={m}
+                        defaultChecked={v.guestCam.reveal === m}
+                      />
+                      {l}
+                    </label>
+                  ))}
+                </fieldset>
+                <fieldset className="flex flex-col gap-2.5 text-sm">
+                  <legend className="mb-2 text-[13px] font-bold">Persetujuan foto</legend>
+                  {(
+                    [
+                      ["auto", "Tampil otomatis (bisa disembunyikan)"],
+                      ["manual", "Harus disetujui dulu di dashboard event"],
+                    ] as const
+                  ).map(([m, l]) => (
+                    <label key={m} className="flex cursor-pointer items-center gap-2.5">
+                      <Box
+                        radio
+                        name="gc_approval"
+                        value={m}
+                        defaultChecked={v.guestCam.approval === m}
+                      />
+                      {l}
+                    </label>
+                  ))}
+                </fieldset>
+                <fieldset className="flex flex-col gap-2.5 text-sm">
+                  <legend className="mb-2 text-[13px] font-bold">Fitur tambahan</legend>
+                  <label className="flex cursor-pointer items-center gap-2.5">
+                    <Box name="gc_voice" defaultChecked={v.guestCam.voice} />
+                    Ucapan suara (maks. 30 detik)
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2.5">
+                    <Box name="gc_strip" defaultChecked={v.guestCam.strip} />
+                    Strip virtual dengan desain frame utama
+                  </label>
+                </fieldset>
+                <Field
+                  id="gc_consent"
+                  label="Teks persetujuan data tamu (UU PDP)"
+                  wide
+                  hint="Tampil di form tamu. Sebut siapa yang memakai nama & kontak dan untuk apa."
+                >
+                  <textarea
+                    id="gc_consent"
+                    name="gc_consent"
+                    maxLength={600}
+                    rows={3}
+                    defaultValue={v.guestCam.consentText}
+                    aria-describedby="gc_consent-hint"
+                    className={textarea}
+                  />
+                </Field>
+                <div className="md:col-span-2">{guestLinks}</div>
+              </div>
+            </div>
           </Section>
 
           {/* Disembunyikan di Mode Event, tapi tetap di form: harga photobox tidak hilang saat simpan. */}

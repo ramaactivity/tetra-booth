@@ -12,16 +12,19 @@ export function LinksPanel({
   slug,
   clientOn,
   liveOn,
+  guestOn,
 }: {
   eventId: string;
   origin: string;
   slug: string;
-  clientOn: boolean;
-  liveOn: boolean;
+  clientOn?: boolean;
+  liveOn?: boolean;
+  /** Guest Cam (#197): diisi = hanya baris link /c (section Guest Cam). */
+  guestOn?: boolean;
 }) {
   const [pending, start] = useTransition();
   const [copied, setCopied] = useState<string | null>(null);
-  const row = (kind: "client" | "live", label: string, path: string, on: boolean) => {
+  const row = (kind: "client" | "live" | "guest", label: string, path: string, on: boolean) => {
     const url = on ? `${origin}/${path}/${slug}` : null;
     const run = (a: "new" | "revoke") => () =>
       start(async () => {
@@ -77,10 +80,16 @@ export function LinksPanel({
       </div>
     );
   };
+  if (guestOn !== undefined)
+    return (
+      <div className="flex flex-col gap-3">
+        {row("guest", "Link Guest Cam (isi QR)", "c", guestOn)}
+      </div>
+    );
   return (
     <div className="flex flex-col gap-4">
-      {row("client", "Galeri klien", "g", clientOn)}
-      {row("live", "Live slideshow", "live", liveOn)}
+      {row("client", "Galeri klien", "g", !!clientOn)}
+      {row("live", "Live slideshow", "live", !!liveOn)}
       <p className="text-xs text-text-2">
         Link memakai nama event. Ganti nama atau tanggal event = alamat link ikut berubah.
       </p>

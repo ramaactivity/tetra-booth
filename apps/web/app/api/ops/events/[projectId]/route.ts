@@ -10,7 +10,7 @@ const key = (k: string) => k.split("#")[0] ?? k;
 
 /**
  * Cuplikan galeri untuk kartu dashboard klien Ops (#185): sampul = foto original sesi terbaru (strip kalau tidak
- * ada), `thumbs` = satu thumbnail per sesi dari 6 sesi terbaru, `modules` ikut `photo_stage` bila ada sesi stage.
+ * ada), `thumbs` = satu thumbnail per sesi dari 6 sesi terbaru, `modules` ikut `photo_stage`/`guest_cam` bila ada sesinya.
  * URL presigned 1 hari; Ops mengambil ulang tiap render, tidak menyimpannya. Foto tersembunyi/terhapus/tes tidak ikut.
  */
 async function preview(db: Db, org: string, eventId: string, withPhotos: boolean) {
@@ -24,10 +24,17 @@ async function preview(db: Db, org: string, eventId: string, withPhotos: boolean
       .is("hidden_at", null)
       .is("deleted_at", null);
   const { data: stage } = await visible().eq("source", "stage").limit(1);
-  const modules = stage?.length ? ["photobooth", "photo_stage"] : ["photobooth"];
+  const { data: guest } = await visible().eq("source", "guest").limit(1);
+  const modules = [
+    "photobooth",
+    ...(stage?.length ? ["photo_stage"] : []),
+    ...(guest?.length ? ["guest_cam"] : []),
+  ];
   if (!withPhotos) return { modules, cover_url: null, thumbs: [] };
   // Hanya sesi yang fotonya sudah lengkap terunggah (rombongan stage yang masih dikirim belum punya foto).
+  // Guest Cam (#197) tidak ikut cuplikan: bisa belum disetujui / belum dibuka.
   const { data: sessions } = await visible()
+    .neq("source", "guest")
     .eq("upload_status", "complete")
     .order("started_at", { ascending: false })
     .limit(6);

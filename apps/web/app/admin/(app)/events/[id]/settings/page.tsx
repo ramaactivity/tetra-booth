@@ -28,7 +28,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, all_devices, package_name, package_hours, ops_frame_size, scheduled_start, scheduled_end, ops_project_id, event_devices(device_id)",
+      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, guest_token, all_devices, package_name, package_hours, ops_frame_size, scheduled_start, scheduled_end, ops_project_id, event_devices(device_id)",
     )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
@@ -117,6 +117,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           stageGroups: s.stageGroups,
           stageGapSec: s.stageGapSec,
           stageTvSec: s.stageTvSec,
+          guestCam: s.guestCam,
+          gc_shots: s.guestCam.shots,
           opsStageGroups: opsGroups,
           sounds: await Promise.all(
             SOUND_CUES.map(async (cue) => {
@@ -160,6 +162,9 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           allDevices: ev.all_devices,
           hasClientLink: !!ev.client_token,
         }}
+        guestLinks={
+          <LinksPanel eventId={ev.id} origin={origin} slug={ev.slug} guestOn={!!ev.guest_token} />
+        }
         links={
           <LinksPanel
             eventId={ev.id}

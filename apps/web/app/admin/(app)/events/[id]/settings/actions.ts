@@ -2,6 +2,7 @@
 import { createHash } from "node:crypto";
 import {
   EVENT_PRESETS,
+  GuestCamSettingsSchema,
   LAYOUT_PRESETS,
   type LayoutPaper,
   PHOTO_FILTERS,
@@ -98,6 +99,11 @@ const Form = z.object({
   // Wizard Buat event tidak mengirim setelan Photo Stage (#192): pakai bawaan.
   stageGapSec: int(15, 180).default(45),
   stageTvSec: int(10, 120).default(30),
+  // Guest Cam (#197); wizard tidak mengirimnya → bawaan.
+  gc_shots: int(1, 50).default(15),
+  gc_reveal: z.enum(["live", "after"]).default("after"),
+  gc_approval: z.enum(["auto", "manual"]).default("auto"),
+  gc_consent: z.string().trim().max(600).default(""),
   mode: z.enum(["event", "photobox"]),
   lead_mode: z.enum(["gate", "optional"]),
   consent_text: z.string().trim().max(600),
@@ -281,6 +287,19 @@ export async function applySettings(
     promptsBefore: lines(form.get("prompts_before")),
     promptsAfter: lines(form.get("prompts_after")),
     stageGroups: groupLines(form.get("stage_groups")),
+    guestCam: GuestCamSettingsSchema.parse(
+      form.has("gc_present")
+        ? {
+            enabled: form.get("gc_enabled") === "on",
+            shots: f.gc_shots,
+            reveal: f.gc_reveal,
+            approval: f.gc_approval,
+            voice: form.get("gc_voice") === "on",
+            strip: form.get("gc_strip") === "on",
+            ...(f.gc_consent && { consentText: f.gc_consent }),
+          }
+        : {},
+    ),
   };
   /** Versi terbaru template editor (dikunci ke event saat simpan). */
   const latest = async (layoutId: string) => {

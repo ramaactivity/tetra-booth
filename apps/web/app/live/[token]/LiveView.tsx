@@ -100,6 +100,11 @@ export function LiveView({
                 data-testid="live-main"
                 className="layered h-full rounded-xl border-[3px] border-ink bg-white [--lb:3px] [--lx:16px] [--under:#fff]"
               />
+              {cur.by && (
+                <div className="absolute -bottom-[26px] left-6 rounded-full border-[3px] border-ink bg-mint px-6 py-2 text-[28px] font-extrabold whitespace-nowrap">
+                  oleh {cur.by}
+                </div>
+              )}
             </div>
           ) : (
             <p className="ml-[260px] text-3xl font-bold text-text-2">Foto pertama sebentar lagi…</p>

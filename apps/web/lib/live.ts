@@ -1,10 +1,12 @@
 import "server-only";
+import { guestPhotosVisible } from "@/lib/events";
 import { byLink, LINK } from "@/lib/gallery";
 import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /** Live slideshow `/live/{slug atau token}` (FSD §4, desain D1): strip terbaru event yang tidak disembunyikan. */
-export type LiveStrip = { id: string; url: string; at: string };
+/** `by` = nama tamu Guest Cam (#197), tampil "oleh Sari" di TV. */
+export type LiveStrip = { id: string; url: string; at: string; by?: string };
 /** `publicGallery`: QR ke galeri publik `/l/{token}` tampil di slideshow (DECISIONS #75). */
 export type LiveEvent = {
   name: string;
@@ -18,7 +20,9 @@ export async function loadLive(token: string, limit = 24) {
   const db = createServiceClient();
   const { data: ev } = await db
     .from("events")
-    .select("id, organization_id, name, event_date, branding, purged_at, public_gallery")
+    .select(
+      "id, organization_id, name, event_date, branding, purged_at, public_gallery, settings, run, guest_revealed_at",
+    )
     .or(byLink("live_token", token))
     .not("live_token", "is", null)
     .limit(1)
@@ -26,7 +30,7 @@ export async function loadLive(token: string, limit = 24) {
   if (!ev || ev.purged_at) return null;
   const { data: rows } = await db
     .from("sessions")
-    .select("id, started_at, source, assets!inner(kind, idx, r2_key)")
+    .select("id, started_at, source, group_name, assets!inner(kind, idx, r2_key)")
     .eq("event_id", ev.id)
     .eq("organization_id", ev.organization_id)
     .eq("is_test", false)
@@ -35,12 +39,17 @@ export async function loadLive(token: string, limit = 24) {
     // Booth: strip; Photo Stage (#180): foto pertama rombongan.
     .in("assets.kind", ["strip_web", "original"])
     .is("assets.hidden_at", null)
+    .is("assets.review_status", null)
+    .in("source", guestPhotosVisible(ev) ? ["booth", "stage", "guest"] : ["booth", "stage"])
     .order("started_at", { ascending: false })
     .limit(limit);
   const pick = (s: NonNullable<typeof rows>[number]) =>
-    s.source === "stage"
-      ? s.assets.filter((a) => a.kind === "original").sort((a, b) => a.idx - b.idx)[0]
-      : s.assets.find((a) => a.kind === "strip_web");
+    s.source === "booth"
+      ? s.assets.find((a) => a.kind === "strip_web")
+      : // Photo Stage: foto pertama rombongan; Guest Cam: foto terbaru tamu.
+        s.assets
+          .filter((a) => a.kind === "original")
+          .sort((a, b) => (s.source === "guest" ? b.idx - a.idx : a.idx - b.idx))[0];
   const strips: LiveStrip[] = await Promise.all(
     (rows ?? []).flatMap((s) => {
       const a = pick(s);
@@ -49,6 +58,7 @@ export async function loadLive(token: string, limit = 24) {
             (async () => ({
               id: s.id,
               at: s.started_at,
+              ...(s.source === "guest" && s.group_name && { by: s.group_name }),
               url: await presignGet(a.r2_key.split("#")[0] ?? "", 3600),
             }))(),
           ]
