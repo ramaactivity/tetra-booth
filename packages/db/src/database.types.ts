@@ -321,6 +321,7 @@ export type Database = {
           name: string
           ops_frame_size: string | null
           ops_project_id: string | null
+          ops_sync: NonNullable<Json>
           organization_id: string
           orientation: string
           package_hours: number | null
@@ -358,6 +359,7 @@ export type Database = {
           name: string
           ops_frame_size?: string | null
           ops_project_id?: string | null
+          ops_sync?: NonNullable<Json>
           organization_id: string
           orientation?: string
           package_hours?: number | null
@@ -395,6 +397,7 @@ export type Database = {
           name?: string
           ops_frame_size?: string | null
           ops_project_id?: string | null
+          ops_sync?: NonNullable<Json>
           organization_id?: string
           orientation?: string
           package_hours?: number | null
@@ -683,6 +686,44 @@ export type Database = {
           },
         ]
       }
+      ops_webhook_deliveries: {
+        Row: {
+          delivery_id: string
+          event: string
+          occurred_at: string
+          organization_id: string
+          payload: NonNullable<Json>
+          project_id: string
+          received_at: string
+        }
+        Insert: {
+          delivery_id: string
+          event: string
+          occurred_at: string
+          organization_id: string
+          payload: NonNullable<Json>
+          project_id: string
+          received_at?: string
+        }
+        Update: {
+          delivery_id?: string
+          event?: string
+          occurred_at?: string
+          organization_id?: string
+          payload?: NonNullable<Json>
+          project_id?: string
+          received_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ops_webhook_deliveries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -958,6 +999,14 @@ export type Database = {
       }
       event_slug_base: { Args: { d: string; name: string }; Returns: string }
       is_member: { Args: { org: string; roles?: string[] }; Returns: boolean }
+      ops_event_stats: {
+        Args: { evs: string[]; org: string }
+        Returns: {
+          event_id: string
+          photos: number
+          sessions: number
+        }[]
+      }
       org_period_stats: {
         Args: { d_from: string; d_to: string; org: string }
         Returns: {

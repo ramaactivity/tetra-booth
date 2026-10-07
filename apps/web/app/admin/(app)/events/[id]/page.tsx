@@ -20,8 +20,10 @@ import {
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { copy } from "@/lib/copy";
 import { DEFAULT_TEMPLATE, type EventTemplate } from "@/lib/event-bundle";
 import { eventKey } from "@/lib/events";
+import type { OpsSync } from "@/lib/ops-sync";
 import { presignDownload, presignGet } from "@/lib/r2";
 import type { RecapData } from "@/lib/recap";
 import { requireMember } from "@/lib/supabase/server";
@@ -57,7 +59,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, slug, name, event_date, location, mode, settings, client_token, live_token, run, package_name, package_hours, scheduled_start, scheduled_end, local_bytes, local_files",
+      "id, slug, name, event_date, location, mode, settings, client_token, live_token, run, package_name, package_hours, scheduled_start, scheduled_end, local_bytes, local_files, created_at, ops_sync",
     )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
@@ -233,6 +235,13 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     cloudBytes: cloudSize?.[0]?.bytes ?? 0,
   };
 
+  const ops = (ev.ops_sync ?? {}) as OpsSync;
+  const t = copy.admin.opsSync;
+  const opsNotes: { text: string; bg: string }[] = [];
+  if (ops.cancelled_at) opsNotes.push({ text: t.cancelled, bg: "bg-coral" });
+  if (ops.updated_at && Date.parse(ops.updated_at) > Date.parse(ev.created_at))
+    opsNotes.push({ text: t.updated, bg: "bg-peach" });
+  if (ops.design_approved_at) opsNotes.push({ text: t.design, bg: "bg-mint-soft" });
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
   return (
@@ -296,6 +305,19 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
           </Link>
         </div>
       </div>
+
+      {opsNotes.length > 0 && (
+        <div className="mt-5 grid gap-2">
+          {opsNotes.map((n) => (
+            <p
+              key={n.text}
+              className={`rounded-xl border-[1.5px] border-ink px-4 py-2.5 text-[13px] font-semibold ${n.bg}`}
+            >
+              {n.text}
+            </p>
+          ))}
+        </div>
+      )}
 
       <RunPanel
         eventId={ev.id}

@@ -94,6 +94,14 @@ export const copy = {
         ml: "ml-4",
       },
     ],
+    /** Tanda dari Tetra Ops di dashboard event (#173). */
+    opsSync: {
+      cancelled:
+        "Booking ini dibatalkan di Tetra Ops. Event tidak dihapus otomatis; putuskan sendiri.",
+      updated:
+        "Data booking di Tetra Ops berubah setelah event ini dibuat. Cek tanggal, jam, lokasi, dan paket.",
+      design: "Desain frame sudah disetujui klien di Tetra Ops.",
+    },
     /** Timer jalannya event (#149). */
     run: {
       title: "Jalannya event",
