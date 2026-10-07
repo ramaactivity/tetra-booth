@@ -644,6 +644,9 @@ export const copy = {
     pair: "Sambungkan ke akun Tetra",
     paired: (name: string, code: string) => `${name} · ${code}`,
     unpaired: "Belum tersambung",
+    revoked: "Tidak terhubung: booth dicabut di admin, pasangkan ulang",
+    revokedPill: "Dicabut",
+    pairNew: "Pasangkan Ulang",
     /** Checklist persiapan di atas menu crew: urutan kerja crew sebelum tamu datang. */
     setup: {
       title: "Siapkan booth",
