@@ -5,7 +5,7 @@ import { type DriftEvent, type OpsDrift, opsDrift } from "@/lib/ops-sync";
 
 /**
  * Klien baca-saja Tetra Ops (DECISIONS #150): booking & paket untuk wizard Buat event. Env `TETRA_OPS_URL`
- * (mis. https://tetra-ops-lac.vercel.app) + `TETRA_OPS_TOKEN` (= BOOTH_API_TOKEN di Tetra Ops). Tidak diisi =
+ * (mis. https://booking.tetraphoto.com) + `TETRA_OPS_TOKEN` (= BOOTH_API_TOKEN di Tetra Ops). Tidak diisi =
  * fitur disembunyikan; paket tetap bisa diisi manual.
  */
 export const opsConfigured = () => !!process.env.TETRA_OPS_URL && !!process.env.TETRA_OPS_TOKEN;
