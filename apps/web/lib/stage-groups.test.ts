@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupLines } from "./stage-groups";
+import { groupLines, groupNames } from "./stage-groups";
 
 describe("daftar grup Photo Stage (#181)", () => {
   it("tempel dari WA/Excel/CSV: kolom pertama, nomor urut & duplikat dibuang, koma tetap", () => {
@@ -20,5 +20,9 @@ describe("daftar grup Photo Stage (#181)", () => {
     const r = groupLines(many);
     expect(r).toHaveLength(300);
     expect(r[0]?.length).toBe(120);
+  });
+  it("judul kolom dilewati; groupNames menyimpan duplikat untuk peringatan nama ganda (#192)", () => {
+    expect(groupLines("Nama grup;Jumlah\nKeluarga Inti;10\nNama\nGrup")).toEqual(["Keluarga Inti"]);
+    expect(groupNames("A\nB\nA")).toEqual(["A", "B", "A"]);
   });
 });

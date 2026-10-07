@@ -44,11 +44,12 @@ const loadPreset = (eventId: string): StagePreset => {
     return DEFAULT_STAGE_PRESET;
   }
 };
-const loadGap = (): number | null => {
+/** Pisah otomatis: setelan laptop ini, kalau belum pernah diatur = bawaan event dari admin (#192). */
+const loadGap = (fallback: number): number | null => {
   const v = localStorage.getItem(GAP_KEY);
   if (v === "off") return null;
   const n = Number(v);
-  return n >= STAGE_GAP.min && n <= STAGE_GAP.max ? n : STAGE_GAP.default;
+  return v !== null && n >= STAGE_GAP.min && n <= STAGE_GAP.max ? n : fallback;
 };
 const iso = (ms: number) => new Date(ms).toISOString();
 
@@ -87,7 +88,9 @@ export function StageRunner({
 }) {
   const p = usePlatform();
   const stage = p.stage;
-  const [s, dispatch] = useReducer(stageReducer, null, () => initialStage(loadGap()));
+  const [s, dispatch] = useReducer(stageReducer, null, () =>
+    initialStage(loadGap(event.settings.stageGapSec)),
+  );
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [saves, setSaves] = useState<Record<string, SaveState>>({});
   const [preset, setPreset] = useState(() => loadPreset(event.id));
@@ -271,7 +274,7 @@ export function StageRunner({
         galleryUrl: event.slug ? `${guestBaseUrl}/l/${event.slug}` : null,
         guestBaseUrl,
         filter: stagePresetCss(preset),
-        activeSec: event.settings.qrScreenSec,
+        activeSec: event.settings.stageTvSec,
         lut: lut ? { key: lutKey(event.id), at: lut.at } : null,
         test: setupOpen && tvTest,
       }),
@@ -286,7 +289,7 @@ export function StageRunner({
     event.tagline,
     event.date,
     event.slug,
-    event.settings.qrScreenSec,
+    event.settings.stageTvSec,
     guestBaseUrl,
     setupOpen,
     tvTest,

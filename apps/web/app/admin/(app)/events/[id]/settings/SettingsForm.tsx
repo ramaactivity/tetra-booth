@@ -21,6 +21,7 @@ import {
 import { OPS_PAPER, OpsPaperWarning } from "../../OpsPaperWarning";
 import { type SaveResult, saveEvent } from "./actions";
 import { type DesignOption, DesignPicker, forMode } from "./DesignPicker";
+import { StageGroups } from "./StageGroups";
 import { useLeaveGuard } from "./useLeaveGuard";
 
 export type SettingsValues = {
@@ -54,6 +55,8 @@ export type SettingsValues = {
   promptsAfter: string[];
   /** Daftar grup Photo Stage (#181). */
   stageGroups: string[];
+  stageGapSec: number;
+  stageTvSec: number;
   /** Usulan daftar grup dari portal Ops saat daftar masih kosong (#182). */
   opsStageGroups: string[];
   /** Suara per cue (#104): nyala/mati + URL file pengganti (presigned) kalau ada. */
@@ -404,7 +407,6 @@ export function SettingsForm({
   }, [r]);
   useLeaveGuard(dirty, "Ada perubahan belum disimpan. Tinggalkan halaman ini?");
   const pb = mode === "photobox";
-  const groupsRef = useRef<HTMLTextAreaElement>(null);
 
   // Bagian yang sedang terbaca → disorot di navigasi kiri.
   useEffect(() => {
@@ -1158,47 +1160,29 @@ export function SettingsForm({
             badge={v.stageGroups.length ? "ok" : "opsional"}
             desc="Daftar grup foto pelaminan dari klien atau WO. Muncul di laptop stage sebagai pilihan cepat nama rombongan."
           >
+            <StageGroups
+              initial={v.stageGroups.length ? v.stageGroups : v.opsStageGroups}
+              fromOps={v.stageGroups.length ? 0 : v.opsStageGroups.length}
+              onEdit={() => setDirty(true)}
+            />
             <Field
-              id="stage_groups"
-              label="Daftar grup"
-              optional
-              hint={
-                v.opsStageGroups.length
-                  ? `Diisi dari daftar klien di Tetra Ops (${v.opsStageGroups.length} grup). Periksa, lalu Simpan supaya terkirim ke laptop stage.`
-                  : "Satu grup per baris, urut sesuai rundown foto. Bisa tempel dari WhatsApp atau Excel (kolom pertama), atau impor file CSV/TXT."
-              }
+              id="stageGapSec"
+              label="Pisah otomatis bawaan"
+              unit="detik"
+              hint="Rombongan ditutup kalau kamera diam selama ini. Laptop stage yang sudah mengatur sendiri tetap memakai setelannya."
+              def="45 detik"
             >
-              <textarea
-                id="stage_groups"
-                name="stage_groups"
-                rows={8}
-                ref={groupsRef}
-                defaultValue={(v.stageGroups.length ? v.stageGroups : v.opsStageGroups).join("\n")}
-                placeholder={
-                  "Keluarga Inti\nKeluarga Besar Bpk. Hadi\nTeman Kantor PT ABC\nSahabat SMA Mempelai Wanita"
-                }
-                aria-describedby="stage_groups-hint"
-                className={textarea}
-              />
+              {num("stageGapSec", 15, 180)}
             </Field>
-            <div className="flex items-start md:col-span-2">
-              <label className="pressable flex h-10 cursor-pointer items-center rounded-[10px] border-[1.5px] border-ink bg-white px-3.5 text-[13px] font-bold has-focus-visible:outline-2">
-                Impor CSV / TXT
-                <input
-                  type="file"
-                  accept=".csv,.txt,text/csv,text/plain"
-                  className="sr-only"
-                  onChange={async (e) => {
-                    const f = e.target.files?.[0];
-                    if (!f || !groupsRef.current) return;
-                    const text = await f.text();
-                    const cur = groupsRef.current.value.trim();
-                    groupsRef.current.value = cur ? `${cur}\n${text}` : text;
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-            </div>
+            <Field
+              id="stageTvSec"
+              label="Lama tampil di TV"
+              unit="detik"
+              hint="Rombongan terbaru tampil di TV selama ini setelah jepretan terakhir, lalu TV kembali ke galeri."
+              def="30 detik"
+            >
+              {num("stageTvSec", 10, 120)}
+            </Field>
           </Section>
 
           {/* Disembunyikan di Mode Event, tapi tetap di form: harga photobox tidak hilang saat simpan. */}

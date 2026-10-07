@@ -85,6 +85,9 @@ const Form = z.object({
   maxPrints: int(1, 10),
   reviewTimeoutSec: int(5, 120),
   qrScreenSec: int(10, 300),
+  // Wizard Buat event tidak mengirim setelan Photo Stage (#192): pakai bawaan.
+  stageGapSec: int(15, 180).default(45),
+  stageTvSec: int(10, 120).default(30),
   mode: z.enum(["event", "photobox"]),
   lead_mode: z.enum(["gate", "optional"]),
   consent_text: z.string().trim().max(600),
@@ -256,6 +259,8 @@ export async function applySettings(
     maxPrints: f.maxPrints,
     reviewTimeoutSec: f.reviewTimeoutSec,
     qrScreenSec: f.qrScreenSec,
+    stageGapSec: f.stageGapSec,
+    stageTvSec: f.stageTvSec,
     countdownSound: form.get("countdownSound") === "on",
     bumper: form.get("bumper") === "on",
     countdownVideo: form.get("countdownVideo") === "on",

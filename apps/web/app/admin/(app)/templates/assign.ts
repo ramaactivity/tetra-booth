@@ -108,6 +108,8 @@ export async function assignToEvent(
     "maxPrints",
     "reviewTimeoutSec",
     "qrScreenSec",
+    "stageGapSec",
+    "stageTvSec",
     "sessionSec",
   ] as const)
     set(k, s[k]);

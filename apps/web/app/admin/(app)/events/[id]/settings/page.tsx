@@ -114,6 +114,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           promptsBefore: s.promptsBefore,
           promptsAfter: s.promptsAfter,
           stageGroups: s.stageGroups,
+          stageGapSec: s.stageGapSec,
+          stageTvSec: s.stageTvSec,
           opsStageGroups: opsGroups,
           sounds: await Promise.all(
             SOUND_CUES.map(async (cue) => {

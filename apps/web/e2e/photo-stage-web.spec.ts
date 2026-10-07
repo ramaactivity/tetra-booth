@@ -166,8 +166,21 @@ test("Pengaturan event: daftar grup Photo Stage (tempel + impor CSV) masuk bundl
       mimeType: "text/csv",
       buffer: Buffer.from("Teman Kantor PT ABC;20 orang\r\nKeluarga Inti\r\n"),
     });
-    await page.getByRole("button", { name: "Simpan" }).click();
-    await expect(page.getByRole("status")).toContainText("Tersimpan", { timeout: 30_000 });
+    // #192: konfirmasi impor, nama ganda + Hapus ganda, setelan TV.
+    await expect(page.getByText("1 grup ditambahkan dari grup.csv")).toBeVisible();
+    await expect(page.getByText("1 nama ganda:")).toBeVisible();
+    // Panel simpan lengket di bawah menutupi tombol yang baru masuk layar: gulir ke tengah dulu.
+    const dedupe = page.getByRole("button", { name: "Hapus ganda" });
+    await dedupe.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await dedupe.click();
+    await expect(page.getByText("1 nama ganda:")).toBeHidden();
+    await expect(page.getByText("3 grup", { exact: true })).toBeVisible();
+    await page.locator("#stageTvSec").fill("20");
+    await page.locator("#photo-stage").screenshot({ path: "test-results/admin-photo-stage.png" });
+    await page.getByRole("button", { name: "Simpan", exact: true }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Tersimpan" })).toBeVisible({
+      timeout: 30_000,
+    });
     const { data: ev } = await db
       .from("events")
       .select("settings, bundle")
@@ -175,6 +188,7 @@ test("Pengaturan event: daftar grup Photo Stage (tempel + impor CSV) masuk bundl
       .single();
     const groups = ["Keluarga Inti", "Keluarga Besar Bpk. Hadi", "Teman Kantor PT ABC"];
     expect((ev?.settings as { stageGroups?: string[] } | undefined)?.stageGroups).toEqual(groups);
+    expect((ev?.settings as { stageTvSec?: number } | undefined)?.stageTvSec).toBe(20);
     expect(
       (ev?.bundle as { config?: { settings?: { stageGroups?: string[] } } } | undefined)?.config
         ?.settings?.stageGroups,
