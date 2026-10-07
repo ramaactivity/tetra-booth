@@ -15,6 +15,10 @@ if (existsSync(envFile)) process.loadEnvFile(envFile);
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 test.skip(!url || !key, "butuh Supabase dev (apps/web/.env.local)");
+// Kamera palsu Chromium untuk tes halaman /c (harus top-level: launchOptions memaksa worker baru).
+test.use({
+  launchOptions: { args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] },
+});
 
 const JPEG = Buffer.from(
   "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==",
@@ -120,4 +124,62 @@ test("guest cam: join → unggah sampai jatah habis → batas ukuran → approva
       .delete()
       .eq("id", ev?.id ?? "");
   }
+});
+
+test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
+  test.use({
+    permissions: ["camera"],
+    viewport: { width: 390, height: 844 },
+  });
+
+  test("daftar → kamera → jepret 2× → jatah habis → foto terunggah", async ({ page }) => {
+    test.setTimeout(180_000);
+    const db = createClient<Database>(url ?? "", key ?? "", { auth: { persistSession: false } });
+    const org = (await db.from("organizations").select("id").eq("slug", "tetra").single()).data;
+    const token = `e2e-gcp-${Date.now()}`;
+    const { data: ev } = await db
+      .from("events")
+      .insert({
+        organization_id: org?.id ?? "",
+        name: `e2e guest cam page ${Date.now()}`,
+        mode: "event",
+        event_date: "2026-12-31",
+        guest_token: token,
+        settings: { filters: ["bw"], guestCam: { enabled: true, shots: 2, reveal: "live" } },
+      })
+      .select("id, slug")
+      .single();
+    try {
+      await page.goto(`/c/${ev?.slug}`);
+      await page.getByLabel("Nama kamu").fill("Sari");
+      await page.getByRole("button", { name: "Instagram" }).click();
+      await page.getByLabel("Instagram").fill("@sari.e2e");
+      await page.getByRole("checkbox").check();
+      await page.getByRole("button", { name: "Mulai motret" }).click();
+      await page.getByRole("button", { name: "Nyalakan kamera" }).click();
+      await expect(page.getByText("2 foto lagi")).toBeVisible();
+      await page.getByRole("button", { name: "Hitam Putih" }).click();
+      const shutter = page.getByRole("button", { name: "Jepret" });
+      await expect(shutter).toBeEnabled();
+      await shutter.click();
+      await expect(page.getByText("1 foto lagi")).toBeVisible();
+      await expect(shutter).toBeEnabled();
+      await shutter.click();
+      await expect(page.getByText("Jatah fotomu habis")).toBeVisible();
+      await expect(page.getByText("Semua foto terkirim")).toBeVisible({ timeout: 60_000 });
+      await page.getByRole("button", { name: "Foto saya" }).click();
+      await expect(page.getByRole("listitem")).toHaveCount(2);
+      const { data: s } = await db
+        .from("sessions")
+        .select("photo_count, group_name")
+        .eq("event_id", ev?.id ?? "")
+        .single();
+      expect(s).toEqual({ photo_count: 2, group_name: "Sari" });
+    } finally {
+      await db
+        .from("events")
+        .delete()
+        .eq("id", ev?.id ?? "");
+    }
+  });
 });

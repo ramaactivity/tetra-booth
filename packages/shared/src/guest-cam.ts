@@ -95,6 +95,8 @@ const GuestItem = z.object({
   idx: z.number().int(),
   url: z.string(),
   thumbUrl: z.string().optional(),
+  /** Moderasi manual: belum disetujui (tamu tetap melihat fotonya sendiri). */
+  waiting: z.boolean(),
 });
 /** GET /api/c/{token}/me (dan respons join/done): isi milik tamu ini. */
 export const GuestMe = z.object({

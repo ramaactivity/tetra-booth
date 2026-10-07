@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { EventSettingsSchema, type GuestMe, parseRun, runState } from "@tetra/shared";
 import { cookies } from "next/headers";
 import { sha256 } from "@/lib/booth";
+import type { EventBranding } from "@/lib/event-bundle";
 import { eventPhase, ymdWib } from "@/lib/events";
 import { byLinkGuest, LINK } from "@/lib/gallery";
 import { presignGet } from "@/lib/r2";
@@ -38,6 +39,37 @@ export const guestRevealed = (ev: GuestEvent, now = Date.now()) => {
   const run = runState(parseRun(ev.run));
   return run === "finished" || eventPhase(ev.event_date, run, ymdWib(now)) === "selesai";
 };
+
+/** Header halaman tamu: warna + logo (URL bertanda tangan), sama dengan halaman tamu booth. */
+export async function guestBranding(ev: GuestEvent) {
+  const b = (ev.branding ?? {}) as EventBranding;
+  return {
+    ...(b.tagline && { tagline: b.tagline }),
+    ...(b.color && { color: b.color }),
+    ...(b.logoKey && { logoUrl: await presignGet(b.logoKey) }),
+  };
+}
+
+/** Info publik untuk halaman Guest Cam (GET /api/c/{token} dan render awal /c/{token}). */
+export async function guestInfo(ev: GuestEvent) {
+  const picked = (EventSettingsSchema.parse(ev.settings ?? {}).filters ?? []).filter(
+    (f) => f !== "normal",
+  );
+  return {
+    name: ev.name,
+    date: ev.event_date,
+    branding: await guestBranding(ev),
+    filters: ["normal", ...picked],
+    shots: ev.cam.shots,
+    reveal: ev.cam.reveal,
+    approval: ev.cam.approval,
+    voice: ev.cam.voice,
+    strip: ev.cam.strip,
+    consentText: ev.cam.consentText,
+    revealed: guestRevealed(ev),
+  };
+}
+export type GuestInfo = Awaited<ReturnType<typeof guestInfo>>;
 
 const cookieName = (ev: { id: string }) => `tgc_${ev.id.slice(0, 8)}`;
 
@@ -99,6 +131,7 @@ export async function guestMe(
             const t = assets.find((x) => x.kind === thumb && x.idx === a.idx);
             return {
               idx: a.idx,
+              waiting: a.review_status === "pending",
               url: await presignGet(a.r2_key, 6 * 3600),
               thumbUrl: t ? await presignGet(t.r2_key, 6 * 3600) : undefined,
             };
