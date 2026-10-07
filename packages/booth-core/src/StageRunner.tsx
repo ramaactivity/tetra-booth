@@ -24,13 +24,15 @@ import {
   activeGroup,
   groupLabel,
   initialStage,
+  STAGE_ARCH,
+  STAGE_SERIF,
   type StageGroup,
   type StageShot,
   stagePrintLayout,
   stageReducer,
   tvState,
 } from "./stage";
-import { renderJpeg, stageCanvas } from "./stageImage";
+import { archImage, renderJpeg, stageCanvas } from "./stageImage";
 import { QrCode } from "./ui";
 
 const t = copy.stage;
@@ -322,8 +324,22 @@ export function StageRunner({
       const bmp = await createImageBitmap(new Blob([await p.storage.readFile(sh.path)]));
       try {
         const photo = stageCanvas(bmp, ORIGINAL_LONG_SIDE, "none", lutRef.current?.lut ?? null);
+        const layout = stagePrintLayout(event, bmp);
+        const ov = layout.overlay;
+        // Frame bawaan "Lengkung" (#194): lengkung putih + font serif khusus cetakan.
+        const frame =
+          ov?.assetId === STAGE_ARCH
+            ? {
+                images: {
+                  ...event.render?.images,
+                  [STAGE_ARCH]: await archImage(ov.w ?? 0, ov.h ?? 0),
+                },
+                fonts: { ...event.render?.fonts, [STAGE_SERIF]: "Cormorant Garamond" },
+              }
+            : event.render;
+        if (frame !== event.render) await document.fonts.load('96px "Cormorant Garamond"');
         const { sheet } = await renderEvent(
-          { ...event, layout: stagePrintLayout(event.layout, bmp) },
+          { ...event, layout, ...(frame && { render: frame }) },
           [photo],
           stagePresetCss(presetRef.current),
           `${guestBaseUrl}/s/${g.id}`,

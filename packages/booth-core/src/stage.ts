@@ -190,23 +190,85 @@ export function tvState(
   };
 }
 
+/** Aset overlay lengkung putih frame "Lengkung" (#194), digambar booth saat cetak. */
+export const STAGE_ARCH = "stage-arch";
+/** Font frame "Lengkung": Cormorant Garamond (fontsource di aplikasi booth). */
+export const STAGE_SERIF = "stage-serif";
+const MONTHS = [
+  "januari",
+  "februari",
+  "maret",
+  "april",
+  "mei",
+  "juni",
+  "juli",
+  "agustus",
+  "september",
+  "oktober",
+  "november",
+  "desember",
+];
+/** "12 Desember 2026" → "12 · 12 · 2026"; format lain apa adanya. */
+export const dotDate = (d: string) => {
+  const m = /^(\d{1,2})\s+([a-z]+)\s+(\d{4})$/i.exec(d.trim());
+  const mo = m ? MONTHS.indexOf((m[2] ?? "").toLowerCase()) : -1;
+  return m && mo >= 0 ? `${m[1]} · ${mo + 1} · ${m[3]}` : d;
+};
+
 /**
- * Cetak instan stage (#183): desain event dipakai kalau 4R satu slot (frame klien); selain itu foto penuh 4R
- * mengikuti arah foto (lembar landscape diputar saat dicetak).
+ * Frame cetak 4R bawaan "Lengkung" (#194, desain docs/design/photo-stage Frame 4R): foto inset 44/44/44/150,
+ * lengkung putih di tengah bawah (lebar mengikuti panjang nama), tagline + nama + tanggal serif.
+ */
+export function stageArchLayout(e: {
+  name: string;
+  tagline?: string | undefined;
+  date: string;
+}): LayoutSpec {
+  const w = Math.min(1300, Math.max(820, 520 + e.name.replace(/\s*&\s*/g, "").length * 52));
+  const x = (1800 - w) / 2;
+  const text = (y: number, size: number, color: string, value: string) => ({
+    x,
+    y,
+    w,
+    fontAssetId: STAGE_SERIF,
+    size,
+    color,
+    align: "center" as const,
+    value,
+  });
+  return {
+    id: "stage-lengkung",
+    version: 1,
+    paper: "4R",
+    canvas: { width: 1800, height: 1200, dpi: 300 },
+    background: { color: "#ffffff" },
+    slots: [{ id: "photo", x: 44, y: 44, w: 1712, h: 1006, fit: "cover", z: "below_overlay" }],
+    overlay: { assetId: STAGE_ARCH, x, y: 900, w, h: 300 },
+    texts: [
+      ...(e.tagline ? [text(966, 36, "#6b6862", e.tagline)] : []),
+      text(1012, 96, "#2a2926", e.name),
+      text(1120, 28, "#2a2926", dotDate(e.date)),
+    ],
+  };
+}
+
+/**
+ * Cetak instan stage (#183, #194): frame 4R event dipakai kalau 4R satu slot (frame klien); foto landscape tanpa
+ * frame event = frame bawaan "Lengkung"; foto portrait = foto penuh 4R.
  */
 export function stagePrintLayout(
-  layout: LayoutSpec,
+  e: { layout: LayoutSpec; name: string; tagline?: string | undefined; date: string },
   photo: { width: number; height: number },
 ): LayoutSpec {
-  if (layout.paper === "4R" && layout.slots.length === 1) return layout;
-  const [width, height] = photo.width > photo.height ? [1800, 1200] : [1200, 1800];
+  if (e.layout.paper === "4R" && e.layout.slots.length === 1) return e.layout;
+  if (photo.width > photo.height) return stageArchLayout(e);
   return {
     id: "stage-print",
     version: 1,
     paper: "4R",
-    canvas: { width, height, dpi: 300 },
+    canvas: { width: 1200, height: 1800, dpi: 300 },
     background: { color: "#ffffff" },
-    slots: [{ id: "photo", x: 0, y: 0, w: width, h: height, fit: "cover", z: "below_overlay" }],
+    slots: [{ id: "photo", x: 0, y: 0, w: 1200, h: 1800, fit: "cover", z: "below_overlay" }],
     texts: [],
   };
 }

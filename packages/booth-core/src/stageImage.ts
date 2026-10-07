@@ -30,6 +30,18 @@ export function stageCanvas(img: ImageBitmap, max: number, filter: string, lut: 
   return out;
 }
 
+/** Lengkung putih frame "Lengkung" (#194): sudut atas membulat penuh (seperti CSS `border-radius: w/2 w/2 0 0`). */
+export function archImage(w: number, h: number) {
+  const c = cpuCanvas(w, h);
+  const g = c.getContext("2d");
+  if (!g) throw new Error("canvas 2d tidak tersedia");
+  g.fillStyle = "#ffffff";
+  g.beginPath();
+  g.roundRect(0, 0, w, h, [w / 2, w / 2, 0, 0]);
+  g.fill();
+  return createImageBitmap(c);
+}
+
 /** JPEG dari file kamera lewat `stageCanvas`. */
 export async function renderJpeg(
   bytes: Uint8Array<ArrayBuffer>,

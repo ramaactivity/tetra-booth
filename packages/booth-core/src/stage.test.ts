@@ -1,3 +1,4 @@
+import { LayoutSpecSchema } from "@tetra/shared";
 import { FIXTURES } from "@tetra/template-engine";
 import { describe, expect, it } from "vitest";
 import {
@@ -91,15 +92,27 @@ describe("Photo Stage: pengelompokan rombongan (#178)", () => {
   });
 });
 
-describe("stagePrintLayout (#183)", () => {
-  it("frame 4R satu slot dipakai, selain itu foto penuh mengikuti arah foto", () => {
+describe("stagePrintLayout (#183, #194)", () => {
+  it("frame 4R satu slot dipakai; landscape tanpa frame = Lengkung; portrait = foto penuh", () => {
     const one = { ...FIXTURES["4R"], slots: FIXTURES["4R"].slots.slice(0, 1) };
-    expect(stagePrintLayout(one, { width: 6000, height: 4000 })).toBe(one);
-    const wide = stagePrintLayout(FIXTURES["2x6x2"], { width: 6000, height: 4000 });
-    expect([wide.paper, wide.canvas.width, wide.canvas.height]).toEqual(["4R", 1800, 1200]);
-    expect(stagePrintLayout(FIXTURES["2x6x2"], { width: 4000, height: 6000 }).canvas.width).toBe(
-      1200,
-    );
+    const ev = (layout: typeof one) => ({
+      layout,
+      name: "Rina & Dimas",
+      tagline: "The Wedding of",
+      date: "12 Desember 2026",
+    });
+    expect(stagePrintLayout(ev(one), { width: 6000, height: 4000 })).toBe(one);
+    const arch = stagePrintLayout(ev(FIXTURES["2x6x2"]), { width: 6000, height: 4000 });
+    expect([arch.id, arch.canvas.width, arch.overlay?.w]).toEqual(["stage-lengkung", 1800, 988]);
+    expect(arch.texts.map((x) => x.value)).toEqual([
+      "The Wedding of",
+      "Rina & Dimas",
+      "12 · 12 · 2026",
+    ]);
+    expect(LayoutSpecSchema.safeParse(arch).success).toBe(true);
+    expect(
+      stagePrintLayout(ev(FIXTURES["2x6x2"]), { width: 4000, height: 6000 }).canvas.width,
+    ).toBe(1200);
   });
 });
 

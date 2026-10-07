@@ -80,6 +80,19 @@ Minimum teks booth 20px (terbaca dari 2 m).
 
 Belum dibangun (ikuti PNG saat fasenya tiba): A2–A4 & A7 photobox (Fase 4), B halaman tamu (Fase 2), C galeri, D live, E admin (Fase 3).
 
+### Photo Stage (desain final `docs/design/photo-stage/`, DECISIONS #186–#194)
+
+| Layar | Kode | Penyimpangan yang disengaja |
+|---|---|---|
+| A1 Persiapan | `booth-core/src/StageSetup.tsx` | Peran, event, jenis kamera diganti lewat Crew (aplikasi dibuka ulang); langkah 1 & kartu kamera hanya menampilkan pilihan aktif. Nama monitor TV tidak tersedia. |
+| A2–A3 Operator | `booth-core/src/StageRunner.tsx` | Maks. 20 foto/rombongan (grid menampilkan 5 terbaru). Pisah otomatis menutup rombongan; rombongan baru dibuka jepretan berikutnya. Riwayat: ganti nama saja (gabung/pisah/sembunyikan foto menyusul, butuh dukungan cloud). |
+| A4 Warna | `booth-core/src/StageColor.tsx` | Tanpa "Simpan preset" (preset tersimpan otomatis per event). |
+| B4–B6 TV | `booth-core/src/StageTv.tsx` | Mosaik maks. 5 foto terbaru; kartu QR galeri idle hanya untuk event cloud (slug). |
+| C7–C7b HP tamu | `apps/web/app/s/[sessionId]/StageGuest.tsx`, `page.tsx` | Tanpa nomor rombongan (nomor laptop tidak stabil); Simpan semua tanpa ZIP (fallback unduh per file). |
+| C8 / D9 Galeri | `apps/web/app/g/[token]/GalleryView.tsx` | Hero C1 yang sudah ada dipertahankan; tombol unduh tanpa progres %. |
+| E10 Admin | `settings/StageGroups.tsx` + Pengaturan event | Tanpa toggle "Aktif untuk event ini" / pill paket. |
+| Frame 4R "Lengkung" | `booth-core/src/stage.ts` `stageArchLayout` + template engine | Cormorant Garamond **hanya** di cetakan (penyimpangan "tanpa serif", disengaja). Tanpa italic & letter-spacing (engine belum mendukung); foto di-crop tengah (bukan 35%); hanya foto landscape, portrait = foto penuh. |
+
 ## 5. Gerak
 
 - Transisi layar: fade + geser 12px, 250ms ease-out (`animate-[enter_…]`).
