@@ -26,6 +26,7 @@ test("Photo Stage di galeri klien, halaman tamu, dan live", async ({ browser, re
       event_date: "2026-12-12",
       client_token: `e2e-stage-client-${tag}`,
       live_token: `e2e-stage-live-${tag}`,
+      ops_project_id: `PRJ-E2E-STAGE-${tag}`,
       client_expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString(),
     })
     .select("id")
@@ -92,6 +93,25 @@ test("Photo Stage di galeri klien, halaman tamu, dan live", async ({ browser, re
 
     const live = await (await request.get(`/api/live/e2e-stage-live-${tag}`)).json();
     expect((live as { id: string }[]).map((x) => x.id).sort()).toEqual([booth, inti, tamu].sort());
+
+    // Cuplikan untuk dashboard klien Ops (#185): sampul, satu thumbnail per sesi (terbaru dulu), modules.
+    const res = await request.get(`/api/ops/events/PRJ-E2E-STAGE-${tag}`, {
+      headers: { authorization: `Bearer ${process.env.TETRA_OPS_API_TOKEN}` },
+    });
+    expect(res.status()).toBe(200);
+    const [ops] = (
+      (await res.json()) as {
+        events: {
+          modules: string[];
+          cover_url: string | null;
+          thumbs: { url: string; kind: string }[];
+        }[];
+      }
+    ).events;
+    expect(ops?.modules).toEqual(["photobooth", "photo_stage"]);
+    expect(ops?.thumbs.map((x) => x.kind)).toEqual(["original", "original", "strip"]);
+    expect(ops?.thumbs[0]?.url).toMatch(/thumb_original_1\.jpg\?.*X-Amz-Expires=86400/);
+    expect(ops?.cover_url).toMatch(/original_1\.jpg\?/);
   } finally {
     await db.from("events").delete().eq("id", eventId);
   }
