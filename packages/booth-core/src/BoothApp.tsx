@@ -8,6 +8,7 @@ import { type BoothEvent, DEFAULT_EVENT, loadEvent, releaseEvent } from "./event
 import { usePlatform } from "./PlatformContext";
 import type { PrinterAlert } from "./platform";
 import { SessionRunner } from "./SessionRunner";
+import { StageRunner } from "./StageRunner";
 import { StartScreen } from "./screens/StartScreen";
 import { Stage } from "./ui";
 
@@ -180,20 +181,30 @@ export function BoothApp({
   return (
     <div className={kiosk && !showCursor ? "cursor-none [&_*]:cursor-none" : undefined}>
       <Stage>
-        <SessionRunner
-          key={event.id}
-          event={runEvent}
-          guestBaseUrl={guestBaseUrl}
-          demo={demo}
-          fast={fast}
-          bumper={bumper}
-          test={testMode}
-          onCrew={(intent) => {
-            setExitIntent(intent === "exit");
-            setCrewOpen(true);
-          }}
-        />
-        {alert && (
+        {p.stage ? (
+          <StageRunner
+            key={event.id}
+            event={event}
+            guestBaseUrl={guestBaseUrl}
+            onCrew={() => setCrewOpen(true)}
+          />
+        ) : (
+          <SessionRunner
+            key={event.id}
+            event={runEvent}
+            guestBaseUrl={guestBaseUrl}
+            demo={demo}
+            fast={fast}
+            bumper={bumper}
+            test={testMode}
+            onCrew={(intent) => {
+              setExitIntent(intent === "exit");
+              setCrewOpen(true);
+            }}
+          />
+        )}
+        {/* Stage (#178) belum mencetak: peringatan printer booth tidak relevan. */}
+        {alert && !p.stage && (
           <p
             className="absolute bottom-5 left-6 flex items-center gap-2.5 rounded-full border-2 border-ink bg-white px-4 py-1.5 text-xl font-semibold"
             role="status"
