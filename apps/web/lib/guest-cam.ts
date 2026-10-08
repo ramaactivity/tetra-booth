@@ -4,6 +4,7 @@ import {
   EventDesignSchema,
   EventSettingsSchema,
   type GuestMe,
+  guestHardCap,
   LAYOUT_PRESETS,
   type LayoutSpec,
   parseRun,
@@ -198,7 +199,7 @@ export async function guestSession(ev: GuestEvent) {
   if (!key) return null;
   const { data } = await createServiceClient()
     .from("sessions")
-    .select("id, group_name")
+    .select("id, group_name, asset_count")
     .eq("organization_id", ev.organization_id)
     .eq("event_id", ev.id)
     .eq("source", "guest")
@@ -257,3 +258,51 @@ export async function guestMe(
     revealed,
   };
 }
+
+/** Identitas tamu untuk kuota (#221): nomor WA, lalu IG; tanpa keduanya = sesi itu sendiri. */
+export const guestIdentity = (
+  d: { whatsapp?: string | undefined; instagram?: string | undefined } | null,
+  sessionId: string,
+) => d?.whatsapp ?? (d?.instagram ? `ig:${d.instagram}` : sessionId);
+
+/**
+ * Kuota tamu per tier (#221). Tamu = sesi Guest Cam yang sudah mengirim ≥ 1 foto; satu nomor WA/IG = satu tamu
+ * walau dari beberapa HP. Tamu yang sudah terhitung selalu boleh lanjut; tamu baru ditolak hanya kalau
+ * pemakaian sudah mencapai batas + 10%. Tanpa batas (`maxGuests` null) = selalu boleh.
+ */
+export async function guestQuota(ev: GuestEvent) {
+  const max = ev.cam.maxGuests;
+  if (!max) return { used: null, max: null, admits: () => true };
+  const { data } = await createServiceClient()
+    .from("sessions")
+    .select("id, leads(data)")
+    .eq("organization_id", ev.organization_id)
+    .eq("event_id", ev.id)
+    .eq("source", "guest")
+    .gt("asset_count", 0)
+    .is("deleted_at", null);
+  const counted = new Set(
+    (data ?? []).map((s) =>
+      guestIdentity(s.leads[0]?.data as { whatsapp?: string; instagram?: string } | null, s.id),
+    ),
+  );
+  return {
+    used: counted.size,
+    max,
+    admits: (identity: string) => counted.has(identity) || counted.size < guestHardCap(max),
+  };
+}
+
+/** Identitas sesi tamu dari lead-nya (dipakai saat foto pertama). */
+export async function sessionIdentity(ev: GuestEvent, sessionId: string) {
+  const { data } = await createServiceClient()
+    .from("leads")
+    .select("data")
+    .eq("organization_id", ev.organization_id)
+    .eq("session_id", sessionId)
+    .limit(1)
+    .maybeSingle();
+  return guestIdentity(data?.data as { whatsapp?: string; instagram?: string } | null, sessionId);
+}
+
+export const quotaFull = () => Response.json({ error: "guest_full" }, { status: 403 });

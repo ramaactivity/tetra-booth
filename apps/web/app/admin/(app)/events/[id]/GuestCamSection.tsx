@@ -1,5 +1,6 @@
 import { EventSettingsSchema } from "@tetra/shared";
 import { guestPhotosVisible } from "@/lib/events";
+import { guestIdentity } from "@/lib/guest-cam";
 import { presignGet } from "@/lib/r2";
 import type { requireMember } from "@/lib/supabase/server";
 import { ModerationGrid, RevealButton } from "./GuestCamPanel";
@@ -74,6 +75,26 @@ export async function GuestCamSection({
         .limit(120),
     ]);
   if (!cam?.enabled && !guests) return null;
+  // Kuota tier (#221): tamu terhitung = sesi dengan ≥ 1 foto, satu nomor WA/IG = satu tamu.
+  const max = cam?.maxGuests ?? null;
+  const counted = max
+    ? new Set(
+        (
+          (
+            await db
+              .from("sessions")
+              .select("id, leads(data)")
+              .eq("organization_id", orgId)
+              .eq("event_id", ev.id)
+              .eq("source", "guest")
+              .gt("asset_count", 0)
+              .is("deleted_at", null)
+          ).data ?? []
+        ).map((x) =>
+          guestIdentity(x.leads[0]?.data as { whatsapp?: string; instagram?: string } | null, x.id),
+        ),
+      ).size
+    : null;
   const items = await Promise.all(
     (pending ?? []).map(async (a) => ({
       id: a.id,
@@ -117,7 +138,14 @@ export async function GuestCamSection({
         <span className="flex-1 border-t-[1.5px] border-dashed border-ink" />
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {stat("Tamu ikut", guests, "orang", "[--under:var(--peach)]")}
+        {max && counted !== null
+          ? stat(
+              "Kuota tamu",
+              counted,
+              `dari ${max.toLocaleString("id-ID")}${counted >= max * 0.8 ? " · hampir penuh" : ""}`,
+              counted >= max * 0.8 ? "[--under:var(--coral)]" : "[--under:var(--peach)]",
+            )
+          : stat("Tamu ikut", guests, "orang", "[--under:var(--peach)]")}
         {stat(
           "Foto",
           photos,

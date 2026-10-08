@@ -12,6 +12,8 @@ export const GuestCamSettingsSchema = z.object({
   enabled: z.boolean().default(false),
   /** Jatah foto per tamu (per HP). */
   shots: z.number().int().min(1).max(50).default(15),
+  /** Batas tamu sesuai tier paket (#221); null = tak terbatas. Tamu = HP yang mengirim ≥ 1 foto. */
+  maxGuests: z.number().int().min(1).max(100_000).nullable().default(null),
   /** live = foto langsung tampil di album/TV; after = terbuka setelah acara (gaya kamera sekali pakai). */
   reveal: z.enum(["live", "after"]).default("after"),
   /** auto = tampil otomatis (bisa disembunyikan); manual = harus disetujui owner/crew dulu. */
@@ -143,3 +145,8 @@ export const idxAllowed = (cam: GuestCamSettings, kind: GuestUploadKind, idx: nu
     : kind === "strip"
       ? cam.strip && idx < GUEST_MAX_STRIPS
       : cam.voice && idx === 0;
+
+/** Tier Guest Cam yang dijual (#221, rekap pricing 8 Okt); null = tak terbatas. */
+export const GUEST_TIERS = [100, 200, 300, 500, null] as const;
+/** Kuota benar-benar berhenti di +10% (tamu asli tidak tertolak di tengah acara). */
+export const guestHardCap = (max: number) => Math.ceil(max * 1.1);

@@ -110,6 +110,7 @@ export const copy = {
     start: "Masuk",
     joining: "Bentar ya…",
     failed: "Koneksinya lagi rewel, coba sekali lagi ya",
+    full: "Yah, kuota tamu Guest Cam acara ini sudah penuh. Kamu tetap bisa lihat foto acara dari QR galeri ya.",
     // A2 Izin kamera
     askTitle: (name: string) => `Hai ${name}, izinin kamera dulu ya`,
     askBody: "Abis ini browser bakal nanya. Pilih Izinkan, terus kamu bisa langsung motret.",

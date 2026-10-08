@@ -130,6 +130,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           stageTvSec: s.stageTvSec,
           guestCam: s.guestCam,
           gc_shots: s.guestCam.shots,
+          gc_max_guests: s.guestCam.maxGuests ? String(s.guestCam.maxGuests) : "",
           opsStageGroups: opsGroups,
           sounds: await Promise.all(
             SOUND_CUES.map(async (cue) => {

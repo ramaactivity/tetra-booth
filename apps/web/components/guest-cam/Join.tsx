@@ -132,7 +132,8 @@ export function Join({
     }).catch(() => null);
     setBusy(false);
     if (r?.ok) return onJoined((await r.json()) as GuestMe);
-    setError(t.failed);
+    // Kuota tier penuh (#221).
+    setError(r?.status === 403 ? t.full : t.failed);
   };
 
   return (
