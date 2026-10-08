@@ -1,4 +1,5 @@
 import type { Json } from "@tetra/db";
+import { BIZ_CARDS } from "@/lib/biz-card";
 import {
   nextOpsSync,
   type OpsSync,
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
   // Tandai dulu, catat delivery sesudahnya: kalau tanda gagal, kiriman ulang Ops memproses lagi (nextOpsSync idempoten).
   const { data: events, error } = await db
     .from("events")
-    .select("id, ops_sync, client_instagram")
+    .select("id, ops_sync, client_instagram, settings")
     .eq("organization_id", org)
     .eq("ops_project_id", projectId);
   if (error) return new Response("server error", { status: 500 });
@@ -52,16 +53,23 @@ export async function POST(req: Request) {
   // IG klien (#215, kontrak v0.7) mengisi event yang belum punya; isian admin di Booth tidak ditimpa.
   // ponytail: perubahan IG di Ops setelah terisi tidak ikut; admin mengubahnya di pengaturan event.
   const ig = opsInstagram(body.booking.client_instagram);
+  // Desain kartu QR Guest Cam pilihan klien di portal (#225, kontrak v0.9).
+  const card = BIZ_CARDS.find((c) => c.id === body.booking.guest_card_design)?.id;
   for (const ev of events ?? []) {
     const prev = (ev.ops_sync ?? {}) as OpsSync;
     const next = nextOpsSync(prev, body);
     const fillIg = ig.length > 0 && !ev.client_instagram.length;
-    if (next === prev && !fillIg) continue;
+    const settings = (ev.settings ?? {}) as { guestCam?: { cardDesign?: string } };
+    const setCard = !!card && settings.guestCam?.cardDesign !== card;
+    if (next === prev && !fillIg && !setCard) continue;
     const { error: upd } = await db
       .from("events")
       .update({
         ops_sync: next as unknown as NonNullable<Json>,
         ...(fillIg && { client_instagram: ig }),
+        ...(setCard && {
+          settings: { ...settings, guestCam: { ...settings.guestCam, cardDesign: card } },
+        }),
       })
       .eq("id", ev.id)
       .eq("organization_id", org);

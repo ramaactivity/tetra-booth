@@ -119,6 +119,14 @@ export function GuestLinkPanel({
             >
               Unduh kartu QR meja · PDF A6
             </a>
+            <a
+              href={`/admin/events/${eventId}/business-card`}
+              target="_blank"
+              rel="noreferrer"
+              className={`${btn} layered bg-white [--lb:1.5px] [--lx:4px]`}
+            >
+              Kartu nama QR · 90×55 mm
+            </a>
             <div className="flex h-[42px] overflow-hidden rounded-[11px] border-[1.5px] border-ink bg-white text-[13px] font-bold">
               {(["wedding", "corporate"] as const).map((v, i) => (
                 <button

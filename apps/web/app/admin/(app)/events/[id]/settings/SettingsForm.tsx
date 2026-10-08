@@ -402,6 +402,14 @@ function Field({
   );
 }
 
+/** Desain kartu QR kartu nama (#225); id sama dengan BIZ_CARDS di lib/biz-card. */
+const CARD_OPTIONS = [
+  { value: "klasik", label: "Klasik" },
+  { value: "mint", label: "Mint" },
+  { value: "butter", label: "Butter" },
+  { value: "gelap", label: "Gelap" },
+];
+
 /** Tier Guest Cam (#221, rekap pricing 8 Okt). */
 const GUEST_TIER_OPTIONS = [
   { value: "100", label: "100 tamu" },
@@ -456,6 +464,7 @@ export function SettingsForm({
   const [leadOn, setLeadOn] = useState(!!v.lead?.enabled);
   const [gcOn, setGcOn] = useState(v.guestCam.enabled);
   const [gcMax, setGcMax] = useState(v.gc_max_guests);
+  const [gcCard, setGcCard] = useState(v.guestCam.cardDesign);
   const [gcLen, setGcLen] = useState(v.guestCam.consentText.length);
   const [dirty, setDirty] = useState(false);
   const [active, setActive] = useState("informasi");
@@ -1314,6 +1323,23 @@ export function SettingsForm({
                       setDirty(true);
                     }}
                     options={GUEST_TIER_OPTIONS}
+                  />
+                </Field>
+                <Field
+                  label="Desain kartu QR (kartu nama)"
+                  hint="Dicetak Tetra 90×55 mm; klien bisa memilih di portal booking. Unduh lewat link Guest Cam di bawah."
+                  def="Klasik"
+                >
+                  <Select
+                    label="Desain kartu QR"
+                    name="gc_card"
+                    className="w-full"
+                    value={gcCard}
+                    onChange={(v) => {
+                      setGcCard(v);
+                      setDirty(true);
+                    }}
+                    options={CARD_OPTIONS}
                   />
                 </Field>
                 <div className="flex flex-col gap-1.5">

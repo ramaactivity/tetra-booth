@@ -113,6 +113,8 @@ const Form = z.object({
   gc_shots: int(1, 50).default(15),
   /** Batas tamu tier Guest Cam (#221); "" = tak terbatas. */
   gc_max_guests: z.enum(["", "100", "200", "300", "500"]).default(""),
+  /** Desain kartu QR kartu nama (#225). */
+  gc_card: z.enum(["klasik", "mint", "butter", "gelap"]).default("klasik"),
   gc_reveal: z.enum(["live", "after"]).default("after"),
   gc_approval: z.enum(["auto", "manual"]).default("auto"),
   gc_consent: z.string().trim().max(600).default(""),
@@ -306,6 +308,7 @@ export async function applySettings(
             enabled: form.get("gc_enabled") === "on",
             shots: f.gc_shots,
             maxGuests: f.gc_max_guests ? Number(f.gc_max_guests) : null,
+            cardDesign: f.gc_card,
             reveal: f.gc_reveal,
             approval: f.gc_approval,
             voice: form.get("gc_voice") === "on",

@@ -31,6 +31,7 @@ export default defineConfig({
       TETRA_OPS_ORG_ID: "ba9df22f-5abc-4322-ab3b-9a3f4b00e481",
       // Ops → Booth (cek & pakai kode promo #218).
       TETRA_OPS_API_TOKEN: "e2e-ops-api-token",
+      TETRA_OPS_WEBHOOK_SECRET: "e2e-ops-webhook-secret",
     },
   },
 });

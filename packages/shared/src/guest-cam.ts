@@ -16,6 +16,8 @@ export const GuestCamSettingsSchema = z.object({
   maxGuests: z.number().int().min(1).max(100_000).nullable().default(null),
   /** Add-on cetak di lokasi (#223): tiap tamu boleh mencetak satu frame lewat printer booth / Print Station. */
   print: z.boolean().default(false),
+  /** Desain kartu QR ukuran kartu nama (#225), dipilih klien di portal Ops atau admin. */
+  cardDesign: z.string().max(20).default("klasik"),
   /** live = foto langsung tampil di album/TV; after = terbuka setelah acara (gaya kamera sekali pakai). */
   reveal: z.enum(["live", "after"]).default("after"),
   /** auto = tampil otomatis (bisa disembunyikan); manual = harus disetujui owner/crew dulu. */
