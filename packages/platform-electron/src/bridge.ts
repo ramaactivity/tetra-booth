@@ -34,7 +34,7 @@ export type BoothConfig = {
   /** Opsi crew: hasil foto ikut dibalik (bawaan mati). */
   mirrorPhoto?: boolean;
   /** Peran laptop (#178): `stage` = Photo Stage (fotografer pelaminan); bawaan booth. */
-  role?: "booth" | "stage";
+  role?: "booth" | "stage" | "print";
 };
 
 /**

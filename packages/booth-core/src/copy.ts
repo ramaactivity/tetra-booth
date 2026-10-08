@@ -5,6 +5,22 @@ export const copy = {
     who: (n: number, name: string | null) => `#${n}${name ? ` ${name}` : ""}`,
     printing: (who: string) => `Cetak Guest Cam ${who}`,
   },
+  /** Layar Print Station (#224): laptop + printer khusus cetak foto tamu Guest Cam. */
+  printStation: {
+    title: "Cetak foto Guest Cam-mu di sini",
+    steps: [
+      "Scan QR, isi nama, foto pakai HP",
+      "Buka Photo frame, pilih fotomu",
+      "Tekan Cetak di booth",
+      "Ambil cetakanmu di sini",
+    ],
+    ready: "Siap diambil",
+    empty: "Belum ada cetakan. Yang dicetak muncul di sini.",
+    failed: "Gagal, panggil crew",
+    off: "Add-on cetak Guest Cam belum aktif untuk event ini. Nyalakan di admin → Pengaturan → Guest Cam.",
+    noLink: "Link Guest Cam belum dibuat di admin",
+    scan: "Scan untuk ikut Guest Cam",
+  },
   attract: {
     cta: "Sentuh untuk Mulai",
     // Hanya tampil sebelum PIN crew dibuat (setup pertama), supaya tamu tidak melihatnya saat event.
@@ -602,7 +618,7 @@ export const copy = {
     eventSettingsSaved: "Pengaturan event disimpan di booth",
     eventSettingsReset: "Pengaturan event kembali ke cloud",
     deviceRole: "Peran laptop",
-    roles: { booth: "Photobooth", stage: "Photo Stage" },
+    roles: { booth: "Photobooth", stage: "Photo Stage", print: "Print Station" },
     /** Hapus isinya (jadikan "") setelah W-038…W-041 lulus dengan kamera Sony asli (#171). */
     sonyUntested: "Belum diuji dengan kamera asli" as string,
     sonyTips: [
@@ -697,6 +713,7 @@ export const copy = {
       roleDetail: {
         booth: "Tamu berfoto sendiri di booth ini",
         stage: "Foto dari kamera fotografer di pelaminan",
+        print: "Hanya mencetak foto tamu Guest Cam (tanpa photobooth)",
       },
       saveTitle: "Perubahan perangkat belum disimpan",
       saveHint: "Booth ditutup lalu terbuka lagi sendiri (±10 detik).",

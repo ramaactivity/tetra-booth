@@ -41,14 +41,16 @@ export async function printGuestSheet(p: BoothPlatform, jobs: LocalGuestPrint[])
   }
 }
 
+/** Satu cetakan tamu yang sudah diproses booth ini (layar Print Station & chip crew). */
+export type DoneGuestPrint = { id: string; number: number; name: string | null; ok: boolean };
+
 /**
  * Pencetak tamu Guest Cam (#223): selama event dengan add-on cetak aktif, tiap 5 dtk ambil job untuk kertas event
- * ini, cetak, laporkan. Offline = diam (booth tidak pernah menunggu jaringan). Chip kecil memberi tahu crew nomor
- * & nama tamu yang mengambil cetakan.
+ * ini, cetak, laporkan. Offline = diam (booth tidak pernah menunggu jaringan). `recent` = cetakan terbaru dulu.
  */
-export function GuestPrinter({ event }: { event: BoothEvent }) {
+export function useGuestPrinter(event: BoothEvent) {
   const p = usePlatform();
-  const [last, setLast] = useState<string | null>(null);
+  const [recent, setRecent] = useState<DoneGuestPrint[]>([]);
   const on = !!p.guestPrints && event.settings.guestCam.print && event.id !== "local";
   useEffect(() => {
     const gp = p.guestPrints;
@@ -61,16 +63,22 @@ export function GuestPrinter({ event }: { event: BoothEvent }) {
       try {
         const jobs = await gp.claim(event.id, event.layout.paper);
         if (!jobs.length) return;
-        const label = jobs.map((j) => copy.guestPrint.who(j.number, j.guestName)).join(" · ");
-        setLast(label);
+        let ok = true;
+        let msg = "";
         try {
           await printGuestSheet(p, jobs);
-          await Promise.all(jobs.map((j) => gp.report(j.id, "printed")));
         } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
+          ok = false;
+          msg = e instanceof Error ? e.message : String(e);
           console.warn(`[guest-print] gagal: ${msg}`);
-          await Promise.all(jobs.map((j) => gp.report(j.id, "failed", msg.slice(0, 300))));
         }
+        await Promise.all(
+          jobs.map((j) =>
+            ok ? gp.report(j.id, "printed") : gp.report(j.id, "failed", msg.slice(0, 300)),
+          ),
+        );
+        const done = jobs.map((j) => ({ id: j.id, number: j.number, name: j.guestName, ok }));
+        setRecent((r) => [...done.reverse(), ...r].slice(0, 30));
       } finally {
         busy = false;
       }
@@ -82,11 +90,26 @@ export function GuestPrinter({ event }: { event: BoothEvent }) {
       clearInterval(timer);
     };
   }, [p, on, event.id, event.layout.paper]);
+  return { on, recent };
+}
+
+/** Chip kecil untuk crew di layar booth: siapa yang baru saja dicetak (hilang sendiri setelah 12 dtk). */
+export function GuestPrinter({ event }: { event: BoothEvent }) {
+  const { recent } = useGuestPrinter(event);
+  const [last, setLast] = useState<string | null>(null);
+  const head = recent[0]?.id;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: hanya saat cetakan terbaru berganti
   useEffect(() => {
-    if (!last) return;
+    if (!head) return;
+    const batch = recent
+      .filter((r) => r.ok)
+      .slice(0, 2)
+      .reverse();
+    if (!batch.length) return;
+    setLast(batch.map((r) => copy.guestPrint.who(r.number, r.name)).join(" · "));
     const t = setTimeout(() => setLast(null), 12_000);
     return () => clearTimeout(t);
-  }, [last]);
+  }, [head]);
   if (!last) return null;
   return (
     <p

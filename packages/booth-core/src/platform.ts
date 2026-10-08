@@ -131,7 +131,7 @@ export type DeviceSettings = {
   hotFolderTrigger?: string;
   printer?: string;
   /** Peran laptop (#178): `stage` = Photo Stage; bawaan booth. */
-  role?: "booth" | "stage";
+  role?: "booth" | "stage" | "print";
 };
 /** `locked` = flag yang dipaksa baris perintah (tidak bisa diubah dari mode crew). */
 export type DeviceInfo = { now: DeviceSettings; locked: string[]; printers: string[] };
@@ -342,6 +342,8 @@ export interface BoothPlatform {
     /** Cetak lagi dari galeri lewat antrean & tabel print_jobs yang sama (#145). */
     reprint(req: ReprintRequest): Promise<ReprintResult>;
   };
+  /** Laptop ini Print Station (#224): hanya mencetak foto tamu Guest Cam, tanpa sesi foto. */
+  printStation?: boolean;
   /** Cetak tamu Guest Cam (#223). Tidak ada = platform tanpa cloud (uji/browser). Offline = daftar kosong. */
   guestPrints?: {
     claim(eventId: string, paper: string): Promise<LocalGuestPrint[]>;

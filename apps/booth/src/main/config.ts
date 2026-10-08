@@ -85,8 +85,8 @@ export const DeviceSettings = z.object({
   hotFolder: z.string().min(1).max(260).optional(),
   hotFolderTrigger: z.url().max(512).optional(),
   printer: z.string().min(1).max(256).optional(),
-  /** Peran laptop (#178): `stage` = Photo Stage. Bawaan booth. */
-  role: z.enum(["booth", "stage"]).optional(),
+  /** Peran laptop (#178): `stage` = Photo Stage, `print` = Print Station (#224). Bawaan booth. */
+  role: z.enum(["booth", "stage", "print"]).optional(),
 });
 export type DeviceSettings = z.infer<typeof DeviceSettings>;
 export const deviceFile = join(userDir, "device.json");
@@ -225,6 +225,7 @@ export const config: BoothConfig = {
   mirrorLiveView: device.mirrorLiveView ?? true,
   mirrorPhoto: device.mirrorPhoto ?? false,
   ...(flags.value("role") === "stage" ? { role: "stage" as const } : {}),
+  ...(flags.value("role") === "print" ? { role: "print" as const } : {}),
 };
 
 const size = /^(\d+)x(\d+)$/.exec(flags.value("size") ?? "");

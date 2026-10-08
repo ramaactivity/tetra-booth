@@ -143,3 +143,49 @@ test("booth mencetak cetak tamu Guest Cam berpasangan dan melapor", async () => 
     server.close();
   }
 });
+
+test("Print Station: laptop peran print menampilkan QR Guest Cam & daftar cetakan, tanpa sesi foto", async () => {
+  const data = mkdtempSync(join(tmpdir(), "tb-pstation-"));
+  const dir = join(data, "events", "gc-station", "bundle");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, "config.json"),
+    JSON.stringify({
+      id: "gc-station",
+      name: "Uji Print Station",
+      date: "8 Oktober 2026",
+      layout: STRIP,
+      info: { guestCam: "/c/abcDEF123" },
+      settings: { guestCam: { enabled: true, strip: true, print: true } },
+    }),
+  );
+  const env = { ...process.env };
+  delete env.ELECTRON_RUN_AS_NODE;
+  const app = await electron.launch({
+    executablePath: electronPath,
+    args: [
+      appDir,
+      "--camera=simulated",
+      "--no-spawn",
+      "--start-screen",
+      `--data=${data}`,
+      "--role",
+      "print",
+    ],
+    env: env as Record<string, string>,
+  });
+  try {
+    const w = await app.firstWindow();
+    await w.getByRole("button", { name: /Mode Event/ }).click();
+    await w.getByRole("button", { name: /Uji Print Station/ }).click();
+    const station = w.getByTestId("print-station");
+    await expect(station).toBeVisible();
+    await expect(station).toContainText("Cetak foto Guest Cam-mu di sini");
+    await expect(station).toContainText("Belum ada cetakan");
+    await expect(station.locator("svg")).toHaveCount(1);
+    await expect(w.getByRole("button", { name: /sentuh untuk mulai/i })).toHaveCount(0);
+    await w.screenshot({ path: "test-results/print-station.png" });
+  } finally {
+    await app.close();
+  }
+});

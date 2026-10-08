@@ -10,6 +10,7 @@ import { usePlatform } from "./PlatformContext";
 import type { PrinterAlert } from "./platform";
 import { SessionRunner } from "./SessionRunner";
 import { StageRunner } from "./StageRunner";
+import { PrintStation } from "./screens/PrintStation";
 import { StartScreen } from "./screens/StartScreen";
 import { Stage } from "./ui";
 
@@ -183,7 +184,17 @@ export function BoothApp({
   return (
     <div className={kiosk && !showCursor ? "cursor-none [&_*]:cursor-none" : undefined}>
       <Stage>
-        {p.stage ? (
+        {p.printStation ? (
+          <PrintStation
+            key={event.id}
+            event={event}
+            guestBaseUrl={guestBaseUrl}
+            onCrew={(intent) => {
+              setExitIntent(intent === "exit");
+              setCrewOpen(true);
+            }}
+          />
+        ) : p.stage ? (
           <StageRunner
             key={event.id}
             event={event}
@@ -205,7 +216,7 @@ export function BoothApp({
             }}
           />
         )}
-        <GuestPrinter event={event} />
+        {!p.printStation && <GuestPrinter event={event} />}
         {/* Stage (#178) belum mencetak: peringatan printer booth tidak relevan. */}
         {alert && !p.stage && (
           <p

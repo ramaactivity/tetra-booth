@@ -26,8 +26,8 @@ export async function setLink(
     )
     .eq("id", eventId)
     .eq("organization_id", orgId);
-  // Link live = syarat galeri acara dari QR TV Photo Stage (#199).
-  if (kind === "live") await bumpBundle(db, orgId, eventId);
+  // Link live → QR galeri di TV stage (#199); link Guest Cam → QR di layar Print Station (#224).
+  if (kind === "live" || kind === "guest") await bumpBundle(db, orgId, eventId);
   await db.from("audit_logs").insert({
     organization_id: orgId,
     actor_user_id: user.id,

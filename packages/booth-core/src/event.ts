@@ -11,6 +11,8 @@ export type BoothEvent = {
   slug?: string | undefined;
   /** Galeri acara bisa dibuka tamu (#199); tidak = QR galeri di TV disembunyikan. */
   publicGallery?: boolean | undefined;
+  /** Link Guest Cam `/c/{token}` (QR di layar Print Station, #224). */
+  guestCam?: string | undefined;
   /** Tanggal tampil di strip, mis. "12 Oktober 2026". */
   date: string;
   layout: LayoutSpec;
@@ -79,6 +81,7 @@ export async function loadEvent(bundle: EventBundle, events: BoothEvents): Promi
     tagline: bundle.tagline,
     slug: bundle.info?.slug,
     publicGallery: bundle.info?.publicGallery,
+    guestCam: bundle.info?.guestCam,
     date: bundle.date,
     layout: bundle.layout,
     settings: bundle.settings,

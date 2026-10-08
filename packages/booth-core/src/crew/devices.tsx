@@ -283,8 +283,8 @@ export function RoleChoice({ dev }: { dev: Device }) {
   const role = dev.draft.role ?? "booth";
   return (
     <Panel title={copy.crew.deviceRole} hint={lockedHint(locked) ?? d.roleHint}>
-      <div className="grid grid-cols-2 gap-4">
-        {(["booth", "stage"] as const).map((r) => (
+      <div className="grid grid-cols-3 gap-4">
+        {(["booth", "stage", "print"] as const).map((r) => (
           <Choice
             key={r}
             testId={`role-${r}`}

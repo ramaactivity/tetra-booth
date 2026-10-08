@@ -191,6 +191,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
     },
     health: () => bridge.health(),
     phaseChanged: (phase) => bridge.phaseChanged(phase),
+    printStation: cfg.role === "print",
     // Cetak tamu Guest Cam (#223): booth & laptop stage (cetak 4R) sama-sama bisa mencetak.
     guestPrints: {
       claim: (id, paper) => bridge.guestPrintsClaim(id, paper),

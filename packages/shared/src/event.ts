@@ -118,6 +118,11 @@ export const EventInfoSchema = z.object({
     .optional(),
   /** Galeri acara `/l/{slug}` bisa dibuka tamu (galeri publik dinyalakan klien + link live aktif, #199). */
   publicGallery: z.boolean().optional(),
+  /** Link Guest Cam `/c/{token}` (QR di layar Print Station, #224); tidak ada = Guest Cam mati / link dicabut. */
+  guestCam: z
+    .string()
+    .regex(/^\/c\/[\w-]{1,80}$/)
+    .optional(),
 });
 export type EventInfo = z.infer<typeof EventInfoSchema>;
 
