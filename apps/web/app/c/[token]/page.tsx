@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { shortDateId } from "@/components/guest-cam/ui";
 import { copy } from "@/lib/copy";
 import { guestEvent, guestInfo, guestMe, guestSession } from "@/lib/guest-cam";
+import { loadPromo } from "@/lib/promo";
 import { GuestCam } from "./GuestCam";
 
 const t = copy.guestCam;
@@ -111,7 +112,11 @@ export default async function GuestCamPage({ params }: { params: Promise<{ token
         body={t.replacedBody}
       />
     );
-  const [info, session] = await Promise.all([guestInfo(ev), guestSession(ev)]);
+  const [info, session, promo] = await Promise.all([
+    guestInfo(ev),
+    guestSession(ev),
+    loadPromo(ev.id),
+  ]);
   const me = session ? await guestMe(ev, session) : null;
   // Acara selesai: tamu yang belum ikut melihat A10; yang sudah ikut tetap bisa membuka foto, ucapan, strip.
   if (info.closed && !me)
@@ -134,5 +139,5 @@ export default async function GuestCamPage({ params }: { params: Promise<{ token
         }
       />
     );
-  return <GuestCam token={token} info={info} initialMe={me} />;
+  return <GuestCam token={token} info={info} initialMe={me} promo={promo} />;
 }

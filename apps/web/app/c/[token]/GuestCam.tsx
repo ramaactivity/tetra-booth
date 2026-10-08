@@ -9,6 +9,7 @@ import { StripPicker } from "@/components/guest-cam/StripPicker";
 import { goFullscreen } from "@/components/guest-cam/ui";
 import { VoiceRecorder } from "@/components/guest-cam/VoiceRecorder";
 import type { GuestInfo } from "@/lib/guest-cam";
+import type { GuestPromo } from "@/lib/promo";
 import { capture } from "./capture";
 import { enqueue, flush, itemId, type QueueItem, queued } from "./queue";
 
@@ -28,10 +29,13 @@ export function GuestCam({
   token,
   info,
   initialMe,
+  promo,
 }: {
   token: string;
   info: GuestInfo;
   initialMe: GuestMe | null;
+  /** Kartu promosi org (#215) di album; null = belum diisi / dimatikan untuk event ini. */
+  promo: GuestPromo | null;
 }) {
   const [me, setMe] = useState(initialMe);
   const [q, setQ] = useState<QueueItem[]>([]);
@@ -131,7 +135,16 @@ export function GuestCam({
       />
     );
   if (phase === "mine")
-    return <Mine token={token} info={info} me={me} pending={pendingIdx.length} onBack={home} />;
+    return (
+      <Mine
+        token={token}
+        info={info}
+        me={me}
+        pending={pendingIdx.length}
+        promo={promo}
+        onBack={home}
+      />
+    );
   if (phase === "cam" && left > 0)
     return (
       <Camera

@@ -2,8 +2,10 @@
 import type { GuestMe } from "@tetra/shared";
 import { ChevronLeft } from "lucide-react";
 import { useEffect, useState } from "react";
+import { GuestPromo, PROMO_SAVED } from "@/components/GuestPromo";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
+import type { GuestPromo as Promo } from "@/lib/promo";
 import { firstName, H1, Lead, Primary } from "./ui";
 
 const t = copy.guestCam;
@@ -23,8 +25,11 @@ async function saveFiles(urls: string[]) {
       return new File([b], `tetra-guest-${i + 1}.jpg`, { type: "image/jpeg" });
     }),
   );
+  // Simpan berhasil → pop-up promosi sekali (#215); batal share tidak dihitung.
+  const saved = () => window.dispatchEvent(new Event(PROMO_SAVED));
   if (navigator.canShare?.({ files }))
-    return void (await navigator.share({ files }).catch(() => {}));
+    return void (await navigator.share({ files }).then(saved, () => {}));
+  saved();
   for (const f of files) {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(f);
@@ -39,12 +44,14 @@ export function Mine({
   info,
   me,
   pending,
+  promo,
   onBack,
 }: {
   token: string;
   info: GuestInfo;
   me: GuestMe;
   pending: number;
+  promo: Promo | null;
   onBack: () => void;
 }) {
   const [tab, setTab] = useState<"mine" | "album">("mine");
@@ -216,6 +223,8 @@ export function Mine({
           </div>
         </>
       )}
+
+      {promo && <GuestPromo promo={promo} />}
 
       {view && (
         <div

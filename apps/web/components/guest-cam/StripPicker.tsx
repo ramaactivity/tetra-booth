@@ -3,6 +3,7 @@ import type { GuestMe, LayoutSpec } from "@tetra/shared";
 import { Download, RotateCcw, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { renderStrip } from "@/app/c/[token]/strip";
+import { PROMO_SAVED } from "@/components/GuestPromo";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
 import { longDateId, Primary, Secondary, TopBar } from "./ui";
@@ -174,8 +175,10 @@ export function StripPicker({
                 className="px-3"
                 onClick={async () => {
                   const file = new File([made.main], `frame-${k}.jpg`, { type: "image/jpeg" });
+                  const saved = () => window.dispatchEvent(new Event(PROMO_SAVED));
                   if (navigator.canShare?.({ files: [file] }))
-                    return void (await navigator.share({ files: [file] }).catch(() => {}));
+                    return void (await navigator.share({ files: [file] }).then(saved, () => {}));
+                  saved();
                   const a = document.createElement("a");
                   a.href = made.url;
                   a.download = file.name;
