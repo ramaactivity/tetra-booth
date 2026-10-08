@@ -1,4 +1,5 @@
 import { type CodeState, codeState, promoConfig } from "@/lib/promo";
+import type { ProofCheck } from "@/lib/proof-check";
 import { presignGet } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 import { setRejected } from "./actions";
@@ -27,6 +28,13 @@ const CODE_STATE: Record<CodeState, string> = {
   rejected: "Ditolak",
   expired: "Kedaluwarsa",
 };
+const VERDICT: Record<ProofCheck["verdict"], { t: string; c: string }> = {
+  ok: { t: "Lolos", c: "bg-mint-soft" },
+  suspect: { t: "Mencurigakan", c: "bg-peach" },
+  unchecked: { t: "Belum dicek", c: "border-dashed" },
+  rejected: { t: "Ditolak", c: "bg-coral" },
+};
+const BY: Record<ProofCheck["by"], string> = { ai: "AI", bruno: "Bruno", owner: "Owner" };
 const PROOF: Record<string, string> = { instagram: "Story IG", review: "Ulasan Google" };
 
 /**
@@ -40,7 +48,7 @@ export default async function PromoPage() {
     db
       .from("leads")
       .select(
-        "id, data, created_at, promo_code, promo_expires_at, promo_rejected_at, redeemed_at, redeemed_project_id, proof_kind, proof_key, contact_status, events(name)",
+        "id, data, created_at, promo_code, promo_expires_at, promo_rejected_at, redeemed_at, redeemed_project_id, proof_kind, proof_key, proof_check, contact_status, events(name)",
       )
       .eq("organization_id", orgId)
       .eq("kind", "sales")
@@ -52,6 +60,7 @@ export default async function PromoPage() {
       ...l,
       wa: String((l.data as { whatsapp?: string }).whatsapp ?? ""),
       proof: l.proof_key ? await presignGet(l.proof_key, 3600) : null,
+      check: l.proof_check as ProofCheck | null,
     })),
   );
   return (
@@ -122,9 +131,19 @@ export default async function PromoPage() {
                       </td>
                       <td className="px-6 py-3">
                         {r.proof ? (
-                          <a href={r.proof} target="_blank" rel="noopener">
-                            {PROOF[r.proof_kind ?? ""] ?? "Lihat"}
-                          </a>
+                          <div className="flex flex-col items-start gap-1">
+                            <a href={r.proof} target="_blank" rel="noopener">
+                              {PROOF[r.proof_kind ?? ""] ?? "Lihat"}
+                            </a>
+                            {r.check && (
+                              <span
+                                title={r.check.reason}
+                                className={`rounded-full border-[1.5px] border-ink px-2 py-0.5 text-[11px] font-bold ${VERDICT[r.check.verdict].c}`}
+                              >
+                                {VERDICT[r.check.verdict].t} · {BY[r.check.by]}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           "—"
                         )}

@@ -122,6 +122,13 @@ test("kartu promosi: WA → bukti ulasan → kode, Hermes menarik lead, promo ma
       event_id: eventId,
     });
     expect(lead?.proof_key).toContain(`${orgId}/promo/`);
+    // #219: tanpa AI_API_KEY (e2e) kode tetap terbit, bukti ditandai "belum dicek".
+    const pc = await db
+      .from("leads")
+      .select("proof_check")
+      .eq("id", lead?.id ?? "")
+      .single();
+    expect(pc.data?.proof_check).toMatchObject({ verdict: "unchecked", by: "ai" });
 
     // Buka lagi: langsung menampilkan kode yang sama (tersimpan di browser).
     await page.reload();
@@ -195,12 +202,32 @@ test("kartu promosi: WA → bukti ulasan → kode, Hermes menarik lead, promo ma
     expect((await redeem("PRJ-E2E-2", "delete")).status()).toBe(409);
     expect((await redeem("PRJ-E2E-1", "delete")).status()).toBe(200);
     expect((await check()).valid).toBe(true);
-    // Admin menolak bukti → kode tidak berlaku.
-    await db
-      .from("leads")
-      .update({ promo_rejected_at: new Date().toISOString() })
-      .eq("id", lead?.id ?? "");
+    // Bruno (Hermes) menolak bukti → kode tidak berlaku; menyetujui lagi → berlaku.
+    const bruno = (proof: "ok" | "rejected") =>
+      request.patch(`/api/hermes/leads/${lead?.id}`, {
+        headers: HERMES,
+        data: { proof, note: proof === "rejected" ? "Tag tidak terlihat" : undefined },
+      });
+    expect((await bruno("rejected")).status()).toBe(200);
     expect(await check()).toMatchObject({ valid: false, reason: "rejected" });
+    const after2 = await db
+      .from("leads")
+      .select("proof_check")
+      .eq("id", lead?.id ?? "")
+      .single();
+    expect(after2.data?.proof_check).toMatchObject({
+      verdict: "rejected",
+      by: "bruno",
+      reason: "Tag tidak terlihat",
+    });
+    const hermesList = await request.get(`/api/hermes/leads?since=${encodeURIComponent(since)}`, {
+      headers: HERMES,
+    });
+    const mine2 = (await hermesList.json()).leads.find((l: { id: string }) => l.id === lead?.id);
+    expect(mine2.proof_url).toContain("/promo/");
+    expect(mine2.proof_check.verdict).toBe("rejected");
+    expect((await bruno("ok")).status()).toBe(200);
+    expect((await check()).valid).toBe(true);
 
     // Promo dimatikan untuk event ini → kartu hilang.
     await db.from("events").update({ promo_off: true }).eq("id", eventId);

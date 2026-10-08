@@ -627,6 +627,7 @@ export type Database = {
           promo_code: string | null
           promo_expires_at: string | null
           promo_rejected_at: string | null
+          proof_check: Json | null
           proof_key: string | null
           proof_kind: string | null
           redeemed_at: string | null
@@ -648,6 +649,7 @@ export type Database = {
           promo_code?: string | null
           promo_expires_at?: string | null
           promo_rejected_at?: string | null
+          proof_check?: Json | null
           proof_key?: string | null
           proof_kind?: string | null
           redeemed_at?: string | null
@@ -669,6 +671,7 @@ export type Database = {
           promo_code?: string | null
           promo_expires_at?: string | null
           promo_rejected_at?: string | null
+          proof_check?: Json | null
           proof_key?: string | null
           proof_kind?: string | null
           redeemed_at?: string | null

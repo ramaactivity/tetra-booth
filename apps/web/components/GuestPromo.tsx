@@ -359,6 +359,10 @@ function ClaimStep({
         body.set("file", await shrink(file), "bukti.jpg");
         const res = await fetch("/api/promo/claim", { method: "POST", body }).catch(() => null);
         setPending(false);
+        if (res?.status === 422) {
+          const { reason } = (await res.json()) as { reason?: string };
+          return setError(t.proofRejected(reason ?? ""));
+        }
         if (!res?.ok) return setError(t.failed);
         const { code } = (await res.json()) as { code: string };
         onDone({ id, code });

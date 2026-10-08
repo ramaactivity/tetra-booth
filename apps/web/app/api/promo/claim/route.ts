@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { apiError, clientIp, rateOk } from "@/lib/booth";
 import { loadPromo, PROOFS, promoCode, promoConfig, snapshotOf } from "@/lib/promo";
+import { checkProof, type ProofCheck } from "@/lib/proof-check";
 import { putObject } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -37,14 +38,31 @@ export async function POST(req: Request) {
     .single();
   const offer = promoConfig(org?.promo).offer;
   if (!offer) return apiError("not_found", 404);
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  // #219: periksa isi screenshot dulu; jelas tidak cocok → tamu diberi alasan dan boleh upload ulang.
+  const checked = await checkProof({
+    kind: f.data.kind,
+    image: bytes,
+    mime: file.type,
+    handles: [...promo.clients, ...(promo.instagram ? [promo.instagram] : [])],
+    org: promo.org,
+  });
+  if (checked?.verdict === "suspect")
+    return Response.json({ error: "proof_rejected", reason: checked.reason }, { status: 422 });
+  const proofCheck: ProofCheck = {
+    ...(checked ?? { verdict: "unchecked", reason: "Pemeriksa otomatis tidak tersedia" }),
+    by: "ai",
+    at: new Date().toISOString(),
+  };
   const key = `${lead.organization_id}/promo/${lead.id}.${file.type === "image/png" ? "png" : "jpg"}`;
-  await putObject(key, new Uint8Array(await file.arrayBuffer()), file.type);
+  await putObject(key, bytes, file.type);
   const code = promoCode();
   const { error } = await db
     .from("leads")
     .update({
       proof_kind: f.data.kind,
       proof_key: key,
+      proof_check: proofCheck,
       promo_code: code,
       // #218: nilai & masa berlaku dibekukan saat kode terbit.
       promo: snapshotOf(offer),

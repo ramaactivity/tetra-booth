@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { PROOFS, PromoConfigSchema } from "@/lib/promo";
+import type { ProofCheck } from "@/lib/proof-check";
 import { requireMember } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -68,7 +69,19 @@ export async function setRejected(form: FormData) {
   if (!id.success) return;
   await createServiceClient()
     .from("leads")
-    .update({ promo_rejected_at: form.get("reject") === "1" ? new Date().toISOString() : null })
+    .update(
+      (() => {
+        const reject = form.get("reject") === "1";
+        const at = new Date().toISOString();
+        const proof_check: ProofCheck = {
+          verdict: reject ? "rejected" : "ok",
+          reason: reject ? "Ditolak owner" : "Dicek owner",
+          by: "owner",
+          at,
+        };
+        return { promo_rejected_at: reject ? at : null, proof_check };
+      })(),
+    )
     .eq("id", id.data)
     .eq("organization_id", orgId)
     .eq("kind", "sales");

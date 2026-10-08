@@ -65,6 +65,8 @@ export const copy = {
     sending: "Mengirim…",
     invalid: "Periksa nomor dan centang persetujuan",
     noFile: "Pilih jenis bukti dan screenshot-nya dulu",
+    proofRejected: (reason: string) =>
+      `Screenshot-nya belum cocok${reason ? `: ${reason}` : ""}. Coba upload lagi ya.`,
     failed: "Gagal mengirim, coba lagi",
   },
   publicGallery: {
