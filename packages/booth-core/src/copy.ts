@@ -609,6 +609,8 @@ export const copy = {
       webcam: "Webcam",
       canon: "Kamera DSLR Canon",
       sony: "Kamera Sony (A7 II/III/IV/V, A7C, A6100/6400/6600/6700)",
+      lumix: "Kamera Lumix (GH5)",
+      nikon: "Kamera Nikon (D-series & Z)",
       simulated: "Latihan tanpa kamera",
     },
     canonNote:
@@ -621,6 +623,23 @@ export const copy = {
       "Putar dial ke M. Power Save Start Time 30 menit, USB Power Supply On atau baterai dummy.",
       "Kabel USB langsung ke laptop, bukan hub. Tutup Imaging Edge sebelum booth dibuka.",
       "Tap to focus hanya A7 IV ke atas (Focus Area: Spot / Expand Flexible Spot).",
+    ],
+    /** Hapus isinya (jadikan "") setelah W-043 lulus dengan GH5 Rama (#214). */
+    lumixUntested: "Belum diuji dengan kamera asli" as string,
+    lumixTips: [
+      "Menu kamera: Setup → USB Mode = PC(Tether). Tutup aplikasi LUMIX Tether sebelum booth dibuka.",
+      "Kualitas JPEG Fine (bukan RAW). Foto dikirim ke laptop, kartu memori tidak wajib.",
+      "Putar dial ke M. Setup → Economy → Sleep Mode OFF. Event panjang: baterai dummy + adaptor AC.",
+      "Kabel USB-C langsung ke laptop, bukan hub. Tap to focus tidak ada; pakai tombol AF atau AF sebelum jepret.",
+    ],
+    /** Hapus isinya (jadikan "") setelah W-044 lulus dengan kamera Nikon asli (#216). */
+    nikonUntested: "Belum diuji dengan kamera asli" as string,
+    nikonTips: [
+      "Sambungkan lewat USB langsung ke laptop. Tutup NX Tether, Camera Control Pro, dan Nikon Transfer sebelum booth dibuka.",
+      "Kualitas JPEG (bukan RAW). Foto dikirim ke laptop, kartu memori tidak wajib.",
+      "Putar dial ke M. Perpanjang timer mati otomatis; event panjang pakai baterai dummy + adaptor AC.",
+      "Z6III, Zf, Z30, Zfc, Z5II, Z50II, ZR butuh Windows 11. D3200–D3500 belum didukung SDK Nikon.",
+      "Tap to focus belum ada; pakai tombol AF atau AF sebelum jepret.",
     ],
     noWebcam: "Tidak ada webcam terdeteksi.",
     on: "Nyala",

@@ -1,6 +1,22 @@
 namespace TetraCamera.Canon;
 
 /// <summary>
+/// Merek yang berjalan di <see cref="CanonCamera"/> (thread SDK, sambung ulang, live view, setelan crew): setelan yang
+/// ditampilkan, ISO/shutter jepret, kode baterai (null = tidak ada), tap to focus.
+/// </summary>
+public sealed record DriverKind(
+    string Brand,
+    string Name,
+    CanonProps.Def[] Props,
+    CanonProps.Def[] CaptureOverrides,
+    uint? BatteryProp,
+    bool FocusAt)
+{
+    public static readonly DriverKind Canon =
+        new("canon", "Canon", CanonProps.All, CanonProps.CaptureOverrides, Edsdk.PropBatteryLevel, true);
+}
+
+/// <summary>
 /// Operasi kamera Canon yang dipakai <see cref="CanonCamera"/>. Semua method dipanggil dari satu thread (thread SDK).
 /// Implementasi: <see cref="EdsdkDriver"/> (EDSDK asli, Windows) dan <see cref="FakeCanonDriver"/> (Mac/CI/uji).
 /// </summary>

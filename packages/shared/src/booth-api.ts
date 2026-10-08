@@ -27,7 +27,7 @@ export const BoothStatus = z.object({
   activeEventName: tolerant(z.string().max(120)),
   camera: tolerant(
     z.object({
-      kind: z.enum(["webcam", "simulated", "hotfolder", "canon", "sony"]),
+      kind: z.enum(["webcam", "simulated", "hotfolder", "canon", "sony", "lumix", "nikon"]),
       /** null = tidak dipantau main (webcam dikelola renderer). */
       connected: z.boolean().nullable(),
       model: z.string().max(80).nullable(),
@@ -86,21 +86,72 @@ export const BoothUpdateResponse = BoothRelease.extend({
 });
 
 /**
- * DLL Canon EDSDK untuk booth yang sudah dipasangkan (DECISIONS #112): disimpan privat di R2 (lisensi Canon,
- * repo public), booth mengunduh sendiri ke `<folder data>/edsdk` lalu mencocokkan ukuran + sha256.
+ * DLL SDK kamera untuk booth yang sudah dipasangkan (DECISIONS #112, Lumix #214, Nikon #216): disimpan privat di R2
+ * (lisensi pabrikan, repo public), booth mengunduh sendiri ke folder kit lalu mencocokkan ukuran + sha256.
+ * Nikon: `nikon` = modul MAID klasik + satu NkdPTP.dll; `nikonz` = Remote SDK v2 (Z baru) di subfolder `z`.
  */
-export const EDSDK_FILES = ["EDSDK.dll", "EdsImage.dll"] as const;
+const NIKON_DLLS = ["NkdPTP.dll", "NkRoyalmile.dll", "dnssd.dll"] as const;
+export const SDK_FILES = {
+  edsdk: ["EDSDK.dll", "EdsImage.dll"],
+  lumix: ["Lmxptpif.dll"],
+  nikon: [
+    ...NIKON_DLLS,
+    "Type0001.md3",
+    "Type0002.md3",
+    "Type0003.md3",
+    "Type0004.md3",
+    "Type0005.md3",
+    "Type0006.md3",
+    "Type0007.md3",
+    "Type0008.md3",
+    "Type0009.md3",
+    "Type0010.md3",
+    "Type0011.md3",
+    "Type0012.md3",
+    "Type0013.md3",
+    "Type0014.md3",
+    "Type0015.md3",
+    "Type0016.md3",
+    "Type0017.md3",
+    "Type0018.md3",
+    "Type0019.md3",
+    "Type0020.md3",
+    "Type0021.md3",
+    "Type0022.md3",
+    "Type0023.md3",
+    "Type0024.md3",
+    "Type0025.md3",
+    "Type0026.md3",
+    "Type0027.md3",
+    "Type0028.md3",
+    "Type0029.md3",
+    "Type0030.md3",
+    "Type0031.md3",
+  ],
+  nikonz: [
+    "ControlServiceLayer.dll",
+    ...NIKON_DLLS,
+    "DC_PTP_Config.config",
+    "MaidLayer.config",
+    "RangeValue.config",
+  ],
+} as const;
+export type SdkKit = keyof typeof SDK_FILES;
+export const SdkKit = z.enum(["edsdk", "lumix", "nikon", "nikonz"]);
+export const EDSDK_FILES = SDK_FILES.edsdk;
 export const EdsdkManifest = z.object({
   version: z.string().min(1).max(40),
   files: z
     .array(
       z.object({
-        name: z.enum(EDSDK_FILES),
+        // Nama file saja (dipakai booth sebagai path di folder kit).
+        name: z.string().regex(/^[\w.-]+\.(dll|md3|config)$/),
         size: z.number().int().positive(),
         sha256: z.string().regex(/^[0-9a-f]{64}$/),
       }),
     )
-    .length(EDSDK_FILES.length),
+    .min(1)
+    .max(64),
 });
 export const EdsdkResponse = EdsdkManifest.extend({
   files: z.array(EdsdkManifest.shape.files.element.extend({ url: z.url() })),

@@ -18,6 +18,11 @@ string? canon = null, canonSettings = null;
 // `--sony-probe <wpd|fake|fake-v3>` = diagnostik W-037 lalu keluar; `--sony-force 2|3` memaksa versi protokol;
 // `--sony-settings <file>` = setelan crew yang dipasang ulang tiap sambung (#113, #171).
 string? sony = null, sonyProbe = null, sonyForce = null, sonySettings = null;
+// Panasonic Lumix (DECISIONS #214): folder berisi Lmxptpif.dll, atau "fake" (kamera simulasi untuk dev/e2e).
+// `--lumix-probe <folder|fake>` = diagnostik W-043 (jepret satu ke folder kerja) lalu keluar.
+string? lumix = null, lumixProbe = null, lumixSettings = null;
+// Nikon SDK MAID3 (DECISIONS #216): folder berisi Type*.md3 + NkdPTP.dll, atau "fake". `--nikon-probe` seperti Lumix.
+string? nikon = null, nikonProbe = null, nikonSettings = null;
 for (var i = 0; i + 1 < args.Length; i++)
 {
     switch (args[i])
@@ -43,6 +48,12 @@ for (var i = 0; i + 1 < args.Length; i++)
         case "--sony-probe": sonyProbe = args[i + 1]; break;
         case "--sony-force": sonyForce = args[i + 1]; break;
         case "--sony-settings": sonySettings = Path.GetFullPath(args[i + 1]); break;
+        case "--lumix": lumix = args[i + 1]; break;
+        case "--lumix-probe": lumixProbe = args[i + 1]; break;
+        case "--lumix-settings": lumixSettings = Path.GetFullPath(args[i + 1]); break;
+        case "--nikon": nikon = args[i + 1]; break;
+        case "--nikon-probe": nikonProbe = args[i + 1]; break;
+        case "--nikon-settings": nikonSettings = Path.GetFullPath(args[i + 1]); break;
     }
 }
 if (sonyProbe is not null)
@@ -51,6 +62,34 @@ if (sonyProbe is not null)
     if (t is null) return 1;
     return TetraCamera.Sony.SonyProbe.Run(t, Console.Out,
         sonyForce switch { "2" => TetraCamera.Sony.SonyProfile.V2, "3" => TetraCamera.Sony.SonyProfile.V3, _ => null });
+}
+if (lumixProbe is not null)
+{
+    try
+    {
+        using var d = LumixDriver(lumixProbe);
+        return TetraCamera.Canon.DriverProbe.Run(d, TetraCamera.Lumix.LumixProps.All, Console.Out, Path.GetFullPath("lumix-probe.jpg"));
+    }
+    catch (TetraCamera.HotFolder.CameraFailure e)
+    {
+        Console.Error.WriteLine(e.Message);
+        return 1;
+    }
+}
+if (nikonProbe is not null)
+{
+    try
+    {
+        if (OperatingSystem.IsWindows())
+            foreach (var dev in TetraCamera.Sony.WpdTransport.Devices()) Console.WriteLine($"WPD: {dev}");
+        using var d = NikonDriver(nikonProbe);
+        return TetraCamera.Canon.DriverProbe.Run(d, TetraCamera.Nikon.NikonProps.All, Console.Out, Path.GetFullPath("nikon-probe.jpg"));
+    }
+    catch (TetraCamera.HotFolder.CameraFailure e)
+    {
+        Console.Error.WriteLine(e.Message);
+        return 1;
+    }
 }
 var tokenBytes = Encoding.UTF8.GetBytes(token);
 
@@ -90,6 +129,28 @@ if (camera is null && sony is not null && SonyTransport(sony) is { } sonyTranspo
     cam.ConnectionChanged += on => events.Publish(Dispatcher.CameraEvent(cam, on));
     camera = cam;
 }
+if (camera is null && lumix is not null)
+{
+    try
+    {
+        var cam = new TetraCamera.Canon.CanonCamera(LumixDriver(lumix), settingsPath: lumixSettings,
+            kind: TetraCamera.Lumix.LumixProps.Kind);
+        cam.ConnectionChanged += on => events.Publish(Dispatcher.CameraEvent(cam, on));
+        camera = cam;
+    }
+    catch (TetraCamera.HotFolder.CameraFailure e) { Console.Error.WriteLine($"Lumix tidak dipakai: {e.Message}"); }
+}
+if (camera is null && nikon is not null)
+{
+    try
+    {
+        var cam = new TetraCamera.Canon.CanonCamera(NikonDriver(nikon), settingsPath: nikonSettings,
+            kind: TetraCamera.Nikon.NikonProps.Kind);
+        cam.ConnectionChanged += on => events.Publish(Dispatcher.CameraEvent(cam, on));
+        camera = cam;
+    }
+    catch (TetraCamera.HotFolder.CameraFailure e) { Console.Error.WriteLine($"Nikon tidak dipakai: {e.Message}"); }
+}
 camera ??= hotFolder is null ? null : new TetraCamera.HotFolder.HotFolderCamera(hotFolder, trigger: hotFolderTrigger);
 var dispatcher = new Dispatcher(printer, camera, events.Publish);
 
@@ -119,6 +180,35 @@ if (camera is not null) Console.WriteLine($"Kamera: {camera.Brand} ({camera.Seri
 if (printerName is not null) Console.WriteLine($"Printer: {printerName} (4R: {paper4R ?? "ukuran 4x6"}, 2x6x2: {paper2x6x2 ?? "-"}{(paperFitMargin ? ", mode ber-margin" : "")})");
 app.Run();
 return 0;
+
+static TetraCamera.Canon.ICanonDriver LumixDriver(string dir) => dir == "fake"
+    ? new TetraCamera.Canon.FakeCanonDriver("DC-GH5 Simulasi", TetraCamera.Lumix.LumixProps.FakeProps(),
+        TetraCamera.Lumix.LumixProps.FakeOptions())
+    : new TetraCamera.Lumix.LumixDriver(Path.GetFullPath(dir));
+
+static TetraCamera.Canon.ICanonDriver NikonDriver(string dir)
+{
+    if (dir == "fake")
+    {
+        var (props, options) = TetraCamera.Nikon.NikonProps.Fake();
+        return new TetraCamera.Canon.FakeCanonDriver("D750 Simulasi", props, options);
+    }
+    // <dir>: modul MAID klasik (Type*.md3 + NkdPTP.dll); <dir>/z: Remote SDK v2 (ControlServiceLayer.dll + .config).
+    // Nama perangkat Nikon dari WPD (Windows) memilih modul klasik; selain Windows tidak ada kamera.
+    var full = Path.GetFullPath(dir);
+    var z = Path.Combine(full, "z");
+    var classic = Directory.Exists(full) && Directory.EnumerateFiles(full, "Type*.md3").Any()
+        ? new TetraCamera.Nikon.NikonDriver(full, () => OperatingSystem.IsWindows()
+            ? TetraCamera.Sony.WpdTransport.Devices()
+                .Select(d => d.Split(" | "))
+                .Where(f => f.Length > 1 && f[1].Contains("Nikon", StringComparison.OrdinalIgnoreCase))
+                .Select(f => f[0]).FirstOrDefault()
+            : null)
+        : null;
+    var hasZ = File.Exists(Path.Combine(z, TetraCamera.Nikon.NikonZDriver.Dll));
+    if (classic is null && !hasZ) throw new TetraCamera.HotFolder.CameraFailure("nikon_missing", $"modul Nikon tidak ada di {full}");
+    return new TetraCamera.Nikon.NikonCameras(classic, hasZ ? () => new TetraCamera.Nikon.NikonZDriver(z) : null);
+}
 
 static TetraCamera.Sony.IPtpTransport? SonyTransport(string kind)
 {

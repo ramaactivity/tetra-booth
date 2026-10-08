@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { init as sentryInit } from "@sentry/electron/main";
-import { EDSDK_FILES } from "@tetra/shared";
+import { SDK_FILES, type SdkKit } from "@tetra/shared";
 import { app, BrowserWindow } from "electron";
 import { createAlerts } from "./alerts";
 import { startCameraService, watchPrintEvents } from "./camera-service";
@@ -13,7 +13,9 @@ import {
   config,
   flagWarnings,
   kioskFlag,
+  lumix,
   metricsEverySec,
+  nikon,
   RESUME_KEY,
   stageTvWindow,
   startScreenFlag,
@@ -144,13 +146,31 @@ const createWindow = () => {
 const cloud = createCloud(db, alerts, config.guestUrl, (m) => console.info(m));
 // Pairing baru di laptop Canon yang belum punya DLL (booth dicabut lalu dipasangkan ulang, laporan 7 Okt):
 // unduh DLL lalu buka ulang booth supaya Camera Service memuatnya, tanpa crew menutup aplikasi manual.
+// DLL kamera dari cloud (#112): Canon EDSDK, Lumix (#214), atau Nikon klasik + Z v2 (#216); bukan untuk `fake`.
+const sdks: { dir: string; kit: SdkKit; brand: string }[] =
+  canon && canon !== "fake"
+    ? [{ dir: canon, kit: "edsdk", brand: "Canon" }]
+    : lumix && lumix !== "fake"
+      ? [{ dir: lumix, kit: "lumix", brand: "Lumix" }]
+      : nikon && nikon !== "fake"
+        ? [
+            { dir: nikon, kit: "nikon", brand: "Nikon" },
+            { dir: join(nikon, "z"), kit: "nikonz", brand: "Nikon Z" },
+          ]
+        : [];
+const ensureSdks = (list: typeof sdks, log: (m: string) => void) =>
+  Promise.all(
+    list.map((s) => ensureEdsdk(s.dir, () => cloud.edsdk(s.kit), log, SDK_FILES[s.kit], s.brand)),
+  );
 const onPaired = () => {
-  const dir = canon;
-  if (!dir || dir === "fake" || EDSDK_FILES.every((f) => existsSync(join(dir, f)))) return;
+  const missing = sdks.filter((s) => !SDK_FILES[s.kit].every((f) => existsSync(join(s.dir, f))));
+  if (!missing.length) return;
   const log = (m: string) => console.info(m);
-  void ensureEdsdk(dir, () => cloud.edsdk(), log).then((ok) => {
-    if (!ok) return;
-    log("[edsdk] DLL Canon siap setelah pairing, booth dibuka ulang");
+  void ensureSdks(missing, log).then((ok) => {
+    if (!ok.some(Boolean)) return;
+    log(
+      `[edsdk] DLL ${missing.map((s) => s.brand).join(" + ")} siap setelah pairing, booth dibuka ulang`,
+    );
     relaunch();
   });
 };
@@ -158,11 +178,9 @@ registerIpc(db, alerts, cloud, (p) => gpu.phase(p), onPaired);
 app.on("will-quit", () => db.close());
 app.whenReady().then(async () => {
   const log = (m: string) => console.info(m);
-  // Canon EDSDK (#112): DLL diunduh sendiri dari cloud kalau belum ada (bukan untuk `--canon fake`).
-  if (canon && canon !== "fake") {
-    await releaseCameraForEdsdk(log);
-    await ensureEdsdk(canon, () => cloud.edsdk(), log);
-  }
+  // Canon EDSDK (#112), Lumix (#214), Nikon (#216): DLL diunduh sendiri dari cloud kalau belum ada.
+  if (canon && canon !== "fake") await releaseCameraForEdsdk(log);
+  await ensureSdks(sdks, log);
   if (cameraServiceFlags.spawn) await startCameraService(log, db, alerts);
   else app.on("will-quit", watchPrintEvents(log, db, alerts));
   createWindow();

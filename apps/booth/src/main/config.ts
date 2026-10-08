@@ -23,6 +23,8 @@ export const VALUE_FLAGS = [
   "printer-2x6x2",
   "canon",
   "sony",
+  "lumix",
+  "nikon",
   /** Peran laptop (#178): `--role stage` = Photo Stage. */
   "role",
 ] as const;
@@ -73,7 +75,9 @@ export const userDir = dataDir ?? join(appData, "TetraBooth");
 
 /** Pengaturan perangkat dari mode crew (DECISIONS #85), satu file per laptop. */
 export const DeviceSettings = z.object({
-  camera: z.enum(["webcam", "simulated", "hotfolder", "canon", "sony"]).optional(),
+  camera: z
+    .enum(["webcam", "simulated", "hotfolder", "canon", "sony", "lumix", "nikon"])
+    .optional(),
   webcamId: z.string().max(512).optional(),
   mirrorLiveView: z.boolean().optional(),
   mirrorPhoto: z.boolean().optional(),
@@ -183,14 +187,37 @@ export const canon =
  */
 export const sony = flags.value("camera") === "sony" ? (flags.value("sony") ?? "wpd") : undefined;
 
+/**
+ * `--camera=lumix`: Panasonic Lumix (GH5 dst.) lewat Lumix Remote Control Library di Camera Service (DECISIONS #214).
+ * DLL Panasonic tidak ikut installer dan diunduh otomatis ke `<folder data>/lumix` seperti Canon (#112), atau
+ * `--lumix <folder>`; `--lumix fake` = kamera simulasi (dev/e2e).
+ */
+export const lumix =
+  flags.value("camera") === "lumix" ? (flags.value("lumix") ?? join(userDir, "lumix")) : undefined;
+
+/**
+ * `--camera=nikon`: Nikon D-series & Z lewat SDK MAID3 di Camera Service (DECISIONS #216). Modul Nikon tidak ikut
+ * installer dan diunduh otomatis ke `<folder data>/nikon` (+ `nikon/z` untuk Z baru) seperti Canon (#112), atau
+ * `--nikon <folder>`; `--nikon fake` = kamera simulasi (dev/e2e).
+ */
+export const nikon =
+  flags.value("camera") === "nikon" ? (flags.value("nikon") ?? join(userDir, "nikon")) : undefined;
+
+/** Kamera lewat SDK di Camera Service: live view, fokus, & setelan dari mode crew. */
+export const SDK_CAMERAS: ReadonlySet<string> = new Set(["canon", "sony", "lumix", "nikon"]);
+
 export const config: BoothConfig = {
   camera: canon
     ? "canon"
     : sony
       ? "sony"
-      : ((["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ??
-        "webcam"),
-  liveView: !!canon || !!sony,
+      : lumix
+        ? "lumix"
+        : nikon
+          ? "nikon"
+          : ((["simulated", "hotfolder"] as const).find((c) => c === flags.value("camera")) ??
+            "webcam"),
+  liveView: !!canon || !!sony || !!lumix || !!nikon,
   demo: flags.has("demo"),
   fast: flags.has("fast"),
   guestUrl: process.env.TETRA_GUEST_URL ?? "https://booth.tetraphoto.com",
@@ -240,6 +267,8 @@ export const cameraServiceFlags = {
 };
 if (canon) cameraServiceFlags.args.push("--canon", canon);
 if (sony) cameraServiceFlags.args.push("--sony", sony);
+if (lumix) cameraServiceFlags.args.push("--lumix", lumix);
+if (nikon) cameraServiceFlags.args.push("--nikon", nikon);
 
 /** Antrean printer utama (`--printer`), untuk membuka dialog Printing Preferences dari menu crew. */
 export const printerName = flags.value("printer");

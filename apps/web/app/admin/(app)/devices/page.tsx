@@ -25,6 +25,8 @@ const CAMERA_KIND: Record<string, string> = {
   hotfolder: "Hot folder",
   canon: "Canon",
   sony: "Sony",
+  lumix: "Lumix",
+  nikon: "Nikon",
 };
 
 /** Status perangkat: `detail` (model/nama) teks biasa, `text` di pill berwarna + teks. */

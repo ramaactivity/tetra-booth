@@ -4,9 +4,13 @@ namespace TetraCamera.Canon;
 
 /// <summary>
 /// Kamera Canon palsu (`--canon fake`): jepret & live view memakai JPEG contoh 1200×800, untuk dev/e2e di Mac
-/// dan unit test. <see cref="Plugged"/> = false mensimulasikan kamera dicabut.
+/// dan unit test. <see cref="Plugged"/> = false mensimulasikan kamera dicabut. Merek lain (Lumix palsu) memberi model
+/// dan setelannya sendiri.
 /// </summary>
-public sealed class FakeCanonDriver : ICanonDriver
+public sealed class FakeCanonDriver(
+    string model = "Canon EOS Simulasi",
+    Dictionary<uint, uint>? props = null,
+    Dictionary<uint, uint[]>? options = null) : ICanonDriver
 {
     public static readonly byte[] Jpeg = Load();
     private static byte[] Load()
@@ -39,7 +43,7 @@ public sealed class FakeCanonDriver : ICanonDriver
     {
         if (!Plugged) return null;
         _open = true;
-        return ("Canon EOS Simulasi", "fake-usb");
+        return (model, "fake-usb");
     }
 
     public void Close() => _open = false;
@@ -50,8 +54,8 @@ public sealed class FakeCanonDriver : ICanonDriver
         if (HangMs > 0) Thread.Sleep(HangMs);
         if (!IsOpen) throw new CameraFailure("camera_disconnected", "kamera terputus saat jepret");
         Captures++;
-        IsoAtCapture.Add(Props[0x402]);
-        ShutterAtCapture.Add(Props[0x406]);
+        IsoAtCapture.Add(Props.GetValueOrDefault(0x402u));
+        ShutterAtCapture.Add(Props.GetValueOrDefault(0x406u));
         return Jpeg;
     }
 
@@ -70,12 +74,12 @@ public sealed class FakeCanonDriver : ICanonDriver
     public void FocusAt(double x, double y) => FocusSteps.Add($"at {x:0.00},{y:0.00}");
 
     /// <summary>Setelan kamera palsu: ISO 100, 1/125, f/5.6, Auto; beberapa pilihan per setelan.</summary>
-    public Dictionary<uint, uint> Props { get; } =
+    public Dictionary<uint, uint> Props { get; } = props ??
         new() { [0x402] = 0x48, [0x406] = 0x70, [0x405] = 0x30, [0x106] = 0, [0x100] = 0x0013FF0F, [Edsdk.PropBatteryLevel] = 80 };
     /// <summary>ISO yang terpasang tepat saat tiap jepret (uji ISO jepret #113).</summary>
     public List<uint> IsoAtCapture { get; } = [];
     public List<uint> ShutterAtCapture { get; } = [];
-    private static readonly Dictionary<uint, uint[]> Options = new()
+    private readonly Dictionary<uint, uint[]> _options = options ?? new()
     {
         [0x402] = [0x48, 0x50, 0x58, 0x60, 0x68],
         [0x406] = [0x60, 0x68, 0x70, 0x78, 0x80],
@@ -84,7 +88,7 @@ public sealed class FakeCanonDriver : ICanonDriver
         [0x100] = [0x0013FF0F, 0x0113FF0F, 0x0213FF0F, 0x0E13FF0F],
     };
     public uint GetProp(uint propId) => Props[propId];
-    public uint[] PropOptions(uint propId) => Options[propId];
+    public uint[] PropOptions(uint propId) => _options[propId];
     /// <summary>true = ubah setelan selalu ditolak DEVICE_BUSY (700D saat jepret, 2026-10-07).</summary>
     public volatile bool RejectSet;
     public void SetProp(uint propId, uint value)

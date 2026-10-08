@@ -16,6 +16,7 @@ import {
   PaymentCreateResponse,
   PaymentStatusResponse,
   type RunAction,
+  type SdkKit,
 } from "@tetra/shared";
 import { app, safeStorage, screen } from "electron";
 import { ZodError } from "zod";
@@ -23,7 +24,7 @@ import type { Alerts } from "./alerts";
 import { installBundle } from "./bundle-sync";
 import { cameraHealth, request } from "./camera-client";
 import { BundleSkipped, CloudError, cloudErrorText } from "./cloud-error";
-import { config, printerName } from "./config";
+import { config, printerName, SDK_CAMERAS } from "./config";
 import type { BoothDb } from "./db";
 import { createRunQueue } from "./run-queue";
 import { createUploader } from "./upload";
@@ -67,12 +68,11 @@ async function statusSnapshot(db: BoothDb, alerts: Alerts): Promise<BoothStatus>
     // bundle tidak ada/rusak: admin menampilkan id saja
   }
   const health = await cameraHealth().catch(() => null);
-  const model =
-    config.camera === "canon" || config.camera === "sony"
-      ? await request({ id: randomUUID(), type: "camera.status" })
-          .then((s) => s.model?.slice(0, 80) ?? null)
-          .catch(() => null)
-      : null;
+  const model = SDK_CAMERAS.has(config.camera)
+    ? await request({ id: randomUUID(), type: "camera.status" })
+        .then((s) => s.model?.slice(0, 80) ?? null)
+        .catch(() => null)
+    : null;
   const printer = alerts.printer();
   const disk = await statfs(userData).catch(() => null);
   return {
@@ -299,11 +299,11 @@ export function createCloud(
       if (!res.ok) throw new Error(`/api/booth/update: server ${res.status}`);
       return BoothUpdateResponse.parse(await res.json());
     },
-    /** DLL Canon EDSDK privat (DECISIONS #112); null = belum ada di cloud. */
-    async edsdk() {
+    /** DLL SDK kamera privat (DECISIONS #112; `lumix` #214, `nikon`/`nikonz` #216); null = belum ada di cloud. */
+    async edsdk(kit: SdkKit = "edsdk") {
       const t = token();
       if (!t) throw new Error("booth belum dipasangkan");
-      const res = await fetch(`${baseUrl}/api/booth/edsdk`, {
+      const res = await fetch(`${baseUrl}/api/booth/edsdk?kit=${kit}`, {
         headers: { authorization: `Bearer ${t}` },
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });

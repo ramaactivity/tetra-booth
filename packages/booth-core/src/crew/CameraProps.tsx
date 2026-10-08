@@ -14,6 +14,8 @@ const HUMAN: Record<string, string> = {
   Aperture: "Bukaan lensa",
   Auto: "Otomatis",
   Daylight: "Siang",
+  Sunny: "Siang",
+  Incandescent: "Lampu kuning",
   Cloudy: "Mendung",
   Shade: "Teduh",
   Tungsten: "Lampu kuning",

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Nikon SDK MAID3 (DECISIONS #216): modul Type00xx.md3 + NkdPTP.dll Nikon tidak di-commit. Booth: flag nikon berisi folder modul. -->
+  <ItemGroup>
+    <ProjectReference Include="../TetraCamera.Canon/TetraCamera.Canon.csproj" />
+  </ItemGroup>
+</Project>

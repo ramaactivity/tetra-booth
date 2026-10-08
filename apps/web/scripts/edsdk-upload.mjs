@@ -1,13 +1,34 @@
-// Unggah DLL Canon EDSDK ke folder privat R2 (DECISIONS #112).
+// Unggah DLL SDK kamera ke folder privat R2 (DECISIONS #112; Lumix #214; Nikon #216).
 //   pnpm --filter web edsdk:upload <folder berisi EDSDK.dll & EdsImage.dll> <versi>
+//   pnpm --filter web edsdk:upload <folder berisi Lmxptpif.dll> <versi> lumix
+//   pnpm --filter web edsdk:upload <folder berisi Type0001–0031.md3 + NkdPTP.dll dll.> <versi> nikon
+//   pnpm --filter web edsdk:upload <folder berisi ControlServiceLayer.dll + .config> <versi> nikonz
 // Nama folder = HMAC secret R2 (sama dengan apps/web/lib/r2.ts edsdkPrefix), tidak dicetak ke log.
 import { createHash, createHmac } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
-const [dir, version] = process.argv.slice(2);
-if (!dir || !version) throw new Error("pakai: edsdk-upload.mjs <folder> <versi>");
+const [dir, version, kit = "edsdk"] = process.argv.slice(2);
+// Sama dengan SDK_FILES di packages/shared/src/booth-api.ts.
+const nikonDlls = ["NkdPTP.dll", "NkRoyalmile.dll", "dnssd.dll"];
+const names = {
+  edsdk: ["EDSDK.dll", "EdsImage.dll"],
+  lumix: ["Lmxptpif.dll"],
+  nikon: [
+    ...nikonDlls,
+    ...Array.from({ length: 31 }, (_, i) => `Type${String(i + 1).padStart(4, "0")}.md3`),
+  ],
+  nikonz: [
+    "ControlServiceLayer.dll",
+    ...nikonDlls,
+    "DC_PTP_Config.config",
+    "MaidLayer.config",
+    "RangeValue.config",
+  ],
+}[kit];
+if (!dir || !version || !names)
+  throw new Error("pakai: edsdk-upload.mjs <folder> <versi> [edsdk|lumix|nikon|nikonz]");
 const env = (k) =>
   process.env[k] ??
   (() => {
@@ -22,15 +43,15 @@ const s3 = new S3Client({
     secretAccessKey: env("R2_SECRET_ACCESS_KEY"),
   },
 });
-const prefix = `private/edsdk/${createHmac("sha256", env("R2_SECRET_ACCESS_KEY")).update("tetra-edsdk").digest("hex").slice(0, 32)}/`;
+const prefix = `private/${kit}/${createHmac("sha256", env("R2_SECRET_ACCESS_KEY")).update(`tetra-${kit}`).digest("hex").slice(0, 32)}/`;
 const put = (Key, Body, ContentType) =>
   s3.send(new PutObjectCommand({ Bucket: env("R2_BUCKET"), Key, Body, ContentType }));
 const files = [];
-for (const name of ["EDSDK.dll", "EdsImage.dll"]) {
+for (const name of names) {
   const b = readFileSync(join(dir, name));
   await put(`${prefix}${name}`, b, "application/octet-stream");
   files.push({ name, size: b.length, sha256: createHash("sha256").update(b).digest("hex") });
   console.log(`diunggah ${name} (${b.length} B)`);
 }
 await put(`${prefix}manifest.json`, JSON.stringify({ version, files }), "application/json");
-console.log(`manifest EDSDK ${version} diunggah`);
+console.log(`manifest ${kit} ${version} diunggah`);

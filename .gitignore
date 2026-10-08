@@ -34,6 +34,8 @@ services/camera/TetraCamera.Canon/sdk/*
 !services/camera/TetraCamera.Canon/sdk/README.md
 services/camera/TetraCamera.Sony/sdk/*
 !services/camera/TetraCamera.Sony/sdk/README.md
+services/camera/TetraCamera.Lumix/sdk/*
+!services/camera/TetraCamera.Lumix/sdk/README.md
 *.dll
 *.dylib
 *.framework/

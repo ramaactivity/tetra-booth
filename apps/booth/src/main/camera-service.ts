@@ -86,6 +86,12 @@ export async function startCameraService(log: (m: string) => void, db: BoothDb, 
     ...(cameraServiceFlags.args.includes("--sony")
       ? ["--sony-settings", join(app.getPath("userData"), "sony-settings.json")]
       : []),
+    ...(cameraServiceFlags.args.includes("--lumix")
+      ? ["--lumix-settings", join(app.getPath("userData"), "lumix-settings.json")]
+      : []),
+    ...(cameraServiceFlags.args.includes("--nikon")
+      ? ["--nikon-settings", join(app.getPath("userData"), "nikon-settings.json")]
+      : []),
   ];
   log(`[supervisor] ${bin} port ${port} ${args.join(" ")}`);
 

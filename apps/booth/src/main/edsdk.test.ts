@@ -45,6 +45,21 @@ describe("ensureEdsdk (#112)", () => {
     expect(readFileSync(join(dir, "EDSDK.dll")).equals(files["EDSDK.dll"])).toBe(true);
     expect(readFileSync(join(dir, "EdsImage.dll")).equals(files["EdsImage.dll"])).toBe(true);
   });
+  it("Lumix (#214): manifest tanpa Lmxptpif.dll → false, tidak ada yang diunduh", async () => {
+    const dir = join(mkdtempSync(join(tmpdir(), "tb-eds-")), "lumix");
+    const logs: string[] = [];
+    expect(
+      await ensureEdsdk(
+        dir,
+        () => manifest(),
+        (m) => logs.push(m),
+        ["Lmxptpif.dll"],
+        "Lumix",
+      ),
+    ).toBe(false);
+    expect(existsSync(join(dir, "EDSDK.dll"))).toBe(false);
+    expect(logs).toEqual(["[edsdk] DLL Lumix belum ada di cloud"]);
+  });
   it("sha256 tidak cocok → false, file rusak tidak disimpan", async () => {
     const dir = join(mkdtempSync(join(tmpdir(), "tb-eds-")), "edsdk");
     expect(

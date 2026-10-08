@@ -28,6 +28,7 @@ import {
   lockedByArgv,
   printerName,
   RESUME_KEY,
+  SDK_CAMERAS,
   UPDATE_PENDING_KEY,
 } from "./config";
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
@@ -167,9 +168,9 @@ export function registerIpc(
     return { ...r, path: inSessions(r.path) };
   });
   ipcMain.handle("cameraStatus", () => request({ id: crypto.randomUUID(), type: "camera.status" }));
-  // Canon EDSDK (#111) & Sony (#171): live view & fokus lewat Camera Service; frame JPEG terbaru dari /liveview.jpg.
-  // Diambil di main supaya CSP renderer tetap 'self'.
-  const canonOn = config.camera === "canon" || config.camera === "sony";
+  // Canon EDSDK (#111), Sony (#171), Lumix (#214) & Nikon (#216): live view & fokus lewat Camera Service; frame JPEG terbaru dari
+  // /liveview.jpg. Diambil di main supaya CSP renderer tetap 'self'.
+  const canonOn = SDK_CAMERAS.has(config.camera);
   ipcMain.handle("liveViewStart", async () => {
     if (!canonOn) return;
     // Frame pertama setelah live view dinyalakan ulang selalu dikirim, walau sama dengan frame terakhir sebelum jepret
@@ -592,15 +593,15 @@ export function registerIpc(
   });
   ipcMain.handle("crewFocus", async (_e, step: unknown) => {
     crewOnly();
-    if (!canonOn) throw new Error("Kontrol fokus hanya untuk kamera Canon / Sony");
+    if (!canonOn) throw new Error("Kontrol fokus hanya untuk kamera Canon / Sony / Lumix / Nikon");
     const s = z.enum(["af", "near3", "near2", "near1", "far1", "far2", "far3"]).parse(step);
     await request({ id: crypto.randomUUID(), type: "camera.focus", payload: { step: s } }, 5000);
     console.info(`[camera] fokus ${s}`);
   });
   ipcMain.handle("crewSetCameraProp", async (_e, name: unknown, value: unknown) => {
     crewOnly();
-    if (!canonOn) throw new Error("Setelan kamera hanya untuk kamera Canon / Sony");
-    // Canon (#113): eksposur live view + ISO/shutter jepret (flash) & kualitas JPEG. Sony (#171): + EV.
+    if (!canonOn) throw new Error("Setelan kamera hanya untuk kamera Canon / Sony / Lumix / Nikon");
+    // Canon (#113): eksposur live view + ISO/shutter jepret (flash) & kualitas JPEG. Sony (#171), Lumix (#214), Nikon (#216): + EV.
     const n = z
       .enum([
         "iso",

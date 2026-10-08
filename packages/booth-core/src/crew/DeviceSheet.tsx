@@ -7,8 +7,22 @@ import { usePlatform } from "../PlatformContext";
 import type { DeviceInfo, DeviceSettings } from "../platform";
 import { Sheet } from "./Sheet";
 
-/** DSLR Canon = EDSDK (#141, #168), Sony = Camera Remote Command (#171); hot folder hanya flag teknisi. */
-const CAMERAS = ["canon", "sony", "webcam", "simulated"] as const;
+/**
+ * DSLR Canon = EDSDK (#141, #168), Sony = Camera Remote Command (#171), Lumix = Remote Control Library (#214),
+ * Nikon = SDK MAID3 (#216); hot folder hanya flag teknisi.
+ */
+const CAMERAS = ["canon", "nikon", "sony", "lumix", "webcam", "simulated"] as const;
+/** Catatan "belum diuji dengan kamera asli" per merek ("" = sudah diuji). */
+const UNTESTED: Partial<Record<string, string>> = {
+  sony: copy.crew.sonyUntested,
+  lumix: copy.crew.lumixUntested,
+  nikon: copy.crew.nikonUntested,
+};
+const TIPS: Partial<Record<string, readonly string[]>> = {
+  sony: copy.crew.sonyTips,
+  lumix: copy.crew.lumixTips,
+  nikon: copy.crew.nikonTips,
+};
 
 const choice = (on: boolean) =>
   `pressable flex min-h-[72px] items-center justify-center rounded-[18px] border-[2.5px] border-ink px-6 py-2 text-center text-xl leading-tight font-bold disabled:opacity-40 ${on ? "bg-mint-soft" : "bg-white"}`;
@@ -94,9 +108,9 @@ export function DeviceSheet({
                 onClick={() => set({ camera: c })}
               >
                 {copy.crew.cameraKind[c]}
-                {c === "sony" && copy.crew.sonyUntested && (
+                {UNTESTED[c] && (
                   <span className="mt-1 block text-base font-semibold text-text-2">
-                    {copy.crew.sonyUntested}
+                    {UNTESTED[c]}
                   </span>
                 )}
               </button>
@@ -119,10 +133,10 @@ export function DeviceSheet({
             </div>
           )}
 
-          {camera === "sony" && (
+          {TIPS[camera] && (
             <div className="flex flex-col gap-3">
               <ul className="flex list-disc flex-col gap-1.5 pl-6 text-lg text-text-2">
-                {copy.crew.sonyTips.map((t) => (
+                {TIPS[camera].map((t) => (
                   <li key={t}>{t}</li>
                 ))}
               </ul>

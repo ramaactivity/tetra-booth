@@ -54,7 +54,7 @@ export type CommandType = Command["type"];
 
 export const CameraInfoSchema = z.object({
   id: z.string(),
-  brand: z.enum(["canon", "sony", "hotfolder"]),
+  brand: z.enum(["canon", "sony", "lumix", "nikon", "hotfolder"]),
   model: z.string(),
   serial: z.string(),
 });

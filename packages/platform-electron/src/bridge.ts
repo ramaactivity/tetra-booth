@@ -12,7 +12,7 @@ import type { CommandResult, Paper } from "@tetra/shared";
 
 export type BoothConfig = {
   /** Sumber kamera Fase 1 (DECISIONS #26). */
-  camera: "webcam" | "simulated" | "hotfolder" | "canon" | "sony";
+  camera: "webcam" | "simulated" | "hotfolder" | "canon" | "sony" | "lumix" | "nikon";
   /** Sesi berjalan sendiri tanpa sentuhan. */
   demo: boolean;
   /** Demo dipercepat untuk stress test (M8): countdown 1 s, jeda pendek. */

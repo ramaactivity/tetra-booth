@@ -85,6 +85,8 @@ Prinsip:
 
 ## Fase 5 — Ekspansi
 - [ ] Sony via **Camera Remote Command** (PTP, bukan Camera Remote SDK: SDK tidak mendukung A7 II/A7 III). Command mendukung A7 II, A7 III, A7 IV, A7 V, A7C, A6100/A6400/A6600/A6700; A6300/A6500 tidak didukung Sony (tetap hot folder). _(6 Okt 2026: S1–S5 selesai di Mac dengan kamera palsu, DECISIONS #169/#171, `docs/PLAN-SONY.md`; sisa uji hardware W-037…W-041, menunggu kamera Sony.)_
+- [ ] Panasonic Lumix (GH5) via **Lumix Remote Control Library** (`Lmxptpif.dll`), dijalankan `CanonCamera` seperti EDSDK. _(8 Okt 2026: jepret, live view, AF/MF, setelan, unduh DLL dari cloud selesai di Mac dengan kamera palsu, DECISIONS #214; sisa uji GH5 asli W-043.)_
+- [ ] Nikon D-series & Z via **Nikon SDK** (MAID3 klasik `Type0001–0031.md3` + Remote SDK v2 untuk Z baru), dijalankan `CanonCamera`. ±46 bodi (lebih lengkap dari LumaBooth). _(8 Okt 2026: selesai di Mac dengan kamera palsu, DECISIONS #216; sisa uji kamera Nikon asli W-044.)_
 - [ ] Animasi (GIF/boomerang) di booth, halaman tamu, galeri. _(GIF foto sesi di booth + halaman tamu sudah dimajukan 2026-09-25, DECISIONS #62; galeri L3 2026-09-25, DECISIONS #72; sisa: boomerang/video live view, butuh kamera asli)_
 - [x] Lead capture (gate/optional + consent) + export CSV dari admin. _(L1, 2026-09-25, DECISIONS #71)_
 - [x] Galeri event publik untuk tamu. _(L2, 2026-09-25: `/s/{id}/galeri`, DECISIONS #72; QR di live slideshow → `/l/{token}`, DECISIONS #75)_
