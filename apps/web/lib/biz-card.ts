@@ -77,7 +77,8 @@ export function bizCardSvg(id: string | undefined, d: BizCardData, bleed = true)
   const tx = b + 46;
   const date = d.date.split("-").reverse().join(".");
   const longest = Math.max(...name.map((l) => l.length));
-  const nameSize = longest > 14 ? (5.2 * 14) / longest : name.length > 1 || longest > 10 ? 5.2 : 6.4;
+  const nameSize =
+    longest > 14 ? (5.2 * 14) / longest : name.length > 1 || longest > 10 ? 5.2 : 6.4;
   const nameY = b + (d.tagline ? 17 : 13);
   const text = (x: number, y: number, s: string, size: number, fill: string, extra = "") =>
     `<text x="${x}" y="${y}" font-family="${FONT}" font-size="${size}" fill="${fill}" ${extra}>${esc(s)}</text>`;
