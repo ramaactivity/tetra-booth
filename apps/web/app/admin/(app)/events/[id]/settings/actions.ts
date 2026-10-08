@@ -310,6 +310,7 @@ export async function applySettings(
             approval: f.gc_approval,
             voice: form.get("gc_voice") === "on",
             strip: form.get("gc_strip") === "on",
+            print: form.get("gc_print") === "on",
             ...(f.gc_consent && { consentText: f.gc_consent }),
           }
         : {},

@@ -5,6 +5,7 @@ import type {
   EventInfo,
   EventRun,
   EventSettings,
+  GuestPrintJob,
   LayoutSpec,
   Paper,
   PaymentCreateRequest,
@@ -330,6 +331,9 @@ export interface BoothStage {
   };
 }
 
+/** Job cetak tamu Guest Cam (#223) + gambar frame yang sudah diunduh proses utama. */
+export type LocalGuestPrint = GuestPrintJob & { bytes: Uint8Array<ArrayBuffer> };
+
 export interface BoothPlatform {
   camera: BoothCamera;
   /** Gagal = reject. Sesi tetap selesai walau print gagal (FSD §1.10). */
@@ -337,6 +341,11 @@ export interface BoothPlatform {
     submit(job: PrintJob): Promise<void>;
     /** Cetak lagi dari galeri lewat antrean & tabel print_jobs yang sama (#145). */
     reprint(req: ReprintRequest): Promise<ReprintResult>;
+  };
+  /** Cetak tamu Guest Cam (#223). Tidak ada = platform tanpa cloud (uji/browser). Offline = daftar kosong. */
+  guestPrints?: {
+    claim(eventId: string, paper: string): Promise<LocalGuestPrint[]>;
+    report(id: string, status: "printed" | "failed", error?: string): Promise<void>;
   };
   storage: BoothStorage;
   db: BoothDb;

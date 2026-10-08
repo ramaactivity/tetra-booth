@@ -1390,6 +1390,16 @@ export function SettingsForm({
                   </span>
                   <Switch name="gc_strip" defaultChecked={v.guestCam.strip} />
                 </label>
+                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-[14px] border-[1.5px] border-ink bg-white px-4 py-3.5">
+                  <span>
+                    <span className="block text-sm font-extrabold">Cetak di lokasi (add-on)</span>
+                    <span className="mt-0.5 block text-xs leading-normal text-text-2">
+                      Tiap tamu boleh mencetak 1 frame lewat printer booth, mengikuti kertas &
+                      desain booth. Butuh Strip virtual.
+                    </span>
+                  </span>
+                  <Switch name="gc_print" defaultChecked={v.guestCam.print} />
+                </label>
                 <Field
                   id="gc_consent"
                   label="Persetujuan data Guest Cam"

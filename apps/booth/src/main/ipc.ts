@@ -4,6 +4,7 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import {
   AssetKindSchema,
+  LayoutPaperSchema,
   LayoutSpecSchema,
   newerVersion,
   outsideRun,
@@ -275,6 +276,11 @@ export function registerIpc(
   });
   // Timer event (#149): Buka untuk Tamu / Jeda / Lanjutkan / Selesai → antrean ke cloud, jam saat ditekan.
   const EventId = z.string().min(1).max(64);
+  const GuestPrintReport = z.object({
+    id: z.uuid(),
+    status: z.enum(["printed", "failed"]),
+    error: z.string().max(300).optional(),
+  });
   ipcMain.handle("crewRunState", (_e, id: unknown) => {
     crewOnly();
     return cloud.runState(EventId.parse(id));
@@ -337,6 +343,25 @@ export function registerIpc(
       if (err) throw new Error(`Folder tidak bisa dibuka: ${err}`);
     }
     return dest;
+  });
+  // Cetak tamu Guest Cam (#223): jalan di layar tamu (bukan hanya crew). Offline/gagal = daftar kosong, diam.
+  ipcMain.handle("guestPrintsClaim", async (_e, id: unknown, paper: unknown) => {
+    try {
+      return await cloud.claimGuestPrints(EventId.parse(id), LayoutPaperSchema.parse(paper));
+    } catch (err) {
+      console.warn(`[cloud] cetak tamu: ${err instanceof Error ? err.message : String(err)}`);
+      return [];
+    }
+  });
+  ipcMain.handle("guestPrintsReport", async (_e, id: unknown, status: unknown, error: unknown) => {
+    const r = GuestPrintReport.parse({ id, status, error: error ?? undefined });
+    await cloud
+      .reportGuestPrint(r.id, r.status, r.error)
+      .catch((err: unknown) =>
+        console.warn(
+          `[cloud] lapor cetak tamu: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
   });
   // "Salin link galeri" (#155): aktifkan link galeri klien di cloud, salin alamatnya ke clipboard.
   ipcMain.handle("crewGalleryLink", async (_e, id: unknown) => {

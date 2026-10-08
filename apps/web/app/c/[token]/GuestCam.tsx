@@ -1,5 +1,5 @@
 "use client";
-import { GUEST_MAX_STRIPS, type GuestMe } from "@tetra/shared";
+import { GUEST_MAX_STRIPS, type GuestMe, type GuestPrintInfo } from "@tetra/shared";
 import { useCallback, useEffect, useState } from "react";
 import { Mine } from "@/components/guest-cam/After";
 import { Camera } from "@/components/guest-cam/Camera";
@@ -45,6 +45,22 @@ export function GuestCam({
   const [phase, setPhase] = useState<Phase>(initialMe ? "home" : "join");
 
   const refresh = useCallback(async () => setQ(await queued(token)), [token]);
+  // Cetak di booth (#223): status dibaca saat masuk, di-poll selama antre/dicetak.
+  const [print, setPrint] = useState<GuestPrintInfo | "error" | undefined>();
+  const printUrl = `/api/c/${encodeURIComponent(token)}/print`;
+  const printStatus = print && print !== "error" ? print.status : null;
+  const loadPrint = useCallback(async () => {
+    const r = await fetch(printUrl).catch(() => null);
+    if (r?.ok) setPrint(((await r.json()) as GuestPrintInfo) ?? undefined);
+  }, [printUrl]);
+  useEffect(() => {
+    if (me && info.print) void loadPrint();
+  }, [me, info.print, loadPrint]);
+  useEffect(() => {
+    if (printStatus !== "queued" && printStatus !== "claimed") return;
+    const timer = setInterval(() => void loadPrint(), 5_000);
+    return () => clearInterval(timer);
+  }, [printStatus, loadPrint]);
   const sync = useCallback(async () => {
     setOnline(navigator.onLine);
     const ok = await flush(token, setMe);
@@ -132,6 +148,25 @@ export function GuestCam({
           await add({ kind: "strip", idx: strips, ...shot });
           setPhase("mine");
         }}
+        onPrint={
+          info.print && !(print && print !== "error")
+            ? async (shot, designId) => {
+                const idx = strips;
+                await add({ kind: "strip", idx, ...shot });
+                // Frame harus sudah di album sebelum masuk antrean cetak.
+                for (let i = 0; i < 20 && !(await flush(token, setMe)); i++)
+                  await new Promise((r) => setTimeout(r, 1500));
+                const r = await fetch(printUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ idx, designId }),
+                }).catch(() => null);
+                setPrint(r?.ok ? ((await r.json()) as GuestPrintInfo) : "error");
+                await refresh();
+                setPhase("mine");
+              }
+            : undefined
+        }
       />
     );
   if (phase === "mine")
@@ -142,6 +177,7 @@ export function GuestCam({
         me={me}
         pending={pendingIdx.length}
         promo={promo}
+        print={print}
         onBack={home}
       />
     );

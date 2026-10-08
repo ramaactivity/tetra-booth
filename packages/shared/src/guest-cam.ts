@@ -14,6 +14,8 @@ export const GuestCamSettingsSchema = z.object({
   shots: z.number().int().min(1).max(50).default(15),
   /** Batas tamu sesuai tier paket (#221); null = tak terbatas. Tamu = HP yang mengirim ≥ 1 foto. */
   maxGuests: z.number().int().min(1).max(100_000).nullable().default(null),
+  /** Add-on cetak di lokasi (#223): tiap tamu boleh mencetak satu frame lewat printer booth / Print Station. */
+  print: z.boolean().default(false),
   /** live = foto langsung tampil di album/TV; after = terbuka setelah acara (gaya kamera sekali pakai). */
   reveal: z.enum(["live", "after"]).default("after"),
   /** auto = tampil otomatis (bisa disembunyikan); manual = harus disetujui owner/crew dulu. */
@@ -150,3 +152,24 @@ export const idxAllowed = (cam: GuestCamSettings, kind: GuestUploadKind, idx: nu
 export const GUEST_TIERS = [100, 200, 300, 500, null] as const;
 /** Kuota benar-benar berhenti di +10% (tamu asli tidak tertolak di tengah acara). */
 export const guestHardCap = (max: number) => Math.ceil(max * 1.1);
+
+/** Status cetak satu tamu (#223), dibaca HP tamu. */
+export type GuestPrintStatus = "queued" | "claimed" | "printed" | "failed";
+export const GuestPrintRequest = z.object({ idx: z.number().int().min(0).max(4), designId: z.string().max(80) });
+export type GuestPrintInfo = { number: number; status: GuestPrintStatus } | null;
+
+/** Job cetak tamu yang diambil booth (#223). `layout` = layout potong frame; `url` = gambar frame (GET bertanda tangan). */
+export const GuestPrintJob = z.object({
+  id: z.uuid(),
+  number: z.number().int(),
+  guestName: z.string().nullable(),
+  paper: z.string(),
+  layout: z.unknown(),
+  url: z.url(),
+});
+export type GuestPrintJob = z.infer<typeof GuestPrintJob>;
+export const GuestPrintClaim = z.object({ jobs: z.array(GuestPrintJob) });
+export const GuestPrintResult = z.object({
+  status: z.enum(["printed", "failed"]),
+  error: z.string().max(300).optional(),
+});

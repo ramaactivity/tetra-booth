@@ -484,6 +484,89 @@ export type Database = {
           },
         ]
       }
+      guest_prints: {
+        Row: {
+          claimed_at: string | null
+          created_at: string
+          device_id: string | null
+          error: string | null
+          event_id: string
+          guest_name: string | null
+          id: string
+          layout: NonNullable<Json>
+          number: number
+          organization_id: string
+          paper: string
+          printed_at: string | null
+          r2_key: string
+          session_id: string
+          status: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          created_at?: string
+          device_id?: string | null
+          error?: string | null
+          event_id: string
+          guest_name?: string | null
+          id?: string
+          layout: NonNullable<Json>
+          number: number
+          organization_id: string
+          paper: string
+          printed_at?: string | null
+          r2_key: string
+          session_id: string
+          status?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          created_at?: string
+          device_id?: string | null
+          error?: string | null
+          event_id?: string
+          guest_name?: string | null
+          id?: string
+          layout?: NonNullable<Json>
+          number?: number
+          organization_id?: string
+          paper?: string
+          printed_at?: string | null
+          r2_key?: string
+          session_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_prints_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_prints_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_prints_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_prints_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       layout_presets: {
         Row: {
           created_at: string
@@ -1040,6 +1123,32 @@ export type Database = {
       }
     }
     Functions: {
+      claim_guest_prints: {
+        Args: { p_device: string; p_event: string; p_paper: string }
+        Returns: {
+          claimed_at: string | null
+          created_at: string
+          device_id: string | null
+          error: string | null
+          event_id: string
+          guest_name: string | null
+          id: string
+          layout: NonNullable<Json>
+          number: number
+          organization_id: string
+          paper: string
+          printed_at: string | null
+          r2_key: string
+          session_id: string
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "guest_prints"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       event_cloud_storage: {
         Args: { ev: string; org: string }
         Returns: {

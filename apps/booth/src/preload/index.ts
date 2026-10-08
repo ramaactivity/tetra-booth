@@ -38,6 +38,9 @@ const bridge: TetraBridge = {
   crewRecap: (id) => ipcRenderer.invoke("crewRecap", id),
   crewOpenEventFolder: (id) => ipcRenderer.invoke("crewOpenEventFolder", id),
   crewGalleryLink: (id) => ipcRenderer.invoke("crewGalleryLink", id),
+  guestPrintsClaim: (id, paper) => ipcRenderer.invoke("guestPrintsClaim", id, paper),
+  guestPrintsReport: (id, status, error) =>
+    ipcRenderer.invoke("guestPrintsReport", id, status, error),
   crewEventSize: (id) => ipcRenderer.invoke("crewEventSize", id),
   crewOldSessions: () => ipcRenderer.invoke("crewOldSessions"),
   crewReupload: (id, a) => ipcRenderer.invoke("crewReupload", id, a),

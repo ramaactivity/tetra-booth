@@ -5,6 +5,7 @@ import { CrewMode } from "./crew/CrewMode";
 import { guestCursor } from "./cursorPref";
 import { errText } from "./errors";
 import { type BoothEvent, DEFAULT_EVENT, loadEvent, releaseEvent } from "./event";
+import { GuestPrinter } from "./GuestPrinter";
 import { usePlatform } from "./PlatformContext";
 import type { PrinterAlert } from "./platform";
 import { SessionRunner } from "./SessionRunner";
@@ -174,6 +175,7 @@ export function BoothApp({
             setCrewOpen(false);
           }}
         />
+        <GuestPrinter event={event} />
         {notice}
       </Stage>
     );
@@ -203,6 +205,7 @@ export function BoothApp({
             }}
           />
         )}
+        <GuestPrinter event={event} />
         {/* Stage (#178) belum mencetak: peringatan printer booth tidak relevan. */}
         {alert && !p.stage && (
           <p

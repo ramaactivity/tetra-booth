@@ -80,6 +80,8 @@ export type TetraBridge = {
   crewOpenEventFolder: BoothCrew["openEventFolder"];
   crewEventSize: BoothCrew["eventSize"];
   crewGalleryLink: BoothCrew["galleryLink"];
+  guestPrintsClaim: NonNullable<BoothPlatform["guestPrints"]>["claim"];
+  guestPrintsReport: NonNullable<BoothPlatform["guestPrints"]>["report"];
   crewOldSessions: BoothCrew["oldSessions"];
   crewReupload: BoothCrew["reupload"];
   crewCheckUpdate: BoothCrew["checkUpdate"];

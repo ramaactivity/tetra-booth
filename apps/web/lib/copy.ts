@@ -111,6 +111,17 @@ export const copy = {
     joining: "Bentar ya…",
     failed: "Koneksinya lagi rewel, coba sekali lagi ya",
     full: "Yah, kuota tamu Guest Cam acara ini sudah penuh. Kamu tetap bisa lihat foto acara dari QR galeri ya.",
+    // Cetak di booth (#223)
+    printBooth: "Cetak di booth",
+    printSending: "Ngirim ke booth…",
+    printTitle: (n: number) => `Cetakanmu #${n}`,
+    printState: {
+      queued: "Lagi antre di booth",
+      claimed: "Lagi dicetak",
+      printed: "Udah jadi! Ambil di booth ya",
+      failed: "Printer lagi rewel, langsung ke crew booth ya",
+    },
+    printFailed: "Belum kekirim ke booth, coba lagi ya",
     // A2 Izin kamera
     askTitle: (name: string) => `Hai ${name}, izinin kamera dulu ya`,
     askBody: "Abis ini browser bakal nanya. Pilih Izinkan, terus kamu bisa langsung motret.",

@@ -1,6 +1,6 @@
 "use client";
-import type { GuestMe } from "@tetra/shared";
-import { ChevronLeft } from "lucide-react";
+import type { GuestMe, GuestPrintInfo } from "@tetra/shared";
+import { ChevronLeft, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GuestPromo, PROMO_SAVED } from "@/components/GuestPromo";
 import { copy } from "@/lib/copy";
@@ -45,6 +45,7 @@ export function Mine({
   me,
   pending,
   promo,
+  print,
   onBack,
 }: {
   token: string;
@@ -52,6 +53,8 @@ export function Mine({
   me: GuestMe;
   pending: number;
   promo: Promo | null;
+  /** Cetak di booth (#223): status antrean, atau "error" kalau gagal dikirim. */
+  print?: GuestPrintInfo | "error" | undefined;
   onBack: () => void;
 }) {
   const [tab, setTab] = useState<"mine" | "album">("mine");
@@ -131,6 +134,23 @@ export function Mine({
             </button>
           ))}
         </div>
+        {print && (
+          <div
+            role="status"
+            data-testid="guest-print"
+            className={`mt-3 flex items-center gap-3 rounded-2xl px-4 py-3 text-ink ${print === "error" || print.status === "failed" ? "bg-coral" : print.status === "printed" ? "bg-mint" : "bg-butter"}`}
+          >
+            <Printer size={20} className="flex-none" />
+            {print === "error" ? (
+              <span className="text-sm font-bold">{t.printFailed}</span>
+            ) : (
+              <span className="text-sm">
+                <span className="block font-extrabold">{t.printTitle(print.number)}</span>
+                {t.printState[print.status]}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {!me.revealed ? (

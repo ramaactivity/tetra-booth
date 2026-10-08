@@ -1,5 +1,10 @@
 /** Semua teks UI booth, Bahasa Indonesia. 08-DESIGN §7: pendek, label tombol maksimal 2 kata. */
 export const copy = {
+  /** Cetak tamu Guest Cam di printer booth (#223). */
+  guestPrint: {
+    who: (n: number, name: string | null) => `#${n}${name ? ` ${name}` : ""}`,
+    printing: (who: string) => `Cetak Guest Cam ${who}`,
+  },
   attract: {
     cta: "Sentuh untuk Mulai",
     // Hanya tampil sebelum PIN crew dibuat (setup pertama), supaya tamu tidak melihatnya saat event.

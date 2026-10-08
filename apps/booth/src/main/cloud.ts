@@ -9,6 +9,7 @@ import {
   BundleManifest,
   EdsdkResponse,
   GalleryLinkResponse,
+  GuestPrintClaim,
   type HeartbeatRequest,
   type LocalStorage,
   PairResponse,
@@ -286,6 +287,20 @@ export function createCloud(
     async galleryLink(eventId: string) {
       return GalleryLinkResponse.parse(await api(`/api/booth/events/${eventId}/gallery-link`, {}))
         .slug;
+    },
+    /**
+     * Cetak tamu Guest Cam (#223): ambil job untuk kertas printer ini + unduh frame-nya. Offline / gagal = Error
+     * (pemanggil diam saja; booth tidak pernah menunggu jaringan).
+     */
+    async claimGuestPrints(eventId: string, paper: string) {
+      const { jobs } = GuestPrintClaim.parse(
+        await api(`/api/booth/events/${eventId}/guest-prints`, { paper }),
+      );
+      return Promise.all(jobs.map(async (j) => ({ ...j, bytes: await download(j.url) })));
+    },
+    /** Hasil cetak tamu (#223) ke cloud → status di HP tamu. */
+    async reportGuestPrint(id: string, status: "printed" | "failed", error?: string) {
+      await api(`/api/booth/guest-prints/${id}`, { status, ...(error && { error }) });
     },
     /** Rilis booth terbaru di cloud (DECISIONS #80); null = belum ada rilis. */
     async latestRelease() {

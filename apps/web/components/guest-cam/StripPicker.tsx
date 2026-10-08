@@ -1,6 +1,6 @@
 "use client";
 import type { GuestMe, LayoutSpec } from "@tetra/shared";
-import { Download, RotateCcw, Send } from "lucide-react";
+import { Download, Printer, RotateCcw, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { renderStrip } from "@/app/c/[token]/strip";
 import { PROMO_SAVED } from "@/components/GuestPromo";
@@ -42,12 +42,15 @@ export function StripPicker({
   me,
   k,
   onSend,
+  onPrint,
   onClose,
 }: {
   info: GuestInfo;
   me: GuestMe;
   k: number;
   onSend: (shot: { main: Blob; thumb: Blob }) => Promise<void>;
+  /** Cetak di booth (#223): ada kalau add-on aktif dan tamu belum pernah mencetak. */
+  onPrint?: ((shot: { main: Blob; thumb: Blob }, designId: string) => Promise<void>) | undefined;
   onClose: () => void;
 }) {
   const fits = info.designs.filter((d) => d.layout.slots.length <= me.photos.length);
@@ -170,6 +173,18 @@ export function StripPicker({
         {made ? (
           <>
             <p className="mb-3 text-center text-sm text-paper/70">{t.madeBody}</p>
+            {onPrint && design?.printable && (
+              <Primary
+                className="mb-3"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  await onPrint(made, design.id);
+                }}
+              >
+                <Printer size={18} /> {busy ? t.printSending : t.printBooth}
+              </Primary>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <Secondary
                 className="px-3"

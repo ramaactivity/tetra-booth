@@ -4,6 +4,7 @@ import {
   EventDesignSchema,
   EventSettingsSchema,
   type GuestMe,
+  type GuestPrintStatus,
   guestHardCap,
   LAYOUT_PRESETS,
   type LayoutSpec,
@@ -149,6 +150,15 @@ async function guestDesigns(ev: GuestEvent) {
   return out;
 }
 
+/**
+ * Frame yang boleh dicetak (#223): desain booth event (kertas yang terpasang di printer booth). Event tanpa desain
+ * booth (Guest Cam + Print Station saja) boleh mencetak frame bawaan Tetra.
+ */
+const printable = <D extends { booth: boolean }>(ds: D[]) => {
+  const anyBooth = ds.some((d) => d.booth);
+  return ds.map((d) => ({ ...d, printable: d.booth || !anyBooth }));
+};
+
 /** Info publik untuk halaman Guest Cam (GET /api/c/{token} dan render awal /c/{token}). */
 export async function guestInfo(ev: GuestEvent) {
   const picked = (EventSettingsSchema.parse(ev.settings ?? {}).filters ?? []).filter(
@@ -166,7 +176,9 @@ export async function guestInfo(ev: GuestEvent) {
     strip: ev.cam.strip,
     consentText: ev.cam.consentText,
     revealed: guestRevealed(ev),
-    designs: ev.cam.strip ? await guestDesigns(ev) : [],
+    designs: ev.cam.strip ? printable(await guestDesigns(ev)) : [],
+    /** Add-on cetak di lokasi (#223). */
+    print: ev.cam.print && ev.cam.strip,
     coverUrl: await guestCover(ev),
     closed: guestClosed(ev),
     publicGallery: ev.public_gallery,
@@ -306,3 +318,19 @@ export async function sessionIdentity(ev: GuestEvent, sessionId: string) {
 }
 
 export const quotaFull = () => Response.json({ error: "guest_full" }, { status: 403 });
+
+/** Satu desain frame tamu (dengan tanda boleh dicetak) menurut id. */
+export async function guestDesignById(ev: GuestEvent, id: string) {
+  return printable(await guestDesigns(ev)).find((d) => d.id === id) ?? null;
+}
+
+/** Cetak tamu ini (#223), atau null kalau belum pernah. */
+export async function guestPrint(ev: GuestEvent, sessionId: string) {
+  const { data } = await createServiceClient()
+    .from("guest_prints")
+    .select("number, status")
+    .eq("organization_id", ev.organization_id)
+    .eq("session_id", sessionId)
+    .maybeSingle();
+  return data ? { number: data.number, status: data.status as GuestPrintStatus } : null;
+}
