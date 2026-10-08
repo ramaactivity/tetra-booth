@@ -149,8 +149,8 @@ export function PromoForm({ cfg }: { cfg: PromoConfig }) {
             name="validDays"
             label="Berlaku (hari)"
             hint="Sejak kode diklaim, 7–365."
-            value={String(cfg.offer?.validDays ?? 90)}
-            placeholder="90"
+            value={String(cfg.offer?.validDays ?? 30)}
+            placeholder="30"
           />
         </div>
         <div className="flex flex-wrap gap-5 text-sm font-semibold">

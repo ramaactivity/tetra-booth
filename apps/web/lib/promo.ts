@@ -45,7 +45,7 @@ export const PromoConfigSchema = z.object({
       /** Minimal nilai booking (Rp) agar kode berlaku; kosong = tanpa minimal. */
       minIdr: z.number().int().min(0).max(100_000_000).optional(),
       /** Masa berlaku kode sejak diklaim (#218). */
-      validDays: z.number().int().min(7).max(365).default(90),
+      validDays: z.number().int().min(7).max(365).default(30),
       proofs: z.array(z.enum(PROOFS)).min(1),
     })
     .optional(),

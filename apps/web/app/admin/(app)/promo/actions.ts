@@ -34,7 +34,7 @@ export async function savePromo(_prev: SaveResult, form: FormData): Promise<Save
                 ...(s("dtype") === "percent" && num("maxIdr") && { maxIdr: num("maxIdr") }),
               },
         ...(num("minIdr") && { minIdr: num("minIdr") }),
-        validDays: num("validDays") ?? 90,
+        validDays: num("validDays") ?? 30,
         proofs,
       },
     }),
