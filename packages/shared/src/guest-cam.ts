@@ -155,7 +155,10 @@ export const guestHardCap = (max: number) => Math.ceil(max * 1.1);
 
 /** Status cetak satu tamu (#223), dibaca HP tamu. */
 export type GuestPrintStatus = "queued" | "claimed" | "printed" | "failed";
-export const GuestPrintRequest = z.object({ idx: z.number().int().min(0).max(4), designId: z.string().max(80) });
+export const GuestPrintRequest = z.object({
+  idx: z.number().int().min(0).max(4),
+  designId: z.string().max(80),
+});
 export type GuestPrintInfo = { number: number; status: GuestPrintStatus } | null;
 
 /** Job cetak tamu yang diambil booth (#223). `layout` = layout potong frame; `url` = gambar frame (GET bertanda tangan). */
