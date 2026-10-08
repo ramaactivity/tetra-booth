@@ -64,8 +64,14 @@ if (!process.argv.includes("--tools")) {
   // Commit harus sudah di-push supaya CI membangun kode yang sama.
   const sha = execSync("git rev-parse HEAD").toString().trim();
   const ref = execSync("git rev-parse --abbrev-ref HEAD").toString().trim();
-  if (execSync("git status --porcelain --untracked-files=no").toString().trim())
-    throw new Error("ada perubahan belum di-commit; commit & push dulu");
+  // Yang ikut ke installer: booth, packages, Camera Service. Perubahan web/dokumen sesi lain di checkout yang sama
+  // tidak memblokir rilis booth.
+  if (
+    execSync(`git status --porcelain --untracked-files=no -- . ":!apps/web" ":!docs" ":!supabase"`)
+      .toString()
+      .trim()
+  )
+    throw new Error("ada perubahan booth belum di-commit; commit & push dulu");
   if (execSync(`git rev-parse origin/${ref}`).toString().trim() !== sha)
     throw new Error(`HEAD belum di-push ke origin/${ref}`);
   console.log(
