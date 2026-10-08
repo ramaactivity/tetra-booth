@@ -62,6 +62,21 @@ test("webhook Ops: IG klien & desain kartu QR masuk ke event", async ({ request 
     expect(a?.settings).toMatchObject({
       guestCam: { enabled: true, shots: 10, cardDesign: "butter" },
     });
+    // Paket Guest Cam (#226): tier 200 + add-on cetak; lalu naik tier → batas ikut berubah.
+    await send({
+      modules: ["photobooth", "guest_cam"],
+      guest_cam_max_guests: 200,
+      guest_cam_print: true,
+    });
+    expect((await row())?.settings).toMatchObject({
+      guestCam: { enabled: true, maxGuests: 200, print: true, cardDesign: "butter" },
+    });
+    await send({
+      modules: ["photobooth", "guest_cam"],
+      guest_cam_max_guests: 500,
+      guest_cam_print: true,
+    });
+    expect((await row())?.settings).toMatchObject({ guestCam: { maxGuests: 500 } });
     // IG yang sudah terisi tidak ditimpa; desain tidak dikenal diabaikan.
     await send({ client_instagram: ["lain"], guest_card_design: "nope" });
     const b = await row();

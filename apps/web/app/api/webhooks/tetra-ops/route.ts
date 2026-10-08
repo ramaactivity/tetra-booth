@@ -8,7 +8,7 @@ import {
   opsSignatureOk,
 } from "@/lib/ops-sync";
 import { createServiceClient } from "@/lib/supabase/service";
-import { opsInstagram } from "@/lib/tetra-ops";
+import { opsGuestCam, opsInstagram } from "@/lib/tetra-ops";
 
 /**
  * Kabar dari Tetra Ops (kontrak v0.2 §4, DECISIONS #173): verifikasi HMAC + jendela waktu, simpan per
@@ -53,23 +53,24 @@ export async function POST(req: Request) {
   // IG klien (#215, kontrak v0.7) mengisi event yang belum punya; isian admin di Booth tidak ditimpa.
   // ponytail: perubahan IG di Ops setelah terisi tidak ikut; admin mengubahnya di pengaturan event.
   const ig = opsInstagram(body.booking.client_instagram);
-  // Desain kartu QR Guest Cam pilihan klien di portal (#225, kontrak v0.9).
-  const card = BIZ_CARDS.find((c) => c.id === body.booking.guest_card_design)?.id;
+  // Paket Guest Cam (tier, cetak) + desain kartu QR pilihan klien (#225/#226, kontrak v0.9).
+  const gc = opsGuestCam(
+    body.booking,
+    BIZ_CARDS.map((c) => c.id),
+  );
   for (const ev of events ?? []) {
     const prev = (ev.ops_sync ?? {}) as OpsSync;
     const next = nextOpsSync(prev, body);
     const fillIg = ig.length > 0 && !ev.client_instagram.length;
-    const settings = (ev.settings ?? {}) as { guestCam?: { cardDesign?: string } };
-    const setCard = !!card && settings.guestCam?.cardDesign !== card;
-    if (next === prev && !fillIg && !setCard) continue;
+    const settings = (ev.settings ?? {}) as { guestCam?: Record<string, unknown> };
+    const setGc = Object.entries(gc).some(([k, v]) => settings.guestCam?.[k] !== v);
+    if (next === prev && !fillIg && !setGc) continue;
     const { error: upd } = await db
       .from("events")
       .update({
         ops_sync: next as unknown as NonNullable<Json>,
         ...(fillIg && { client_instagram: ig }),
-        ...(setCard && {
-          settings: { ...settings, guestCam: { ...settings.guestCam, cardDesign: card } },
-        }),
+        ...(setGc && { settings: { ...settings, guestCam: { ...settings.guestCam, ...gc } } }),
       })
       .eq("id", ev.id)
       .eq("organization_id", org);

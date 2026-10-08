@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-const { approvedDesign, OpsBooking, opsInstagram } = await import("./tetra-ops");
+const { approvedDesign, OpsBooking, opsGuestCam, opsInstagram } = await import("./tetra-ops");
 
 const base = {
   project_id: "PRJ-1",
@@ -62,4 +62,31 @@ it("opsInstagram: @/link/huruf besar dibersihkan, duplikat & isian rusak dilewat
   ).toEqual(["dimas.rina", "wo.bahagia"]);
   expect(opsInstagram(null)).toEqual([]);
   expect(opsInstagram(["a1", "a2", "a3", "a4", "a5", "a6", "a7"])).toHaveLength(6);
+});
+
+it("opsGuestCam: tier & cetak hanya dengan modul guest_cam; null = tak terbatas; desain kartu dikenal saja", () => {
+  const cards = ["klasik", "butter"];
+  expect(
+    opsGuestCam(
+      {
+        modules: ["photobooth", "guest_cam"],
+        guest_cam_max_guests: 300,
+        guest_cam_print: true,
+        guest_card_design: "butter",
+      },
+      cards,
+    ),
+  ).toEqual({ enabled: true, maxGuests: 300, print: true, cardDesign: "butter" });
+  expect(opsGuestCam({ modules: ["guest_cam"], guest_cam_max_guests: null }, cards)).toEqual({
+    enabled: true,
+    maxGuests: null,
+    print: false,
+  });
+  expect(
+    opsGuestCam(
+      { modules: ["photobooth"], guest_cam_max_guests: 100, guest_card_design: "nope" },
+      cards,
+    ),
+  ).toEqual({});
+  expect(opsGuestCam({ modules: ["guest_cam"], guest_cam_max_guests: 250 }, cards)).toEqual({});
 });
