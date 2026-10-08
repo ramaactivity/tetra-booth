@@ -121,3 +121,13 @@ export function opsDrift(ev: DriftEvent, b: DriftBooking | undefined): OpsDrift 
   if (loc && loc !== (ev.location ?? "")) fields.push({ field: "location", ops: loc });
   return fields.length ? { kind: "changed", fields } : null;
 }
+
+/** Autentikasi panggilan Ops → Booth (Bearer `TETRA_OPS_API_TOKEN`); hasil = org Tetra, atau Response gagal. */
+export function opsCaller(req: Request): string | Response {
+  const token = process.env.TETRA_OPS_API_TOKEN ?? "";
+  const org = opsOrgId();
+  if (!token || !org) return new Response("not configured", { status: 503 });
+  if (!bearerOk(req.headers.get("authorization"), token))
+    return new Response("unauthorized", { status: 401 });
+  return org;
+}

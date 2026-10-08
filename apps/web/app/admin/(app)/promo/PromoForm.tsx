@@ -1,8 +1,14 @@
 "use client";
-import { useActionState } from "react";
-import type { PromoConfig } from "@/lib/promo";
+import { useActionState, useState } from "react";
+import type { Discount, PromoConfig } from "@/lib/promo";
 import { Box } from "../events/[id]/settings/SettingsForm";
 import { type SaveResult, savePromo } from "./actions";
+
+const DISCOUNTS: [Discount["type"], string][] = [
+  ["percent", "Diskon persen"],
+  ["amount", "Potongan nominal"],
+  ["item", "Bonus layanan"],
+];
 
 const input =
   "h-11 w-full rounded-[11px] border-[1.5px] border-ink bg-white px-3 text-sm outline-none focus:shadow-[0_0_0_3px_var(--mint)]";
@@ -32,6 +38,8 @@ function Field({
 /** Pengaturan kartu promosi halaman tamu (#215). Kolom kosong = tombolnya tidak tampil. */
 export function PromoForm({ cfg }: { cfg: PromoConfig }) {
   const [res, action, pending] = useActionState<SaveResult, FormData>(savePromo, null);
+  const d = cfg.offer?.discount;
+  const [dtype, setDtype] = useState<Discount["type"]>(d?.type ?? "percent");
   return (
     <form
       action={action}
@@ -79,13 +87,72 @@ export function PromoForm({ cfg }: { cfg: PromoConfig }) {
           <Box name="offer" defaultChecked={!!cfg.offer} />
           Promo tamu: tinggalkan nomor WA, lalu kirim bukti → kode promo unik
         </label>
-        <Field
-          name="reward"
-          label="Hadiah"
-          hint="Ditampilkan ke tamu, mis. “Diskon 10% booking” atau “Gratis Guest Cam”."
-          value={cfg.offer?.reward}
-          placeholder="Diskon 10% booking"
-        />
+        <div className="flex flex-wrap gap-5 text-sm font-semibold">
+          {DISCOUNTS.map(([v, label]) => (
+            <label key={v} className="flex cursor-pointer items-center gap-2.5">
+              <Box
+                radio
+                name="dtype"
+                value={v}
+                defaultChecked={dtype === v}
+                onChange={() => setDtype(v)}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {dtype === "percent" && (
+            <>
+              <Field
+                name="dvalue"
+                label="Diskon (%)"
+                hint="1–100."
+                value={d?.type === "percent" ? String(d.value) : undefined}
+                placeholder="10"
+              />
+              <Field
+                name="maxIdr"
+                label="Potongan maks. (Rp)"
+                hint="Kosong = tanpa batas."
+                value={d?.type === "percent" && d.maxIdr ? String(d.maxIdr) : undefined}
+                placeholder="300000"
+              />
+            </>
+          )}
+          {dtype === "amount" && (
+            <Field
+              name="dvalue"
+              label="Potongan (Rp)"
+              hint="Nominal tetap."
+              value={d?.type === "amount" ? String(d.value) : undefined}
+              placeholder="200000"
+            />
+          )}
+          {dtype === "item" && (
+            <Field
+              name="item"
+              label="Bonus"
+              hint="Mis. “Gratis Guest Cam” (Ops menambahkannya Rp0)."
+              value={d?.type === "item" ? d.item : undefined}
+              placeholder="Gratis Guest Cam"
+            />
+          )}
+          <Field
+            name="minIdr"
+            label="Minimal booking (Rp)"
+            hint="Kosong = tanpa minimal."
+            value={cfg.offer?.minIdr ? String(cfg.offer.minIdr) : undefined}
+            placeholder="2000000"
+          />
+          <Field
+            name="validDays"
+            label="Berlaku (hari)"
+            hint="Sejak kode diklaim, 7–365."
+            value={String(cfg.offer?.validDays ?? 90)}
+            placeholder="90"
+          />
+        </div>
         <div className="flex flex-wrap gap-5 text-sm font-semibold">
           <label className="flex cursor-pointer items-center gap-2.5">
             <Box

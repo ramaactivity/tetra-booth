@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { HERMES_STATUSES, hermesOrg } from "@/lib/hermes";
+import { bookingUrl, codeState, type PromoSnapshot } from "@/lib/promo";
 import { createServiceClient } from "@/lib/supabase/service";
 
 const Query = z.object({
@@ -20,7 +21,7 @@ export async function GET(req: Request) {
   let sel = createServiceClient()
     .from("leads")
     .select(
-      "id, data, created_at, consent_at, promo_code, proof_kind, contact_status, contacted_at, events(name, event_date, location, organizations(promo))",
+      "id, data, created_at, consent_at, promo_code, promo, promo_expires_at, promo_rejected_at, redeemed_at, proof_kind, contact_status, contacted_at, events(name, event_date, location)",
     )
     .eq("organization_id", org)
     .eq("kind", "sales")
@@ -32,8 +33,7 @@ export async function GET(req: Request) {
   if (error) return Response.json({ error: "server_error" }, { status: 500 });
   return Response.json({
     leads: (data ?? []).map((l) => {
-      const offer = (l.events?.organizations.promo as { offer?: { reward?: string } } | null)
-        ?.offer;
+      const snap = l.promo as PromoSnapshot | null;
       return {
         id: l.id,
         whatsapp: (l.data as { whatsapp?: string }).whatsapp ?? null,
@@ -43,7 +43,10 @@ export async function GET(req: Request) {
           ? { name: l.events.name, date: l.events.event_date, location: l.events.location }
           : null,
         promo_code: l.promo_code,
-        promo_reward: l.promo_code ? (offer?.reward ?? null) : null,
+        promo_reward: snap?.label ?? null,
+        promo_state: l.promo_code ? codeState(l) : null,
+        promo_expires_at: l.promo_expires_at,
+        booking_url: l.promo_code ? bookingUrl(l.promo_code) : null,
         proof: l.proof_kind,
         status: l.contact_status,
         contacted_at: l.contacted_at,

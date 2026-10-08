@@ -29,6 +29,8 @@ export default defineConfig({
       // API Hermes (#215, e2e/promo.spec.ts); org = Tetra (dev = prod).
       HERMES_API_TOKEN: "e2e-hermes-token-0123456789abcdef0123",
       TETRA_OPS_ORG_ID: "ba9df22f-5abc-4322-ab3b-9a3f4b00e481",
+      // Ops → Booth (cek & pakai kode promo #218).
+      TETRA_OPS_API_TOKEN: "e2e-ops-api-token",
     },
   },
 });

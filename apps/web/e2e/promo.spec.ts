@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { newSessionId } from "@tetra/shared";
-import { db, hasDb } from "./admin-helpers";
+import { db, hasDb, login, makeUser } from "./admin-helpers";
 
 /** #215: kartu promosi tamu → nomor WA (lead sales) → bukti → kode promo; API Hermes; promo mati per event. */
 test.skip(!hasDb, "butuh Supabase dev (apps/web/.env.local)");
@@ -9,6 +9,7 @@ test.use({ viewport: { width: 390, height: 844 } });
 const R2 =
   "ba9df22f-5abc-4322-ab3b-9a3f4b00e481/420501ec-bf9a-45e5-9142-2edd10e0889d/sessions/jmC2zeLmdG";
 const HERMES = { authorization: "Bearer e2e-hermes-token-0123456789abcdef0123" };
+const OPS = { authorization: "Bearer e2e-ops-api-token" };
 // 1×1 PNG.
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
@@ -50,7 +51,12 @@ test("kartu promosi: WA → bukti ulasan → kode, Hermes menarik lead, promo ma
           whatsapp: "6281200000000",
           instagram: "tetraphotobooth",
           reviewUrl: "https://g.page/r/e2e/review",
-          offer: { reward: "Diskon 10% booking", proofs: ["instagram", "review"] },
+          offer: {
+            discount: { type: "percent", value: 10, maxIdr: 300000 },
+            minIdr: 2000000,
+            validDays: 90,
+            proofs: ["instagram", "review"],
+          },
         },
       })
       .eq("id", orgId);
@@ -135,6 +141,8 @@ test("kartu promosi: WA → bukti ulasan → kode, Hermes menarik lead, promo ma
       whatsapp: wa,
       promo_code: code,
       promo_reward: "Diskon 10% booking",
+      promo_state: "valid",
+      booking_url: `https://booking.tetraphoto.com/?promo=${code}`,
       proof: "review",
       status: "new",
       event: { name: "e2e promosi tamu" },
@@ -152,6 +160,48 @@ test("kartu promosi: WA → bukti ulasan → kode, Hermes menarik lead, promo ma
     expect(after.data?.contact_status).toBe("sent");
     expect(after.data?.contacted_at).toBeTruthy();
 
+    // #218 Ops: cek kode (nilai dibekukan), pakai saat DP, idempoten, booking lain ditolak, lepas saat batal.
+    expect((await request.get(`/api/ops/promo/${code}`)).status()).toBe(401);
+    const check = async (q = "") =>
+      (await request.get(`/api/ops/promo/${code}${q}`, { headers: OPS })).json();
+    expect(await check(`?whatsapp=${phone}`)).toMatchObject({
+      valid: true,
+      reason: null,
+      label: "Diskon 10% booking",
+      discount: { type: "percent", value: 10, max_idr: 300000 },
+      min_idr: 2000000,
+      whatsapp_match: true,
+    });
+    expect((await check("?whatsapp=081200000001")).whatsapp_match).toBe(false);
+    expect(await check().then((r) => r.valid)).toBe(true);
+    expect(
+      (await (await request.get("/api/ops/promo/TAMU-ZZZZZ", { headers: OPS })).json()).reason,
+    ).toBe("not_found");
+    const redeem = (project: string, method: "post" | "delete" = "post") =>
+      request[method](`/api/ops/promo/${code}/redeem`, {
+        headers: OPS,
+        data: { project_id: project },
+      });
+    expect((await redeem("PRJ-E2E-1")).status()).toBe(200);
+    expect((await redeem("PRJ-E2E-1")).status()).toBe(200);
+    const other = await redeem("PRJ-E2E-2");
+    expect(other.status()).toBe(409);
+    expect((await other.json()).reason).toBe("redeemed");
+    expect(await check()).toMatchObject({
+      valid: false,
+      reason: "redeemed",
+      redeemed_project_id: "PRJ-E2E-1",
+    });
+    expect((await redeem("PRJ-E2E-2", "delete")).status()).toBe(409);
+    expect((await redeem("PRJ-E2E-1", "delete")).status()).toBe(200);
+    expect((await check()).valid).toBe(true);
+    // Admin menolak bukti → kode tidak berlaku.
+    await db
+      .from("leads")
+      .update({ promo_rejected_at: new Date().toISOString() })
+      .eq("id", lead?.id ?? "");
+    expect(await check()).toMatchObject({ valid: false, reason: "rejected" });
+
     // Promo dimatikan untuk event ini → kartu hilang.
     await db.from("events").update({ promo_off: true }).eq("id", eventId);
     await page.reload();
@@ -163,5 +213,50 @@ test("kartu promosi: WA → bukti ulasan → kode, Hermes menarik lead, promo ma
       .update({ promo: org?.promo ?? {} })
       .eq("id", orgId);
     await db.from("events").delete().eq("id", eventId);
+  }
+});
+
+test("admin Promosi: simpan akun & diskon nominal; crew tidak melihat menunya", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const admin = await makeUser("admin");
+  const before = (await db.from("organizations").select("promo").eq("id", admin.org).single()).data;
+  try {
+    await login(page, admin);
+    await page.getByRole("link", { name: "Promosi" }).click();
+    await page.getByLabel("WhatsApp admin").fill("0812 0000 0000");
+    await page.getByLabel("Instagram").fill("@TetraPhotobooth");
+    await page.getByLabel("Link ulasan Google").fill("https://g.page/r/e2e/review");
+    await page.getByText("Promo tamu: tinggalkan nomor WA").click();
+    await page.getByText("Potongan nominal").click();
+    await page.getByLabel("Potongan (Rp)").fill("200.000");
+    await page.getByLabel("Berlaku (hari)").fill("30");
+    await page.getByRole("button", { name: "Simpan" }).click();
+    await expect(page.getByRole("status")).toHaveText("Tersimpan");
+    const saved = (await db.from("organizations").select("promo").eq("id", admin.org).single())
+      .data;
+    expect(saved?.promo).toMatchObject({
+      whatsapp: "6281200000000",
+      instagram: "tetraphotobooth",
+      reviewUrl: "https://g.page/r/e2e/review",
+      offer: { discount: { type: "amount", value: 200000 }, validDays: 30 },
+    });
+    // Setelah simpan (form di-reset React), pilihan tetap sesuai yang tersimpan.
+    await expect(page.getByRole("radio", { name: "Potongan nominal" })).toBeChecked();
+    await page.screenshot({ path: "test-results/admin-promo.png", fullPage: true });
+  } finally {
+    await db
+      .from("organizations")
+      .update({ promo: before?.promo ?? {} })
+      .eq("id", admin.org);
+    await admin.cleanup();
+  }
+  const crew = await makeUser("crew");
+  try {
+    await login(page, crew);
+    await expect(page.getByRole("link", { name: "Promosi" })).toHaveCount(0);
+  } finally {
+    await crew.cleanup();
   }
 });

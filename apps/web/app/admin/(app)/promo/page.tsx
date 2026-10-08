@@ -1,6 +1,7 @@
-import { promoConfig } from "@/lib/promo";
+import { type CodeState, codeState, promoConfig } from "@/lib/promo";
 import { presignGet } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
+import { setRejected } from "./actions";
 import { PromoForm } from "./PromoForm";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,12 @@ const STATUS: Record<string, { t: string; c: string }> = {
   converted: { t: "Booking", c: "bg-mint" },
   opted_out: { t: "Berhenti", c: "border-dashed" },
 };
+const CODE_STATE: Record<CodeState, string> = {
+  valid: "Aktif",
+  redeemed: "Dipakai",
+  rejected: "Ditolak",
+  expired: "Kedaluwarsa",
+};
 const PROOF: Record<string, string> = { instagram: "Story IG", review: "Ulasan Google" };
 
 /**
@@ -33,7 +40,7 @@ export default async function PromoPage() {
     db
       .from("leads")
       .select(
-        "id, data, created_at, promo_code, proof_kind, proof_key, contact_status, events(name)",
+        "id, data, created_at, promo_code, promo_expires_at, promo_rejected_at, redeemed_at, redeemed_project_id, proof_kind, proof_key, contact_status, events(name)",
       )
       .eq("organization_id", orgId)
       .eq("kind", "sales")
@@ -87,7 +94,32 @@ export default async function PromoPage() {
                         </a>
                       </td>
                       <td className="px-6 py-3">{r.events?.name ?? "—"}</td>
-                      <td className="px-6 py-3 font-mono font-bold">{r.promo_code ?? "—"}</td>
+                      <td className="px-6 py-3">
+                        {r.promo_code ? (
+                          <div className="flex flex-col items-start gap-1">
+                            <span className="font-mono font-bold">{r.promo_code}</span>
+                            <span className="text-xs text-text-2">
+                              {CODE_STATE[codeState(r)]}
+                              {r.redeemed_project_id && ` · ${r.redeemed_project_id}`}
+                            </span>
+                            {!r.redeemed_at && (
+                              <form action={setRejected}>
+                                <input type="hidden" name="id" value={r.id} />
+                                <input
+                                  type="hidden"
+                                  name="reject"
+                                  value={r.promo_rejected_at ? "0" : "1"}
+                                />
+                                <button type="submit" className="text-xs font-bold underline">
+                                  {r.promo_rejected_at ? "Pulihkan" : "Tolak"}
+                                </button>
+                              </form>
+                            )}
+                          </div>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
                       <td className="px-6 py-3">
                         {r.proof ? (
                           <a href={r.proof} target="_blank" rel="noopener">

@@ -623,9 +623,14 @@ export type Database = {
           id: string
           kind: string
           organization_id: string
+          promo: Json | null
           promo_code: string | null
+          promo_expires_at: string | null
+          promo_rejected_at: string | null
           proof_key: string | null
           proof_kind: string | null
+          redeemed_at: string | null
+          redeemed_project_id: string | null
           session_id: string | null
         }
         Insert: {
@@ -639,9 +644,14 @@ export type Database = {
           id?: string
           kind?: string
           organization_id: string
+          promo?: Json | null
           promo_code?: string | null
+          promo_expires_at?: string | null
+          promo_rejected_at?: string | null
           proof_key?: string | null
           proof_kind?: string | null
+          redeemed_at?: string | null
+          redeemed_project_id?: string | null
           session_id?: string | null
         }
         Update: {
@@ -655,9 +665,14 @@ export type Database = {
           id?: string
           kind?: string
           organization_id?: string
+          promo?: Json | null
           promo_code?: string | null
+          promo_expires_at?: string | null
+          promo_rejected_at?: string | null
           proof_key?: string | null
           proof_kind?: string | null
+          redeemed_at?: string | null
+          redeemed_project_id?: string | null
           session_id?: string | null
         }
         Relationships: [

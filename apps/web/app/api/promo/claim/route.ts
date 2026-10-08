@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { apiError, clientIp, rateOk } from "@/lib/booth";
-import { loadPromo, PROOFS, promoCode } from "@/lib/promo";
+import { loadPromo, PROOFS, promoCode, promoConfig, snapshotOf } from "@/lib/promo";
 import { putObject } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -30,12 +30,26 @@ export async function POST(req: Request) {
   if (lead.promo_code) return Response.json({ code: lead.promo_code });
   const promo = await loadPromo(lead.event_id);
   if (!promo?.offer?.proofs.includes(f.data.kind)) return apiError("not_found", 404);
+  const { data: org } = await db
+    .from("organizations")
+    .select("promo")
+    .eq("id", lead.organization_id)
+    .single();
+  const offer = promoConfig(org?.promo).offer;
+  if (!offer) return apiError("not_found", 404);
   const key = `${lead.organization_id}/promo/${lead.id}.${file.type === "image/png" ? "png" : "jpg"}`;
   await putObject(key, new Uint8Array(await file.arrayBuffer()), file.type);
   const code = promoCode();
   const { error } = await db
     .from("leads")
-    .update({ proof_kind: f.data.kind, proof_key: key, promo_code: code })
+    .update({
+      proof_kind: f.data.kind,
+      proof_key: key,
+      promo_code: code,
+      // #218: nilai & masa berlaku dibekukan saat kode terbit.
+      promo: snapshotOf(offer),
+      promo_expires_at: new Date(Date.now() + offer.validDays * 86_400_000).toISOString(),
+    })
     .eq("id", lead.id)
     .eq("organization_id", lead.organization_id)
     .is("promo_code", null);
