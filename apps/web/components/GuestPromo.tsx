@@ -50,7 +50,14 @@ async function shrink(file: File): Promise<Blob> {
  * acaramu?" → nomor WA (lead sales untuk Hermes) → klaim promo dengan screenshot bukti → kode unik.
  * Santai: kartu di bawah konten, pop-up hanya sekali setelah tamu menyimpan foto.
  */
-export function GuestPromo({ promo }: { promo: Promo }) {
+export function GuestPromo({
+  promo,
+  client = false,
+}: {
+  promo: Promo;
+  /** Galeri klien (/g): klien sudah pelanggan → minta ulasan + tag, tanpa nomor WA & kode promo. */
+  client?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const tags = [...promo.clients, ...(promo.instagram ? [promo.instagram] : [])].map(
     (h) => `@${h}`,
@@ -65,9 +72,10 @@ export function GuestPromo({ promo }: { promo: Promo }) {
       }
       setTimeout(() => setOpen(true), 1200);
     };
+    if (client) return;
     window.addEventListener(PROMO_SAVED, onSaved);
     return () => window.removeEventListener(PROMO_SAVED, onSaved);
-  }, []);
+  }, [client]);
 
   const links = [
     promo.instagram && {
@@ -80,11 +88,12 @@ export function GuestPromo({ promo }: { promo: Promo }) {
       label: t.tiktok,
       icon: <TikTokIcon />,
     },
-    promo.reviewUrl && {
-      href: promo.reviewUrl,
-      label: t.review,
-      icon: <Star size={17} strokeWidth={2.5} />,
-    },
+    !client &&
+      promo.reviewUrl && {
+        href: promo.reviewUrl,
+        label: t.review,
+        icon: <Star size={17} strokeWidth={2.5} />,
+      },
     promo.website && {
       href: promo.website,
       label: t.website,
@@ -99,11 +108,22 @@ export function GuestPromo({ promo }: { promo: Promo }) {
     >
       <div className="flex flex-col gap-4 p-5">
         <div>
-          <p className="text-xs font-bold text-text-2">{t.title}</p>
+          <p className="text-xs font-bold text-text-2">{client ? t.clientTitle : t.title}</p>
           <h2 className="mt-1 text-[22px] leading-[1.1] font-extrabold tracking-[-0.03em] text-balance">
-            {t.headline}
+            {client ? t.clientHeadline(promo.org) : t.headline}
           </h2>
         </div>
+        {client && promo.reviewUrl && (
+          <a
+            href={promo.reviewUrl}
+            target="_blank"
+            rel="noopener"
+            className={`${main} flex items-center justify-center gap-2 no-underline`}
+          >
+            <Star size={18} strokeWidth={2.5} />
+            {t.clientReview}
+          </a>
+        )}
         {tags.length > 0 && <TagRow tags={tags} />}
         {links.length > 0 && (
           <div className="grid grid-cols-2 gap-2">
@@ -124,7 +144,7 @@ export function GuestPromo({ promo }: { promo: Promo }) {
           </div>
         )}
       </div>
-      {promo.whatsapp && (
+      {!client && promo.whatsapp && (
         <div className="flex flex-col gap-3.5 rounded-b-[20px] border-t-[1.5px] border-dashed border-ink bg-mint-soft p-5">
           <div className="flex items-start gap-3">
             <span className="flex size-10 flex-none items-center justify-center rounded-xl border-[1.5px] border-ink bg-butter">

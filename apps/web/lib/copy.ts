@@ -22,6 +22,9 @@ export const copy = {
   promo: {
     title: "Suka fotonya?",
     headline: "Pamerin di story, jangan lupa tag kami ya",
+    clientTitle: "Puas sama hasilnya?",
+    clientHeadline: (org: string) => `Ceritakan pengalamanmu bareng ${org}`,
+    clientReview: "Tulis ulasan Google",
     copyTags: "Salin tag",
     copied: "Tersalin",
     instagram: "Instagram",

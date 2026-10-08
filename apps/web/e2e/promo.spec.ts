@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { newSessionId } from "@tetra/shared";
+import { newAccessToken, newSessionId } from "@tetra/shared";
 import { db, hasDb, login, makeUser } from "./admin-helpers";
 
 /** #215: kartu promosi tamu → nomor WA (lead sales) → bukti → kode promo; API Hermes; promo mati per event. */
@@ -28,6 +28,7 @@ test("kartu promosi: WA → bukti ulasan → kode, Hermes menarik lead, promo ma
       ?.id ?? "";
   const sid = newSessionId();
   // Nomor acak: satu nomor = satu lead sales per org.
+  const clientToken = newAccessToken();
   const phone = `0812${Math.floor(1e7 + Math.random() * 9e7)}`;
   const { data: ev } = await db
     .from("events")
@@ -38,6 +39,8 @@ test("kartu promosi: WA → bukti ulasan → kode, Hermes menarik lead, promo ma
       event_date: "2026-10-12",
       guest_expires_at: "2099-01-01T00:00:00Z",
       client_instagram: ["dimas.rina", "wo.bahagia"],
+      client_token: clientToken,
+      client_expires_at: "2099-01-01T00:00:00Z",
     })
     .select("id")
     .single();
@@ -228,6 +231,17 @@ test("kartu promosi: WA → bukti ulasan → kode, Hermes menarik lead, promo ma
     expect(mine2.proof_check.verdict).toBe("rejected");
     expect((await bruno("ok")).status()).toBe(200);
     expect((await check()).valid).toBe(true);
+
+    // Galeri klien: kartu varian klien (ulasan + tag), tanpa nomor WA / kode promo.
+    await page.goto(`/g/${clientToken}`);
+    const cc = page.getByTestId("guest-promo");
+    await expect(cc.getByRole("link", { name: "Tulis ulasan Google" })).toHaveAttribute(
+      "href",
+      "https://g.page/r/e2e/review",
+    );
+    await expect(cc).toContainText("@dimas.rina");
+    await expect(cc.getByRole("button", { name: /Klaim/ })).toHaveCount(0);
+    await page.goto(`/s/${sid}`);
 
     // Promo dimatikan untuk event ini → kartu hilang.
     await db.from("events").update({ promo_off: true }).eq("id", eventId);

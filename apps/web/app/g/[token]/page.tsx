@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { GuestPromo } from "@/components/GuestPromo";
 import { loadGallery } from "@/lib/gallery";
 import { shortDate } from "@/lib/guest";
+import { loadPromo } from "@/lib/promo";
 import { GallerySettings } from "./GallerySettings";
 import { GalleryView } from "./GalleryView";
 
@@ -22,6 +24,7 @@ const fmt = (d: string) =>
 export default async function GalleryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const g = await loadGallery(token);
+  const promo = g.state === "ok" ? await loadPromo(g.eventId) : null;
   if (g.state === "gone")
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-paper px-8 text-center">
@@ -119,6 +122,11 @@ export default async function GalleryPage({ params }: { params: Promise<{ token:
         </div>
       </section>
       <GalleryView token={token} photos={g.photos} />
+      {promo && (
+        <div className="mx-auto mt-4 w-full max-w-[480px]">
+          <GuestPromo promo={promo} client />
+        </div>
+      )}
     </main>
   );
 }
