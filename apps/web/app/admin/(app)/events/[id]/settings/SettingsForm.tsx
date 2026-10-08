@@ -34,6 +34,10 @@ export type SettingsValues = {
   location: string;
   tagline: string;
   client_name: string;
+  /** IG klien untuk kartu promosi tamu (#215). */
+  clientInstagram: string[];
+  /** Kartu promosi tampil di halaman tamu (#215). */
+  promoCard: boolean;
   /** Paket yang dijual (#150): nama + durasi jam, untuk rekap durasi. */
   package_name: string;
   /** Booking Tetra Ops yang ditautkan (#193); "" = belum. */
@@ -1485,6 +1489,30 @@ export function SettingsForm({
                 <Box name="remove_logo" /> Hapus logo yang sekarang
               </label>
             )}
+            <Field
+              id="client_instagram"
+              label="Instagram klien"
+              optional
+              wide
+              hint="IG pengantin, perusahaan/acara, atau WO/EO; pisahkan dengan spasi. Tamu diarahkan untuk follow dan tag akun ini (bersama IG Tetra) saat upload foto ke story. Terisi otomatis dari booking Tetra Ops."
+            >
+              <input
+                id="client_instagram"
+                name="client_instagram"
+                defaultValue={v.clientInstagram.map((h) => `@${h}`).join(" ")}
+                placeholder="@dimas @rina @weddingorganizer"
+                aria-describedby="client_instagram-hint"
+                className={input}
+              />
+            </Field>
+            <input type="hidden" name="promo_card" value="off" />
+            <ToggleRow
+              name="promo_card"
+              value="on"
+              defaultChecked={v.promoCard}
+              title="Kartu promosi di halaman tamu"
+              hint="Follow & tag Instagram, ulasan Google, dan “Mau pakai di acaramu?”. Isinya diatur di menu Promosi. Matikan kalau klien tidak mau ada promosi di galerinya."
+            />
           </Section>
 
           <Section

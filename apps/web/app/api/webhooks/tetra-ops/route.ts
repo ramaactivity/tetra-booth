@@ -7,6 +7,7 @@ import {
   opsSignatureOk,
 } from "@/lib/ops-sync";
 import { createServiceClient } from "@/lib/supabase/service";
+import { opsInstagram } from "@/lib/tetra-ops";
 
 /**
  * Kabar dari Tetra Ops (kontrak v0.2 §4, DECISIONS #173): verifikasi HMAC + jendela waktu, simpan per
@@ -43,18 +44,25 @@ export async function POST(req: Request) {
   // Tandai dulu, catat delivery sesudahnya: kalau tanda gagal, kiriman ulang Ops memproses lagi (nextOpsSync idempoten).
   const { data: events, error } = await db
     .from("events")
-    .select("id, ops_sync")
+    .select("id, ops_sync, client_instagram")
     .eq("organization_id", org)
     .eq("ops_project_id", projectId);
   if (error) return new Response("server error", { status: 500 });
   // ponytail: baca-lalu-tulis per event (jarang > 3 spot); kabar bersamaan untuk event yang sama bisa saling timpa.
+  // IG klien (#215, kontrak v0.7) mengisi event yang belum punya; isian admin di Booth tidak ditimpa.
+  // ponytail: perubahan IG di Ops setelah terisi tidak ikut; admin mengubahnya di pengaturan event.
+  const ig = opsInstagram(body.booking.client_instagram);
   for (const ev of events ?? []) {
     const prev = (ev.ops_sync ?? {}) as OpsSync;
     const next = nextOpsSync(prev, body);
-    if (next === prev) continue;
+    const fillIg = ig.length > 0 && !ev.client_instagram.length;
+    if (next === prev && !fillIg) continue;
     const { error: upd } = await db
       .from("events")
-      .update({ ops_sync: next as unknown as NonNullable<Json> })
+      .update({
+        ops_sync: next as unknown as NonNullable<Json>,
+        ...(fillIg && { client_instagram: ig }),
+      })
       .eq("id", ev.id)
       .eq("organization_id", org);
     if (upd) return new Response("server error", { status: 500 });

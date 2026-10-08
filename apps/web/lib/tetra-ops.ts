@@ -1,5 +1,5 @@
 import "server-only";
-import type { LayoutPaper } from "@tetra/shared";
+import { InstagramSchema, type LayoutPaper } from "@tetra/shared";
 import { z } from "zod";
 import { ymdWib } from "./events";
 import { type DriftEvent, type OpsDrift, opsDrift } from "./ops-sync";
@@ -29,6 +29,8 @@ export const OpsBooking = z.object({
   package_duration_hours: z.number().positive().max(48).nullable(),
   // Usulan Booth #182 (aditif): daftar grup Photo Stage dari portal klien/WO.
   stage_groups: z.array(z.string().max(120)).max(300).nullable().optional(),
+  // Kontrak v0.7 (usulan Booth #215): IG klien untuk kartu promosi halaman tamu, tanpa "@".
+  client_instagram: z.array(z.string().max(60)).max(6).nullable().optional(),
   // Kontrak v0.5 §2.2 (aditif): desain frame dari modul desain Ops.
   design: z
     .looseObject({
@@ -139,3 +141,16 @@ export const opsDriftOf = (
   ev: DriftEvent,
   now: { booking: OpsBooking | undefined } | null,
 ): OpsDrift | null => (now ? opsDrift(ev, now.booking) : null);
+
+/** IG klien dari booking Ops (#215), dibersihkan; isian rusak dilewati satu per satu. */
+export const opsInstagram = (raw: unknown): string[] =>
+  Array.isArray(raw)
+    ? [
+        ...new Set(
+          raw.flatMap((h) => {
+            const r = InstagramSchema.safeParse(h);
+            return r.success ? [r.data] : [];
+          }),
+        ),
+      ].slice(0, 6)
+    : [];

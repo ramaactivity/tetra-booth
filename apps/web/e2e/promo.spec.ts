@@ -1,0 +1,167 @@
+import { expect, test } from "@playwright/test";
+import { newSessionId } from "@tetra/shared";
+import { db, hasDb } from "./admin-helpers";
+
+/** #215: kartu promosi tamu → nomor WA (lead sales) → bukti → kode promo; API Hermes; promo mati per event. */
+test.skip(!hasDb, "butuh Supabase dev (apps/web/.env.local)");
+test.use({ viewport: { width: 390, height: 844 } });
+
+const R2 =
+  "ba9df22f-5abc-4322-ab3b-9a3f4b00e481/420501ec-bf9a-45e5-9142-2edd10e0889d/sessions/jmC2zeLmdG";
+const HERMES = { authorization: "Bearer e2e-hermes-token-0123456789abcdef0123" };
+// 1×1 PNG.
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+test("kartu promosi: WA → bukti ulasan → kode, Hermes menarik lead, promo mati per event", async ({
+  page,
+  request,
+}) => {
+  const org = (await db.from("organizations").select("id, promo").eq("slug", "tetra").single())
+    .data;
+  const orgId = org?.id ?? "";
+  const device =
+    (await db.from("devices").select("id").eq("organization_id", orgId).limit(1).single()).data
+      ?.id ?? "";
+  const sid = newSessionId();
+  // Nomor acak: satu nomor = satu lead sales per org.
+  const phone = `0812${Math.floor(1e7 + Math.random() * 9e7)}`;
+  const { data: ev } = await db
+    .from("events")
+    .insert({
+      organization_id: orgId,
+      name: "e2e promosi tamu",
+      mode: "event",
+      event_date: "2026-10-12",
+      guest_expires_at: "2099-01-01T00:00:00Z",
+      client_instagram: ["dimas.rina", "wo.bahagia"],
+    })
+    .select("id")
+    .single();
+  const eventId = ev?.id ?? "";
+  try {
+    // Pengaturan asli Tetra dikembalikan di finally (dev = prod).
+    await db
+      .from("organizations")
+      .update({
+        promo: {
+          whatsapp: "6281200000000",
+          instagram: "tetraphotobooth",
+          reviewUrl: "https://g.page/r/e2e/review",
+          offer: { reward: "Diskon 10% booking", proofs: ["instagram", "review"] },
+        },
+      })
+      .eq("id", orgId);
+    await db.from("sessions").insert({
+      id: sid,
+      organization_id: orgId,
+      event_id: eventId,
+      device_id: device,
+      started_at: "2026-10-12T12:10:00Z",
+      upload_status: "complete",
+    });
+    await db.from("assets").insert(
+      (["strip_web_0", "thumb_strip_0"] as const).map((f) => ({
+        organization_id: orgId,
+        session_id: sid,
+        kind: f.replace(/_\d$/, ""),
+        idx: 0,
+        r2_key: `${R2}/${f}.jpg#${sid}`,
+      })),
+    );
+
+    await page.goto(`/s/${sid}`);
+    const card = page.getByTestId("guest-promo");
+    await expect(card).toContainText("@dimas.rina");
+    await expect(card).toContainText("@wo.bahagia");
+    await expect(card).toContainText("@tetraphotobooth");
+    await expect(card.getByRole("link", { name: "Beri ulasan Google" })).toHaveAttribute(
+      "href",
+      "https://g.page/r/e2e/review",
+    );
+    await card.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "test-results/promo-card.png" });
+    await card.getByRole("button", { name: "Klaim Diskon 10% booking" }).click();
+    const sheet = page.getByTestId("promo-sheet");
+    await sheet.getByLabel("Nomor WhatsApp").fill(phone);
+    await sheet.getByRole("button", { name: "Kirim nomorku" }).click();
+    await expect(sheet.getByRole("alert")).toContainText("centang persetujuan");
+    await sheet.getByText(/Boleh dihubungi/).click();
+    await sheet.getByRole("button", { name: "Kirim nomorku" }).click();
+    await expect(sheet.getByRole("heading", { name: "Klaim Diskon 10% booking" })).toBeVisible();
+    await sheet.getByText("Tulis ulasan di Google").click();
+    await sheet.locator('input[type="file"]').setInputFiles({
+      name: "bukti.png",
+      mimeType: "image/png",
+      buffer: PNG,
+    });
+    await sheet.getByRole("button", { name: "Klaim promo" }).click();
+    await expect(sheet.getByTestId("promo-code")).toHaveText(/^TAMU-[A-Z2-9]{5}$/);
+    await page.screenshot({ path: "test-results/promo-code.png" });
+    const code = await sheet.getByTestId("promo-code").textContent();
+
+    const wa = `62${phone.slice(1)}`;
+    const { data: lead } = await db
+      .from("leads")
+      .select("id, kind, proof_kind, proof_key, promo_code, event_id")
+      .eq("organization_id", orgId)
+      .eq("data->>whatsapp", wa)
+      .single();
+    expect(lead).toMatchObject({
+      kind: "sales",
+      proof_kind: "review",
+      promo_code: code,
+      event_id: eventId,
+    });
+    expect(lead?.proof_key).toContain(`${orgId}/promo/`);
+
+    // Buka lagi: langsung menampilkan kode yang sama (tersimpan di browser).
+    await page.reload();
+    await page.getByTestId("guest-promo").getByRole("button").last().click();
+    await expect(page.getByTestId("promo-code")).toHaveText(code ?? "");
+    await page.getByRole("button", { name: "Tutup" }).click();
+
+    // Hermes: tanpa token 401; dengan token lead ada; laporan status tersimpan.
+    expect((await request.get("/api/hermes/leads")).status()).toBe(401);
+    const since = new Date(Date.now() - 10 * 60_000).toISOString();
+    const list = await request.get(`/api/hermes/leads?since=${encodeURIComponent(since)}`, {
+      headers: HERMES,
+    });
+    expect(list.status()).toBe(200);
+    const mine = (await list.json()).leads.find((l: { id: string }) => l.id === lead?.id);
+    expect(mine).toMatchObject({
+      whatsapp: wa,
+      promo_code: code,
+      promo_reward: "Diskon 10% booking",
+      proof: "review",
+      status: "new",
+      event: { name: "e2e promosi tamu" },
+    });
+    const patch = await request.patch(`/api/hermes/leads/${lead?.id}`, {
+      headers: HERMES,
+      data: { status: "sent" },
+    });
+    expect(patch.status()).toBe(200);
+    const after = await db
+      .from("leads")
+      .select("contact_status, contacted_at")
+      .eq("id", lead?.id ?? "")
+      .single();
+    expect(after.data?.contact_status).toBe("sent");
+    expect(after.data?.contacted_at).toBeTruthy();
+
+    // Promo dimatikan untuk event ini → kartu hilang.
+    await db.from("events").update({ promo_off: true }).eq("id", eventId);
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Simpan ke Galeri HP" })).toBeVisible();
+    await expect(page.getByTestId("guest-promo")).toHaveCount(0);
+  } finally {
+    await db
+      .from("organizations")
+      .update({ promo: org?.promo ?? {} })
+      .eq("id", orgId);
+    await db.from("events").delete().eq("id", eventId);
+  }
+});

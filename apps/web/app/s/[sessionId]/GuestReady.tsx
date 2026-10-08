@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { PROMO_SAVED } from "@/components/GuestPromo";
 import { PhotoViewer } from "@/components/PhotoViewer";
 import { copy } from "@/lib/copy";
 import type { GuestAsset } from "@/lib/guest";
@@ -7,8 +8,14 @@ import { track } from "./track";
 
 const t = copy.guest;
 
-/** Simpan lewat share sheet (masuk galeri HP); fallback unduh; tanpa CORS → buka gambarnya di tab baru. */
+/** Simpan, lalu beri tahu kartu promosi (#215: pop-up sekali setelah tamu menyimpan foto). */
 export async function save(assets: GuestAsset[], sessionId: string) {
+  await saveAssets(assets, sessionId);
+  window.dispatchEvent(new Event(PROMO_SAVED));
+}
+
+/** Simpan lewat share sheet (masuk galeri HP); fallback unduh; tanpa CORS → buka gambarnya di tab baru. */
+async function saveAssets(assets: GuestAsset[], sessionId: string) {
   let files: File[];
   try {
     files = await Promise.all(

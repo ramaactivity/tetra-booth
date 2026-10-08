@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-const { approvedDesign, OpsBooking } = await import("./tetra-ops");
+const { approvedDesign, OpsBooking, opsInstagram } = await import("./tetra-ops");
 
 const base = {
   project_id: "PRJ-1",
@@ -48,4 +48,18 @@ describe("approvedDesign (#177)", () => {
     expect(approvedDesign(OpsBooking.parse(base), "x")).toBeNull();
     expect(approvedDesign(undefined, "x")).toBeNull();
   });
+});
+
+it("opsInstagram: @/link/huruf besar dibersihkan, duplikat & isian rusak dilewati, maks. 6", () => {
+  expect(
+    opsInstagram([
+      "@Dimas.Rina",
+      "https://instagram.com/wo.bahagia/",
+      "dimas.rina",
+      "bad handle!",
+      5,
+    ]),
+  ).toEqual(["dimas.rina", "wo.bahagia"]);
+  expect(opsInstagram(null)).toEqual([]);
+  expect(opsInstagram(["a1", "a2", "a3", "a4", "a5", "a6", "a7"])).toHaveLength(6);
 });

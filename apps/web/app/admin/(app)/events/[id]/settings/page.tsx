@@ -14,7 +14,7 @@ import type { PhotoboxSettings } from "@/lib/payments";
 import { photoboxKey } from "@/lib/payments";
 import { presignGet } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
-import { opsBookingNow } from "@/lib/tetra-ops";
+import { opsBookingNow, opsInstagram } from "@/lib/tetra-ops";
 import { loadDesignOptions } from "./design-options";
 import { GuestLinkPanel } from "./GuestLinkPanel";
 import { LinksPanel } from "./LinksPanel";
@@ -29,7 +29,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, guest_token, all_devices, package_name, package_hours, ops_frame_size, scheduled_start, scheduled_end, ops_project_id, event_devices(device_id)",
+      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, guest_token, all_devices, package_name, package_hours, ops_frame_size, scheduled_start, scheduled_end, ops_project_id, client_instagram, promo_off, event_devices(device_id)",
     )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
@@ -61,9 +61,13 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const { designOptions, layouts } = await loadDesignOptions(db, orgId, pinned);
   const known = new Set(designOptions.map((o) => o.value));
   // #182: daftar grup kosong → usulkan daftar yang diisi klien/WO di portal Ops (admin tetap menyimpan sendiri).
+  const opsNow =
+    (ev.mode === "event" && !s.stageGroups.length) || !ev.client_instagram.length
+      ? await opsBookingNow(ev)
+      : null;
   const opsGroups =
     ev.mode === "event" && !s.stageGroups.length
-      ? ((await opsBookingNow(ev))?.booking?.stage_groups?.filter(Boolean) ?? [])
+      ? (opsNow?.booking?.stage_groups?.filter(Boolean) ?? [])
       : [];
 
   return (
@@ -88,6 +92,11 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           location: ev.location ?? "",
           tagline: branding.tagline ?? "",
           client_name: branding.clientName ?? "",
+          // #215: kosong → usulkan IG yang diisi klien di portal Ops (tersimpan saat admin menekan Simpan).
+          clientInstagram: ev.client_instagram.length
+            ? ev.client_instagram
+            : opsInstagram(opsNow?.booking?.client_instagram),
+          promoCard: !ev.promo_off,
           package_name: ev.package_name ?? "",
           opsProjectId: ev.ops_project_id ?? "",
           package_hours: ev.package_hours ? String(ev.package_hours) : "",

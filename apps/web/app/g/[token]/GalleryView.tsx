@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { PROMO_SAVED } from "@/components/GuestPromo";
 import { PhotoViewer } from "@/components/PhotoViewer";
 import type { GalleryPhoto } from "@/lib/gallery";
 import { GuestRows, VoiceList } from "./GuestTabs";
@@ -52,6 +53,7 @@ function download(p: GalleryPhoto) {
   document.body.append(a);
   a.click();
   a.remove();
+  window.dispatchEvent(new Event(PROMO_SAVED));
 }
 
 /**

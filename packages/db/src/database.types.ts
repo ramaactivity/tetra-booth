@@ -311,6 +311,7 @@ export type Database = {
           bundle: Json | null
           bundle_version: number
           client_expires_at: string | null
+          client_instagram: string[]
           client_token: string | null
           created_at: string
           created_by: string | null
@@ -334,6 +335,7 @@ export type Database = {
           orientation: string
           package_hours: number | null
           package_name: string | null
+          promo_off: boolean
           public_gallery: boolean
           purge_at: string | null
           purged_at: string | null
@@ -351,6 +353,7 @@ export type Database = {
           bundle?: Json | null
           bundle_version?: number
           client_expires_at?: string | null
+          client_instagram?: string[]
           client_token?: string | null
           created_at?: string
           created_by?: string | null
@@ -374,6 +377,7 @@ export type Database = {
           orientation?: string
           package_hours?: number | null
           package_name?: string | null
+          promo_off?: boolean
           public_gallery?: boolean
           purge_at?: string | null
           purged_at?: string | null
@@ -391,6 +395,7 @@ export type Database = {
           bundle?: Json | null
           bundle_version?: number
           client_expires_at?: string | null
+          client_instagram?: string[]
           client_token?: string | null
           created_at?: string
           created_by?: string | null
@@ -414,6 +419,7 @@ export type Database = {
           orientation?: string
           package_hours?: number | null
           package_name?: string | null
+          promo_off?: boolean
           public_gallery?: boolean
           purge_at?: string | null
           purged_at?: string | null
@@ -609,31 +615,49 @@ export type Database = {
         Row: {
           consent_at: string
           consent_version: string
+          contact_status: string
+          contacted_at: string | null
           created_at: string
           data: NonNullable<Json>
           event_id: string
           id: string
+          kind: string
           organization_id: string
+          promo_code: string | null
+          proof_key: string | null
+          proof_kind: string | null
           session_id: string | null
         }
         Insert: {
           consent_at: string
           consent_version: string
+          contact_status?: string
+          contacted_at?: string | null
           created_at?: string
           data: NonNullable<Json>
           event_id: string
           id?: string
+          kind?: string
           organization_id: string
+          promo_code?: string | null
+          proof_key?: string | null
+          proof_kind?: string | null
           session_id?: string | null
         }
         Update: {
           consent_at?: string
           consent_version?: string
+          contact_status?: string
+          contacted_at?: string | null
           created_at?: string
           data?: NonNullable<Json>
           event_id?: string
           id?: string
+          kind?: string
           organization_id?: string
+          promo_code?: string | null
+          proof_key?: string | null
+          proof_kind?: string | null
           session_id?: string | null
         }
         Relationships: [
@@ -741,18 +765,21 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          promo: NonNullable<Json>
           slug: string
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          promo?: NonNullable<Json>
           slug: string
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          promo?: NonNullable<Json>
           slug?: string
         }
         Relationships: []

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { GuestPromo } from "@/components/GuestPromo";
 import { copy } from "@/lib/copy";
 import { clock, type GuestEvent, loadGuest, longDate, shortDate } from "@/lib/guest";
+import { loadPromoForSession } from "@/lib/promo";
 import { AutoRefresh } from "./AutoRefresh";
 import { GuestReady } from "./GuestReady";
 import { LeadSheet } from "./LeadSheet";
@@ -92,7 +94,7 @@ function Step({
 
 export default async function GuestPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
-  const g = await loadGuest(sessionId);
+  const [g, promo] = await Promise.all([loadGuest(sessionId), loadPromoForSession(sessionId)]);
 
   // Lead gate (B4): foto ter-blur di belakang form; URL foto belum dikirim server.
   if ((g.state === "ready" || g.state === "pending") && g.lead?.mode === "gate")
@@ -123,6 +125,7 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
           expiresAt={g.expiresAt ? shortDate(g.expiresAt) : null}
           galleryHref={g.publicGallery ? `/s/${sessionId}/galeri` : null}
         />
+        {promo && <GuestPromo promo={promo} />}
         {g.lead && <LeadSheet sessionId={sessionId} lead={g.lead} />}
       </Shell>
     );
@@ -223,6 +226,7 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
             </span>
           </a>
         )}
+        {promo && <GuestPromo promo={promo} />}
         {g.lead && <LeadSheet sessionId={sessionId} lead={g.lead} />}
       </Shell>
     );

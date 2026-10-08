@@ -1,12 +1,22 @@
 import { GalleryView } from "@/app/g/[token]/GalleryView";
+import { GuestPromo } from "@/components/GuestPromo";
 import { copy } from "@/lib/copy";
 import type { Gallery } from "@/lib/gallery";
 import { longDate } from "@/lib/guest";
+import type { GuestPromo as Promo } from "@/lib/promo";
 
 const t = copy.publicGallery;
 
 /** Galeri publik read-only (DECISIONS #72); `back` = link kembali ke halaman foto tamu. */
-export function PublicGallery({ g, back }: { g: Gallery; back?: string }) {
+export function PublicGallery({
+  g,
+  back,
+  promo,
+}: {
+  g: Gallery;
+  back?: string;
+  promo?: Promo | null;
+}) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-[1440px] flex-col gap-5 bg-paper px-3.5 pt-6 pb-16 md:px-12">
       {back && (
@@ -31,6 +41,11 @@ export function PublicGallery({ g, back }: { g: Gallery; back?: string }) {
             </p>
           </header>
           <GalleryView token="" photos={g.photos} readOnly />
+          {promo && (
+            <div className="mx-auto w-full max-w-[480px]">
+              <GuestPromo promo={promo} />
+            </div>
+          )}
         </>
       )}
     </main>

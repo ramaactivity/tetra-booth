@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PublicGallery } from "@/app/s/[sessionId]/galeri/PublicGallery";
 import { loadPublicGalleryByLive } from "@/lib/gallery";
+import { loadPromo } from "@/lib/promo";
 
 export const metadata: Metadata = {
   title: "Galeri acara · Tetra Photobooth",
@@ -11,5 +12,7 @@ export const dynamic = "force-dynamic";
 /** Galeri publik dari QR di live slideshow (desain D1, DECISIONS #75). */
 export default async function LiveGalleryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  return <PublicGallery g={await loadPublicGalleryByLive(token)} />;
+  const g = await loadPublicGalleryByLive(token);
+  const promo = g.state === "ok" ? await loadPromo(g.eventId) : null;
+  return <PublicGallery g={g} promo={promo} />;
 }

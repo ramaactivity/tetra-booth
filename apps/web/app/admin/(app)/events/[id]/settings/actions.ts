@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
   EVENT_PRESETS,
   GuestCamSettingsSchema,
+  InstagramSchema,
   LAYOUT_PRESETS,
   type LayoutPaper,
   PHOTO_FILTERS,
@@ -68,6 +69,15 @@ const Form = z.object({
   location: z.string().trim().max(120),
   tagline: z.string().trim().max(40),
   client_name: z.string().trim().max(120),
+  /** IG klien untuk kartu promosi tamu (#215), dipisah spasi/koma; maks. 6. Tidak dikirim = tidak diubah. */
+  client_instagram: z
+    .string()
+    .max(400)
+    .transform((v) => [...new Set(v.split(/[\s,]+/).filter(Boolean))])
+    .pipe(z.array(InstagramSchema).max(6))
+    .optional(),
+  /** Kartu promosi di halaman tamu (#215): hidden "off" + checkbox "on". Tidak dikirim = tidak diubah. */
+  promo_card: z.enum(["on", "off"]).optional(),
   /** Paket (#150). Tidak dikirim = tidak diubah; kosong = dihapus. */
   package_name: z.string().trim().max(80).optional(),
   /** Tautan booking Tetra Ops (#193), mis. PRJ-20261004-9023; kosong = tidak ditautkan. Tidak dikirim = tidak diubah. */
@@ -439,6 +449,8 @@ export async function applySettings(
       location: f.location || null,
       ...(f.package_name !== undefined && { package_name: f.package_name || null }),
       ...(f.ops_project_id !== undefined && { ops_project_id: f.ops_project_id || null }),
+      ...(f.client_instagram !== undefined && { client_instagram: f.client_instagram }),
+      ...(f.promo_card !== undefined && { promo_off: f.promo_card === "off" }),
       ...(f.package_hours !== undefined && {
         package_hours: f.package_hours === "" ? null : f.package_hours,
       }),
