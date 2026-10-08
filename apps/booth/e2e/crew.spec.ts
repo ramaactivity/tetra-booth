@@ -87,6 +87,11 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await expect(w.getByText("Ulangi PIN")).toBeVisible();
   await typePin(w, "2468");
   await expect(w.getByRole("heading", { name: "Mode crew" })).toBeVisible();
+  // Langkah 1 = versi aplikasi (#222): belum dipasangkan / offline → versi terpasang + boleh dilewati, tidak memblokir.
+  const version = w.getByTestId("step-version");
+  await expect(version).toContainText(/Versi \d+\.\d+\.\d+\. Tidak bisa dicek sekarang/);
+  await expect(version.getByRole("button", { name: "Cek Lagi" })).toBeVisible();
+  await w.screenshot({ path: "test-results/crew-home.png" });
 
   // Pilih event dari bundle lokal → attract menampilkan nama event.
   // Ganti Event = layar pilih mode (DECISIONS #86): Photobox kosong, Event berisi Andi & Sari.

@@ -477,7 +477,10 @@ export function registerIpc(
 
   ipcMain.handle("crewCheckUpdate", async () => {
     crewOnly();
-    const { current, r, available } = await release();
+    // Offline / belum dipasangkan bukan error di checklist crew: versi terpasang tetap ditampilkan (#222).
+    const got = await release().catch(() => null);
+    if (!got) return { current: app.getVersion(), latest: null, available: false, offline: true };
+    const { current, r, available } = got;
     return { current, latest: r?.version ?? null, available, ready: !!r && ready === r.version };
   });
   ipcMain.handle("crewInstallUpdate", async (e) => {

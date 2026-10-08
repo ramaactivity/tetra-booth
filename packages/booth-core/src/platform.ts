@@ -151,6 +151,8 @@ export type UpdateCheck = {
   latest: string | null;
   available: boolean;
   ready?: boolean;
+  /** true = tidak bisa cek (offline / belum dipasangkan); `current` tetap terisi. */
+  offline?: boolean;
 };
 /** Hasil update terakhir, dibaca sekali setelah booth terbuka lagi. */
 export type UpdateResult = { ok: boolean; from: string; to: string; now: string } | null;

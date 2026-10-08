@@ -66,6 +66,8 @@ function Step({
   detail,
   action,
   onAction,
+  alt,
+  attention = false,
   testId,
   optional = false,
 }: {
@@ -77,13 +79,17 @@ function Step({
   /** Kosong = langkah beres tanpa aksi lanjutan (tidak menampilkan tombol yang terlihat seperti tugas). */
   action?: string | undefined;
   onAction: () => void;
+  /** Aksi kedua yang lebih ringan (mis. Lewati). */
+  alt?: { label: string; onClick: () => void } | undefined;
+  /** Perlu perhatian (mis. versi baru tersedia): isian peach, bukan peringatan merah. */
+  attention?: boolean;
   testId: string;
 }) {
   return (
     <li
       data-testid={testId}
       data-done={done}
-      className={`flex min-h-[104px] items-center gap-5 rounded-[20px] border-[2.5px] border-ink px-5 py-4 ${done ? "bg-mint-soft" : "bg-white"}`}
+      className={`flex min-h-[96px] items-center gap-5 rounded-[20px] border-[2.5px] border-ink px-5 py-4 ${done ? "bg-mint-soft" : attention ? "bg-peach" : "bg-white"}`}
     >
       <span
         className={`flex size-12 shrink-0 items-center justify-center rounded-full border-2 border-ink text-xl font-extrabold ${done ? "bg-green text-white" : "bg-butter"}`}
@@ -104,6 +110,15 @@ function Step({
           {detail}
         </p>
       </div>
+      {alt && (
+        <Button
+          variant="plain"
+          className="h-16 shrink-0 rounded-[18px] px-5 text-xl"
+          onClick={alt.onClick}
+        >
+          {alt.label}
+        </Button>
+      )}
       {action && (
         <Button
           variant={done ? "plain" : "secondary"}
@@ -381,14 +396,30 @@ export function CrewMenu({
     setRoll(String(status?.paper.capacity ?? DEFAULT_ROLL));
     setSheet("roll");
   };
+  // Versi aplikasi = langkah pertama checklist (#222): dicek sekali saat mode crew dibuka, tidak memblokir.
+  const [ver, setVer] = useState<UpdateCheck | null>(null);
+  const [verSkip, setVerSkip] = useState(false);
+  const checkVersion = useCallback(() => {
+    setVer(null);
+    p.crew.checkUpdate().then(setVer, () => {});
+  }, [p]);
+  useEffect(checkVersion, [checkVersion]);
   const openUpdate = () => {
-    setUpdate(null);
     setSheet("update");
-    p.crew.checkUpdate().then(setUpdate, (e: unknown) => {
-      setSheet(null);
-      setNote(crewText(e));
-    });
+    if (ver?.available) return setUpdate(ver);
+    setUpdate(null);
+    p.crew.checkUpdate().then(
+      (u) => {
+        setUpdate(u);
+        setVer(u);
+      },
+      (e: unknown) => {
+        setSheet(null);
+        setNote(crewText(e));
+      },
+    );
   };
+  const newVersion = !!ver?.available && !!ver.latest;
   const doTestPrint = act(async () => setWatching(await testPrint(p, event)), c.sent);
   const printerSettings = () =>
     p.crew.printerSettings().then(
@@ -455,14 +486,22 @@ export function CrewMenu({
         : c.printerState(status.printer.status)
       : "…",
     event: hasEvent ? event.name : c.setup.eventTodo,
-    system: status ? (revoked ? c.revokedPill : status.online ? c.online : c.offline) : "…",
+    system: newVersion
+      ? c.setup.versionNav
+      : status
+        ? revoked
+          ? c.revokedPill
+          : status.online
+            ? c.online
+            : c.offline
+        : "…",
   };
   const navAlert: Record<Section, boolean> = {
     home: false,
     camera: !!status && !cameraOk,
     printer: failed.length > 0 || paperLow || (!!status && !printerReady),
     event: !hasEvent,
-    system: revoked,
+    system: revoked || newVersion,
   };
 
   const failedList =
@@ -618,6 +657,39 @@ export function CrewMenu({
               <Step
                 n={1}
                 optional
+                testId="step-version"
+                done={!!ver && !ver.offline && !ver.available}
+                attention={newVersion && !verSkip}
+                title={c.setup.version}
+                detail={
+                  !ver
+                    ? c.setup.versionChecking
+                    : ver.offline
+                      ? c.setup.versionOffline(ver.current)
+                      : newVersion && ver.latest
+                        ? (verSkip ? c.setup.versionSkipped : c.setup.versionNew)(
+                            ver.latest,
+                            ver.current,
+                          )
+                        : c.setup.versionLatest(ver.current)
+                }
+                action={
+                  ver?.offline
+                    ? c.setup.versionRetry
+                    : newVersion
+                      ? c.setup.versionUpdate
+                      : undefined
+                }
+                onAction={ver?.offline ? checkVersion : openUpdate}
+                alt={
+                  newVersion && !verSkip
+                    ? { label: c.setup.versionSkip, onClick: () => setVerSkip(true) }
+                    : undefined
+                }
+              />
+              <Step
+                n={2}
+                optional
                 testId="step-pair"
                 done={!!status?.device}
                 title={c.setup.pair}
@@ -626,7 +698,7 @@ export function CrewMenu({
                 onAction={onPair}
               />
               <Step
-                n={2}
+                n={3}
                 testId="step-event"
                 done={hasEvent}
                 title={c.setup.event}
@@ -639,7 +711,7 @@ export function CrewMenu({
                 onAction={onChangeEvent}
               />
               <Step
-                n={3}
+                n={4}
                 testId="step-camera"
                 done={cameraOk}
                 title={c.setup.camera}
@@ -648,7 +720,7 @@ export function CrewMenu({
                 onAction={cameraOk ? onCameraCheck : () => setSection("camera")}
               />
               <Step
-                n={4}
+                n={5}
                 optional
                 testId="step-printer"
                 done={printerReady}
@@ -1099,11 +1171,16 @@ export function CrewMenu({
           <p className="text-2xl font-medium text-text-2">
             {!update
               ? c.updateChecking
-              : update.available && update.latest
-                ? (update.ready ? c.updateReady : c.updateAvailable)(update.latest, update.current)
-                : update.latest
-                  ? c.updateLatest(update.current)
-                  : c.updateNone}
+              : update.offline
+                ? c.updateOffline
+                : update.available && update.latest
+                  ? (update.ready ? c.updateReady : c.updateAvailable)(
+                      update.latest,
+                      update.current,
+                    )
+                  : update.latest
+                    ? c.updateLatest(update.current)
+                    : c.updateNone}
           </p>
           {dl && (
             <div className="flex flex-col gap-3" data-testid="update-progress">

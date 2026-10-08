@@ -472,6 +472,7 @@ export const copy = {
     updateChecking: "Mengecek versi terbaru…",
     updateLatest: (v: string) => `Sudah versi terbaru (${v}).`,
     updateNone: "Belum ada rilis di cloud.",
+    updateOffline: "Tidak bisa cek update. Pastikan booth sudah dipasangkan dan internet menyala.",
     updateReady: (latest: string, current: string) =>
       `Versi ${latest} sudah diunduh (terpasang ${current}). Pemasangan ±1 menit: booth tertutup lalu terbuka lagi sendiri.`,
     updateAvailable: (latest: string, current: string) =>
@@ -789,6 +790,19 @@ export const copy = {
       cameraTodo: "Kamera belum tersambung",
       cameraAction: "Tes Jepret",
       pickCamera: "Pilih Kamera",
+      version: "Cek versi aplikasi",
+      versionChecking: "Mengecek versi terbaru…",
+      versionLatest: (v: string) => `Versi ${v}, sudah terbaru`,
+      versionNew: (latest: string, current: string) =>
+        `Versi ${latest} tersedia (booth masih ${current}). Pasang ±1 menit, sebaiknya sebelum tamu datang.`,
+      versionOffline: (v: string) =>
+        `Versi ${v}. Tidak bisa dicek sekarang (offline atau belum tersambung).`,
+      versionSkipped: (latest: string, current: string) =>
+        `Dilewati. Booth tetap ${current}; versi ${latest} bisa dipasang nanti dari sini atau Sistem.`,
+      versionUpdate: "Update",
+      versionSkip: "Lewati",
+      versionRetry: "Cek Lagi",
+      versionNav: "Update tersedia",
       pickPrinter: "Pilih Printer",
       printer: "Cek printer",
       printerOk: "Printer siap",
