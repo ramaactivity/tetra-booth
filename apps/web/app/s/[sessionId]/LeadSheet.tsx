@@ -35,10 +35,10 @@ export function LeadSheet({ sessionId, lead }: { sessionId: string; lead: GuestL
     setOpen(false);
   };
   return (
-    <div className="fixed inset-0 z-20 mx-auto flex max-w-[480px] items-end bg-ink/20 p-3">
+    <div className="animate-fade fixed inset-0 z-20 mx-auto flex max-w-[480px] items-end bg-ink/20 p-3">
       <form
         aria-label={t.title}
-        className="flex w-full flex-col gap-3.5 rounded-[28px] border-[1.5px] border-ink bg-white px-5 pt-2.5 pb-5"
+        className="animate-sheet flex w-full flex-col gap-3.5 rounded-[28px] border-[1.5px] border-ink bg-white px-5 pt-2.5 pb-5"
         onSubmit={async (e) => {
           e.preventDefault();
           const f = new FormData(e.currentTarget);

@@ -7,7 +7,14 @@ import { createServiceClient } from "@/lib/supabase/service";
 
 /** Data halaman tamu `/s/{id}` (FSD §2). Dibaca di server; service role tidak pernah ke browser. */
 /** `color`/`logoUrl` = branding header (admin → Halaman tamu). */
-export type GuestEvent = { name: string; date: string; color?: string; logoUrl?: string };
+export type GuestEvent = {
+  name: string;
+  date: string;
+  /** Label kecil di atas nama, mis. "The Wedding of" (#217). */
+  tagline?: string;
+  color?: string;
+  logoUrl?: string;
+};
 export type GuestAsset = { kind: string; idx: number; url: string; download: string };
 /** Form lead yang harus/boleh diisi tamu ini (belum pernah mengisi untuk sesi ini). */
 export type GuestLead = { mode: "gate" | "optional"; fields: LeadField[]; consentText: string };
@@ -54,6 +61,7 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
   const event: GuestEvent = {
     name: e.name,
     date: e.event_date,
+    ...(b.tagline && { tagline: b.tagline }),
     ...(b.color && { color: b.color }),
     // Setelah purge objeknya sudah tidak ada.
     ...(b.logoKey && !e.purged_at && { logoUrl: await presignGet(b.logoKey) }),

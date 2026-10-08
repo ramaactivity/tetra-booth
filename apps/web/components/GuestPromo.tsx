@@ -1,4 +1,5 @@
 "use client";
+import { ArrowUpRight, Check, Copy, Gift, MessageCircle, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
 import type { GuestPromo as Promo, Proof } from "@/lib/promo";
@@ -68,82 +69,150 @@ export function GuestPromo({ promo }: { promo: Promo }) {
     return () => window.removeEventListener(PROMO_SAVED, onSaved);
   }, []);
 
+  const links = [
+    promo.instagram && {
+      href: `https://instagram.com/${promo.instagram}`,
+      label: t.instagram,
+      icon: <IgIcon />,
+    },
+    promo.tiktok && {
+      href: `https://www.tiktok.com/@${promo.tiktok}`,
+      label: t.tiktok,
+      icon: <TikTokIcon />,
+    },
+    promo.reviewUrl && {
+      href: promo.reviewUrl,
+      label: t.review,
+      icon: <Star size={17} strokeWidth={2.5} />,
+    },
+    promo.website && {
+      href: promo.website,
+      label: t.website,
+      icon: <ArrowUpRight size={17} strokeWidth={2.5} />,
+    },
+  ].filter((l) => !!l);
+
   return (
     <section
       data-testid="guest-promo"
-      className="mx-5 mb-7 flex flex-col gap-3.5 rounded-[20px] border-[1.5px] border-ink bg-white p-4"
+      className="animate-rise layered mx-5 mb-9 flex flex-col rounded-[22px] border-[1.5px] border-ink bg-white [--lb:1.5px] [--lx:6px] [--under:var(--lavender)]"
     >
-      <h2 className="text-lg font-extrabold tracking-[-0.02em]">{t.title}</h2>
-      {tags.length > 0 && <TagRow tags={tags} />}
-      <div className="flex flex-wrap gap-2">
-        {promo.instagram && (
-          <a
-            className={btn}
-            href={`https://instagram.com/${promo.instagram}`}
-            target="_blank"
-            rel="noopener"
-          >
-            {t.instagram}
-          </a>
-        )}
-        {promo.tiktok && (
-          <a
-            className={btn}
-            href={`https://www.tiktok.com/@${promo.tiktok}`}
-            target="_blank"
-            rel="noopener"
-          >
-            {t.tiktok}
-          </a>
-        )}
-        {promo.reviewUrl && (
-          <a className={btn} href={promo.reviewUrl} target="_blank" rel="noopener">
-            {t.review}
-          </a>
-        )}
-        {promo.website && (
-          <a className={btn} href={promo.website} target="_blank" rel="noopener">
-            {t.website}
-          </a>
+      <div className="flex flex-col gap-4 p-5">
+        <div>
+          <p className="text-xs font-bold text-text-2">{t.title}</p>
+          <h2 className="mt-1 text-[22px] leading-[1.1] font-extrabold tracking-[-0.03em] text-balance">
+            {t.headline}
+          </h2>
+        </div>
+        {tags.length > 0 && <TagRow tags={tags} />}
+        {links.length > 0 && (
+          <div className="grid grid-cols-2 gap-2">
+            {links.map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                target="_blank"
+                rel="noopener"
+                className={`pressable flex h-12 items-center gap-2.5 rounded-xl border-[1.5px] border-ink bg-white px-3 text-[13px] font-bold no-underline ${links.length % 2 && l === links.at(-1) ? "col-span-2" : ""}`}
+              >
+                <span aria-hidden className="flex flex-none">
+                  {l.icon}
+                </span>
+                {l.label}
+              </a>
+            ))}
+          </div>
         )}
       </div>
       {promo.whatsapp && (
-        <button type="button" className={`${main} bg-mint-soft!`} onClick={() => setOpen(true)}>
-          {promo.offer ? t.ctaOffer(promo.offer.reward) : t.cta(promo.org)}
-        </button>
+        <div className="flex flex-col gap-3.5 rounded-b-[20px] border-t-[1.5px] border-dashed border-ink bg-mint-soft p-5">
+          <div className="flex items-start gap-3">
+            <span className="flex size-10 flex-none items-center justify-center rounded-xl border-[1.5px] border-ink bg-butter">
+              {promo.offer ? (
+                <Gift size={19} strokeWidth={2.5} />
+              ) : (
+                <MessageCircle size={19} strokeWidth={2.5} />
+              )}
+            </span>
+            <div>
+              <p className="text-[17px] leading-tight font-extrabold tracking-[-0.02em]">
+                {t.cta(promo.org)}
+              </p>
+              <p className="mt-1 text-[13px] leading-snug text-text-3">
+                {t.ctaSub}
+                {promo.offer && ` ${t.ctaBonus(promo.offer.reward)}`}
+              </p>
+            </div>
+          </div>
+          <button type="button" className={`${main} bg-white!`} onClick={() => setOpen(true)}>
+            {promo.offer ? t.ctaOffer(promo.offer.reward) : t.ctaShort}
+          </button>
+        </div>
       )}
       {open && promo.whatsapp && <Sheet promo={promo} tags={tags} onClose={() => setOpen(false)} />}
     </section>
   );
 }
 
+/** Glyph Instagram (lucide tidak lagi memuat ikon merek). */
+const IgIcon = () => (
+  <svg
+    aria-hidden="true"
+    width="17"
+    height="17"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+  >
+    <rect x="3" y="3" width="18" height="18" rx="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" />
+  </svg>
+);
+/** Glyph TikTok (not musik). */
+const TikTokIcon = () => (
+  <svg
+    aria-hidden="true"
+    width="17"
+    height="17"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5" />
+    <path d="M14 3c.4 2.6 2.2 4.4 5 4.6" />
+  </svg>
+);
+
 function TagRow({ tags }: { tags: string[] }) {
   const [done, setDone] = useState(false);
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-sm text-text-2">{t.tagLine}</p>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {tags.map((h) => (
-          <span
-            key={h}
-            className="rounded-full border-[1.5px] border-ink bg-lavender px-3 py-1 font-mono text-[13px] font-bold"
-          >
-            {h}
-          </span>
-        ))}
-        <button
-          type="button"
-          className="min-h-9 px-2 text-sm font-semibold underline"
-          onClick={() =>
-            navigator.clipboard?.writeText(tags.join(" ")).then(
-              () => setDone(true),
-              () => {},
-            )
-          }
+    <div className="flex flex-wrap items-center gap-1.5">
+      {tags.map((h) => (
+        <span
+          key={h}
+          className="rounded-full border-[1.5px] border-ink bg-lavender px-3 py-1 font-mono text-[13px] font-bold"
         >
-          {done ? t.copied : t.copyTags}
-        </button>
-      </div>
+          {h}
+        </span>
+      ))}
+      <button
+        type="button"
+        className="flex min-h-9 items-center gap-1.5 px-2 text-[13px] font-bold underline"
+        onClick={() =>
+          navigator.clipboard?.writeText(tags.join(" ")).then(
+            () => setDone(true),
+            () => {},
+          )
+        }
+      >
+        {done ? <Check size={15} strokeWidth={3} /> : <Copy size={15} strokeWidth={2.5} />}
+        {done ? t.copied : t.copyTags}
+      </button>
     </div>
   );
 }
@@ -157,12 +226,12 @@ function Sheet({ promo, tags, onClose }: { promo: Promo; tags: string[]; onClose
     setSaved(v);
   };
   return (
-    <div className="fixed inset-0 z-30 mx-auto flex max-w-[480px] items-end bg-ink/20 p-3">
+    <div className="animate-fade fixed inset-0 z-30 mx-auto flex max-w-[480px] items-end bg-ink/25 p-3">
       <div
         role="dialog"
         aria-label={t.title}
         data-testid="promo-sheet"
-        className="flex max-h-[92dvh] w-full flex-col gap-3.5 overflow-y-auto rounded-[28px] border-[1.5px] border-ink bg-white px-5 pt-2.5 pb-5"
+        className="animate-sheet flex max-h-[92dvh] w-full flex-col gap-3.5 overflow-y-auto rounded-[28px] border-[1.5px] border-ink bg-white px-5 pt-2.5 pb-5"
       >
         <span className="h-1 w-9 self-center rounded-sm bg-ink" />
         {step === "wa" && <WaStep promo={promo} onDone={keep} />}

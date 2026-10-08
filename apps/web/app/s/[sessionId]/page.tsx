@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { GuestPromo } from "@/components/GuestPromo";
 import { copy } from "@/lib/copy";
 import { clock, type GuestEvent, loadGuest, longDate, shortDate } from "@/lib/guest";
@@ -27,36 +27,86 @@ const onColor = (hex: string) => {
     : "#ffffff";
 };
 
-function Header({ event }: { event?: GuestEvent | undefined }) {
+/**
+ * Hero halaman tamu (#217): nama acara besar seperti layar booth, tagline, tanggal mono. Warna header event mengisi
+ * seluruh hero; `ready` = pill "Fotomu sudah jadi" (kesan pertama setelah scan QR).
+ */
+function Header({ event, ready }: { event?: GuestEvent | undefined; ready?: boolean }) {
   const bg = event?.color;
   return (
     <header
-      className={`flex items-center justify-between gap-3 px-5 pt-8 pb-4 ${bg ? "mb-4 border-b-[1.5px] border-ink" : ""}`}
-      style={bg ? { background: bg, color: onColor(bg) } : undefined}
+      className="border-b-[1.5px] border-dashed border-ink px-5 pt-6 pb-6"
+      style={bg ? { background: bg, color: onColor(bg), borderStyle: "solid" } : undefined}
     >
-      <div>
-        <h1 className="text-[15px] font-extrabold tracking-[-0.01em]">
-          {event?.name ?? "Tetra Photobooth"}
-        </h1>
-        {event && (
-          <p className={`mt-0.5 font-mono text-[11px] ${bg ? "opacity-75" : "text-text-2"}`}>
-            {longDate(event.date)}
-          </p>
+      <div className="animate-rise flex items-center justify-between gap-3">
+        {event?.logoUrl ? (
+          <img src={event.logoUrl} alt="" className="h-10 max-w-[140px] object-contain" />
+        ) : (
+          <span className="flex items-center gap-2 text-sm font-extrabold tracking-[-0.02em]">
+            <span className="flex size-8 items-center justify-center rounded-[9px] border-[1.5px] border-ink bg-mint text-sm font-extrabold text-ink">
+              T
+            </span>
+            tetra
+          </span>
+        )}
+        {ready && (
+          <span className="flex items-center gap-1.5 rounded-full border-[1.5px] border-ink bg-mint-soft px-3 py-1 text-xs font-bold text-ink">
+            <span className="size-2 rounded-full bg-green" />
+            {t.readyPill}
+          </span>
         )}
       </div>
-      {event?.logoUrl ? (
-        <img src={event.logoUrl} alt="" className="h-10 max-w-[120px] object-contain" />
-      ) : (
-        <span className="flex size-8 items-center justify-center rounded-[9px] border-[1.5px] border-ink bg-mint text-sm font-extrabold text-ink">
-          T
-        </span>
+      {event?.tagline && (
+        <p
+          style={{ "--d": "60ms" } as CSSProperties}
+          className="animate-rise mt-6 w-fit rounded-full border-[1.5px] border-current px-3 py-0.5 text-xs font-bold"
+        >
+          {event.tagline}
+        </p>
+      )}
+      <h1
+        style={{ "--d": "100ms" } as CSSProperties}
+        className={`animate-rise text-[34px] leading-[0.98] font-extrabold tracking-[-0.045em] text-balance ${event?.tagline ? "mt-2.5" : "mt-6"}`}
+      >
+        {event?.name ?? "Tetra Photobooth"}
+      </h1>
+      {event && (
+        <p
+          style={{ "--d": "140ms" } as CSSProperties}
+          className={`animate-rise mt-2 font-mono text-xs ${bg ? "opacity-75" : "text-text-2"}`}
+        >
+          {longDate(event.date)}
+        </p>
       )}
     </header>
   );
 }
 
+/** Penutup halaman (#217): siapa yang membuat foto ini, tanpa terasa iklan. */
+function BrandFooter() {
+  return (
+    <footer className="mt-auto flex flex-col items-center gap-2 border-t-[1.5px] border-dashed border-ink px-5 pt-6 pb-10 text-center">
+      <span className="flex items-center gap-2 text-[15px] font-extrabold tracking-[-0.02em]">
+        <span className="flex size-7 items-center justify-center rounded-[8px] border-[1.5px] border-ink bg-mint text-xs">
+          T
+        </span>
+        Tetra Photobooth
+      </span>
+      <p className="font-mono text-[11px] text-text-2">{t.brandLine}</p>
+      <a href={CONTACT_URL} target="_blank" className="text-xs font-bold" rel="noopener">
+        tetraphoto.com
+      </a>
+    </footer>
+  );
+}
+
 function Shell({ children }: { children: ReactNode }) {
-  return <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col">{children}</main>;
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col">
+      {children}
+      <BrandFooter />
+    </main>
+  );
 }
 
 function Step({
@@ -116,7 +166,7 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
     return (
       <Shell>
         <TrackOpen sessionId={sessionId} />
-        <Header event={g.event} />
+        <Header event={g.event} ready />
         <StageGuest
           sessionId={sessionId}
           group={g.group}
@@ -203,7 +253,7 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
     return (
       <Shell>
         <TrackOpen sessionId={sessionId} />
-        <Header event={g.event} />
+        <Header event={g.event} ready />
         {g.group && (
           <h2 className="mx-5 mb-4 text-[22px] leading-tight font-extrabold tracking-[-0.02em]">
             {g.group}
@@ -211,6 +261,7 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
         )}
         <GuestReady
           sessionId={sessionId}
+          eventName={g.event.name}
           assets={g.assets}
           expiresAt={g.expiresAt ? shortDate(g.expiresAt) : null}
           stage={!!g.group}
