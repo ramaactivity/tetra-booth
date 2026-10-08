@@ -26,7 +26,7 @@ const human = (s: string) => HUMAN[s] ?? s;
 
 /**
  * Setelan eksposur DSLR (ISO, shutter, aperture, WB, ISO/shutter jepret, kualitas) yang langsung dikirim ke kamera.
- * Dipakai di sheet Kamera & Printer dan di Tes Jepret, supaya efeknya terlihat di live view saat diubah (Rama, W-034).
+ * Dipakai di halaman Kamera mode crew dan di Tes Jepret, supaya efeknya terlihat di live view saat diubah (Rama, W-034).
  * `null` saat kamera tidak punya setelan (webcam, hot folder) kecuali `showEmpty`.
  */
 /** Setelan dengan pilihan sebanyak ini (ISO, shutter, aperture) jadi tombol langkah ◀ nilai ▶, bukan chip. */
@@ -153,7 +153,7 @@ export function CameraProps({
         return (
           <section
             key={g.title}
-            className="flex flex-col gap-4 rounded-[22px] border-[2.5px] border-ink bg-white p-5"
+            className="flex flex-col gap-4 border-t-2 border-dashed border-line-soft pt-5 first:border-0 first:pt-0"
           >
             <div>
               <h3 className="text-2xl font-extrabold">{g.title}</h3>

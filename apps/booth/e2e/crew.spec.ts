@@ -109,32 +109,33 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await w.getByRole("button", { name: /ganti roll/i }).click();
   await w.getByRole("textbox").fill("25");
   await w.getByRole("button", { name: /simpan/i }).click();
-  await expect(w.getByText(/Kertas 25 \/ 25 lembar/)).toBeVisible();
+  await expect(w.getByText(/Kertas 25 \/ 25 lembar/).first()).toBeVisible();
   await w.screenshot({ path: "test-results/crew-menu.png" });
-
-  // Kamera & Printer (DECISIONS #85): kamera dipaksa baris perintah → terkunci; pengingat 2inch cut tampil.
-  await w.getByTestId("crew-nav-camera").click();
-  await w.getByRole("button", { name: "Kamera & Printer" }).click();
-  await expect(w.getByText(/Kamera · dikunci teknisi/)).toBeVisible();
-  await expect(w.getByRole("button", { name: "Latihan tanpa kamera" })).toBeDisabled();
+  // Pengingat 2inch cut di halaman Printer (layout event aktif).
   await expect(w.getByText(/2inch cut: (Enable|Disable)/)).toBeVisible();
-  await expect(w.getByRole("button", { name: "Simpan & Mulai Ulang" })).toBeDisabled();
-  // Cermin: bawaan live view nyala, hasil foto mati (DECISIONS #35); ubah → bisa disimpan.
-  await expect(w.getByRole("button", { name: "Live view · Nyala" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await w.getByRole("button", { name: "Hasil foto · Mati" }).click();
-  await expect(w.getByText(/tulisan di baju & latar ikut terbalik/)).toBeVisible();
-  await expect(w.getByRole("button", { name: "Simpan & Mulai Ulang" })).toBeEnabled();
-  await w.screenshot({ path: "test-results/crew-device.png" });
-  await w.getByRole("button", { name: "Hasil foto · Nyala" }).click();
-  await expect(w.getByRole("button", { name: "Simpan & Mulai Ulang" })).toBeDisabled();
-  await w.getByRole("button", { name: "Batal" }).click();
 
-  // Pengaturan event di booth (DECISIONS #100): override lokal, badge, kembalikan ke cloud.
+  // Kamera (DECISIONS #85): kamera dipaksa baris perintah → pilihan merek terkunci, alasannya tertulis.
+  await w.getByTestId("crew-nav-camera").click();
+  await expect(w.getByTestId("camera-choice")).toContainText("Dikunci teknisi");
+  await expect(w.getByTestId("camera-kind-simulated")).toBeDisabled();
+  // Bar simpan hanya muncul kalau ada perubahan perangkat.
+  const saveBar = w.getByTestId("device-savebar");
+  await expect(saveBar).toHaveCount(0);
+  // Cermin: bawaan layar tamu nyala, hasil foto mati (DECISIONS #35); ubah → bar simpan menyebut perubahannya.
+  await expect(w.getByTestId("toggle-mirrorLiveView")).toHaveAttribute("aria-pressed", "true");
+  const mirrorPhoto = w.getByTestId("toggle-mirrorPhoto");
+  await expect(mirrorPhoto).toHaveAttribute("aria-pressed", "false");
+  await mirrorPhoto.click();
+  await expect(saveBar).toContainText("Cermin di hasil foto");
+  await expect(saveBar.getByRole("button", { name: "Simpan & Mulai Ulang" })).toBeEnabled();
+  await w.screenshot({ path: "test-results/crew-device.png" });
+  // Batal di bar simpan = kembali ke setelan tersimpan.
+  await saveBar.getByRole("button", { name: "Batal" }).click();
+  await expect(saveBar).toHaveCount(0);
+  await expect(mirrorPhoto).toHaveAttribute("aria-pressed", "false");
+
+  // Pengaturan event di booth (DECISIONS #100), langsung di halaman Event & Desain: override lokal, kembalikan.
   await w.getByTestId("crew-nav-event").click();
-  await w.getByRole("button", { name: "Pengaturan Event" }).click();
   const countdown = w.getByTestId("setting-countdownSec");
   await expect(countdown).toContainText("cloud: 3");
   await expect(w.getByTestId("setting-sessionSec")).toHaveCount(0);
@@ -143,13 +144,10 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await w.getByRole("button", { name: "Simpan", exact: true }).click();
   await expect(countdown).toContainText("diubah di booth");
   await expect(countdown).toContainText("5");
-  await w.screenshot({ path: "test-results/crew-event-settings.png" });
-  await w.getByRole("button", { name: "Batal" }).click();
   await expect(w.getByTestId("settings-local")).toBeVisible();
-  await w.getByRole("button", { name: "Pengaturan Event" }).click();
+  await w.screenshot({ path: "test-results/crew-event-settings.png" });
   await w.getByRole("button", { name: "Kembalikan ke cloud" }).click();
   await expect(countdown).not.toContainText("diubah di booth");
-  await w.getByRole("button", { name: "Batal" }).click();
   await expect(w.getByTestId("settings-local")).toHaveCount(0);
   // Tombol sidebar "Buka untuk Tamu" selalu terlihat (di bagian mana pun).
   await w.getByTestId("to-guest").click();

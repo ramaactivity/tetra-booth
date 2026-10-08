@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { copy } from "../copy";
 import { loadPrintTone, PRINT_TONE_RANGE, type PrintTone, savePrintTone } from "../printTone";
+import { Panel } from "./parts";
 
 const t = copy.crew.printTone;
 const ROWS = [
@@ -17,23 +18,20 @@ export function PrintToneCard() {
     savePrintTone(next);
   };
   return (
-    <div
-      className="col-span-full flex flex-col gap-4 rounded-2xl border-2 border-line-soft p-5"
-      data-testid="print-tone"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <span className="text-2xl font-extrabold">{t.title}</span>
-          <span className="text-lg text-text-2">{t.note}</span>
-        </div>
+    <Panel
+      testId="print-tone"
+      title={t.title}
+      hint={t.note}
+      aside={
         <button
           type="button"
           onClick={() => set({ brightness: 0, contrast: 0, saturation: 0 })}
-          className="pressable h-12 flex-none rounded-xl border-2 border-ink bg-white px-4 text-lg font-bold"
+          className="pressable h-14 flex-none rounded-[16px] border-2 border-ink bg-white px-5 text-lg font-bold"
         >
           {t.reset}
         </button>
-      </div>
+      }
+    >
       {ROWS.map(([k, label]) => {
         const v = tone[k];
         const pos = ((v + PRINT_TONE_RANGE) / (2 * PRINT_TONE_RANGE)) * 100;
@@ -68,6 +66,6 @@ export function PrintToneCard() {
           </div>
         );
       })}
-    </div>
+    </Panel>
   );
 }
