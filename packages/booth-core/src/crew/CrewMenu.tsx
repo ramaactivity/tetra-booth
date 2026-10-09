@@ -464,8 +464,11 @@ export function CrewMenu({
     : status?.device
       ? c.paired(status.device.name, status.device.shortCode)
       : c.unpaired;
-  const uploadText =
-    status?.uploadError ?? (status?.uploadPending ? c.unsent(status.uploadPending) : c.allSent);
+  const uploadText = !status?.uploadPending
+    ? c.allSent
+    : status.uploadError
+      ? c.uploadWhy(status.uploadPending, uploadReason(status.uploadError))
+      : c.unsent(status.uploadPending);
   const savedCamera = dev.info?.now.camera ?? "webcam";
   const cameraName = c.dev.choice[savedCamera].title;
   const runTone: Tone =
@@ -1006,7 +1009,11 @@ export function CrewMenu({
             </Row>
             <Row label={c.flow.upload} hint={uploadText}>
               {!!status?.uploadPending && status.device && (
-                <Button variant="plain" className={btn} onClick={act(() => p.crew.retryUploads())}>
+                <Button
+                  variant="secondary"
+                  className={btn}
+                  onClick={act(() => p.crew.retryUploads())}
+                >
                   {c.retryUpload}
                 </Button>
               )}
@@ -1093,7 +1100,7 @@ export function CrewMenu({
               </Button>
             </Row>
             <Row label={c.flow.pin} hint={c.flow.pinHint}>
-              <Button variant="plain" className={btn} onClick={onChangePin}>
+              <Button variant="secondary" className={btn} onClick={onChangePin}>
                 {c.changePin}
               </Button>
             </Row>
@@ -1314,4 +1321,14 @@ export function CrewMenu({
       )}
     </main>
   );
+}
+
+/** Error upload mentah ("/api/booth/sessions: server 404", "fetch failed") → alasan yang dimengerti crew. */
+function uploadReason(raw: string): string {
+  const e = copy.crew.uploadErr;
+  if (/server 401|server 403/.test(raw)) return e.revoked;
+  if (/server 404/.test(raw)) return e.gone;
+  if (/server 5\d\d/.test(raw)) return e.server;
+  if (/fetch failed|offline|ENOTFOUND|ECONN|ETIMEDOUT|network/i.test(raw)) return e.offline;
+  return e.other;
 }

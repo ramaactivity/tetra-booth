@@ -206,10 +206,9 @@ export function StartScreen({
               </h1>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-4">
-              <div
-                role="group"
+              <fieldset
                 aria-label={t.sortLabel}
-                className="flex overflow-hidden rounded-[18px] border-[2.5px] border-ink bg-white"
+                className="m-0 flex min-w-0 overflow-hidden rounded-[18px] border-[2.5px] border-ink bg-white p-0"
               >
                 {(["newest", "soonest", "name"] as const).map((k, i) => (
                   <button
@@ -222,7 +221,7 @@ export function StartScreen({
                     {t.sort[k]}
                   </button>
                 ))}
-              </div>
+              </fieldset>
               {onSync && (
                 <Button
                   variant="secondary"

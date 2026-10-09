@@ -85,7 +85,11 @@ export function Row({
         <span className="text-xl font-bold">{label}</span>
         {hint && <span className="text-lg font-medium text-text-2">{hint}</span>}
       </div>
-      {children && <div className="flex shrink-0 items-center gap-3">{children}</div>}
+      {children && (
+        <div className="flex shrink-0 items-center gap-3 pr-1.5 pb-1.5 [&>button]:min-w-[240px]">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
@@ -165,16 +169,17 @@ export function Choice({
       aria-pressed={selected}
       disabled={disabled}
       onClick={onClick}
-      className={`pressable flex min-h-[112px] min-w-0 flex-col items-start justify-between gap-2 rounded-[20px] border-[2.5px] border-ink px-5 py-4 text-left disabled:opacity-45 ${selected ? "layered bg-mint-soft [--lx:6px]" : "bg-white"}`}
+      className={`pressable relative flex min-h-[112px] min-w-0 flex-col items-start justify-start gap-2 rounded-[20px] border-[2.5px] border-ink px-5 py-4 text-left disabled:opacity-45 ${selected ? "bg-mint-soft" : "bg-white"}`}
     >
-      <span className="flex w-full items-start justify-between gap-3">
-        <span className="text-[22px] leading-tight font-extrabold">{title}</span>
-        {selected && (
-          <span className="shrink-0 rounded-full border-2 border-ink bg-mint px-2.5 text-base font-bold">
-            Dipilih
-          </span>
-        )}
-      </span>
+      {selected && (
+        <span
+          aria-hidden
+          className="absolute -top-3 -right-3 flex size-9 items-center justify-center rounded-full border-2 border-ink bg-mint text-lg font-black"
+        >
+          ✓
+        </span>
+      )}
+      <span className="w-full text-[22px] leading-tight font-extrabold break-words">{title}</span>
       {detail && <span className="text-base leading-snug font-medium text-text-2">{detail}</span>}
       {tag && (
         <span className="rounded-full border-2 border-dashed border-ink bg-paper px-2.5 text-base font-bold">

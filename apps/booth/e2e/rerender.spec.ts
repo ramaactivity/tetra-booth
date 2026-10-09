@@ -129,6 +129,8 @@ test("tajamkan foto lama: sesi tanpa piece@2x dirender ulang & strip_web diungga
     await w.getByRole("button", { name: /^Mulai acara/ }).click();
 
     // Sesi: desain kedua (4R, 2 foto) + filter Hangat → pencocokan harus memilih kombinasi ini.
+    // Jeda pengaman layar awal (START_GUARD_MS) setelah pop-up ditutup: ketukan lebih cepat diabaikan (flaky ±1/3).
+    await w.waitForTimeout(1000);
     await start.click();
     await w.getByTestId("layout-card").filter({ hasText: "Bingkai Emas" }).click();
     await w.getByRole("button", { name: /Mulai Foto/ }).click();

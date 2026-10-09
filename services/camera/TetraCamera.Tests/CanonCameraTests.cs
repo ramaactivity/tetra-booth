@@ -275,6 +275,60 @@ public class CanonCameraTests
     }
 
     [Fact]
+    public async Task Pengembalian_ISO_tertunda_tidak_menimpa_pilihan_crew()
+    {
+        var d = new FakeCanonDriver();
+        using var cam = Make(d);
+        await Until(() => cam.Connected);
+        await cam.SetPropAsync("iso", "ISO 800");
+        await cam.SetPropAsync("iso_capture", "ISO 200");
+        // Kamera menolak pengembalian ke ISO live view tepat setelah jepret (700D BUSY).
+        d.CaptureHook = () => d.RejectSet = true;
+        await cam.CaptureAsync(Path.Combine(Path.GetTempPath(), $"tc-r-{Guid.NewGuid():N}"), 0);
+        d.CaptureHook = null;
+        Assert.Equal(0x50u, d.Props[0x402]); // masih ISO jepret
+        d.RejectSet = false;
+        await cam.SetPropAsync("iso", "ISO 400"); // crew memilih ISO live view baru
+        await Task.Delay(1500); // loop mencoba pengembalian tiap 1 s
+        Assert.Equal(0x58u, d.Props[0x402]); // pilihan crew bertahan, bukan ISO 800 lama
+    }
+
+    [Fact]
+    public async Task Jepret_yang_sudah_ditinggal_tidak_dijalankan_belakangan()
+    {
+        var d = new FakeCanonDriver();
+        using var cam = new CanonCamera(d, reconnect: TimeSpan.FromMilliseconds(50),
+            commandTimeout: TimeSpan.FromMilliseconds(300), stuckAfter: TimeSpan.FromSeconds(30));
+        await Until(() => cam.Connected);
+        d.HangMs = 1200;
+        var dir = Path.Combine(Path.GetTempPath(), $"tc-q-{Guid.NewGuid():N}");
+        var first = cam.CaptureAsync(dir, 0);
+        await Task.Delay(50);
+        var second = cam.CaptureAsync(dir, 1); // antre di belakang jepret pertama
+        await Assert.ThrowsAsync<CameraFailure>(() => first);
+        await Assert.ThrowsAsync<CameraFailure>(() => second);
+        d.HangMs = 0;
+        await Task.Delay(1500);
+        Assert.Equal(1, d.Captures); // jepret kedua tidak menekan rana setelah booth menyerah
+    }
+
+    [Fact]
+    public async Task Setelan_tersimpan_yang_tidak_didukung_kamera_ini_dilewati()
+    {
+        // ISO 12800 tersimpan dari 700D; bodi ini (palsu: ISO 100–1600) tidak punya → tidak dikirim ke kamera.
+        var file = Path.Combine(Path.GetTempPath(), $"tc-set-{Guid.NewGuid():N}.json");
+        File.WriteAllText(file, """{"iso":"ISO 12800","iso_capture":"ISO 12800"}""");
+        var d = new FakeCanonDriver();
+        using var cam = new CanonCamera(d, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(10), file);
+        await Until(() => cam.Connected);
+        await Task.Delay(100);
+        Assert.Equal(0x48u, d.Props[0x402]);
+        var dir = Path.Combine(Path.GetTempPath(), $"tc-iso-{Guid.NewGuid():N}");
+        await cam.CaptureAsync(dir, 0);
+        Assert.Equal([0x48u], d.IsoAtCapture);
+    }
+
+    [Fact]
     public async Task Dispatcher_Canon_list_liveview_focus_capture()
     {
         using var cam = Make(new FakeCanonDriver());

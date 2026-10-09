@@ -408,7 +408,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await expect(w.getByTestId("step-pair")).toHaveAttribute("data-done", "true");
   // Sudah tersambung: sambung ulang = aksi kedua yang dijelaskan, bukan langsung keypad.
   await w.getByTestId("crew-nav-system").click();
-  await w.getByRole("button", { name: "Sambungkan Ulang" }).click();
+  await w.getByRole("button", { name: "Ganti booth/akun" }).click();
   await expect(w.getByTestId("pair-device")).toHaveText("Tersambung sebagai Booth Uji · B07");
   await w.screenshot({ path: "test-results/pair-already.png" });
   await w.getByRole("button", { name: "Kembali ke Menu Crew" }).click();

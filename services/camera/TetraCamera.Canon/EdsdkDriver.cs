@@ -62,10 +62,21 @@ public sealed class EdsdkDriver : ICanonDriver
             Release(ref _list);
             return null;
         }
-        Check(EdsGetChildAtIndex(_list, 0, out var cam), "kamera");
-        Check(EdsGetDeviceInfo(cam, out var info), "info kamera");
-        Check(EdsSetObjectEventHandler(cam, ObjectEventAll, _onObject, IntPtr.Zero), "handler objek");
-        Check(EdsSetCameraStateEventHandler(cam, StateEventAll, _onState, IntPtr.Zero), "handler status");
+        var cam = IntPtr.Zero;
+        DeviceInfo info;
+        try
+        {
+            Check(EdsGetChildAtIndex(_list, 0, out cam), "kamera");
+            Check(EdsGetDeviceInfo(cam, out info), "info kamera");
+            Check(EdsSetObjectEventHandler(cam, ObjectEventAll, _onObject, IntPtr.Zero), "handler objek");
+            Check(EdsSetCameraStateEventHandler(cam, StateEventAll, _onState, IntPtr.Zero), "handler status");
+        }
+        catch
+        {
+            Release(ref cam);
+            Release(ref _list);
+            throw;
+        }
         var err = EdsOpenSession(cam);
         if (err != ErrOk)
         {
@@ -142,7 +153,7 @@ public sealed class EdsdkDriver : ICanonDriver
     public byte[] Capture(TimeSpan timeout)
     {
         AfOff();
-        Release(ref _pending);
+        DrainStale();
         EdsSendCommand(_cam, CmdExtendShutDownTimer, 0);
         var deadline = DateTime.UtcNow + timeout;
         Check(Release(deadline), "jepret");
@@ -156,6 +167,33 @@ public sealed class EdsdkDriver : ICanonDriver
         var item = _pending;
         _pending = IntPtr.Zero;
         return Download(item);
+    }
+
+    /// <summary>
+    /// Transfer foto yang tertinggal (jepret sebelumnya waktu habis lalu rana terlepas belakangan) diambil dulu dan
+    /// dibatalkan, jadi foto yang dikembalikan Capture pasti dari rana yang baru ditekan.
+    /// </summary>
+    private void DrainStale()
+    {
+        var until = DateTime.UtcNow + TimeSpan.FromMilliseconds(150);
+        do EdsGetEvent(); while (_pending == IntPtr.Zero && DateTime.UtcNow < until && Sleep(20));
+        if (_pending == IntPtr.Zero) return;
+        Console.WriteLine("[canon] foto lama dari jepretan sebelumnya dibuang");
+        Discard(ref _pending);
+    }
+
+    private static bool Sleep(int ms)
+    {
+        Thread.Sleep(ms);
+        return true;
+    }
+
+    /// <summary>Batalkan transfer lalu lepas item (tanpa batal, kamera bisa menahan transfer & menjawab BUSY).</summary>
+    private static void Discard(ref IntPtr item)
+    {
+        if (item == IntPtr.Zero) return;
+        EdsDownloadCancel(item);
+        Release(ref item);
     }
 
     /// <summary>Kamera sibuk menerima perintah rana maks. selama ini; sisanya untuk transfer foto.</summary>
@@ -177,11 +215,27 @@ public sealed class EdsdkDriver : ICanonDriver
                    && DateTime.UtcNow < until)
                 Thread.Sleep(100);
         }
-        finally { EdsSendCommand(_cam, CmdPressShutterButton, ShutterButtonOff); }
+        finally { ShutterOff(); }
         if (err != ErrNotSupported) return err;
         while ((err = EdsSendCommand(_cam, CmdTakePicture, 0)) == ErrDeviceBusy && DateTime.UtcNow < until)
             Thread.Sleep(100);
         return err;
+    }
+
+    /// <summary>
+    /// Lepas tombol rana. Ditolak BUSY (700D tepat setelah tekan penuh) = tombol tetap "ditekan" secara logika:
+    /// jepret beruntun di mode drive kontinu atau BUSY untuk semua perintah berikutnya. Dicoba ulang ±1 s.
+    /// </summary>
+    private void ShutterOff()
+    {
+        var until = DateTime.UtcNow + TimeSpan.FromSeconds(1);
+        uint err;
+        while ((err = EdsSendCommand(_cam, CmdPressShutterButton, ShutterButtonOff)) == ErrDeviceBusy && DateTime.UtcNow < until)
+        {
+            Thread.Sleep(50);
+            EdsGetEvent();
+        }
+        if (err != ErrOk) Console.Error.WriteLine($"[canon] lepas rana gagal: 0x{err:X8}");
     }
 
     public byte[]? TakeUnsolicited()
@@ -304,7 +358,7 @@ public sealed class EdsdkDriver : ICanonDriver
     {
         if (inEvent == ObjectEventDirItemRequestTransfer)
         {
-            Release(ref _pending);
+            Discard(ref _pending);
             _pending = inRef; // dilepas setelah diunduh
         }
         else if (inRef != IntPtr.Zero) EdsRelease(inRef);

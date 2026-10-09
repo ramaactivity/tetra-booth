@@ -120,6 +120,7 @@ internal static class Edsdk
     [DllImport(Dll)] public static extern uint EdsCreateMemoryStream(ulong inBufferSize, out IntPtr outStream);
     [DllImport(Dll)] public static extern uint EdsDownload(IntPtr inDirItemRef, ulong inReadSize, IntPtr outStream);
     [DllImport(Dll)] public static extern uint EdsDownloadComplete(IntPtr inDirItemRef);
+    [DllImport(Dll)] public static extern uint EdsDownloadCancel(IntPtr inDirItemRef);
     [DllImport(Dll)] public static extern uint EdsGetPointer(IntPtr inStream, out IntPtr outPointer);
     [DllImport(Dll)] public static extern uint EdsGetLength(IntPtr inStream, out ulong outLength);
     [DllImport(Dll)] public static extern uint EdsCreateEvfImageRef(IntPtr inStreamRef, out IntPtr outEvfImageRef);

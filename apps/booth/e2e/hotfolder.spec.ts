@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { _electron as electron, expect, test } from "@playwright/test";
+import { DEFAULT_SETTINGS } from "@tetra/shared";
 
 /** M7: kamera hot folder lewat Camera Service. Butuh `dotnet build services/camera`; tanpa itu dilewati. */
 
@@ -53,8 +54,9 @@ test("hot folder: 3 JPEG yang masuk folder jadi 3 foto sesi", async () => {
     await expect(w.getByText("Lihat ke kamera")).toBeVisible();
     // Foto 1: countdown menunggu frame live view maks. 2,5 dtk (hot folder tanpa live view: sekali saja).
     await expect(w.getByText("Menyiapkan kamera…")).toBeHidden({ timeout: 5000 });
-    // Masuk jendela toleransi 2 detik sebelum capture diminta (countdown 3 detik).
-    await w.waitForTimeout(1800);
+    // Masuk jendela toleransi 2 detik sebelum capture diminta: ±1,2 dtk sebelum hitung mundur event default habis
+    // (bawaan 5 dtk sejak #241; dulu 3 dtk dan tes ini menulis file terlalu awal).
+    await w.waitForTimeout((DEFAULT_SETTINGS.countdownSec - 1.2) * 1000);
     writeFileSync(join(hot, `IMG_000${i}.JPG`), await jpeg(i));
     if (i < 3) await expect(w.getByText(`Foto ${i + 1} dari 3`)).toBeVisible({ timeout: 10_000 });
   }

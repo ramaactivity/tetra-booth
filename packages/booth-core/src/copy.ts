@@ -555,7 +555,7 @@ export const copy = {
     retryUpload: "Kirim ulang sekarang",
     sharpen: {
       title: "Tajamkan foto lama",
-      body: "Foto strip sesi lama di galeri & halaman tamu masih resolusi rendah. Booth merender ulang strip web 2× dari foto asli di laptop ini lalu mengunggahnya lagi. Sesi yang desain atau filternya tidak bisa dipastikan sama dilewati. Tetap di Mode Crew sampai selesai.",
+      body: "Render ulang foto strip sesi lama jadi 2× lebih tajam di galeri & halaman tamu. Sesi yang desainnya sudah berubah dilewati. Tetap di Mode Crew sampai selesai.",
       start: "Mulai tajamkan",
       progress: (done: number, total: number, skipped: number) =>
         `${done} / ${total} sesi · ${skipped} dilewati`,
@@ -571,6 +571,14 @@ export const copy = {
           : `${x.done < x.total ? `Dibatalkan di ${x.done} / ${x.total} sesi` : "Selesai"}: ${x.updated} diperbarui · ${x.mismatch} tidak cocok (desain berubah) · ${x.skipped} dilewati (foto atau event tidak ada di booth). Foto diperbarui terkirim lewat antrean upload.`,
     },
     unsent: (n: number) => `${n} file belum terkirim`,
+    uploadWhy: (n: number, why: string) => `${n} file belum terkirim: ${why}`,
+    uploadErr: {
+      offline: "tidak ada internet, dikirim otomatis saat online",
+      revoked: "booth dicabut di admin, pasangkan ulang",
+      gone: "event-nya sudah tidak ada di cloud (dihapus/diganti)",
+      server: "server sedang bermasalah, dicoba lagi otomatis",
+      other: "dicoba lagi otomatis",
+    },
     allSent: "Semua foto sudah terkirim",
     sound: "Suara booth",
     soundHint:
@@ -818,7 +826,7 @@ export const copy = {
     pairAgainWhy:
       "Sambungkan ulang hanya kalau admin memberi kode baru untuk laptop ini: laptop diganti, aplikasi diinstal ulang, atau pindah ke akun Tetra lain.",
     pairBack: "Kembali ke Menu Crew",
-    pairAgain: "Sambungkan Ulang",
+    pairAgain: "Ganti booth/akun",
     pairing: "Menyambungkan…",
     pairDoneTitle: "Tersambung",
     pairDone: (name: string, code: string) =>
