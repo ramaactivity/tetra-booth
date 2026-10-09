@@ -2,7 +2,15 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { revealGuest, reviewGuest } from "./actions";
 
-export type PendingItem = { id: string; name: string; time: string; strip: boolean; thumb: string };
+export type PendingItem = {
+  id: string;
+  name: string;
+  /** Nomor WA tamu (#232), untuk menelusuri foto yang bermasalah. */
+  wa: string | null;
+  time: string;
+  strip: boolean;
+  thumb: string;
+};
 
 /** "Buka foto sekarang" dengan konfirmasi (E15). */
 export function RevealButton({ eventId }: { eventId: string }) {
@@ -172,6 +180,16 @@ export function ModerationGrid({
                   <span className="truncate font-bold">{it.name}</span>
                   <span className="font-mono text-[11px] text-text-2">{it.time}</span>
                 </div>
+                {it.wa && (
+                  <a
+                    href={`https://wa.me/${it.wa}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="-mt-1 truncate font-mono text-[11px] text-text-2 no-underline hover:underline"
+                  >
+                    +{it.wa}
+                  </a>
+                )}
               </li>
             );
           })}

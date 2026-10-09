@@ -1,11 +1,5 @@
 "use client";
-import {
-  type GuestMe,
-  guestPreset,
-  InstagramSchema,
-  stampText,
-  WhatsappSchema,
-} from "@tetra/shared";
+import { type GuestMe, GuestWhatsappSchema, guestPreset, stampText } from "@tetra/shared";
 import {
   Camera as CameraIcon,
   Check,
@@ -19,12 +13,13 @@ import {
   SquarePlus,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
 import { CameraArt } from "./CameraArt";
 import { dotDate, goFullscreen, Primary, TetraMark } from "./ui";
 
+const REMEMBER = "snapbook:me";
 const t = copy.guestCam;
 const chip = "flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold";
 /** Kipas tiga foto pembuka: preset, geser (cqw/cqh), putar, lapisan, titik fokus sampul. */
@@ -112,15 +107,26 @@ export function Join({
   const [a2hs, setA2hs] = useState(false);
   const [what, setWhat] = useState(false);
   const [name, setName] = useState("");
-  const [via, setVia] = useState<"whatsapp" | "instagram">("whatsapp");
   const [contact, setContact] = useState("");
   const [touched, setTouched] = useState(false);
   const [ok, setOk] = useState(false);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const valid = (via === "whatsapp" ? WhatsappSchema : InstagramSchema).safeParse(contact).success;
-  const ready = name.trim().length >= 2 && valid && ok;
+  // Nama + WA wajib (#232): tuan rumah tahu siapa yang datang, foto bisa dipertanggungjawabkan.
+  const valid = GuestWhatsappSchema.safeParse(contact).success;
+  const ready = /\p{L}.*\p{L}/u.test(name.trim()) && valid && ok;
+  // Tamu yang pernah mengisi Snapbook di HP ini tidak perlu mengetik ulang.
+  useEffect(() => {
+    try {
+      const me = JSON.parse(localStorage.getItem(REMEMBER) ?? "null") as {
+        name?: string;
+        wa?: string;
+      } | null;
+      if (me?.name) setName(me.name);
+      if (me?.wa) setContact(me.wa);
+    } catch {}
+  }, []);
   const rise = (ms: number) => ({ animationDelay: `${ms}ms` });
   const stamp = stampText(new Date(`${info.date.slice(0, 10)}T12:00:00`));
 
@@ -132,10 +138,15 @@ export function Join({
     const r = await fetch(`/api/c/${encodeURIComponent(token)}/join`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim(), [via]: contact, consent: true }),
+      body: JSON.stringify({ name: name.trim(), whatsapp: contact, consent: true }),
     }).catch(() => null);
     setBusy(false);
-    if (r?.ok) return onJoined((await r.json()) as GuestMe);
+    if (r?.ok) {
+      try {
+        localStorage.setItem(REMEMBER, JSON.stringify({ name: name.trim(), wa: contact }));
+      } catch {}
+      return onJoined((await r.json()) as GuestMe);
+    }
     // Kuota tier penuh (#221).
     setError(r?.status === 403 ? t.full : t.failed);
   };
@@ -456,45 +467,24 @@ export function Join({
             tabIndex={sheet ? 0 : -1}
             className={`${field} font-semibold`}
           />
-          <div className="flex gap-2">
-            <div className="flex h-[52px] flex-none rounded-2xl bg-white/10 p-1">
-              {(["whatsapp", "instagram"] as const).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  tabIndex={sheet ? 0 : -1}
-                  aria-pressed={via === v}
-                  aria-label={v === "whatsapp" ? t.wa : t.ig}
-                  onClick={() => {
-                    setVia(v);
-                    setContact("");
-                    setTouched(false);
-                  }}
-                  className={`rounded-xl px-3 text-[13px] font-extrabold transition ${via === v ? "bg-paper text-ink" : "text-paper/70"}`}
-                >
-                  {v === "whatsapp" ? "WA" : "IG"}
-                </button>
-              ))}
-            </div>
-            <input
-              key={via}
-              value={contact}
-              onChange={(e) => setContact(e.target.value)}
-              onBlur={() => setTouched(true)}
-              tabIndex={sheet ? 0 : -1}
-              aria-label={via === "whatsapp" ? `Nomor ${t.wa}` : `Akun ${t.ig}`}
-              aria-invalid={touched && !!contact && !valid}
-              placeholder={via === "whatsapp" ? t.waPh : t.igPh}
-              type={via === "whatsapp" ? "tel" : "text"}
-              inputMode={via === "whatsapp" ? "tel" : "text"}
-              autoCapitalize="off"
-              autoCorrect="off"
-              className={`${field} min-w-0 font-mono ${touched && contact && !valid ? "shadow-[0_0_0_2px_var(--coral-strong)]" : ""}`}
-            />
-          </div>
-          {touched && contact && !valid && (
-            <p className="text-xs font-bold text-coral">{via === "whatsapp" ? t.waBad : t.igBad}</p>
-          )}
+          <input
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+            onBlur={() => setTouched(true)}
+            tabIndex={sheet ? 0 : -1}
+            aria-label={`Nomor ${t.wa}`}
+            aria-invalid={touched && !!contact && !valid}
+            placeholder={t.waPh}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            className={`${field} min-w-0 font-mono ${touched && contact && !valid ? "shadow-[0_0_0_2px_var(--coral-strong)]" : ""}`}
+          />
+          <p
+            className={`-mt-1 px-1 text-xs ${touched && contact && !valid ? "font-bold text-coral" : "text-paper/55"}`}
+          >
+            {touched && contact && !valid ? t.waBad : t.waWhy}
+          </p>
           <div className="flex items-start gap-3 rounded-2xl bg-white/5 px-3.5 py-3">
             {/* biome-ignore lint/a11y/useSemanticElements: centang bulat custom, aria-checked lengkap */}
             <button

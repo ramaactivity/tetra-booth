@@ -60,16 +60,22 @@ test("guest cam: join → unggah sampai jatah habis → batas ukuran → approva
     });
     expect(bad.status()).toBe(400);
 
-    const join = await request.post(`${base}/join`, {
+    // WA wajib (#232): IG saja ditolak.
+    const igOnly = await request.post(`${base}/join`, {
       headers: ip,
       data: { name: "Sari", instagram: "@sari.e2e", consent: true },
+    });
+    expect(igOnly.status()).toBe(400);
+    const join = await request.post(`${base}/join`, {
+      headers: ip,
+      data: { name: "Sari", whatsapp: "0812-7788-3021", instagram: "@sari.e2e", consent: true },
     });
     expect(join.status()).toBe(200);
     const me = await join.json();
     expect(me).toMatchObject({ name: "Sari", shotsLeft: 2, usedIdx: [] });
     const again = await request.post(`${base}/join`, {
       headers: ip,
-      data: { name: "Lain", whatsapp: "08123456789", consent: true },
+      data: { name: "Lain", whatsapp: "0813-5566-2041", consent: true },
     });
     expect((await again.json()).sessionId).toBe(me.sessionId);
 
@@ -183,8 +189,11 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await shot("A1");
       await page.getByRole("button", { name: "Isi Snapbook" }).click();
       await page.getByLabel("Nama kamu").fill("Sari");
-      await page.getByRole("button", { name: "Instagram" }).click();
-      await page.getByLabel("Akun Instagram").fill("@sari.e2e");
+      // WA wajib (#232): nomor asal ketik ditolak dengan pesan, nomor wajar diterima.
+      await page.getByLabel("Nomor WhatsApp").fill("0812 3456 7890");
+      await page.getByLabel("Nama kamu").click();
+      await expect(page.getByText("Pakai nomor WhatsApp aktif ya (08…)")).toBeVisible();
+      await page.getByLabel("Nomor WhatsApp").fill("0857 1122 9034");
       await page.getByRole("checkbox").click();
       await page.getByRole("button", { name: "Masuk", exact: true }).click();
       // Menu utama (#212): kamera, ucapan, photo frame, album.
@@ -233,27 +242,25 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await shot("A7a");
       await page.getByRole("button", { name: "Kembali" }).click();
       await page.getByRole("button", { name: /^Photo frame/ }).click();
-      // Bikin frame (#229): desain booth event jadi gaya pertama di ukurannya, foto tamu terisi otomatis.
+      // Bikin frame (#229): desain booth polos (tanpa gambar) tidak ditawarkan (#232); gaya Snapbook pertama
+      // terpilih, foto tamu terisi otomatis. Strip Renda butuh 3 foto → ajakan jepret lagi.
       await expect(page.getByRole("heading", { name: "Bikin frame" })).toBeVisible();
-      await expect(page.getByText("2 dari 2 fotomu dipakai")).toBeVisible();
-      await expect(page.getByRole("button", { name: "Desain booth" })).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
-      // 4R Renda Marun butuh 4 foto: CTA mengajak jepret lagi.
-      await page.getByRole("tab", { name: /^4R/ }).click();
+      await expect(page.getByRole("button", { name: "Desain booth" })).toHaveCount(0);
       await expect(page.getByRole("button", { name: "Renda Marun" })).toHaveAttribute(
         "aria-pressed",
         "true",
       );
-      await expect(page.getByRole("button", { name: "Jepret 2 foto lagi" })).toBeVisible();
-      await page.getByRole("tab", { name: /^Strip 2R/ }).click();
+      await expect(page.getByRole("button", { name: "Jepret 1 foto lagi" })).toBeVisible();
+      // Polaroid 1 foto: tamu punya 2 → langkah atur foto (terisi otomatis) → Print.
+      await page.getByRole("tab", { name: /^Polaroid/ }).click();
+      await expect(page.getByText("1 dari 2 fotomu dipakai")).toBeVisible();
       await expect(page.getByRole("img", { name: "Preview frame" })).toBeVisible({
         timeout: 15_000,
       });
       await page.waitForTimeout(1500);
       await shot("A9a");
       await page.getByRole("button", { name: "Pakai frame ini" }).click();
+      await page.getByRole("button", { name: "Print", exact: true }).click();
       await expect(page.getByRole("img", { name: "Frame kamu" })).toBeVisible();
       await shot("A9b");
       await page.getByRole("button", { name: "Kirim ke album" }).click();
@@ -311,7 +318,7 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await expect(page.getByText(/kebuka setelah acara/i)).toBeVisible();
       await page.getByRole("button", { name: "Isi Snapbook" }).click();
       await page.getByLabel("Nama kamu").fill("Andi");
-      await page.getByLabel("Nomor WhatsApp").fill("0812 3456 7890");
+      await page.getByLabel("Nomor WhatsApp").fill("0812 7788 3021");
       await page.getByRole("checkbox").click();
       await page.getByRole("button", { name: "Masuk", exact: true }).click();
       await expect(page.getByText("Kebuka setelah acara")).toBeVisible();

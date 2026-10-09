@@ -63,7 +63,7 @@ export async function GuestCamSection({
       db
         .from("assets")
         .select(
-          "id, kind, idx, r2_key, created_at, sessions!inner(event_id, source, deleted_at, group_name)",
+          "id, kind, idx, r2_key, created_at, sessions!inner(event_id, source, deleted_at, group_name, leads(data))",
         )
         .eq("organization_id", orgId)
         .eq("sessions.event_id", ev.id)
@@ -99,6 +99,7 @@ export async function GuestCamSection({
     (pending ?? []).map(async (a) => ({
       id: a.id,
       name: a.sessions.group_name ?? "Tamu",
+      wa: (a.sessions.leads[0]?.data as { whatsapp?: string } | null)?.whatsapp ?? null,
       time: clock(a.created_at),
       strip: a.kind === "strip_web",
       thumb: await presignGet(

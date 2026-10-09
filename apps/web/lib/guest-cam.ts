@@ -111,13 +111,19 @@ async function guestDesigns(ev: GuestEvent) {
     photobox?: { layouts?: unknown[] };
     assets?: Record<string, string>;
   };
-  const booth = [
+  const parsed = [
     ...(cfg.designs ?? [{ id: "main", name: "Desain booth", info: "", layout: cfg.layout }]),
     ...(cfg.photobox?.layouts ?? []),
   ].flatMap((d) => {
     const r = EventDesignSchema.safeParse(d);
     return r.success ? [r.data] : [];
   });
+  // Kertas di printer booth = kertas desain booth event (#223); tanpa desain booth (Print Station) semua boleh.
+  const papers = new Set<string>(parsed.map((d) => d.layout.paper));
+  const printable = (paper: string) => !papers.size || papers.has(paper);
+  // Desain polos (preset tanpa gambar overlay/latar, mis. placeholder sebelum desain klien diunggah) tidak
+  // ditawarkan ke tamu: frame Snapbook jauh lebih menarik (#232).
+  const booth = parsed.filter((d) => d.layout.overlay?.assetId || d.layout.background?.assetId);
   const names = cfg.assets ?? {};
   const url = async (id: string) => {
     const key = b.success ? b.data.files.find((f) => f.file === names[id])?.key : undefined;
@@ -140,6 +146,7 @@ async function guestDesigns(ev: GuestEvent) {
       name: d.name,
       style: "event",
       booth: true,
+      printable: true,
       layout: d.layout,
       assets,
       fonts,
@@ -153,6 +160,7 @@ async function guestDesigns(ev: GuestEvent) {
       name: f.styleName,
       style: f.style,
       booth: false,
+      printable: printable(layout.paper),
       layout,
       assets: {
         [`snap-${f.id}-bg`]: `/snapbook/${f.id}-bg.png`,
@@ -163,15 +171,6 @@ async function guestDesigns(ev: GuestEvent) {
   }
   return out;
 }
-
-/**
- * Frame yang boleh dicetak (#223): desain booth event (kertas yang terpasang di printer booth). Event tanpa desain
- * booth (Guest Cam + Print Station saja) boleh mencetak frame bawaan Tetra.
- */
-const printable = <D extends { booth: boolean }>(ds: D[]) => {
-  const anyBooth = ds.some((d) => d.booth);
-  return ds.map((d) => ({ ...d, printable: d.booth || !anyBooth }));
-};
 
 /** Info publik untuk halaman Guest Cam (GET /api/c/{token} dan render awal /c/{token}). */
 export async function guestInfo(ev: GuestEvent) {
@@ -190,7 +189,7 @@ export async function guestInfo(ev: GuestEvent) {
     strip: ev.cam.strip,
     consentText: ev.cam.consentText,
     revealed: guestRevealed(ev),
-    designs: ev.cam.strip ? printable(await guestDesigns(ev)) : [],
+    designs: ev.cam.strip ? await guestDesigns(ev) : [],
     /** Add-on cetak di lokasi (#223). */
     print: ev.cam.print && ev.cam.strip,
     coverUrl: await guestCover(ev),
@@ -335,7 +334,7 @@ export const quotaFull = () => Response.json({ error: "guest_full" }, { status: 
 
 /** Satu desain frame tamu (dengan tanda boleh dicetak) menurut id. */
 export async function guestDesignById(ev: GuestEvent, id: string) {
-  return printable(await guestDesigns(ev)).find((d) => d.id === id) ?? null;
+  return (await guestDesigns(ev)).find((d) => d.id === id) ?? null;
 }
 
 /** Cetak tamu ini (#223), atau null kalau belum pernah. */

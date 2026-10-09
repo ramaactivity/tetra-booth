@@ -80,7 +80,7 @@ test("admin: setelan Guest Cam → tamu unggah → setujui → galeri klien", as
       (
         await request.post(`${base}/join`, {
           headers: ip,
-          data: { name: "Sari", instagram: "@sari", consent: true },
+          data: { name: "Sari", whatsapp: "0857-1122-9034", consent: true },
         })
       ).ok(),
     ).toBe(true);

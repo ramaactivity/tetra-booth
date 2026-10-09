@@ -38,6 +38,23 @@ export const WhatsappSchema = z
   .string()
   .transform((s) => s.replace(/\D/g, "").replace(/^0/, "62").replace(/^8/, "628"))
   .pipe(z.string().regex(/^62\d{8,13}$/));
+/**
+ * Nomor HP tamu (#232): WhatsappSchema + harus nomor seluler Indonesia (628…, 10–13 digit setelah 0) dan bukan nomor
+ * asal ketik (semua digit sama, deret 1234567 / 7654321). Nomor dipakai untuk mempertanggungjawabkan foto tamu.
+ */
+export const GuestWhatsappSchema = WhatsappSchema.pipe(
+  z
+    .string()
+    .regex(/^628[1-9]\d{6,10}$/)
+    .refine((n) => {
+      const d = n.slice(3);
+      return (
+        !/^(\d)\1+$/.test(d) &&
+        !"01234567890".includes(d.slice(-7)) &&
+        !"09876543210".includes(d.slice(-7))
+      );
+    }),
+);
 /** "@Nama.Akun" / "instagram.com/nama.akun" → "nama.akun". */
 export const InstagramSchema = z
   .string()
@@ -54,18 +71,25 @@ export const InstagramSchema = z
 /** POST /api/c/{token}/join: nama + WhatsApp atau Instagram (minimal satu) + persetujuan. */
 export const GuestJoinRequest = z
   .object({
-    name: z.string().trim().min(2).max(80),
+    // Nama harus berisi huruf (bukan "..", "123"): tuan rumah perlu tahu siapa yang datang.
+    name: z
+      .string()
+      .trim()
+      .min(2)
+      .max(80)
+      .regex(/\p{L}.*\p{L}/u),
     whatsapp: z.string().max(30).optional(),
     instagram: z.string().max(80).optional(),
     consent: z.literal(true),
   })
   .transform((b, ctx) => {
-    const wa = b.whatsapp?.trim() ? WhatsappSchema.safeParse(b.whatsapp) : null;
+    const wa = b.whatsapp?.trim() ? GuestWhatsappSchema.safeParse(b.whatsapp) : null;
     const ig = b.instagram?.trim() ? InstagramSchema.safeParse(b.instagram) : null;
     if (wa && !wa.success) ctx.addIssue({ code: "custom", path: ["whatsapp"], message: "invalid" });
     if (ig && !ig.success)
       ctx.addIssue({ code: "custom", path: ["instagram"], message: "invalid" });
-    if (!wa && !ig) ctx.addIssue({ code: "custom", path: ["whatsapp"], message: "required" });
+    // WA wajib (#232): foto tamu bisa dipertanggungjawabkan. IG tetap diterima sebagai tambahan.
+    if (!wa) ctx.addIssue({ code: "custom", path: ["whatsapp"], message: "required" });
     return {
       name: b.name,
       whatsapp: wa?.success ? wa.data : undefined,
