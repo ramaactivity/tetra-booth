@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
-import { guestCursor } from "../cursorPref";
+import { boothSound, guestCursor } from "../cursorPref";
 import { eventDesigns } from "../designEdit";
 import { crewText, errText } from "../errors";
 import { type BoothEvent, DEFAULT_EVENT } from "../event";
@@ -231,6 +231,7 @@ export function CrewMenu({
   const p = usePlatform();
   const [status, setStatus] = useState<CrewStatus>();
   const [failed, setFailed] = useState<FailedPrint[]>([]);
+  const [clearAsk, setClearAsk] = useState(false);
   const [roll, setRoll] = useState<string | null>(null);
   const [sheet, setSheet] = useState<"roll" | "exit" | "update" | null>(startExit ? "exit" : null);
   const [localSettings, setLocalSettings] = useState(false);
@@ -306,6 +307,7 @@ export function CrewMenu({
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [blurWarn, setBlurWarn] = useState(() => sharpNotes.crewWarning());
   const [cursorOn, setCursorOn] = useState(guestCursor.shown);
+  const [soundOn, setSoundOn] = useState(boothSound.on);
   /** Job test print / cetak ulang terakhir: hasil akhirnya menggantikan catatan "dikirim" (W-018). */
   const [, setWatching] = useState<string | null>(null);
   const [auto, setAuto] = useState<{ enabled: boolean; supported: boolean }>();
@@ -540,6 +542,38 @@ export function CrewMenu({
             </Row>
           </li>
         ))}
+        <li className="flex flex-wrap items-center gap-3 border-t-2 border-dashed border-line-soft pt-4">
+          {clearAsk ? (
+            <>
+              <span className="text-lg font-semibold">{c.clearFailedAsk(failed.length)}</span>
+              <Button
+                className="h-14 rounded-2xl px-5 text-xl"
+                onClick={act(async () => {
+                  setClearAsk(false);
+                  await p.crew.clearFailedPrints();
+                }, c.clearFailedDone)}
+              >
+                {c.clearFailedYes}
+              </Button>
+              <Button
+                variant="plain"
+                className="h-14 rounded-2xl px-5 text-xl"
+                onClick={() => setClearAsk(false)}
+              >
+                {c.cancel}
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="secondary"
+              data-testid="clear-failed"
+              className="h-14 rounded-2xl px-5 text-xl"
+              onClick={() => setClearAsk(true)}
+            >
+              {c.clearFailed}
+            </Button>
+          )}
+        </li>
       </ul>
     );
 
@@ -1014,6 +1048,18 @@ export function CrewMenu({
         <div className="flex min-w-0 flex-col gap-6">
           <Panel title={c.systemTitle}>
             <div className="flex flex-col gap-4">
+              <ToggleRow
+                testId="booth-sound"
+                label={c.sound}
+                hint={c.soundHint}
+                on={soundOn}
+                onLabel={c.on}
+                offLabel={c.off}
+                onClick={() => {
+                  boothSound.set(!soundOn);
+                  setSoundOn(!soundOn);
+                }}
+              />
               <ToggleRow
                 testId="guest-cursor"
                 label={c.cursor}

@@ -142,13 +142,13 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   // Pengaturan event di booth (DECISIONS #100), langsung di halaman Event & Desain: override lokal, kembalikan.
   await w.getByTestId("crew-nav-event").click();
   const countdown = w.getByTestId("setting-countdownSec");
-  await expect(countdown).toContainText("cloud: 3");
+  await expect(countdown).toContainText("cloud: 5"); // bawaan 5 dtk (Rama 9 Okt)
   await expect(w.getByTestId("setting-sessionSec")).toHaveCount(0);
   await w.getByRole("button", { name: "Hitung mundur (detik) +" }).click();
   await w.getByRole("button", { name: "Hitung mundur (detik) +" }).click();
   await w.getByRole("button", { name: "Simpan", exact: true }).click();
   await expect(countdown).toContainText("diubah di booth");
-  await expect(countdown).toContainText("5");
+  await expect(countdown).toContainText("7");
   await expect(w.getByTestId("settings-local")).toBeVisible();
   await w.screenshot({ path: "test-results/crew-event-settings.png" });
   await w.getByRole("button", { name: "Kembalikan ke cloud" }).click();

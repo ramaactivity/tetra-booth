@@ -1,4 +1,5 @@
 import type { SoundCue } from "@tetra/shared";
+import { boothSound } from "./cursorPref";
 
 /**
  * Kalimat & suara di sela foto (DECISIONS #103), supaya sesi tidak monoton "cekrek" saja.
@@ -78,7 +79,8 @@ export function playAfter(cue: Cue, waitMs = 600): Promise<boolean> {
  */
 export function play(cue: Cue, maxMs = 8000): Promise<boolean> {
   const src = overrides[cue];
-  if (src === "off") return Promise.resolve(true);
+  // Suara dimatikan crew (per laptop) = sama dengan cue "off": tanpa bunyi, alur tetap jalan.
+  if (src === "off" || !boothSound.on()) return Promise.resolve(true);
   return new Promise((resolve) => {
     let a: HTMLAudioElement;
     try {

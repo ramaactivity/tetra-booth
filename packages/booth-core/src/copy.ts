@@ -566,6 +566,9 @@ export const copy = {
     },
     unsent: (n: number) => `${n} file belum terkirim`,
     allSent: "Semua foto sudah terkirim",
+    sound: "Suara booth",
+    soundHint:
+      "Suara pemandu, sorakan, dan bunyi hitung mundur. Matikan untuk acara formal atau ruang tenang.",
     cursor: "Kursor mouse di layar tamu",
     cursorOn: "Tampil",
     cursorOff: "Sembunyi",
@@ -784,6 +787,10 @@ export const copy = {
     failedPrints: "Cetak gagal",
     none: "Belum ada",
     reprint: "Cetak ulang",
+    clearFailed: "Bersihkan daftar",
+    clearFailedAsk: (n: number) => `Hapus ${n} cetak gagal dari daftar? Tidak dicetak ulang.`,
+    clearFailedYes: "Ya, hapus semua",
+    clearFailedDone: "Daftar cetak gagal dibersihkan",
     uncertain:
       "Mungkin sudah tercetak. Cek lembar yang keluar dulu, cetak ulang hanya kalau tidak ada.",
     changePin: "Ganti PIN",

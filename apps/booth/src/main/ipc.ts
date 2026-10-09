@@ -567,6 +567,13 @@ export function registerIpc(
       .failedPrints()
       .map((j) => ({ id: j.id, copies: j.copies, error: j.error, createdAt: j.created_at }));
   });
+  ipcMain.handle("crewClearFailedPrints", () => {
+    crewOnly();
+    const n = db.dismissFailedPrints();
+    console.info(`[print] ${n} cetak gagal dihapus dari daftar oleh crew`);
+    alerts.refresh();
+    return n;
+  });
   ipcMain.handle("crewReprint", async (_e, id: unknown) => {
     crewOnly();
     const j = db.printJobById(z.string().min(1).max(64).parse(id));

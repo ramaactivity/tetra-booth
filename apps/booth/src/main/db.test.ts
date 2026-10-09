@@ -200,6 +200,18 @@ describe("status print_jobs (M-009, M-012)", () => {
     expect(db.failedPrints().map((j) => j.id)).toEqual(["u"]);
   });
 
+  it("Bersihkan daftar: cetak gagal hilang dari daftar & hitungan, cetak lain tidak tersentuh", () => {
+    const db = openDb(":memory:");
+    for (const id of ["a", "b", "c"]) db.printSubmitting(job(id));
+    db.printJobResult("a", "failed", "kertas habis");
+    db.printJobResult("b", "failed", "printer mati");
+    db.printJobResult("c", "done");
+    expect(db.dismissFailedPrints()).toBe(2);
+    expect(db.failedPrints()).toEqual([]);
+    expect(db.failedPrintCount()).toBe(0);
+    expect(status(db, "c")?.status).toBe("done");
+  });
+
   it("hasil yang datang belakangan tidak menimpa hasil pertama", () => {
     const db = openDb(":memory:");
     db.printSubmitting(job("d"));

@@ -179,6 +179,8 @@ export interface BoothCrew {
   failedPrints(): Promise<FailedPrint[]>;
   /** Cetak ulang job gagal sebagai job baru; kembalikan id job baru. */
   reprint(jobId: string): Promise<string>;
+  /** Hapus semua cetak gagal dari daftar (tidak dicetak ulang); kembalikan jumlahnya. */
+  clearFailedPrints(): Promise<number>;
   exit(): Promise<void>;
   /** Buka dialog Printing Preferences printer (potong 2 inci DNP hanya bisa diatur di sana, DECISIONS #59). */
   printerSettings(): Promise<void>;

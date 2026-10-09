@@ -121,7 +121,8 @@ export type GallerySession = {
   printCount: number;
   reprinted: number;
 };
-export type PrintJobStatus = "queued" | "done" | "failed" | "reprinted";
+/** `dismissed` = cetak gagal dihapus crew dari daftar (tidak dicetak ulang, tidak dihitung). */
+export type PrintJobStatus = "queued" | "done" | "failed" | "reprinted" | "dismissed";
 export type PrintJobInfo = {
   id: string;
   session_id: string;
@@ -333,6 +334,13 @@ export function openDb(file: string) {
           n: number;
         }
       ).n;
+    },
+    /** Hapus semua cetak gagal dari daftar crew (tombol Bersihkan); kembalikan jumlahnya. */
+    dismissFailedPrints(): number {
+      return Number(
+        db.prepare("update print_jobs set status = 'dismissed' where status = 'failed'").run()
+          .changes,
+      );
     },
     /** Cetak gagal yang belum dicetak ulang, terbaru dulu. */
     failedPrints(): PrintJobInfo[] {
