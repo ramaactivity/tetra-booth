@@ -22,7 +22,8 @@ const start = async (w: Page) => {
 };
 const session = async (w: Page) => {
   await start(w);
-  await w.getByRole("button", { name: /pakai semua foto/i }).click({ timeout: 30_000 });
+  // Hitung mundur bawaan 5 dtk (#241) × 3 foto: di laptop sibuk sesi bisa > 30 dtk.
+  await w.getByRole("button", { name: /pakai semua foto/i }).click({ timeout: 60_000 });
   await w.getByRole("button", { name: /cetak sekarang/i }).click({ timeout: 15_000 });
   await w.getByRole("button", { name: "Selesai" }).click({ timeout: 60_000 });
 };
