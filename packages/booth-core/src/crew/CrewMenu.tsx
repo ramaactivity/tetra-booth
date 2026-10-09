@@ -458,8 +458,11 @@ export function CrewMenu({
     : status?.device
       ? c.paired(status.device.name, status.device.shortCode)
       : c.unpaired;
-  const uploadText =
-    status?.uploadError ?? (status?.uploadPending ? c.unsent(status.uploadPending) : c.allSent);
+  const uploadText = !status?.uploadPending
+    ? c.allSent
+    : status.uploadError
+      ? c.uploadWhy(status.uploadPending, uploadReason(status.uploadError))
+      : c.unsent(status.uploadPending);
   const savedCamera = dev.info?.now.camera ?? "webcam";
   const cameraName = c.dev.choice[savedCamera].title;
   const runTone: Tone =
@@ -951,13 +954,64 @@ export function CrewMenu({
             </Row>
             <Row label={c.flow.upload} hint={uploadText}>
               {!!status?.uploadPending && status.device && (
-                <Button variant="plain" className={btn} onClick={act(() => p.crew.retryUploads())}>
+                <Button
+                  variant="secondary"
+                  className={btn}
+                  onClick={act(() => p.crew.retryUploads())}
+                >
                   {c.retryUpload}
                 </Button>
               )}
             </Row>
           </Panel>
           <RoleChoice dev={dev} />
+          <Panel title={c.systemTitle}>
+            <div className="flex flex-col gap-4">
+              <ToggleRow
+                testId="guest-cursor"
+                label={c.cursor}
+                hint={c.flow.cursorHint}
+                on={cursorOn}
+                onLabel={c.cursorOn}
+                offLabel={c.cursorOff}
+                onClick={() => {
+                  guestCursor.set(!cursorOn);
+                  setCursorOn(!cursorOn);
+                }}
+              />
+              {auto?.supported ? (
+                <ToggleRow
+                  label={c.autoStart}
+                  hint={c.flow.autoStartHint}
+                  on={auto.enabled}
+                  onLabel={c.on}
+                  offLabel={c.off}
+                  onClick={act(async () => setAuto(await p.crew.setAutoStart(!auto.enabled)))}
+                />
+              ) : (
+                <Row label={c.autoStart} hint={auto ? c.autoStartDev : "…"} />
+              )}
+            </div>
+          </Panel>
+        </div>
+        <div className="flex min-w-0 flex-col gap-6">
+          <Panel title={c.appTitle}>
+            <Row label={c.update} hint={c.flow.updateHint}>
+              <Button variant="secondary" className={btn} onClick={openUpdate}>
+                {c.flow.checkUpdate}
+              </Button>
+            </Row>
+            <Row label={c.flow.pin} hint={c.flow.pinHint}>
+              <Button variant="secondary" className={btn} onClick={onChangePin}>
+                {c.changePin}
+              </Button>
+            </Row>
+            <Row label={c.exit} hint={c.flow.exitHint}>
+              <Button variant="destructive" className={btn} onClick={() => setSheet("exit")}>
+                {c.exit}
+              </Button>
+            </Row>
+          </Panel>
           <Panel title={c.sharpen.title} hint={c.sharpen.body}>
             {sharpen && (
               <p data-testid="sharpen-status" className="text-2xl font-bold">
@@ -988,53 +1042,6 @@ export function CrewMenu({
                 {c.sharpen.start}
               </Button>
             )}
-          </Panel>
-        </div>
-        <div className="flex min-w-0 flex-col gap-6">
-          <Panel title={c.systemTitle}>
-            <div className="flex flex-col gap-4">
-              <ToggleRow
-                testId="guest-cursor"
-                label={c.cursor}
-                hint={c.flow.cursorHint}
-                on={cursorOn}
-                onLabel={c.cursorOn}
-                offLabel={c.cursorOff}
-                onClick={() => {
-                  guestCursor.set(!cursorOn);
-                  setCursorOn(!cursorOn);
-                }}
-              />
-              {auto?.supported ? (
-                <ToggleRow
-                  label={c.autoStart}
-                  hint={c.flow.autoStartHint}
-                  on={auto.enabled}
-                  onLabel={c.on}
-                  offLabel={c.off}
-                  onClick={act(async () => setAuto(await p.crew.setAutoStart(!auto.enabled)))}
-                />
-              ) : (
-                <Row label={c.autoStart} hint={auto ? c.autoStartDev : "…"} />
-              )}
-            </div>
-          </Panel>
-          <Panel title={c.appTitle}>
-            <Row label={c.update} hint={c.flow.updateHint}>
-              <Button variant="secondary" className={btn} onClick={openUpdate}>
-                {c.flow.checkUpdate}
-              </Button>
-            </Row>
-            <Row label={c.flow.pin} hint={c.flow.pinHint}>
-              <Button variant="plain" className={btn} onClick={onChangePin}>
-                {c.changePin}
-              </Button>
-            </Row>
-            <Row label={c.exit} hint={c.flow.exitHint}>
-              <Button variant="destructive" className={btn} onClick={() => setSheet("exit")}>
-                {c.exit}
-              </Button>
-            </Row>
           </Panel>
         </div>
       </div>
@@ -1240,4 +1247,14 @@ export function CrewMenu({
       )}
     </main>
   );
+}
+
+/** Error upload mentah ("/api/booth/sessions: server 404", "fetch failed") → alasan yang dimengerti crew. */
+function uploadReason(raw: string): string {
+  const e = copy.crew.uploadErr;
+  if (/server 401|server 403/.test(raw)) return e.revoked;
+  if (/server 404/.test(raw)) return e.gone;
+  if (/server 5\d\d/.test(raw)) return e.server;
+  if (/fetch failed|offline|ENOTFOUND|ECONN|ETIMEDOUT|network/i.test(raw)) return e.offline;
+  return e.other;
 }
