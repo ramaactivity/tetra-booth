@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { cardDesign } from "@/lib/guest-card-art";
 import { cardHtml } from "@/lib/guest-card-html";
+import { readableLink } from "@/lib/guest-link";
 import { CardStudio } from "../CardStudio";
 import { loadCardEvent } from "../card-data";
 
@@ -29,7 +30,7 @@ export default async function GuestCardPage({
       size={a6 ? "a6" : "a5"}
       page={a6 ? { w: 105, h: 148 } : { w: 148, h: 210 }}
       sides={["table-card"]}
-      file={`kartu-qr-meja-${design}-${a6 ? "a6" : "a5"}.pdf`}
+      file={`kartu-qr-meja-${readableLink(data.name)}-${design}-${a6 ? "a6" : "a5"}.pdf`}
       help={`PDF ${a6 ? "A6 (10,5×14,8 cm)" : "A5 (14,8×21 cm)"}, siap dikirim ke percetakan. Untuk standing akrilik meja biasanya A5.`}
     >
       <div

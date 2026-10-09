@@ -75,7 +75,7 @@ test("katalog 10 konsep + cetak kartu meja & kartu nama per konsep", async ({ pa
       page.waitForEvent("download"),
       page.getByRole("button", { name: "Unduh PDF" }).click(),
     ]);
-    expect(pdf.suggestedFilename()).toBe("kartu-qr-meja-teater-a5.pdf");
+    expect(pdf.suggestedFilename()).toBe("kartu-qr-meja-rafi-dinda-teater-a5.pdf");
     await pdf.saveAs(`${SHOTS}/meja-teater-a5.pdf`);
     await page.goto(`/admin/events/${ev?.slug}/business-card?d=kamera`);
     await page.waitForTimeout(800);

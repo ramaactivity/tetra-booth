@@ -1,5 +1,6 @@
 import { cardDesign } from "@/lib/guest-card-art";
 import { cardHtml } from "@/lib/guest-card-html";
+import { readableLink } from "@/lib/guest-link";
 import { CardStudio } from "../CardStudio";
 import { loadCardEvent } from "../card-data";
 
@@ -38,7 +39,7 @@ export default async function BusinessCardPage({
       design={design}
       page={{ w: 96, h: 61 }}
       sides={["business-card", "business-card-back"]}
-      file={`kartu-qr-nama-${design}.pdf`}
+      file={`kartu-qr-nama-${readableLink(data.name)}-${design}.pdf`}
       help="PDF 2 halaman (depan & belakang), 90×55 mm + bleed 3 mm. Kirim ke percetakan: cetak bolak-balik, 1 box isi 100."
     >
       <div className="flex flex-col gap-6 print:block">
