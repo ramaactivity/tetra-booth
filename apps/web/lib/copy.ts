@@ -1,5 +1,97 @@
 /** Semua teks UI web (CLAUDE.md: satu file copy per app). */
 export const copy = {
+  /** Landing booth.tetraphoto.com (#244): calon klien acara (B2C) + vendor photobooth (B2B). */
+  landing: {
+    meta: {
+      title: "Tetra Booth · Photobooth & aplikasi photobooth",
+      description:
+        "Sewa photobooth, Photo Stage, dan Snapbook untuk acaramu di Bogor & Jabodetabek. Vendor photobooth? Pakai aplikasi Tetra Booth.",
+    },
+    navEvent: "Untuk acara",
+    navVendor: "Untuk vendor",
+    navLogin: "Masuk",
+    book: "Cek tanggal & harga",
+    bookShort: "Cek tanggal",
+    heroKicker: "Tetra Photobooth · Bogor & Jabodetabek",
+    heroTitle: "Foto seru di acaramu, langsung jadi kenangan.",
+    heroBody:
+      "Photobooth dengan cetak instan dan galeri online. Tamu ambil fotonya lewat QR, kamu dapat semuanya dalam satu album.",
+    pickEvent: {
+      title: "Saya mau sewa",
+      body: "Photobooth, Photo Stage & Snapbook untuk nikahan, ultah, dan acara kantor.",
+    },
+    pickVendor: {
+      title: "Saya vendor photobooth",
+      body: "Aplikasi booth yang kami pakai sendiri, siap untuk usahamu.",
+    },
+    eventKicker: "Untuk acara",
+    eventTitle: "Tiga cara tamu mengabadikan acaramu",
+    products: [
+      {
+        name: "Photobooth",
+        body: "Tamu foto sendiri di layar sentuh, desain frame khusus acaramu, cetak instan, dan QR untuk unduh di HP.",
+        tag: "Cetak instan",
+      },
+      {
+        name: "Photo Stage",
+        body: "Fotografer memotret tiap rombongan di pelaminan. Turun panggung, tamu langsung scan QR rombongannya.",
+        tag: "Eksklusif Tetra",
+      },
+      {
+        name: "Snapbook",
+        body: "Buku tamu versi kekinian: tamu jepret dari HP, kirim voice note, bikin frame, langsung masuk album.",
+        tag: "Eksklusif Tetra",
+      },
+    ],
+    stepsTitle: "Cara pesan",
+    steps: [
+      ["Cek tanggal", "Pilih tanggal & paket, harga langsung terlihat."],
+      ["Isi data acara", "Lokasi, jadwal, dan desain frame lewat dashboard acaramu."],
+      ["Hari H", "Crew Tetra datang, setup, dan tamu tinggal berfoto."],
+    ],
+    galleryTitle: "Semua foto di satu galeri online",
+    galleryBody:
+      "Tiap sesi punya QR sendiri. Setelah acara, kamu dapat galeri lengkap untuk diunduh dan dibagikan.",
+    askAdmin: "Tanya admin di WhatsApp",
+    vendorKicker: "Untuk vendor photobooth",
+    vendorTitle: "Aplikasi photobooth yang tetap jalan walau internet mati",
+    vendorBody:
+      "Tetra Booth dipakai di setiap acara Tetra Photobooth. Sekarang bisa dipakai vendor lain: booth di laptop Windows, galeri online, dan admin dalam satu sistem.",
+    features: [
+      [
+        "Offline-first",
+        "Sesi, cetak, dan antrean upload tetap jalan tanpa internet. Foto terkirim sendiri saat online.",
+      ],
+      [
+        "Kamera profesional",
+        "Canon, Sony, Lumix, dan Nikon lewat SDK resmi, atau webcam. Live view, fokus, dan Tes Jepret dari mode crew.",
+      ],
+      [
+        "Cetak otomatis",
+        "Printer sublimasi (DNP) dengan koreksi warna & lembar kalibrasi. Strip 2R, 4R, dan polaroid.",
+      ],
+      [
+        "Galeri & QR per sesi",
+        "Tamu scan QR untuk unduh strip, foto asli, dan animasi. Klien dapat galeri lengkap.",
+      ],
+      [
+        "Mode photobox",
+        "Tamu pilih layout dan bayar QRIS sendiri. Cocok untuk booth di mall atau kafe.",
+      ],
+      [
+        "Admin & desain",
+        "Buat event, unggah atau edit desain frame, atur paket, dan pantau semua booth dari browser.",
+      ],
+    ],
+    demo: "Minta demo",
+    demoWa: "Halo Tetra, saya vendor photobooth dan mau demo aplikasi Tetra Booth.",
+    eventWa: "Halo Tetra, saya mau tanya photobooth untuk acara saya.",
+    guestTitle: "Mencari fotomu?",
+    guestBody: "Scan QR di cetakan atau kartu meja acara. Link galeri juga dikirim tuan rumah.",
+    footer: "Tetra Photobooth · Bogor",
+    ig: "@tetraphotobooth",
+    site: "tetraphoto.com",
+  },
   lead: {
     title: "Satu langkah lagi",
     fields: {
