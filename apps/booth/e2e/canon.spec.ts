@@ -77,6 +77,8 @@ test("canon (EDSDK palsu): setelan ISO dari kamera tampil & bisa diubah di mode 
   });
   try {
     const w = await app.firstWindow();
+    const logs: string[] = [];
+    app.process().stdout?.on("data", (d) => logs.push(String(d)));
     await expect(w.getByRole("button", { name: /sentuh untuk mulai/i })).toBeVisible();
     await w.waitForTimeout(1500);
     for (let i = 0; i < 5; i++) await w.getByTestId("crew-hotspot").click();
@@ -84,19 +86,20 @@ test("canon (EDSDK palsu): setelan ISO dari kamera tampil & bisa diubah di mode 
     await typePin(w, "2468");
     // Setelan eksposur langsung di halaman Kamera (menu samping crew).
     await w.getByTestId("crew-nav-camera").click();
-    await expect(w.getByText("ISO live view · ISO 100")).toBeVisible({ timeout: 10_000 });
+    // Kecerahan monitor (#233): ISO/shutter live view tidak tampil; stepper menggeser ISO live view di balik layar.
+    await expect(w.getByTestId("monitor-brightness")).toBeVisible({ timeout: 10_000 });
+    await expect(w.getByTestId("camera-prop-iso")).toHaveCount(0);
+    await expect(w.getByTestId("camera-prop-shutterspeed")).toHaveCount(0);
     await expect(w.getByText("ISO jepret (flash) · Sama dengan live view")).toBeVisible();
     await expect(w.getByText("Kualitas · JPEG L Fine")).toBeVisible();
-    await w
-      .getByTestId("camera-prop-iso")
-      .getByRole("button", { name: "ISO 800", exact: true })
-      .click();
-    await expect(w.getByText("ISO live view · ISO 800")).toBeVisible();
+    const level = w.getByTestId("monitor-level");
+    const before = (await level.textContent()) ?? "";
+    await w.getByRole("button", { name: "Lebih terang" }).click();
+    await expect(level).not.toHaveText(before);
+    await expect.poll(() => logs.join("")).toMatch(/\[camera\] iso = ISO \d+/);
     await w.screenshot({ path: "test-results/canon-crew.png" });
 
     // Tap to focus (#114) di Tes Jepret: ketukan diteruskan ke Camera Service.
-    const logs: string[] = [];
-    app.process().stdout?.on("data", (d) => logs.push(String(d)));
     await w
       .getByRole("button", { name: /Tes Jepret/ })
       .first()
@@ -113,13 +116,13 @@ test("canon (EDSDK palsu): setelan ISO dari kamera tampil & bisa diubah di mode 
     await w.screenshot({ path: "test-results/canon-tapfocus.png" });
 
     // Setelan kamera di Tes Jepret (W-034): kolom kanan selalu tampil, perubahan langsung ke kamera.
-    const shutter = w.getByTestId("camera-prop-shutterspeed");
-    await expect(shutter).toBeVisible();
+    // Shutter live view dikunci anti kedip (kamera palsu tanpa 1/50: 50 Hz memakai yang terdekat); 60 Hz → 1/60.
     await expect(w.getByTestId("camera-prop-shutter_capture")).toContainText(
       "Sama dengan live view",
     );
-    await shutter.getByRole("button", { name: "1/60", exact: true }).click();
-    await expect(shutter).toContainText("Shutter · 1/60");
+    await w.getByRole("button", { name: "60 Hz" }).click();
+    await expect.poll(() => logs.join("")).toMatch(/\[camera\] shutterspeed = 1\/60/);
+    await w.getByRole("button", { name: "50 Hz" }).click();
     await w.screenshot({ path: "test-results/canon-settings.png" });
   } finally {
     await app.close();

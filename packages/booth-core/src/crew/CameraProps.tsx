@@ -68,6 +68,117 @@ function Stepper({ x, onPick }: { x: CameraProp; onPick: (o: string) => void }) 
   );
 }
 
+const HZ_KEY = "tb.flickerHz";
+const readHz = (): 50 | 60 => {
+  try {
+    return localStorage.getItem(HZ_KEY) === "60" ? 60 : 50;
+  } catch {
+    return 50;
+  }
+};
+/** "1/50" → 0.02, "2\"" → 2; selain itu NaN. */
+const seconds = (o: string) => {
+  const f = o.match(/^1\/(\d+)$/);
+  if (f) return 1 / Number(f[1]);
+  const s = o.match(/^([\d.]+)"$/);
+  return s ? Number(s[1]) : Number.NaN;
+};
+/** Pilihan shutter terdekat ke 1/hz (anti kedip lampu: 1/50 untuk listrik 50 Hz/PAL, 1/60 untuk 60 Hz/NTSC). */
+export const flickerShutter = (options: string[], hz: 50 | 60) =>
+  options
+    .filter((o) => !Number.isNaN(seconds(o)))
+    .sort((a, b) => Math.abs(Math.log(seconds(a) * hz)) - Math.abs(Math.log(seconds(b) * hz)))[0];
+
+/**
+ * Kecerahan monitor (masukan Rama 9 Okt, #233): crew awam tidak perlu tahu ISO/shutter live view. Satu stepper
+ * lebih gelap/lebih terang menggeser ISO live view; shutter live view dikunci 1/50 atau 1/60 sesuai listrik lampu
+ * (anti kedip). Di balik layar tetap ISO + shutter + bukaan, nilai asli kamera.
+ */
+function MonitorBrightness({
+  iso,
+  shutter,
+  onSet,
+}: {
+  iso: CameraProp | undefined;
+  shutter: CameraProp | undefined;
+  onSet: (name: string, value: string) => void;
+}) {
+  const [hz, setHz] = useState(readHz);
+  const target = shutter && flickerShutter(shutter.options, hz);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: kunci sekali tiap target berubah
+  useEffect(() => {
+    if (shutter && target && shutter.value !== target) onSet(shutter.name, target);
+  }, [target]);
+  const levels = iso?.options.filter((o) => !/auto|otomatis/i.test(o)) ?? [];
+  const i = iso ? levels.indexOf(iso.value) : -1;
+  const go = (d: number) => {
+    const o =
+      levels[
+        Math.min(
+          levels.length - 1,
+          Math.max(0, (i < 0 ? Math.floor(levels.length / 2) - d : i) + d),
+        )
+      ];
+    if (iso && o && o !== iso.value) onSet(iso.name, o);
+  };
+  const pick = (h: 50 | 60) => {
+    try {
+      localStorage.setItem(HZ_KEY, String(h));
+    } catch {}
+    setHz(h);
+  };
+  return (
+    <div className="flex flex-col gap-4" data-testid="monitor-brightness">
+      {iso && levels.length > 1 && (
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            aria-label={copy.crew.darker}
+            className={`${stepBtn} w-auto px-4 text-lg`}
+            disabled={i === 0}
+            onClick={() => go(-1)}
+          >
+            ◀ {copy.crew.darker}
+          </button>
+          <div className="flex h-16 min-w-0 flex-1 flex-col justify-center gap-1.5 rounded-[16px] border-[2.5px] border-ink bg-white px-3">
+            <div className="flex gap-1" aria-hidden>
+              {levels.map((o, k) => (
+                <span
+                  key={o}
+                  className={`h-4 flex-1 rounded-[3px] ${k <= i ? "bg-butter" : "bg-neutral"} ${k === i ? "outline-2 outline-ink" : ""}`}
+                />
+              ))}
+            </div>
+            <span className="text-center font-mono text-base font-bold" data-testid="monitor-level">
+              {i < 0 ? copy.crew.auto : copy.crew.level(i + 1, levels.length)}
+            </span>
+          </div>
+          <button
+            type="button"
+            aria-label={copy.crew.brighter}
+            className={`${stepBtn} w-auto px-4 text-lg`}
+            disabled={i === levels.length - 1}
+            onClick={() => go(1)}
+          >
+            {copy.crew.brighter} ▶
+          </button>
+        </div>
+      )}
+      {shutter && (
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className={label}>{copy.crew.flicker}</span>
+          {([50, 60] as const).map((h) => (
+            <button key={h} type="button" className={chip(hz === h)} onClick={() => pick(h)}>
+              {h} Hz
+            </button>
+          ))}
+          <span className="text-base text-text-2">{copy.crew.flickerHint}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Kelompok di Tes Jepret: apa yang dilihat tamu, apa yang dipakai saat foto, sisanya (masukan Rama W-034). */
 const GROUPS: { title: string; hint?: string; names: string[] }[] = [
   { title: copy.crew.groupLive, hint: copy.crew.groupLiveHint, names: ["iso", "shutterspeed"] },
@@ -159,7 +270,15 @@ export function CameraProps({
               <h3 className="text-2xl font-extrabold">{g.title}</h3>
               {g.hint && <p className="mt-1 text-lg text-text-2">{g.hint}</p>}
             </div>
-            {items.map(row)}
+            {g.names.includes("iso") ? (
+              <MonitorBrightness
+                iso={items.find((x) => x.name === "iso")}
+                shutter={items.find((x) => x.name === "shutterspeed")}
+                onSet={(n, v) => void setProp(n, v)}
+              />
+            ) : (
+              items.map(row)
+            )}
           </section>
         );
       })}

@@ -111,22 +111,19 @@ for (const b of BODIES) {
       await typePin(w, "2468");
       await typePin(w, "2468");
       await w.getByTestId("crew-nav-camera").click();
-      await expect(w.getByText("ISO · ISO 400")).toBeVisible({ timeout: 10_000 });
-      await expect(w.getByText("Simpan foto ke · PC saja")).toBeVisible();
-      await w
-        .getByTestId("camera-prop-iso")
-        .getByRole("button", { name: "ISO 800", exact: true })
-        .click();
-      await expect(w.getByText("ISO · ISO 800")).toBeVisible();
-
       const logs: string[] = [];
       app.process().stdout?.on("data", (d) => logs.push(String(d)));
+      // Kecerahan monitor (#233): stepper menggeser ISO, shutter dikunci anti kedip 1/50.
+      await expect(w.getByTestId("monitor-brightness")).toBeVisible({ timeout: 10_000 });
+      await expect(w.getByText("Simpan foto ke · PC saja")).toBeVisible();
+      await expect(w.getByTestId("camera-prop-iso")).toHaveCount(0);
+      await w.getByRole("button", { name: "Lebih terang" }).click();
+      await expect.poll(() => logs.join("")).toMatch(/\[camera\] iso = /);
+      await expect.poll(() => logs.join("")).toMatch(/\[camera\] shutterspeed = 1\/\d+/);
       await w
         .getByRole("button", { name: /Tes Jepret/ })
         .first()
         .click();
-      const shutter = w.getByTestId("camera-prop-shutterspeed");
-      await expect(shutter).toContainText("Shutter · 1/125");
       await expect(w.getByTestId("camera-prop-battery")).toContainText("80%");
       // Live view jalan (meter ketajaman dari frame) sebelum tap-to-focus ditanyakan ke kamera.
       await expect(w.getByTestId("focus-meter")).toBeVisible({ timeout: 10_000 });
@@ -144,8 +141,9 @@ for (const b of BODIES) {
         .last()
         .click();
       await expect(w.getByTestId("last-shot").locator("img")).toBeVisible({ timeout: 20_000 });
-      await shutter.getByRole("button", { name: "1/60", exact: true }).click();
-      await expect(shutter).toContainText("Shutter · 1/60");
+      await w.getByRole("button", { name: "60 Hz" }).click();
+      await expect.poll(() => logs.join("")).toMatch(/\[camera\] shutterspeed = 1\/60/);
+      await w.getByRole("button", { name: "50 Hz" }).click();
       // Live view kembali setelah Tes Jepret (LiveView dipasang ulang).
       await expect(w.getByText("Lihat ke kamera")).toBeHidden({ timeout: 10_000 });
       await w.screenshot({ path: `test-results/sony-${b.fake}-tes-jepret-shot.png` });
