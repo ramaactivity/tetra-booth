@@ -3,6 +3,7 @@ import type { GuestMe, GuestPrintInfo } from "@tetra/shared";
 import { ChevronLeft, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GuestPromo, PROMO_SAVED } from "@/components/GuestPromo";
+import { PhotoViewer } from "@/components/PhotoViewer";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
 import type { GuestPromo as Promo } from "@/lib/promo";
@@ -59,7 +60,8 @@ export function Mine({
 }) {
   const [tab, setTab] = useState<"mine" | "album">("mine");
   const [album, setAlbum] = useState<Item[] | null>(null);
-  const [view, setView] = useState<Item | null>(null);
+  // Penampil besar (revisi 9 Okt): indeks foto di daftar tab aktif; geser kiri/kanan lewat PhotoViewer.
+  const [view, setView] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const used = me.usedIdx.length + pending;
 
@@ -188,11 +190,11 @@ export function Mine({
           )}
           {list.length ? (
             <ul className="grid grid-cols-3 gap-[3px] px-[3px]">
-              {list.map((p) => (
+              {list.map((p, i) => (
                 <li key={p.key} className="relative aspect-[3/4] overflow-hidden bg-white/10">
                   <button
                     type="button"
-                    onClick={() => setView(p)}
+                    onClick={() => setView(i)}
                     className="block size-full"
                     aria-label={p.by ? `Foto oleh ${p.by}` : "Lihat foto"}
                   >
@@ -246,33 +248,24 @@ export function Mine({
 
       {promo && <GuestPromo promo={promo} />}
 
-      {view && (
-        <div
-          className="fixed inset-0 z-30 mx-auto flex max-w-[480px] flex-col bg-black"
-          role="dialog"
-          aria-label="Foto"
+      {view !== null && list[view] && (
+        <PhotoViewer
+          items={list.map((p) => ({ src: p.url, thumb: p.thumb }))}
+          index={view}
+          onIndex={setView}
+          onClose={() => setView(null)}
         >
-          <div className="flex items-center justify-between px-4 pt-[max(12px,env(safe-area-inset-top))] pb-2">
-            <button
-              type="button"
-              onClick={() => setView(null)}
-              aria-label={t.close}
-              className="flex size-10 items-center justify-center rounded-full bg-white/10"
-            >
-              ✕
-            </button>
-            {view.by && <span className="text-sm font-bold">oleh {view.by}</span>}
-            <button
-              type="button"
-              onClick={() => void saveFiles([view.url])}
-              className="h-10 rounded-full bg-paper px-4 text-sm font-extrabold text-ink"
-            >
-              {t.saveHp}
-            </button>
-          </div>
-          {/* biome-ignore lint/performance/noImgElement: URL R2 bertanda tangan */}
-          <img src={view.url} alt="" className="min-h-0 flex-1 object-contain" />
-        </div>
+          {list[view].by && (
+            <span className="self-center text-sm font-bold text-paper">oleh {list[view].by}</span>
+          )}
+          <button
+            type="button"
+            onClick={() => void saveFiles([list[view]?.url ?? ""])}
+            className="pressable h-12 rounded-[14px] border-[1.5px] border-ink bg-butter px-3 text-[15px] font-extrabold text-ink"
+          >
+            {t.saveHp}
+          </button>
+        </PhotoViewer>
       )}
     </main>
   );

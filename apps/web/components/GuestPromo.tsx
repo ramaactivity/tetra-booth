@@ -283,7 +283,10 @@ function WaStep({ promo, onDone }: { promo: Promo; onDone: (v: Saved) => void })
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const chat = `https://wa.me/${promo.whatsapp}?text=${encodeURIComponent(t.chatText(promo.eventName))}`;
+  const chat = `https://wa.me/${promo.whatsapp}?text=${encodeURIComponent(
+    // Browser dalam aplikasi IG/TikTok men-decode ulang link wa.me: & # + % memotong pesan (aturan bot admin).
+    t.chatText(promo.eventName.replace(/&/g, "dan").replace(/[#+%]/g, " ")),
+  )}`;
   return (
     <form
       className="flex flex-col gap-3.5"

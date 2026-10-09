@@ -269,7 +269,7 @@ test("admin Promosi: simpan akun & diskon nominal; crew tidak melihat menunya", 
     await page.getByLabel("WhatsApp admin").fill("0812 0000 0000");
     await page.getByLabel("Instagram").fill("@TetraPhotobooth");
     await page.getByLabel("Link ulasan Google").fill("https://g.page/r/e2e/review");
-    await page.getByText("Promo tamu: tinggalkan nomor WA").click();
+    await page.getByRole("checkbox", { name: /Promo tamu: tinggalkan nomor WA/ }).check();
     await page.getByText("Potongan nominal").click();
     await page.getByLabel("Potongan (Rp)").fill("200.000");
     await page.getByLabel("Berlaku (hari)").fill("30");
