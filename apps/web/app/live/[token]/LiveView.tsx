@@ -91,13 +91,14 @@ export function LiveView({
           <div className="absolute -right-40 -bottom-60 size-[640px] rounded-full bg-peach" />
           <div className="relative flex flex-1 flex-col gap-8">
             <span className="self-start rounded-full border-[2.5px] border-ink bg-lavender px-5 py-2 text-[22px] font-bold">
-              {event.name} · Kamera Tamu
+              {event.name} · Snapbook
             </span>
             <h1 className="text-[150px] leading-[0.9] font-extrabold tracking-[-0.06em]">
-              Ikut isi album!
+              Isi Snapbook!
             </h1>
             <p className="max-w-[760px] text-[32px] leading-snug">
-              Scan QR ini, isi nama, lalu jepret dari HP-mu. Tanpa install aplikasi.
+              Buku tamu versi kekinian: scan QR, jepret, kirim voice note dari HP-mu. Gratis, gak
+              perlu install.
             </p>
             <div className="mt-6 flex gap-4 text-[26px] font-bold">
               {["01 Scan", "02 Isi nama", "03 Jepret"].map((s, n) => (
@@ -184,7 +185,7 @@ export function LiveView({
                     </span>
                   </div>
                   <span className="absolute -top-6 -right-8 rotate-6 rounded-[12px] border-[3px] border-ink bg-butter px-6 py-2 text-[28px] font-extrabold">
-                    Kamera Tamu
+                    Snapbook
                   </span>
                 </div>
               ) : (

@@ -68,7 +68,7 @@ test("album Guest Cam: preview besar dengan pindah kiri-kanan", async ({ page })
   }
 });
 
-test("layar pertama Guest Cam: penjelasan 'Kamera Tamu itu apa?' lalu langsung ke form", async ({
+test("layar pertama Guest Cam: penjelasan 'Snapbook itu apa?' lalu langsung ke form", async ({
   page,
 }) => {
   const org =
@@ -90,17 +90,14 @@ test("layar pertama Guest Cam: penjelasan 'Kamera Tamu itu apa?' lalu langsung k
     .single();
   try {
     await page.goto(`/c/${token}`);
-    await page.getByRole("button", { name: "Kamera Tamu itu apa?" }).click();
-    const sheet = page.getByRole("dialog", { name: "Kamera Tamu itu apa?" });
-    await expect(sheet).toContainText("Kamera sekali pakai, versi HP");
-    await expect(sheet).toContainText("Kamu dapat 15 jepretan");
-    await expect(sheet).toContainText("Fotomu langsung tampil di album");
-    await expect(sheet).toContainText(
-      "Rekam ucapan suara buat pengantin dan susun fotomu jadi frame",
-    );
+    await page.getByRole("button", { name: "Snapbook itu apa?" }).click();
+    const sheet = page.getByRole("dialog", { name: "Snapbook itu apa?" });
+    await expect(sheet).toContainText("Buku tamu, versi HP");
+    await expect(sheet).toContainText("Jepret sampai 15 foto, titip voice note, bikin frame lucu");
+    await expect(sheet).toContainText("Fotomu langsung muncul di album");
     await page.waitForTimeout(400);
     await page.screenshot({ path: "test-results/guest-cam-what.png" });
-    await sheet.getByRole("button", { name: "Oke, ikut motret" }).click();
+    await sheet.getByRole("button", { name: "Oke, isi Snapbook" }).click();
     await expect(page.getByText("Kenalan dulu, yuk")).toBeVisible();
   } finally {
     await db

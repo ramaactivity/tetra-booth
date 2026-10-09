@@ -18,7 +18,7 @@ export async function generateMetadata({
     title: t.meta,
     robots: { index: false, follow: false },
     manifest: `/c/${token}/manifest.webmanifest`,
-    appleWebApp: { capable: true, title: "Guest Cam", statusBarStyle: "black-translucent" },
+    appleWebApp: { capable: true, title: "Snapbook", statusBarStyle: "black-translucent" },
     icons: { apple: "/guest-cam/apple-touch-icon.png" },
   };
 }

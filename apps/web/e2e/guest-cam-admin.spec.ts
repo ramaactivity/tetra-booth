@@ -45,11 +45,8 @@ test("admin: setelan Guest Cam → tamu unggah → setujui → galeri klien", as
     await expect(page.getByTestId("link-guest")).toContainText("/c/");
     if (process.env.GC_SHOTS) {
       const card = await page.context().newPage();
-      await card.goto(`/admin/events/${slug}/guest-card?v=wedding`);
-      await expect(card.getByRole("article", { name: "Kartu QR meja" })).toBeVisible();
-      await card.getByRole("article").screenshot({ path: `${process.env.GC_SHOTS}/B11a.png` });
-      await card.goto(`/admin/events/${slug}/guest-card?v=corporate`);
-      await card.getByRole("article").screenshot({ path: `${process.env.GC_SHOTS}/B11b.png` });
+      await card.goto(`/admin/events/${slug}/guest-card`);
+      await card.getByTestId("table-card").screenshot({ path: `${process.env.GC_SHOTS}/B11a.png` });
       await card.close();
     }
     await page.locator("#guest-cam").scrollIntoViewIfNeeded();
@@ -115,13 +112,13 @@ test("admin: setelan Guest Cam → tamu unggah → setujui → galeri klien", as
       )
       .toEqual([null, null, "rejected", "rejected"]);
 
-    // Galeri klien: tab Guest Cam berisi 1 foto (yang disetujui), per tamu.
+    // Galeri klien: tab Snapbook (#228) berisi 1 foto (yang disetujui), per tamu.
     await page.goto(`/admin/events/${slug}/settings#link-klien`);
     await page.locator("#link-klien").getByRole("button", { name: "Buat Link" }).first().click();
     await expect(page.getByTestId("link-client")).toContainText("/g/");
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`/g/${slug}`);
-    await page.getByRole("button", { name: /^Guest Cam/ }).click();
+    await page.getByRole("button", { name: /^Snapbook/ }).click();
     await expect(page.getByText("1 tamu")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Sari" })).toBeVisible();
     await expect(page.getByTestId("gallery-photo")).toHaveCount(1);

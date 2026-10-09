@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { db, hasDb, login, makeUser } from "./admin-helpers";
 
-/** Kartu QR Kamera Tamu (#227): katalog publik 5 desain + cetak kartu meja A6/A5 & kartu nama dua sisi di admin. */
+/** Kartu QR Snapbook (#227/#228): katalog publik 5 desain + cetak kartu meja A6/A5 & kartu nama dua sisi di admin. */
 test.skip(!hasDb, "butuh Supabase dev (apps/web/.env.local)");
 
 const IDS = ["sekali-pakai", "polaroid", "film", "elegan", "poster"];
@@ -24,7 +24,7 @@ test("katalog 5 desain + cetak kartu meja & kartu nama per desain", async ({ pag
       mode: "event",
       event_date: "2026-10-10",
       guest_token: `e2e-bc-${Date.now()}`,
-      // Id lama v0.9 (butter) dipetakan ke desain baru (Sekali Pakai).
+      // Id lama v0.9 (butter) dipetakan ke desain baru (Retro Cam).
       settings: { guestCam: { enabled: true, shots: 15, cardDesign: "butter" } },
     })
     .select("id, slug")
@@ -33,7 +33,7 @@ test("katalog 5 desain + cetak kartu meja & kartu nama per desain", async ({ pag
     await page.setViewportSize({ width: 1280, height: 1000 });
     await login(page, admin);
     await page.goto(`/admin/events/${ev?.slug}/guest-card`);
-    await expect(page.getByRole("link", { name: "Sekali Pakai" })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: "Retro Cam" })).toHaveAttribute(
       "aria-current",
       "true",
     );

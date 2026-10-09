@@ -404,7 +404,7 @@ function Field({
 
 /** Desain kartu QR Kamera Tamu (#227); id sama dengan CARD_DESIGNS di lib/guest-card-art. */
 const CARD_OPTIONS = [
-  { value: "sekali-pakai", label: "Sekali Pakai" },
+  { value: "sekali-pakai", label: "Retro Cam" },
   { value: "polaroid", label: "Polaroid" },
   { value: "film", label: "Roll Film" },
   { value: "elegan", label: "Elegan" },
@@ -1333,7 +1333,7 @@ export function SettingsForm({
                 <Field
                   label="Desain kartu QR (meja & kartu nama)"
                   hint="Dicetak Tetra 90×55 mm; klien bisa memilih di portal booking. Unduh lewat link Guest Cam di bawah."
-                  def="Sekali Pakai"
+                  def="Retro Cam"
                 >
                   <Select
                     label="Desain kartu QR"

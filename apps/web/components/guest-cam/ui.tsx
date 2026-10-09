@@ -137,7 +137,7 @@ export const shortDateId = (iso: string) =>
   );
 
 /** Logo Tetra Guest Cam (#212): ikon kamera butter + wordmark TETRA, dipakai di pembuka dan menu utama. */
-export function TetraMark({ sub = "Guest Cam" }: { sub?: string }) {
+export function TetraMark({ sub = "Snapbook" }: { sub?: string }) {
   return (
     <span className="flex items-center gap-2">
       <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden>

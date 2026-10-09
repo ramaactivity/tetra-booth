@@ -12,8 +12,8 @@ export async function GET(_req: Request, ctx: Ctx) {
   const start = `/c/${token}`;
   return Response.json(
     {
-      name: ev ? `Guest Cam · ${ev.name}` : "Guest Cam",
-      short_name: "Guest Cam",
+      name: ev ? `Snapbook · ${ev.name}` : "Snapbook",
+      short_name: "Snapbook",
       start_url: start,
       scope: start,
       id: start,

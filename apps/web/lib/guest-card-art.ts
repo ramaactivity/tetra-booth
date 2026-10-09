@@ -1,13 +1,13 @@
 import QRCode from "qrcode";
 
 /**
- * Kartu QR Kamera Tamu / Guest Cam (#227): 5 desain dengan tata letak berbeda (bukan sekadar warna), untuk
+ * Kartu QR Snapbook / Guest Cam (#227, nama tamu-facing "Snapbook" #228): 5 desain dengan tata letak berbeda (bukan sekadar warna), untuk
  * standing akrilik A6/A5 (potret, rasio sama) dan kartu nama dua sisi (90×55 mm + bleed 3 mm). Satu SVG untuk cetak
  * (PDF dari browser) dan thumbnail katalog portal Ops. Konsep: "kamera sekali pakai di HP-mu" — tamu Indonesia
  * belum kenal guest cam, jadi tiap kartu menjawab: apa ini, kenapa ikut, gratis & tanpa install, 3 langkah.
  */
 export const CARD_DESIGNS = [
-  { id: "sekali-pakai", name: "Sekali Pakai", hint: "QR jadi jendela kamera disposable" },
+  { id: "sekali-pakai", name: "Retro Cam", hint: "QR jadi jendela kamera retro" },
   { id: "polaroid", name: "Polaroid", hint: "QR di dalam foto polaroid" },
   { id: "film", name: "Roll Film", hint: "Pita film berisi 3 langkah" },
   { id: "elegan", name: "Elegan", hint: "Tipografi tenang ala undangan" },
@@ -133,28 +133,25 @@ const dotDate = (d: string) => d.split("-").reverse().join(".");
 const couple = (name: string) => name.replace(/^(the\s+)?wedding\s+(of\s+)?/i, "").trim() || name;
 
 const COPY = {
-  kicker: "KAMERA TAMU",
-  hook: "Ikut motret di acara ini!",
-  what: (c: string) => `Foto pakai HP-mu, langsung masuk album ${c}.`,
-  free: "Gratis · tanpa install aplikasi",
-  steps: (shots: number) =>
+  kicker: "SNAPBOOK",
+  tagline: "buku tamu versi kekinian",
+  hook: "Spill momen serumu!",
+  /** Apa ini: foto + voice note + frame (sesuai fitur yang aktif). */
+  what: (d: CardData) =>
+    `Jepret foto${d.voice ? ", kirim voice note" : ""}${d.strip ? ", bikin frame" : ""} dari HP-mu, langsung masuk album.`,
+  free: "Gratis · gak perlu install",
+  steps: (d: CardData) =>
     [
       ["phone", "Scan QR", "pakai kamera HP"],
-      ["user", "Isi nama", "sekali saja"],
-      ["camera", "Jepret!", `${shots} foto per HP`],
+      ["user", "Isi nama", "sekali aja"],
+      d.voice
+        ? (["camera", "Snap & spill", `${d.shots} foto + voice note`] as const)
+        : (["camera", "Snap!", `sampai ${d.shots} foto`] as const),
     ] as const,
-  bonus: (d: CardData) =>
-    d.voice && d.strip
-      ? "Bonus: kirim ucapan suara & bikin frame foto"
-      : d.voice
-        ? "Bonus: kirim ucapan suara buat pengantin"
-        : d.strip
-          ? "Bonus: susun fotomu jadi frame cantik"
-          : "",
   reveal: (d: CardData) =>
     d.reveal === "after"
       ? "Fotonya dibuka setelah acara, kayak cuci film"
-      : "Fotomu langsung tampil di album acara",
+      : "Fotomu langsung muncul di album acara",
 };
 
 const svgDoc = (w: number, h: number, body: string, size?: { w: number; h: number }) =>
@@ -167,7 +164,7 @@ const H = 148;
 
 function stepsRow(d: CardData, y: number, fg = C.ink, sub = C.text2, x0 = 10, x1 = 95) {
   const col = (x1 - x0) / 3;
-  return COPY.steps(d.shots)
+  return COPY.steps(d)
     .map(([ic, a, b], i) => {
       const cx = x0 + col * i + col / 2;
       return `${icon(ic, cx - 4, y, 8, fg)}${t(cx, y + 13.5, `${i + 1}. ${a}`, { size: 3.6, weight: 800, anchor: "middle", fill: fg })}${t(cx, y + 18, b, { size: 2.7, weight: 600, anchor: "middle", fill: sub })}`;
@@ -191,7 +188,7 @@ const A6: Record<CardDesignId, (d: CardData) => string> = {
     const what = lines(
       W / 2,
       name.end + 11,
-      wrap(COPY.what(c), 46),
+      wrap(COPY.what(d), 46),
       { size: 2.9, weight: 600, anchor: "middle", fill: C.text2 },
       1.3,
     );
@@ -239,7 +236,7 @@ const A6: Record<CardDesignId, (d: CardData) => string> = {
     const what = lines(
       12,
       name.end + 11.6,
-      wrap(COPY.what(c), 50),
+      wrap(COPY.what(d), 50),
       { size: 2.7, weight: 600, fill: C.text2 },
       1.3,
     );
@@ -265,7 +262,7 @@ const A6: Record<CardDesignId, (d: CardData) => string> = {
       name.svg,
       t(12, name.end + 6.6, COPY.hook, { size: 4.3, weight: 800 }),
       what.svg,
-      ...COPY.steps(d.shots).map(([ic, a, b], i) => {
+      ...COPY.steps(d).map(([ic, a, b], i) => {
         const y = sy + i * 7.2;
         return `<circle cx="15.5" cy="${y}" r="3" fill="${C.white}" stroke="${C.ink}" stroke-width="0.5"/>${t(15.5, y + 1.1, String(i + 1), { size: 3.1, weight: 800, anchor: "middle", font: MONO })}${icon(ic, 21, y - 2.6, 5.2)}${t(29, y - 0.1, a, { size: 3.3, weight: 800 })}${t(29, y + 3, b, { size: 2.4, weight: 600, fill: C.text2 })}`;
       }),
@@ -284,7 +281,7 @@ const A6: Record<CardDesignId, (d: CardData) => string> = {
       const y = 5 + i * 11;
       return `<rect x="3" y="${y}" width="3.2" height="4.4" rx="0.8" fill="${C.paper}"/><rect x="26.8" y="${y}" width="3.2" height="4.4" rx="0.8" fill="${C.paper}"/>`;
     }).join("");
-    const frames = COPY.steps(d.shots)
+    const frames = COPY.steps(d)
       .map(([ic, a, b], i) => {
         const y = 28 + i * 34;
         return `<rect x="8.5" y="${y}" width="16" height="28" rx="1" fill="#2E2D2B"/>${t(16.5, y + 5, `0${i + 1}`, { size: 2.6, weight: 700, anchor: "middle", fill: C.orange, font: MONO })}${icon(ic, 12.5, y + 8, 8, C.white)}${t(16.5, y + 21.5, a, { size: 2.7, weight: 800, anchor: "middle", fill: C.white })}${t(16.5, y + 25, b.split(" ").slice(0, 2).join(" "), { size: 1.9, weight: 600, anchor: "middle", fill: "#BDBAB3" })}`;
@@ -298,14 +295,14 @@ const A6: Record<CardDesignId, (d: CardData) => string> = {
       `<rect width="${W}" height="${H}" fill="${C.paper}"/>`,
       `<rect x="0" y="0" width="33" height="${H}" fill="${C.ink}"/>`,
       holes,
-      t(16.5, 18, "ROLL", {
+      t(16.5, 18, "SNAP", {
         size: 2.4,
         weight: 800,
         anchor: "middle",
         fill: C.white,
         spacing: 0.6,
       }),
-      t(16.5, 22, "TAMU", {
+      t(16.5, 22, "BOOK", {
         size: 2.4,
         weight: 800,
         anchor: "middle",
@@ -322,14 +319,13 @@ const A6: Record<CardDesignId, (d: CardData) => string> = {
       tick(95, qy + 54, -1, -1),
       qr(d.url, 45, qy + 4, 46),
       t(68, qy + 61, COPY.hook, { size: 4.1, weight: 800, anchor: "middle" }),
-      t(68, qy + 66, "Foto pakai HP-mu, masuk album", {
-        size: 2.7,
+      lines(68, qy + 66, wrap(COPY.what(d), 34, 3), {
+        size: 2.6,
         weight: 600,
         anchor: "middle",
         fill: C.text2,
-      }),
-      t(68, qy + 69.6, c.slice(0, 30), { size: 2.7, weight: 800, anchor: "middle", fill: C.text2 }),
-      t(68, qy + 75, COPY.free, { size: 2.7, weight: 800, anchor: "middle" }),
+      }).svg,
+      t(68, qy + 77.5, COPY.free, { size: 2.7, weight: 800, anchor: "middle" }),
       t(39, 140.6, COPY.reveal(d), { size: 2.2, weight: 600, fill: C.text2 }),
       brand(97, 145.8, 3.1, C.ink, "end"),
     ].join("");
@@ -362,16 +358,20 @@ const A6: Record<CardDesignId, (d: CardData) => string> = {
         font: MONO,
         fill: C.text2,
       }),
-      t(W / 2, y + 9, "Abadikan momen dari mejamu.", { size: 3.6, weight: 600, anchor: "middle" }),
-      t(W / 2, y + 14, "Foto pakai HP, langsung masuk album pengantin.", {
-        size: 2.7,
+      t(W / 2, y + 9, "Tinggalkan jejak buat pengantin.", {
+        size: 3.6,
+        weight: 600,
+        anchor: "middle",
+      }),
+      t(W / 2, y + 14, `Foto, voice note & frame dari HP-mu · ${COPY.tagline}`, {
+        size: 2.5,
         weight: 500,
         anchor: "middle",
         fill: C.text2,
       }),
       `<rect x="34" y="${y + 19}" width="37" height="37" fill="${C.white}" stroke="${C.ink}" stroke-width="0.3"/>`,
       qr(d.url, 36.5, y + 21.5, 32),
-      t(W / 2, y + 62, "SCAN  ·  ISI NAMA  ·  JEPRET", {
+      t(W / 2, y + 62, "SCAN  ·  ISI NAMA  ·  SNAP", {
         size: 2.9,
         weight: 700,
         anchor: "middle",
@@ -383,33 +383,31 @@ const A6: Record<CardDesignId, (d: CardData) => string> = {
         anchor: "middle",
         fill: C.text2,
       }),
-      COPY.bonus(d)
-        ? t(W / 2, y + 71.5, COPY.bonus(d), {
-            size: 2.4,
-            weight: 500,
-            anchor: "middle",
-            fill: C.text2,
-          })
-        : "",
+      t(W / 2, y + 71.5, COPY.reveal(d), {
+        size: 2.4,
+        weight: 500,
+        anchor: "middle",
+        fill: C.text2,
+      }),
       brand(W / 2 + 5.5, 136, 3, C.ink, "end"),
     ].join("");
   },
 
-  // 5. Poster jelas: pita atas "SCAN & FOTO", QR besar, 3 langkah dengan kotak ikon berwarna.
+  // 5. Poster jelas: pita atas "SCAN & SNAP", QR besar, 3 langkah dengan kotak ikon berwarna.
   poster: (d) => {
     const c = couple(d.name);
     const boxes = [C.butter, C.mint, C.lavender];
     return [
       `<rect width="${W}" height="${H}" fill="${C.white}"/>`,
       `<rect width="${W}" height="27" fill="${C.ink}"/>`,
-      t(W / 2, 13.5, "SCAN & FOTO", {
+      t(W / 2, 13.5, "SCAN & SNAP", {
         size: 10,
         weight: 800,
         anchor: "middle",
         fill: C.white,
         spacing: -0.2,
       }),
-      t(W / 2, 21.5, `Kamera tamu di acara ${c}`.slice(0, 46), {
+      t(W / 2, 21.5, `Snapbook · buku tamu ${c}`.slice(0, 46), {
         size: 3.2,
         weight: 600,
         anchor: "middle",
@@ -417,12 +415,12 @@ const A6: Record<CardDesignId, (d: CardData) => string> = {
       }),
       `<rect x="25" y="32" width="55" height="55" rx="3" fill="${C.white}" stroke="${C.ink}" stroke-width="1"/>`,
       qr(d.url, 28.5, 35.5, 48),
-      t(W / 2, 93, "Foto pakai HP-mu, langsung masuk album.", {
+      t(W / 2, 93, "Foto, voice note & frame, langsung dari HP-mu.", {
         size: 3.3,
         weight: 700,
         anchor: "middle",
       }),
-      ...COPY.steps(d.shots).map(([ic, a, b], i) => {
+      ...COPY.steps(d).map(([ic, a, b], i) => {
         const y = 99 + i * 12;
         return `<rect x="12" y="${y}" width="10" height="10" rx="2" fill="${boxes[i]}" stroke="${C.ink}" stroke-width="0.5"/>${icon(ic, 13.5, y + 1.5, 7)}${t(26, y + 4.6, a, { size: 4.2, weight: 800 })}${t(26, y + 8.6, b, { size: 2.9, weight: 600, fill: C.text2 })}${t(93, y + 6.6, String(i + 1), { size: 7, weight: 800, anchor: "end", fill: "#E4E2DC" })}`;
       }),
@@ -464,13 +462,13 @@ function cardFront(id: CardDesignId, d: CardData) {
   const qrBlock: Record<CardDesignId, string> = {
     "sekali-pakai": `<rect x="${B + 5}" y="${B + 6}" width="38" height="43" rx="3" fill="${C.ink}"/><rect x="${B + 7}" y="${B + 8.5}" width="34" height="34" rx="1.5" fill="#fff"/>${qr(d.url, B + 8.5, B + 10, 31)}<circle cx="${B + 37}" cy="${B + 46}" r="1.6" fill="${C.orange}"/>${t(B + 10, B + 47, `${d.shots} FOTO`, { size: 2.2, weight: 700, fill: C.orange, font: MONO })}`,
     polaroid: `<g transform="rotate(-4 ${B + 24} ${B + 28})"><rect x="${B + 6}" y="${B + 5}" width="36" height="44" fill="#fff" stroke="${C.ink}" stroke-width="0.4"/>${qr(d.url, B + 8.5, B + 7.5, 31)}${t(B + 24, B + 45.5, "scan aku", { size: 2.4, weight: 700, anchor: "middle" })}</g>`,
-    film: `<rect x="${B + 4}" y="${B + 4}" width="40" height="47" rx="1" fill="#2E2D2B"/>${Array.from({ length: 6 }, (_, i) => `<rect x="${B + 5}" y="${B + 6 + i * 7.6}" width="1.8" height="3" rx="0.4" fill="${C.ink}"/><rect x="${B + 41.2}" y="${B + 6 + i * 7.6}" width="1.8" height="3" rx="0.4" fill="${C.ink}"/>`).join("")}<rect x="${B + 8.5}" y="${B + 9}" width="31" height="31" fill="#fff"/>${qr(d.url, B + 9.5, B + 10, 29)}${t(B + 24, B + 46.5, "ROLL TAMU · 01", { size: 2.1, weight: 700, anchor: "middle", fill: C.orange, font: MONO })}`,
+    film: `<rect x="${B + 4}" y="${B + 4}" width="40" height="47" rx="1" fill="#2E2D2B"/>${Array.from({ length: 6 }, (_, i) => `<rect x="${B + 5}" y="${B + 6 + i * 7.6}" width="1.8" height="3" rx="0.4" fill="${C.ink}"/><rect x="${B + 41.2}" y="${B + 6 + i * 7.6}" width="1.8" height="3" rx="0.4" fill="${C.ink}"/>`).join("")}<rect x="${B + 8.5}" y="${B + 9}" width="31" height="31" fill="#fff"/>${qr(d.url, B + 9.5, B + 10, 29)}${t(B + 24, B + 46.5, "SNAPBOOK · 01", { size: 2.1, weight: 700, anchor: "middle", fill: C.orange, font: MONO })}`,
     elegan: `<rect x="${B + 6}" y="${B + 9}" width="34" height="34" fill="#fff" stroke="${C.ink}" stroke-width="0.3"/>${qr(d.url, B + 8, B + 11, 30)}`,
-    poster: `<rect x="${B}" y="${B}" width="46" height="55" fill="${C.ink}"/><rect x="${B + 5}" y="${B + 6}" width="36" height="36" rx="2" fill="#fff"/>${qr(d.url, B + 7, B + 8, 32)}${t(B + 23, B + 49, "SCAN & FOTO", { size: 3.6, weight: 800, anchor: "middle", fill: C.butter })}`,
+    poster: `<rect x="${B}" y="${B}" width="46" height="55" fill="${C.ink}"/><rect x="${B + 5}" y="${B + 6}" width="36" height="36" rx="2" fill="#fff"/>${qr(d.url, B + 7, B + 8, 32)}${t(B + 23, B + 49, "SCAN & SNAP", { size: 3.6, weight: 800, anchor: "middle", fill: C.butter })}`,
   };
   const name = lines(
     tx,
-    B + 17,
+    B + 19,
     nm,
     { size: ns, weight: id === "elegan" ? 300 : 800, fill: fg, spacing: -0.2 },
     1.06,
@@ -490,11 +488,17 @@ function cardFront(id: CardDesignId, d: CardData) {
         spacing: 0.6,
         fill: id === "film" ? C.orange : fg,
       }),
+      t(tx, B + 13, COPY.tagline, { size: 1.9, weight: 600, fill: sub }),
       name.svg,
       t(tx, name.end + 6, COPY.hook, { size: 2.9, weight: 800, fill: fg }),
-      t(tx, name.end + 10, "Foto pakai HP-mu, langsung", { size: 2.25, weight: 600, fill: sub }),
-      t(tx, name.end + 13, "masuk album acara.", { size: 2.25, weight: 600, fill: sub }),
-      t(tx, B + 44, "Gratis · tanpa install", { size: 2.25, weight: 800, fill: fg }),
+      lines(
+        tx,
+        name.end + 10,
+        wrap(COPY.what(d), 26, 3),
+        { size: 2.2, weight: 600, fill: sub },
+        1.25,
+      ).svg,
+      t(tx, B + 46.5, COPY.free, { size: 2.2, weight: 800, fill: fg }),
       brand(tx, B + 50.5, 2.7, fg),
     ].join(""),
   );
@@ -503,27 +507,26 @@ function cardFront(id: CardDesignId, d: CardData) {
 /** Sisi belakang: cara ikut, 3 langkah bergambar, bonus & catatan foto. */
 function cardBack(id: CardDesignId, d: CardData) {
   const { bg, fg, sub } = BG[id];
-  const steps = COPY.steps(d.shots)
+  const steps = COPY.steps(d)
     .map(([ic, a, b], i) => {
       const x = B + 7 + i * 27.5;
       return `<rect x="${x}" y="${B + 16}" width="22" height="22" rx="${id === "elegan" ? 0 : 3}" fill="${id === "film" ? "#2E2D2B" : C.white}" stroke="${fg}" stroke-width="0.4"/>${t(x + 3, B + 21, String(i + 1), { size: 3, weight: 800, font: MONO, fill: id === "film" ? C.orange : fg })}${icon(ic, x + 7, B + 21.5, 8, fg)}${t(x + 11, B + 43.5, a, { size: 3, weight: 800, anchor: "middle", fill: fg })}${t(x + 11, B + 47, b, { size: 2.1, weight: 600, anchor: "middle", fill: sub })}`;
     })
     .join("");
-  const bonus = COPY.bonus(d);
   return svgDoc(
     CW,
     CH,
     [
       `<rect width="${CW}" height="${CH}" fill="${bg}"/>`,
-      t(B + 7, B + 10.5, "Cara ikut motret", { size: 4.2, weight: 800, fill: fg }),
-      t(B + 83, B + 10.5, "tanpa install aplikasi", {
+      t(B + 7, B + 10.5, "Cara isi Snapbook", { size: 4.2, weight: 800, fill: fg }),
+      t(B + 83, B + 10.5, COPY.free, {
         size: 2.3,
         weight: 700,
         anchor: "end",
         fill: sub,
       }),
       steps,
-      t(B + 7, B + 52, bonus || COPY.reveal(d), { size: 2.2, weight: 600, fill: sub }),
+      t(B + 7, B + 52, COPY.reveal(d), { size: 2.2, weight: 600, fill: sub }),
     ].join(""),
   );
 }

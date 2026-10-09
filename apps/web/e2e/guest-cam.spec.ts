@@ -178,10 +178,10 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
           ? page.screenshot({ path: `${process.env.GC_SHOTS}/${n}.png` })
           : Promise.resolve();
       await page.goto(`/c/${token}`);
-      await expect(page.getByRole("button", { name: "Ikut motret" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Isi Snapbook" })).toBeVisible();
       await page.waitForTimeout(1300);
       await shot("A1");
-      await page.getByRole("button", { name: "Ikut motret" }).click();
+      await page.getByRole("button", { name: "Isi Snapbook" }).click();
       await page.getByLabel("Nama kamu").fill("Sari");
       await page.getByRole("button", { name: "Instagram" }).click();
       await page.getByLabel("Akun Instagram").fill("@sari.e2e");
@@ -302,7 +302,7 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
     try {
       await page.goto(`/c/${token}`);
       await expect(page.getByText(/kebuka setelah acara/i)).toBeVisible();
-      await page.getByRole("button", { name: "Ikut motret" }).click();
+      await page.getByRole("button", { name: "Isi Snapbook" }).click();
       await page.getByLabel("Nama kamu").fill("Andi");
       await page.getByLabel("Nomor WhatsApp").fill("0812 3456 7890");
       await page.getByRole("checkbox").click();
@@ -371,7 +371,7 @@ test.describe("iPhone: panduan Tambah ke Layar Utama (#211)", () => {
         "href",
         `/c/${token}/manifest.webmanifest`,
       );
-      await page.getByRole("button", { name: "Ikut motret" }).click();
+      await page.getByRole("button", { name: "Isi Snapbook" }).click();
       await expect(page.getByRole("heading", { name: "Biar full screen kayak app" })).toBeVisible();
       if (process.env.GC_SHOTS) {
         await page.waitForTimeout(400);
@@ -381,7 +381,7 @@ test.describe("iPhone: panduan Tambah ke Layar Utama (#211)", () => {
       await expect(page.getByLabel("Nama kamu")).toBeVisible();
       // Dilewati sekali = tidak ditanya lagi di HP ini.
       await page.reload();
-      await page.getByRole("button", { name: "Ikut motret" }).click();
+      await page.getByRole("button", { name: "Isi Snapbook" }).click();
       await expect(page.getByLabel("Nama kamu")).toBeVisible();
     } finally {
       await db

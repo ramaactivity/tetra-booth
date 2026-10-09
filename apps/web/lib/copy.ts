@@ -81,14 +81,14 @@ export const copy = {
   },
   /** Guest Cam (#197): kamera HP tamu di /c/{slug}, desain G5 (docs/design/guest-cam, DECISIONS #203). */
   guestCam: {
-    meta: "Guest Cam · Tetra Photobooth",
+    meta: "Snapbook · Tetra Photobooth",
     powered: "Powered by Tetra Photobooth",
     // A1 Pembuka
     heroLine:
-      "Kamera sekali pakai, versi HP. Foto dari kamu langsung masuk album acara. Gratis, gak perlu install apa-apa.",
+      "Buku tamu versi kekinian. Jepret foto, kirim voice note, bikin frame, langsung masuk album acara. Gratis, gak perlu install.",
     // Penjelasan untuk tamu yang belum kenal guest cam (#227)
-    whatLink: "Kamera Tamu itu apa?",
-    whatTitle: "Kamera Tamu itu apa?",
+    whatLink: "Snapbook itu apa?",
+    whatTitle: "Snapbook itu apa?",
     whatItems: (o: {
       shots: number;
       name: string;
@@ -98,37 +98,23 @@ export const copy = {
     }) =>
       [
         [
-          "Kamera sekali pakai, versi HP",
-          `Kamu dapat ${o.shots} jepretan. Langsung dari browser, gak perlu download aplikasi.`,
+          "Buku tamu, versi HP",
+          `Jepret sampai ${o.shots} foto${o.voice ? ", titip voice note" : ""}${o.strip ? ", bikin frame lucu" : ""}. Langsung dari browser, gak perlu download aplikasi.`,
         ],
         [
-          "Fotonya buat pengantin",
-          `Semua foto masuk satu album ${o.name}, bareng foto photobooth. ${o.live ? "Fotomu langsung tampil di album." : "Fotonya dibuka setelah acara, kayak cuci film."}`,
+          "Semuanya buat pengantin",
+          `Masuk satu album ${o.name}, bareng foto photobooth. ${o.live ? "Fotomu langsung muncul di album." : "Fotonya dibuka setelah acara, kayak cuci film."}`,
         ],
-        ...(o.voice || o.strip
-          ? [
-              [
-                "Bonus",
-                [
-                  o.voice && "rekam ucapan suara buat pengantin",
-                  o.strip && "susun fotomu jadi frame",
-                ]
-                  .filter(Boolean)
-                  .join(" dan ")
-                  .replace(/^./, (c) => c.toUpperCase()),
-              ],
-            ]
-          : []),
-        ["Gratis & aman", "Pakai kuota sedikit. Nama & kontakmu cuma buat acara ini."],
+        ["Gratis & aman", "Kuotanya irit. Nama & kontakmu cuma dipakai buat acara ini."],
       ] as [string, string][],
-    whatOk: "Oke, ikut motret",
-    join: "Ikut motret",
+    whatOk: "Oke, isi Snapbook",
+    join: "Isi Snapbook",
     formTitle: "Kenalan dulu, yuk",
     a2hsTitle: "Biar full screen kayak app",
-    a2hsBody: "Simpan Guest Cam ke Layar Utama, terus buka dari ikonnya. Cuma 3 tap.",
+    a2hsBody: "Simpan Snapbook ke Layar Utama, terus buka dari ikonnya. Cuma 3 tap.",
     a2hsStep1: ["Tap ikon", "Bagikan", "di Safari"],
     a2hsStep2: ["Pilih", "Tambah ke Layar Utama"],
-    a2hsStep3: ["Buka", "Guest Cam", "dari Layar Utama"],
+    a2hsStep3: ["Buka", "Snapbook", "dari Layar Utama"],
     a2hsWa: "Kebuka dari WhatsApp? Pindah ke Safari dulu ya.",
     a2hsOk: "Oke, aku pasang",
     a2hsSkip: "Nanti aja, lanjut di browser",
@@ -147,7 +133,7 @@ export const copy = {
     start: "Masuk",
     joining: "Bentar ya…",
     failed: "Koneksinya lagi rewel, coba sekali lagi ya",
-    full: "Yah, kuota tamu Guest Cam acara ini sudah penuh. Kamu tetap bisa lihat foto acara dari QR galeri ya.",
+    full: "Yah, kuota tamu Snapbook acara ini sudah penuh. Kamu tetap bisa lihat foto acara dari QR galeri ya.",
     // Cetak di booth (#223)
     printBooth: "Cetak di booth",
     printSending: "Ngirim ke booth…",
@@ -297,7 +283,7 @@ export const copy = {
     replacedTitle: "Link ini udah gak dipakai",
     replacedBody: "Panitia udah bikin link baru. Scan QR terbaru di meja atau minta ke panitia ya.",
     closedPill: "Acara selesai",
-    closedTitle: "Guest Cam udah ditutup",
+    closedTitle: "Snapbook udah ditutup",
     closedBody: "Makasih udah ikut ngisi album! Foto-foto acaranya masih bisa dilihat di galeri.",
     gallery: "Buka galeri",
     galleryUntil: (d: string) => `Bisa dibuka sampai ${d}`,
@@ -365,7 +351,7 @@ export const copy = {
     share: "Bagikan",
     shareText: (event: string) => `Foto-fotoku di ${event}, dibuat Tetra Photobooth`,
     linkCopied: "Link disalin",
-    brandLine: "Photobooth · Photo Stage · Guest Cam",
+    brandLine: "Photobooth · Photo Stage · Snapbook",
     pendingTitle: "Fotomu lagi dikirim dari booth",
     pendingBody: "Halaman ini akan otomatis muncul begitu fotonya sampai, gak perlu refresh",
     unknownTitle: "Foto kamu belum sampai",

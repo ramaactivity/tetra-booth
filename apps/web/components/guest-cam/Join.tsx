@@ -12,7 +12,6 @@ import {
   CircleHelp,
   Compass,
   Frame,
-  Gift,
   Images,
   Mic,
   Share,
@@ -330,9 +329,8 @@ export function Join({
                       [
                         <CameraIcon key="c" size={18} />,
                         <Images key="i" size={18} />,
-                        <Gift key="g" size={18} />,
                         <ShieldCheck key="s" size={18} />,
-                      ][i === 2 && !(info.voice || info.strip) ? 3 : Math.min(i, 3)]
+                      ][i]
                     }
                   </span>
                   <span>

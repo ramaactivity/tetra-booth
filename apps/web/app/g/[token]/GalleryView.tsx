@@ -11,7 +11,7 @@ const CHIPS: [Filter, string][] = [
   ["original", "Original"],
   ["animation", "Animasi"],
   ["stage", "Photo Stage"],
-  ["guest", "Guest Cam"],
+  ["guest", "Snapbook"],
   ["ucapan", "Ucapan"],
   ["favorit", "♥ Favorit"],
 ];
@@ -239,7 +239,7 @@ export function GalleryView({
             {filter === "stage"
               ? "Unduh semua Photo Stage"
               : filter === "guest"
-                ? "Unduh Guest Cam"
+                ? "Unduh Snapbook"
                 : "↓ Download Semua"}
           </a>
         )}
