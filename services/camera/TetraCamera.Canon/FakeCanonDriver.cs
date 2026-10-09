@@ -28,6 +28,8 @@ public sealed class FakeCanonDriver(
     public volatile bool Silent;
     /// <summary>Jepret tertahan selama ini (ms): meniru panggilan EDSDK yang tidak kembali.</summary>
     public volatile int HangMs;
+    /// <summary>Dipanggil tepat setelah rana (uji: kamera mulai sibuk sesudah jepret).</summary>
+    public Action? CaptureHook;
     public bool LiveView { get; private set; }
     public List<string> FocusSteps { get; } = [];
     public int Captures { get; private set; }
@@ -58,6 +60,7 @@ public sealed class FakeCanonDriver(
         if (HangMs > 0) Thread.Sleep(HangMs);
         if (!IsOpen) throw new CameraFailure("camera_disconnected", "kamera terputus saat jepret");
         Captures++;
+        CaptureHook?.Invoke();
         IsoAtCapture.Add(Props.GetValueOrDefault(0x402u));
         ShutterAtCapture.Add(Props.GetValueOrDefault(0x406u));
         return Jpeg;

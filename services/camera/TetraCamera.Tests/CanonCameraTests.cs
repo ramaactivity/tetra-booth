@@ -195,6 +195,26 @@ public class CanonCameraTests
     }
 
     [Fact]
+    public async Task Kamera_menolak_pengembalian_setelan_jepret_tetap_selesai_lalu_dikembalikan_di_latar()
+    {
+        // Lapangan 9 Okt (700D): pengembalian ISO live view ditolak BUSY → dulu menahan jepretan > 15 s.
+        var d = new FakeCanonDriver();
+        using var cam = Make(d);
+        await Until(() => cam.Connected);
+        await cam.SetPropAsync("iso", "ISO 800");
+        await cam.SetPropAsync("iso_capture", "ISO 200");
+        d.CaptureHook = () => d.RejectSet = true; // kamera mulai sibuk tepat setelah rana
+        var dir = Path.Combine(Path.GetTempPath(), $"tc-iso-{Guid.NewGuid():N}");
+        var t = System.Diagnostics.Stopwatch.StartNew();
+        await cam.CaptureAsync(dir, 0);
+        Assert.True(t.Elapsed < TimeSpan.FromSeconds(2));
+        Assert.Equal([0x50u], d.IsoAtCapture);
+        Assert.Equal(0x50u, d.Props[0x402]); // belum bisa dikembalikan
+        d.RejectSet = false;
+        await Until(() => d.Props[0x402] == 0x60u, 4000); // dikembalikan loop SDK
+    }
+
+    [Fact]
     public async Task Shutter_jepret_dipasang_saat_rana_bersama_ISO_lalu_keduanya_dikembalikan()
     {
         var d = new FakeCanonDriver();
