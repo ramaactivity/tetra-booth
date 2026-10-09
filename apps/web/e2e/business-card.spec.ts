@@ -42,10 +42,10 @@ test("katalog 10 konsep + cetak kartu meja & kartu nama per konsep", async ({ pa
     .select("id, slug")
     .single();
   try {
-    await page.setViewportSize({ width: 1280, height: 1000 });
+    await page.setViewportSize({ width: 1440, height: 900 });
     await login(page, admin);
     await page.goto(`/admin/events/${ev?.slug}/guest-card`);
-    await expect(page.getByRole("link", { name: "Kamera Sekali Pakai" })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: /^Kamera Sekali Pakai/ })).toHaveAttribute(
       "aria-current",
       "true",
     );
@@ -65,8 +65,29 @@ test("katalog 10 konsep + cetak kartu meja & kartu nama per konsep", async ({ pa
         .getByTestId("business-card-back")
         .screenshot({ path: `${SHOTS}/card-back-${id}.png` });
     }
-    // A6 = skala A5 (rasio identik).
+    // Studio: pratinjau muat utuh di layar 1440×900, panel kanan; Unduh PDF langsung (tanpa dialog cetak).
+    await page.goto(`/admin/events/${ev?.slug}/guest-card?d=teater&size=a5`);
+    await page.waitForTimeout(800);
+    const box = await page.getByTestId("table-card").boundingBox();
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(900);
+    await page.screenshot({ path: `${SHOTS}/studio-meja.png` });
+    const [pdf] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: "Unduh PDF" }).click(),
+    ]);
+    expect(pdf.suggestedFilename()).toBe("kartu-qr-meja-teater-a5.pdf");
+    await pdf.saveAs(`${SHOTS}/meja-teater-a5.pdf`);
+    await page.goto(`/admin/events/${ev?.slug}/business-card?d=kamera`);
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: `${SHOTS}/studio-nama.png` });
+    const [pdf2] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: "Unduh PDF" }).click(),
+    ]);
+    await pdf2.saveAs(`${SHOTS}/nama-kamera.pdf`);
+    // A6 = skala A5 saat dicetak lewat browser.
     await page.goto(`/admin/events/${ev?.slug}/guest-card?d=koran&size=a6`);
+    await page.emulateMedia({ media: "print" });
     await expect(page.getByTestId("table-card")).toHaveCSS("zoom", /0\.70/);
   } finally {
     await db

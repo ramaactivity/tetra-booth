@@ -3,7 +3,7 @@ import { useEffect } from "react";
 
 /**
  * Pemadat teks kartu QR (#230, `snapFit` template desainer): elemen `data-fit` yang lebih lebar dari induknya
- * dipadatkan horizontal (satu baris), setelah font Google selesai dimuat.
+ * dipadatkan horizontal (satu baris), setelah font Google selesai dimuat. Konsep terpilih di panel digulir ke layar.
  */
 export function CardFit() {
   useEffect(() => {
@@ -17,6 +17,9 @@ export function CardFit() {
       }
     };
     void document.fonts.ready.then(fit);
+    document
+      .querySelector("[data-concept][aria-current=true]")
+      ?.scrollIntoView({ block: "nearest" });
   }, []);
   return null;
 }
