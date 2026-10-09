@@ -59,11 +59,50 @@ const drawSlot = (
   ctx.restore();
 };
 
-const substitute = (value: string, vars: RenderInputs["vars"]): string =>
-  value.replace(
-    /\{(event_name|date|custom)\}/g,
-    (_, k: keyof RenderInputs["vars"]) => vars[k] ?? "",
+const MONTHS = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
+
+/**
+ * Bentuk lain `{date}` untuk frame Snapbook: `{date_iso}` 2026-10-10, `{date_long}` 10 Oktober 2026, `{date_dot}`
+ * 10.10.26. Diturunkan dari `vars.date` (ISO atau "10 Oktober 2026", yang dikirim booth/HP); tak terbaca = apa adanya.
+ */
+export const dateVars = (date = "") => {
+  const iso = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const long = date.match(/^(\d{1,2}) (\p{L}+) (\d{4})$/u);
+  const m = long ? MONTHS.findIndex((x) => x.toLowerCase() === long[2]?.toLowerCase()) + 1 : 0;
+  const [y, mo, d] = iso
+    ? iso.slice(1).map(Number)
+    : long && m
+      ? [Number(long[3]), m, Number(long[1])]
+      : [];
+  if (!y || !mo || !d) return { date_iso: date, date_long: date, date_dot: date };
+  const p = (n: number) => String(n).padStart(2, "0");
+  return {
+    date_iso: `${y}-${p(mo)}-${p(d)}`,
+    date_long: `${d} ${MONTHS[mo - 1]} ${y}`,
+    date_dot: `${p(d)}.${p(mo)}.${p(y % 100)}`,
+  };
+};
+
+const substitute = (value: string, vars: RenderInputs["vars"]): string => {
+  const all: Record<string, string | undefined> = { ...dateVars(vars.date), ...vars };
+  return value.replace(
+    /\{(event_name|date|custom|date_iso|date_long|date_dot)\}/g,
+    (_, k) => all[k] ?? "",
   );
+};
 
 const drawText = (c: Ctx2D, t: LayoutText, inputs: RenderInputs, ctx: RenderContext): void => {
   c.save();

@@ -26,7 +26,7 @@ export const TextSchema = z.object({
   size: z.number().positive(),
   color: hexColor,
   align: z.enum(["left", "center", "right"]),
-  /** Boleh berisi placeholder {event_name}, {date}, {custom}. */
+  /** Boleh berisi placeholder {event_name}, {date}, {custom}, {date_iso}, {date_long}, {date_dot}. */
   value: z.string(),
   /** Kosong = di atas overlay (perilaku lama). */
   z: z.enum(["below_overlay", "above_overlay"]).optional(),

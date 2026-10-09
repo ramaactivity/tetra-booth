@@ -233,20 +233,27 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await shot("A7a");
       await page.getByRole("button", { name: "Kembali" }).click();
       await page.getByRole("button", { name: /^Photo frame/ }).click();
-      // Desain booth event dulu (bundling), lalu frame Tetra; 4R butuh 4 foto.
-      await expect(page.getByRole("button", { name: /^Desain booth/ })).toHaveAttribute(
+      // Bikin frame (#229): desain booth event jadi gaya pertama di ukurannya, foto tamu terisi otomatis.
+      await expect(page.getByRole("heading", { name: "Bikin frame" })).toBeVisible();
+      await expect(page.getByText("2 dari 2 fotomu dipakai")).toBeVisible();
+      await expect(page.getByRole("button", { name: "Desain booth" })).toHaveAttribute(
         "aria-pressed",
         "true",
       );
-      await expect(page.getByRole("button", { name: /^4R/ })).toBeDisabled();
-      for (const _ of [0, 1])
-        await page.getByRole("button", { name: "Pilih foto" }).first().click();
+      // 4R Renda Marun butuh 4 foto: CTA mengajak jepret lagi.
+      await page.getByRole("tab", { name: /^4R/ }).click();
+      await expect(page.getByRole("button", { name: "Renda Marun" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      await expect(page.getByRole("button", { name: "Jepret 2 foto lagi" })).toBeVisible();
+      await page.getByRole("tab", { name: /^Strip 2R/ }).click();
       await expect(page.getByRole("img", { name: "Preview frame" })).toBeVisible({
         timeout: 15_000,
       });
-      await page.waitForTimeout(600);
+      await page.waitForTimeout(1500);
       await shot("A9a");
-      await page.getByRole("button", { name: "Print", exact: true }).click();
+      await page.getByRole("button", { name: "Pakai frame ini" }).click();
       await expect(page.getByRole("img", { name: "Frame kamu" })).toBeVisible();
       await shot("A9b");
       await page.getByRole("button", { name: "Kirim ke album" }).click();

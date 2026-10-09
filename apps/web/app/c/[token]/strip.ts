@@ -37,13 +37,21 @@ const font = (id: string, url: string) => {
   return p;
 };
 
-/** Slot belum dipilih: abu gelap. */
+/** Slot belum terisi: bergaris seperti placeholder foto di UI (desain v2 `stripes`). */
 const blank = (w: number, h: number) => {
   const c = cpuCanvas(Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
   const g = c.getContext("2d");
   if (g) {
-    g.fillStyle = "#3A3936";
+    g.fillStyle = "#EFEDE8";
     g.fillRect(0, 0, c.width, c.height);
+    g.strokeStyle = "#E6E3DD";
+    g.lineWidth = Math.max(4, c.width / 20);
+    for (let x = -c.height; x < c.width; x += g.lineWidth * 2) {
+      g.beginPath();
+      g.moveTo(x, c.height);
+      g.lineTo(x + c.height, 0);
+      g.stroke();
+    }
   }
   return c as unknown as ImageLike;
 };

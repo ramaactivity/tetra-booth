@@ -1,6 +1,6 @@
 "use client";
-import type { GuestMe, LayoutSpec } from "@tetra/shared";
-import { Download, Printer, RotateCcw, Send } from "lucide-react";
+import type { GuestMe, LayoutPaper } from "@tetra/shared";
+import { ChevronLeft, Download, Printer, RotateCcw, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { renderStrip } from "@/app/c/[token]/strip";
 import { PROMO_SAVED } from "@/components/GuestPromo";
@@ -9,33 +9,34 @@ import type { GuestInfo } from "@/lib/guest-cam";
 import { longDateId, Primary, Secondary, TopBar } from "./ui";
 
 const t = copy.guestCam;
+const SIZES: LayoutPaper[] = ["2x6x2", "4R", "3x4x2"];
+type Design = GuestInfo["designs"][number];
 
-/** Gambar mini tata letak frame: kertas + kotak slot foto, sesuai rasio aslinya. */
-function Mini({ layout, on }: { layout: LayoutSpec; on: boolean }) {
-  const { width: w, height: h } = layout.canvas;
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="h-full max-w-full" aria-hidden>
-      <rect width={w} height={h} rx={w * 0.04} fill={layout.background?.color ?? "#F8F7F4"} />
-      {layout.slots.map((s) => (
-        <rect
-          key={s.id}
-          x={s.x}
-          y={s.y}
-          width={s.w}
-          height={s.h}
-          rx={w * 0.015}
-          fill={on ? "#1D1D1B" : "#8A8883"}
-        />
-      ))}
-    </svg>
-  );
+/** Pratinjau berulang: render terakhir menang, URL lama dibuang. */
+function useRender(key: string, run: () => Promise<Blob | null>) {
+  const [url, setUrl] = useState<string | null>(null);
+  const seq = useRef(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: dirender ulang hanya saat `key` berubah
+  useEffect(() => {
+    const id = ++seq.current;
+    const timer = setTimeout(async () => {
+      const b = await run().catch(() => null);
+      if (b && id === seq.current)
+        setUrl((old) => {
+          if (old) URL.revokeObjectURL(old);
+          return URL.createObjectURL(b);
+        });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [key]);
+  return url;
 }
 
 /**
- * Photo frame (#209/#212/#213): kartu frame bergambar tata letak (desain booth event dulu, lalu Strip 2R / 4R /
- * Polaroid Tetra), pratinjau frame di tengah yang berubah tiap foto dipilih, baki foto di bawah (urutan = urutan
- * tap). "Print" = render penuh + animasi keluar dari slot printer → save ke HP / kirim ke album. Render lewat
- * template engine yang sama dengan booth.
+ * Bikin frame (#229, desain Snapbook): pilih ukuran (Strip 2R / 4R / Polaroid, menentukan jumlah foto) → geser antar
+ * gaya; pratinjau besar langsung memakai foto tamu (otomatis diisi, bisa diatur di langkah foto). Frame acara
+ * (desain booth) jadi gaya pertama di ukurannya, lalu 15 gaya Snapbook. "Print" = render penuh + animasi keluar dari
+ * slot printer → save ke HP / kirim ke album. Render lewat template engine yang sama dengan booth.
  */
 export function StripPicker({
   info,
@@ -53,89 +54,188 @@ export function StripPicker({
   onPrint?: ((shot: { main: Blob; thumb: Blob }, designId: string) => Promise<void>) | undefined;
   onClose: () => void;
 }) {
-  const fits = info.designs.filter((d) => d.layout.slots.length <= me.photos.length);
-  const [designId, setDesignId] = useState(fits[0]?.id);
-  const design = fits.find((d) => d.id === designId);
+  const sizes = SIZES.filter((s) => info.designs.some((d) => d.layout.paper === s));
+  const [size, setSize] = useState<LayoutPaper>(
+    info.designs.find((d) => d.booth)?.layout.paper ?? sizes[0] ?? "2x6x2",
+  );
+  const group = info.designs.filter((d) => d.layout.paper === size);
+  const [chosen, setChosen] = useState<Partial<Record<LayoutPaper, string>>>({});
+  const design = group.find((d) => d.id === chosen[size]) ?? group[0];
   const n = design?.layout.slots.length ?? 0;
-  const [picked, setPicked] = useState<number[]>([]);
-  const [preview, setPreview] = useState<string | null>(null);
+  const all = me.photos.map((p) => p.idx);
+  const fill = (s: number[], need: number) =>
+    [...s, ...all.filter((i) => !s.includes(i))].slice(0, need);
+  const [picked, setPicked] = useState<number[]>(() => fill([], n));
+  const [step, setStep] = useState<"frame" | "photos">("frame");
   const [made, setMade] = useState<{ main: Blob; thumb: Blob; url: string } | null>(null);
   const [busy, setBusy] = useState(false);
-  const seq = useRef(0);
+  const x0 = useRef(0);
   const vars = { event_name: info.name, date: longDateId(info.date) };
   const qr = typeof location === "undefined" ? "" : location.origin + info.link;
-  const urls = () =>
-    Array.from({ length: n }, (_, i) => me.photos.find((p) => p.idx === picked[i])?.url ?? null);
+  const urls = (d: Design, ids = picked) =>
+    d.layout.slots.map((_, i) => me.photos.find((p) => p.idx === ids[i])?.url ?? null);
+  const preview = useRender(`${design?.id}|${picked.join()}|${!!made}`, async () =>
+    design && !made ? (await renderStrip(design, urls(design), vars, qr, 0.6)).main : null,
+  );
 
-  // Pratinjau (skala 0,6, cukup tajam di layar retina) tiap pilihan berubah; render lama yang telat dibuang.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: dirender ulang hanya saat pilihan berubah
-  useEffect(() => {
-    if (!design || made) return;
-    const id = ++seq.current;
-    const timer = setTimeout(async () => {
-      const r = await renderStrip(design, urls(), vars, qr, 0.6).catch(() => null);
-      if (r && id === seq.current) {
-        setPreview((old) => {
-          if (old) URL.revokeObjectURL(old);
-          return URL.createObjectURL(r.main);
-        });
-      }
-    }, 120);
-    return () => clearTimeout(timer);
-  }, [picked, made, designId]);
+  const choose = (d: Design) => {
+    setChosen((c) => ({ ...c, [size]: d.id }));
+    setPicked((s) => fill(s, d.layout.slots.length));
+  };
+  const pickSize = (s: LayoutPaper) => {
+    setSize(s);
+    const d =
+      info.designs.find((x) => x.id === chosen[s]) ??
+      info.designs.find((x) => x.layout.paper === s);
+    if (d) setPicked((p) => fill(p, d.layout.slots.length));
+  };
+  const make = async () => {
+    if (!design) return;
+    setBusy(true);
+    try {
+      const r = await renderStrip(design, urls(design), vars, qr);
+      setMade({ ...r, url: URL.createObjectURL(r.main) });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (!design) return null;
+  const at = group.indexOf(design);
+  const lack = Math.max(0, n - me.photos.length);
   const full = picked.length >= n;
   const ratio = `${design.layout.canvas.width}/${design.layout.canvas.height}`;
+
+  if (step === "frame" && !made) {
+    return (
+      <main className="mx-auto flex h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-paper text-ink">
+        <header className="flex flex-none items-center justify-between px-5 pt-[max(12px,env(safe-area-inset-top))] pb-3.5">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={t.back}
+              className="flex size-10 flex-none items-center justify-center rounded-xl border-[1.5px] border-ink bg-white active:translate-x-px active:translate-y-px"
+            >
+              <ChevronLeft size={20} strokeWidth={2.5} />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-lg font-extrabold tracking-[-0.02em]">{t.makeFrame}</h1>
+              <p className="truncate font-mono text-xs text-text-2">
+                {t.frameUsed(n, me.photos.length)}
+              </p>
+            </div>
+          </div>
+          <span className="flex-none rounded-full border-[1.5px] border-ink bg-mint-soft px-2.5 py-[7px] font-mono text-xs leading-none font-medium">
+            {t.photos(me.photos.length)}
+          </span>
+        </header>
+
+        <div
+          role="tablist"
+          className="mx-5 grid flex-none overflow-hidden rounded-[14px] border-[1.5px] border-ink bg-white"
+          style={{ gridTemplateColumns: `repeat(${sizes.length},1fr)` }}
+        >
+          {sizes.map((s, i) => {
+            const counts = info.designs
+              .filter((d) => d.layout.paper === s)
+              .map((d) => d.layout.slots.length);
+            const lo = Math.min(...counts);
+            const hi = Math.max(...counts);
+            return (
+              <button
+                key={s}
+                type="button"
+                role="tab"
+                aria-selected={s === size}
+                onClick={() => pickSize(s)}
+                className={`px-1 pt-[9px] pb-2 text-center ${s === size ? "bg-lavender" : ""} ${i ? "border-l-[1.5px] border-ink" : ""}`}
+              >
+                <span className="block text-sm font-extrabold">{t.sizes[s]}</span>
+                <span className="block font-mono text-[11px] leading-[1.3] text-text-3">
+                  {lo === hi ? t.photos(lo) : `${lo}–${hi} foto`}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          className="flex min-h-0 flex-1 items-center justify-center px-8 pt-4 pb-3"
+          onTouchStart={(e) => {
+            x0.current = e.touches[0]?.clientX ?? 0;
+          }}
+          onTouchEnd={(e) => {
+            const dx = (e.changedTouches[0]?.clientX ?? 0) - x0.current;
+            const next = group[at + (dx < 0 ? 1 : -1)];
+            if (Math.abs(dx) > 48 && next) choose(next);
+          }}
+        >
+          <div
+            className="relative max-h-full max-w-full"
+            style={{ aspectRatio: ratio, height: "100%" }}
+          >
+            <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-[4px] border-[1.5px] border-ink bg-white" />
+            <div className="relative size-full overflow-hidden rounded-[4px] border-[1.5px] border-ink bg-white">
+              {preview ? (
+                // biome-ignore lint/performance/noImgElement: object URL hasil render lokal
+                <img src={preview} alt={t.previewAlt} className="block size-full" />
+              ) : (
+                <div className="stripes size-full animate-pulse" />
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-none items-baseline justify-between px-5 pt-1.5">
+          <p className="truncate text-[15px] font-extrabold tracking-[-0.02em]">
+            {design.booth ? t.eventStyle : design.name}
+          </p>
+          <p className="flex-none pl-3 font-mono text-xs text-text-2">
+            {t.styleAt(at + 1, group.length, n)}
+          </p>
+        </div>
+        <Thumbs
+          key={size}
+          group={group}
+          on={design.id}
+          urls={(d) => urls(d, fill(picked, d.layout.slots.length))}
+          vars={vars}
+          qr={qr}
+          onPick={choose}
+        />
+
+        <div className="flex flex-none flex-col gap-2 border-t-[1.5px] border-dashed border-ink px-5 pt-3.5 pb-[max(22px,env(safe-area-inset-bottom))]">
+          <div className="relative">
+            <div className="absolute inset-0 translate-x-[5px] translate-y-[5px] rounded-[14px] border-[1.5px] border-ink bg-paper" />
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                lack ? onClose() : me.photos.length > n ? setStep("photos") : void make()
+              }
+              className="relative flex h-14 w-full items-center justify-center rounded-[14px] border-[1.5px] border-ink bg-butter text-base font-extrabold transition-transform active:translate-x-[5px] active:translate-y-[5px]"
+            >
+              {busy ? t.making : lack ? t.shootMore(lack) : t.useFrame}
+            </button>
+          </div>
+          {onPrint && design.printable && !lack && (
+            <p className="text-center text-xs text-text-2">{t.printHint}</p>
+          )}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto flex h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-black text-paper">
       <div className="flex-none px-4 pt-[max(12px,env(safe-area-inset-top))]">
         <TopBar
-          onBack={made ? () => setMade(null) : onClose}
-          title={made ? t.yourStrip : t.frameTitle}
+          onBack={made ? () => setMade(null) : () => setStep("frame")}
+          title={made ? t.yourStrip : design.name}
           sub={t.stripOf(k)}
         />
       </div>
-
-      {!made && info.designs.length > 1 && (
-        <ul className="mt-2 flex flex-none gap-2.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
-          {info.designs.map((d) => {
-            const need = d.layout.slots.length;
-            const on = d.id === designId;
-            return (
-              <li key={d.id} className="flex-none">
-                <button
-                  type="button"
-                  aria-pressed={on}
-                  aria-label={`${d.name}, ${t.photos(need)}`}
-                  disabled={need > me.photos.length}
-                  onClick={() => {
-                    setDesignId(d.id);
-                    setPicked((s) => s.slice(0, need));
-                  }}
-                  className={`relative flex w-[92px] flex-col items-center gap-1.5 rounded-2xl p-2 pb-2.5 transition active:scale-95 disabled:opacity-35 ${on ? "bg-paper text-ink" : "bg-white/10"}`}
-                >
-                  <span className="flex h-[58px] items-center justify-center">
-                    <Mini layout={d.layout} on={on} />
-                  </span>
-                  <span className="w-full truncate text-center text-xs leading-tight font-extrabold">
-                    {d.name}
-                  </span>
-                  <span className="-mt-1 font-mono text-[10px] opacity-60">
-                    {need > me.photos.length ? t.needMore(need) : t.photos(need)}
-                  </span>
-                  {d.booth && (
-                    <span className="absolute top-1.5 left-1.5 rounded-full bg-butter px-1.5 py-px text-[9px] font-extrabold text-ink">
-                      {t.boothTag}
-                    </span>
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
 
       {/* Pratinjau / hasil print */}
       <div className="relative flex min-h-0 flex-1 flex-col items-center px-6 pt-4 pb-4">
@@ -173,7 +273,7 @@ export function StripPicker({
         {made ? (
           <>
             <p className="mb-3 text-center text-sm text-paper/70">{t.madeBody}</p>
-            {onPrint && design?.printable && (
+            {onPrint && design.printable && (
               <Primary
                 className="mb-3"
                 disabled={busy}
@@ -264,24 +364,93 @@ export function StripPicker({
                 );
               })}
             </ul>
-            <Primary
-              className="mt-3.5"
-              disabled={!full || busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  const r = await renderStrip(design, urls(), vars, qr);
-                  setMade({ ...r, url: URL.createObjectURL(r.main) });
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
+            <Primary className="mt-3.5" disabled={!full || busy} onClick={make}>
               {busy ? t.making : t.seeStrip}
             </Primary>
           </>
         )}
       </div>
     </main>
+  );
+}
+
+/** Deretan gaya satu ukuran: thumbnail dirender kecil dengan foto tamu, berurutan supaya HP tidak tersendat. */
+function Thumbs({
+  group,
+  on,
+  urls,
+  vars,
+  qr,
+  onPick,
+}: {
+  group: Design[];
+  on: string;
+  urls: (d: Design) => (string | null)[];
+  vars: { event_name: string; date: string };
+  qr: string;
+  onPick: (d: Design) => void;
+}) {
+  const [img, setImg] = useState<Record<string, string>>({});
+  const list = useRef<HTMLUListElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sekali per ukuran (komponen di-key per ukuran)
+  useEffect(() => {
+    let stop = false;
+    const made: string[] = [];
+    (async () => {
+      for (const d of group) {
+        if (stop) break;
+        const r = await renderStrip(d, urls(d), vars, qr, 160 / d.layout.canvas.height).catch(
+          () => null,
+        );
+        if (!r || stop) continue;
+        const u = URL.createObjectURL(r.main);
+        made.push(u);
+        setImg((m) => ({ ...m, [d.id]: u }));
+      }
+    })();
+    return () => {
+      stop = true;
+      for (const u of made) URL.revokeObjectURL(u);
+    };
+  }, []);
+  useEffect(() => {
+    list.current
+      ?.querySelector(`[data-id="${on}"]`)
+      ?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [on]);
+  return (
+    <ul
+      ref={list}
+      className="flex flex-none gap-2.5 overflow-x-auto px-5 pt-2.5 pb-3.5 [scrollbar-width:none]"
+    >
+      {group.map((d) => {
+        const sel = d.id === on;
+        return (
+          <li key={d.id} data-id={d.id} className="flex-none">
+            <button
+              type="button"
+              aria-pressed={sel}
+              aria-label={d.name}
+              onClick={() => onPick(d)}
+              className={`flex h-24 w-[68px] items-center justify-center rounded-xl ${sel ? "border-2 border-ink bg-mint-soft shadow-[4px_4px_0_var(--ink)]" : "border-[1.5px] border-line-soft bg-white"}`}
+            >
+              {img[d.id] ? (
+                // biome-ignore lint/performance/noImgElement: object URL hasil render lokal
+                <img
+                  src={img[d.id]}
+                  alt=""
+                  className="max-h-[78px] max-w-[56px] border border-line-soft"
+                />
+              ) : (
+                <span
+                  className="stripes block h-[78px] max-w-[56px] border border-line-soft"
+                  style={{ aspectRatio: `${d.layout.canvas.width}/${d.layout.canvas.height}` }}
+                />
+              )}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

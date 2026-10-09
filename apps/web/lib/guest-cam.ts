@@ -6,7 +6,6 @@ import {
   type GuestMe,
   type GuestPrintStatus,
   guestHardCap,
-  LAYOUT_PRESETS,
   type LayoutSpec,
   parseRun,
   runState,
@@ -18,6 +17,7 @@ import type { EventBranding } from "@/lib/event-bundle";
 import { eventPhase, guestPhotosVisible, ymdWib } from "@/lib/events";
 import { LINK } from "@/lib/gallery";
 import { presignGet } from "@/lib/r2";
+import SNAPBOOK_FRAMES from "@/lib/snapbook-frames.json";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /**
@@ -86,16 +86,17 @@ export async function guestBranding(ev: GuestEvent) {
   };
 }
 
-/** Frame bawaan Tetra untuk Photo frame tamu (#212): 2R strip (default), 4R, polaroid. Latar putih, teks nama + tanggal. */
-const TETRA_FRAMES = [
-  ["strip-3", "Strip 2R"],
-  ["4r-grid", "4R"],
-  ["polaroid-1", "Polaroid"],
-] as const;
+/** Font pustaka `lib-*` dari /fonts (same origin). */
+const libFonts = (l: LayoutSpec) =>
+  Object.fromEntries(
+    l.texts.flatMap(({ fontAssetId: id }) =>
+      id.startsWith("lib-") ? [[id, `/fonts/${id.slice(4)}.woff2`]] : [],
+    ),
+  );
 
 /**
  * Desain Photo frame tamu (#197/#212): desain booth event dulu (bundle `designs`, atau layout utama, + layout photobox)
- * supaya paket bundling memakai frame yang sama dengan booth, lalu frame bawaan Tetra 2R/4R/Polaroid. Layout + URL
+ * supaya paket bundling memakai frame yang sama dengan booth, lalu frame bawaan Snapbook (#229). Layout + URL
  * bertanda tangan aset & font dirender di HP lewat template engine yang sama dengan booth (aturan 2). Font pustaka
  * `lib-*` dari /fonts (same origin).
  */
@@ -131,22 +132,32 @@ async function guestDesigns(ev: GuestEvent) {
       const u = id.startsWith("lib-") ? `/fonts/${id.slice(4)}.woff2` : await url(id);
       if (u) fonts[id] = u;
     }
-    out.push({ id: `b-${d.id}`, name: d.name, booth: true, layout: d.layout, assets, fonts });
-  }
-  for (const [id, name] of TETRA_FRAMES)
     out.push({
-      id,
-      name,
-      booth: false,
-      layout: {
-        ...LAYOUT_PRESETS[id].layout,
-        id,
-        version: 1,
-        background: { color: "#ffffff" },
-      } as LayoutSpec,
-      assets: {},
-      fonts: {},
+      id: `b-${d.id}`,
+      name: d.name,
+      style: "event",
+      booth: true,
+      layout: d.layout,
+      assets,
+      fonts,
     });
+  }
+  // Frame bawaan Snapbook (#229): 15 gaya × Strip 2R / 4R / Polaroid, aset statis di /snapbook.
+  for (const f of SNAPBOOK_FRAMES) {
+    const layout = f.layout as unknown as LayoutSpec;
+    out.push({
+      id: f.id,
+      name: f.styleName,
+      style: f.style,
+      booth: false,
+      layout,
+      assets: {
+        [`snap-${f.id}-bg`]: `/snapbook/${f.id}-bg.png`,
+        [`snap-${f.id}-overlay`]: `/snapbook/${f.id}-overlay.png`,
+      },
+      fonts: libFonts(layout),
+    });
+  }
   return out;
 }
 
