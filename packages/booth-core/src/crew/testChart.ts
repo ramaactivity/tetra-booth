@@ -40,7 +40,7 @@ export type ChartCtx = {
 
 export type ChartInfo = {
   paper: string;
-  tone: { brightness: number; contrast: number; saturation: number };
+  tone: { brightness: number; contrast: number; saturation: number; sharpness?: number };
   version: string;
   when: string;
   font: string;
@@ -185,7 +185,7 @@ function panel(g: ChartCtx, x0: number, W: number, H: number, info: ChartInfo, p
   for (const l of [
     `Kertas ${info.paper}`,
     info.when,
-    `Koreksi warna: terang ${t.brightness} · kontras ${t.contrast} · saturasi ${t.saturation}`,
+    `Koreksi warna: terang ${t.brightness} · kontras ${t.contrast} · saturasi ${t.saturation} · tajam ${t.sharpness ?? 0}`,
     `Booth ${info.version}`,
   ]) {
     y = para(l, x0 + pad, y, inner, 20 * s, { mono: true, weight: 400, c: "#3A3936" });
@@ -310,9 +310,16 @@ function panel(g: ChartCtx, x0: number, W: number, H: number, info: ChartInfo, p
   g.fillRect(full.x, y, full.w, gh);
   y += gh + 6;
   const hue = g.createLinearGradient(full.x, 0, full.x + full.w, 0);
-  ["#FF0000", "#FFFF00", "#00FF00", "#00FFFF", "#0000FF", "#FF00FF", "#FF0000"].forEach((c, i) =>
-    hue.addColorStop(i / 6, c),
-  );
+  for (const [i, c] of [
+    "#FF0000",
+    "#FFFF00",
+    "#00FF00",
+    "#00FFFF",
+    "#0000FF",
+    "#FF00FF",
+    "#FF0000",
+  ].entries())
+    hue.addColorStop(i / 6, c);
   g.fillStyle = hue;
   g.fillRect(full.x, y, full.w, gh);
   y += gh + 16;
