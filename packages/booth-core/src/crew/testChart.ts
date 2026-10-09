@@ -310,9 +310,9 @@ function panel(g: ChartCtx, x0: number, W: number, H: number, info: ChartInfo, p
   g.fillRect(full.x, y, full.w, gh);
   y += gh + 6;
   const hue = g.createLinearGradient(full.x, 0, full.x + full.w, 0);
-  ["#FF0000", "#FFFF00", "#00FF00", "#00FFFF", "#0000FF", "#FF00FF", "#FF0000"].forEach((c, i) =>
-    hue.addColorStop(i / 6, c),
-  );
+  ["#FF0000", "#FFFF00", "#00FF00", "#00FFFF", "#0000FF", "#FF00FF", "#FF0000"].forEach((c, i) => {
+    hue.addColorStop(i / 6, c);
+  });
   g.fillStyle = hue;
   g.fillRect(full.x, y, full.w, gh);
   y += gh + 16;
