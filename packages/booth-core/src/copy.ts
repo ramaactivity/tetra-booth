@@ -31,6 +31,16 @@ export const copy = {
     galleryCount: (n: number) => `${n} foto`,
     openPiece: "Buka foto ini",
   },
+  /** QR galeri online (#240). */
+  galleryQr: {
+    title: "Galeri online",
+    hint: "Scan pakai kamera HP untuk melihat & unduh semua foto acara.",
+    copy: "Salin Link",
+    copied: "Link tersalin",
+    close: "Tutup",
+    button: "QR Galeri",
+    guestButton: "Galeri online",
+  },
   /** Galeri tamu dari layar awal, mode event (#145). */
   gallery: {
     title: (event: string) => `Foto ${event}`,

@@ -528,6 +528,11 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await expect(recap.getByTestId("booth-recap-note")).toContainText(
     `127.0.0.1:${port}/g/rina-dimas-2026-10-12`,
   );
+  // QR Galeri (#240): link yang sama sebagai QR besar untuk tamu/klien.
+  await recap.getByRole("button", { name: /QR Galeri/ }).click();
+  await expect(w.getByTestId("gallery-qr-url")).toContainText("/g/rina-dimas-2026-10-12");
+  await w.screenshot({ path: "test-results/booth-recap-qr.png" });
+  await w.getByTestId("gallery-qr").getByRole("button", { name: "Tutup" }).click();
   expect(await app.evaluate(({ clipboard }) => clipboard.readText())).toBe(
     `http://127.0.0.1:${port}/g/rina-dimas-2026-10-12`,
   );

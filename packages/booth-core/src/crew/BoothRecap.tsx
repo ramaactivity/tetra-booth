@@ -19,12 +19,14 @@ import {
   FolderOpen,
   HardDrive,
   Link2,
+  QrCode as QrCodeIcon,
   Usb,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { copy } from "../copy";
 import { crewText } from "../errors";
 import type { BoothEvent } from "../event";
+import { GalleryQr } from "../GalleryQr";
 import { usePlatform } from "../PlatformContext";
 import type { EventSize, BoothRecap as RecapData } from "../platform";
 
@@ -101,6 +103,7 @@ export function BoothRecap({ event, onClose }: { event: BoothEvent; onClose: () 
   const [size, setSize] = useState<EventSize | null>(null);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [qr, setQr] = useState<string | null>(null);
   const [now] = useState(Date.now);
   useEffect(() => {
     p.crew.recap(event.id).then(setData, (e: unknown) => setNote({ ok: false, text: crewText(e) }));
@@ -284,6 +287,19 @@ export function BoothRecap({ event, onClose }: { event: BoothEvent; onClose: () 
               <Link2 size={28} strokeWidth={2.25} /> {t.link}
             </Button>
           )}
+          {data?.run && (
+            <Button
+              variant="secondary"
+              className="h-[92px] flex-1 rounded-[20px] text-2xl"
+              disabled={busy}
+              onClick={run(
+                () => p.crew.galleryLink(event.id).then((u) => (setQr(u), u)),
+                t.linkDone,
+              )}
+            >
+              <QrCodeIcon size={28} strokeWidth={2.25} /> {copy.galleryQr.button}
+            </Button>
+          )}
           <Button
             variant="plain"
             className="h-[92px] rounded-[20px] px-10 text-2xl"
@@ -294,6 +310,17 @@ export function BoothRecap({ event, onClose }: { event: BoothEvent; onClose: () 
         </div>
         <p className="-mt-2 text-lg font-semibold text-text-2">{t.folderNote}</p>
       </article>
+      {qr && (
+        <GalleryQr
+          url={qr}
+          onCopy={() =>
+            p.crew
+              .galleryLink(event.id)
+              .then(() => setNote({ ok: true, text: copy.galleryQr.copied }))
+          }
+          onClose={() => setQr(null)}
+        />
+      )}
     </div>
   );
 }

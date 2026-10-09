@@ -17,11 +17,13 @@ import {
   Flag,
   Focus,
   LayoutGrid,
+  Link2,
   type LucideIcon,
   Palette,
   Pause,
   Play,
   Printer,
+  QrCode as QrCodeIcon,
   Settings,
 } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
@@ -30,6 +32,7 @@ import { guestCursor } from "../cursorPref";
 import { eventDesigns } from "../designEdit";
 import { crewText, errText } from "../errors";
 import { type BoothEvent, DEFAULT_EVENT } from "../event";
+import { GalleryQr } from "../GalleryQr";
 import { usePlatform } from "../PlatformContext";
 import type { BoothRunState, CrewStatus, FailedPrint, UpdateCheck } from "../platform";
 import { type SharpenProgress, sharpenOldSessions } from "../rerender";
@@ -254,6 +257,7 @@ export function CrewMenu({
   /** Pop-up Mulai acara / Tes dulu (#152) dan kartu rekap (#154). */
   const [goAsk, setGoAsk] = useState(false);
   const [recapOpen, setRecapOpen] = useState(false);
+  const [galleryQr, setGalleryQr] = useState<string | null>(null);
   useEffect(() => {
     if (!hasEvent) return;
     p.crew.runState(event.id).then(setRun, () => {});
@@ -642,6 +646,23 @@ export function CrewMenu({
           onClick={() => setRecapOpen(true)}
         >
           <ClipboardList size={24} strokeWidth={2.5} /> {c.run.recap}
+        </Button>
+        {/* Galeri online (#240): salin link atau tampilkan QR untuk tamu/klien. Butuh internet. */}
+        <Button
+          variant="secondary"
+          className={btn}
+          disabled={!hasEvent || event.id === "local"}
+          onClick={act(() => p.crew.galleryLink(event.id), copy.galleryQr.copied)}
+        >
+          <Link2 size={24} strokeWidth={2.5} /> {copy.crew.recap.link}
+        </Button>
+        <Button
+          variant="secondary"
+          className={btn}
+          disabled={!hasEvent || event.id === "local"}
+          onClick={act(() => p.crew.galleryLink(event.id).then(setGalleryQr))}
+        >
+          <QrCodeIcon size={24} strokeWidth={2.5} /> {copy.galleryQr.button}
         </Button>
       </div>
     </Panel>
@@ -1224,6 +1245,13 @@ export function CrewMenu({
         />
       )}
       {recapOpen && <BoothRecap event={event} onClose={() => setRecapOpen(false)} />}
+      {galleryQr && (
+        <GalleryQr
+          url={galleryQr}
+          onCopy={act(() => p.crew.galleryLink(event.id), copy.galleryQr.copied)}
+          onClose={() => setGalleryQr(null)}
+        />
+      )}
       {sheet === "exit" && (
         <Sheet title={c.exitConfirm} onClose={() => setSheet(null)}>
           <p className="text-2xl font-medium text-text-2">{c.exitBody}</p>

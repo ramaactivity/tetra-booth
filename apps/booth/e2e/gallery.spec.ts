@@ -57,6 +57,7 @@ test("galeri tamu: lihat foto, scan QR, cetak lagi sampai batas", async () => {
         ],
       },
       settings: { countdownSec: 1, shotDelaySec: 0.2, maxPrints: 2 },
+      info: { slug: "rina-dimas-2026-10-12", publicGallery: true },
     }),
   );
   const env = { ...process.env };
@@ -99,6 +100,12 @@ test("galeri tamu: lihat foto, scan QR, cetak lagi sampai batas", async () => {
     await expect(cards.nth(1).locator("img")).toBeVisible({ timeout: 15_000 });
     await w.waitForTimeout(600); // animasi masuk selesai
     await w.screenshot({ path: "test-results/gallery-grid.png" });
+    // Galeri online (#240): QR galeri publik acara untuk tamu.
+    await w.getByRole("button", { name: "Galeri online" }).click();
+    await expect(w.getByTestId("gallery-qr-url")).toHaveText(/\/l\/rina-dimas-2026-10-12$/);
+    await w.screenshot({ path: "test-results/gallery-online-qr.png" });
+    await w.getByTestId("gallery-qr").getByRole("button", { name: "Tutup" }).click();
+    await expect(w.getByTestId("gallery-qr")).toBeHidden();
     const cardBox = await cards.first().boundingBox();
     if (cardBox)
       await w.screenshot({
