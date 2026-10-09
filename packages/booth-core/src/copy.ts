@@ -127,6 +127,12 @@ export const copy = {
     attempt: (n: number) => `(percobaan ${n})`,
     safe: "Foto yang sudah diambil tetap aman",
     help: "Butuh bantuan? Panggil crew",
+    afTitle: "Crew: kamera tidak mau memotret? Cek di kamera, lalu coba lagi:",
+    afSteps: [
+      "Putar dial mode ke M (manual)",
+      "Matikan live view di kamera (tombol LV, layar belakang kamera mati)",
+      "Geser saklar fokus lensa dari AF ke MF, putar ring fokus sampai tajam",
+    ],
   },
   payment: {
     expired: "Waktu pembayaran habis",

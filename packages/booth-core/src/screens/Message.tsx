@@ -36,13 +36,16 @@ export const SHOW_ATTEMPTS = 10;
 export function CameraError({
   attempt,
   onCrew,
+  afHint = false,
 }: {
   attempt: number;
+  /** Jepret terakhir gagal karena kamera sibuk/tidak menjawab: saran AF → MF untuk crew. */
+  afHint?: boolean;
   onCrew?: ((intent?: "exit") => void) | undefined;
 }) {
   useCrewKeys(onCrew);
   return (
-    <main className="relative flex h-full w-full items-center justify-center overflow-hidden bg-paper">
+    <main className="relative flex h-full w-full flex-col items-center justify-center gap-7 overflow-hidden bg-paper">
       <div className="absolute -top-[180px] -left-[180px] size-[640px] rounded-full bg-sky" />
       <Card>
         <h1 className={title}>{copy.camera.preparing}</h1>
@@ -57,6 +60,19 @@ export function CameraError({
           {copy.camera.safe}
         </p>
       </Card>
+      {afHint && (
+        <div
+          data-testid="camera-af-hint"
+          className="relative w-[1180px] max-w-[calc(100%-96px)] rounded-[22px] border-2 border-ink bg-peach px-7 py-4 text-[24px]"
+        >
+          <p className="font-bold">{copy.camera.afTitle}</p>
+          <ol className="mt-1.5 list-decimal pl-8 font-medium">
+            {copy.camera.afSteps.map((x) => (
+              <li key={x}>{x}</li>
+            ))}
+          </ol>
+        </div>
+      )}
       <p
         data-testid="camera-help"
         className={`absolute right-[72px] bottom-[52px] font-semibold ${attempt > SHOW_ATTEMPTS ? "rounded-full border-2 border-ink bg-butter px-6 py-2 text-[28px] text-ink" : "text-[22px] text-text-2"}`}
