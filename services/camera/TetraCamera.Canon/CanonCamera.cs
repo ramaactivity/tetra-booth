@@ -305,7 +305,11 @@ public sealed class CanonCamera : ICameraSource, IDisposable
             if (!_atCapture.TryGetValue(o.Name, out var label)) continue;
             var want = o.Values.Where(kv => kv.Value == label).Select(kv => (uint?)kv.Key).FirstOrDefault();
             if (want is not { } w || w == CanonProps.SameAsLive) continue;
-            if (!Supported(o.PropId, w, o.Name, label)) continue;
+            if (!Supported(o.PropId, w))
+            {
+                Console.WriteLine($"[{Brand}] setelan jepret {o.Name}={label} tidak didukung kamera ini, dilewati");
+                continue;
+            }
             if (DateTime.UtcNow > until)
             {
                 Console.Error.WriteLine($"[{Brand}] setelan jepret {o.Name} dilewati: waktu habis");
@@ -452,26 +456,29 @@ public sealed class CanonCamera : ICameraSource, IDisposable
             ?? throw new CameraFailure("bad_prop", $"setelan '{name}' tidak dikenal");
         var code = d.Values.Where(kv => kv.Value == value).Select(kv => (uint?)kv.Key).FirstOrDefault()
             ?? throw new CameraFailure("bad_prop", $"nilai '{value}' tidak dikenal untuk {d.Label}");
-        if (!Supported(d.PropId, code, name, value)) return;
+        // Setelan tersimpan dari kamera lain (ISO 12800 700D di 60D, lapangan 9 Okt): kamera menjawab DEVICE_BUSY, bukan
+        // NOT_SUPPORTED, jadi dilewati sebelum dikirim.
+        if (!Supported(d.PropId, code))
+        {
+            Console.WriteLine($"[{Brand}] setelan {name}={value} tidak didukung kamera ini, dilewati");
+            return;
+        }
         _driver.SetProp(d.PropId, code);
         // Pilihan crew menang atas pengembalian setelan jepret yang tertunda (jangan ditimpa 1 s kemudian).
         _restore.Remove(d.PropId);
         _restoreFails.Remove(d.PropId);
     }
 
-    /// <summary>
-    /// Nilai ada di daftar opsi kamera yang tersambung? Setelan tersimpan dari bodi lain (ISO 12800 dari 700D di 60D,
-    /// 2026-10-09) dijawab DEVICE_BUSY 0x81, bukan NOT_SUPPORTED, jadi dicek dulu dan dilewati dengan log.
-    /// Daftar opsi tidak terbaca = dicoba saja (perilaku lama).
-    /// </summary>
-    private bool Supported(uint prop, uint code, string name, string label)
+
+    /// <summary>Kode ada di pilihan kamera saat ini? Daftar kosong / gagal dibaca = dianggap didukung (dicoba saja).</summary>
+    private bool Supported(uint prop, uint code)
     {
-        uint[] opts;
-        try { opts = _driver.PropOptions(prop); }
+        try
+        {
+            var o = _driver.PropOptions(prop);
+            return o.Length == 0 || o.Contains(code);
+        }
         catch { return true; }
-        if (opts.Length == 0 || opts.Contains(code)) return true;
-        Console.Error.WriteLine($"[{Brand}] setelan {name}={label} dilewati: tidak didukung {Model ?? "kamera ini"}");
-        return false;
     }
 
     private static Dictionary<string, string> Load(string? path)

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { composeStrip, designPreview, renderWebPiece, shotsPerSession } from "./compose";
 import { copy } from "./copy";
 import { CountdownRecorder, recorderMime } from "./countdownVideo";
-import { errText } from "./errors";
+import { afSuspect, errText } from "./errors";
 import type { BoothEvent } from "./event";
 import { buildOutputs, previewUrl } from "./finalize";
 import { mmss, rupiah } from "./format";
@@ -105,6 +105,8 @@ export function SessionRunner({
   const urls = useRef<string[]>([]);
   /** Percobaan sambung ulang kamera yang gagal, untuk layar A10. */
   const [reconnects, setReconnects] = useState(0);
+  // Jepret gagal karena kamera sibuk/tidak menjawab → saran AF ke MF untuk crew di layar kamera bermasalah.
+  const [afHint, setAfHint] = useState(false);
   const send = (e: SessionEvent) => () => dispatch(e);
   // Galeri tamu (#145): layar di atas attract, bukan fase sesi; selama terbuka tidak ada sesi baru yang mulai.
   const [gallery, setGallery] = useState<{ at?: SessionPiece | undefined } | null>(null);
@@ -264,7 +266,9 @@ export function SessionRunner({
       })
       .catch((e: unknown) => {
         console.warn(`[session] capture gagal: ${errText(e)}`);
-        if (live) dispatch({ type: "CAPTURE_FAILED" });
+        if (!live) return;
+        setAfHint(afSuspect(e));
+        dispatch({ type: "CAPTURE_FAILED" });
       });
     return () => {
       live = false;
@@ -583,7 +587,7 @@ export function SessionRunner({
           <PhotoPreview url={photo.url} index={s.index} total={s.slots} cheer={cheer.text} />
         ) : null;
       case "camera_error":
-        return <CameraError attempt={reconnects + 1} onCrew={onCrew} />;
+        return <CameraError attempt={reconnects + 1} onCrew={onCrew} afHint={afHint} />;
       case "filter":
         return (
           <FilterSelect

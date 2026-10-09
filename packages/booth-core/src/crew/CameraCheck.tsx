@@ -2,7 +2,7 @@ import { newSessionId } from "@tetra/shared";
 import { Button } from "@tetra/ui";
 import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
-import { crewText as errText } from "../errors";
+import { afSuspect, crewText as errText } from "../errors";
 import { previewUrl } from "../finalize";
 import { usePlatform } from "../PlatformContext";
 import type { CameraProp, FocusStep, LiveFrame } from "../platform";
@@ -49,6 +49,8 @@ type TestShot = {
   s: ShotSettings;
 };
 const HISTORY_MAX = 6;
+/** Saran crew saat jepret gagal karena kamera sibuk/tidak menjawab (mode M, live view kamera mati, AF → MF). */
+const afText = `Cek di kamera: ${copy.camera.afSteps.map((x, i) => `${i + 1}) ${x}`).join("; ")}.`;
 const SAME = "Sama dengan live view";
 
 /** ISO/shutter efektif saat jepret: nilai "jepret" kalau diisi, kalau tidak ikut live view (#113, W-034). */
@@ -195,7 +197,7 @@ export function CameraCheck({
         return [next, ...prev.slice(0, HISTORY_MAX - 1)];
       });
     } catch (e) {
-      setError(errText(e));
+      setError(afSuspect(e) ? `${errText(e)}. ${afText}` : errText(e));
     } finally {
       setBusy(false);
       setHasFrame(false);

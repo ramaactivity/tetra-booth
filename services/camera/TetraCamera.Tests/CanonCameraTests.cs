@@ -215,6 +215,23 @@ public class CanonCameraTests
     }
 
     [Fact]
+    public async Task Setelan_tersimpan_yang_tidak_didukung_kamera_ini_dilewati_tanpa_SetProp()
+    {
+        // ISO tersimpan dari kamera lain (700D 12800 di 60D): dulu dikirim lalu ditolak 0x81.
+        var path = Path.Combine(Path.GetTempPath(), $"tc-saved-{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, """{"iso":"ISO 12800","iso_capture":"ISO 12800","whitebalance":"Shade"}""");
+        var d = new FakeCanonDriver();
+        using var cam = new CanonCamera(d, settingsPath: path, reconnect: TimeSpan.FromMilliseconds(50),
+            frameEvery: TimeSpan.FromMilliseconds(10));
+        await Until(() => cam.Connected);
+        await Until(() => d.Props[0x106] == 8u); // whitebalance Shade terpasang
+        Assert.Equal(0x48u, d.Props[0x402]); // ISO tetap 100, 12800 tidak ada di pilihan palsu
+        var dir = Path.Combine(Path.GetTempPath(), $"tc-iso-{Guid.NewGuid():N}");
+        await cam.CaptureAsync(dir, 0);
+        Assert.Equal([0x48u], d.IsoAtCapture);
+    }
+
+    [Fact]
     public async Task Shutter_jepret_dipasang_saat_rana_bersama_ISO_lalu_keduanya_dikembalikan()
     {
         var d = new FakeCanonDriver();
