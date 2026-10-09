@@ -81,16 +81,16 @@ test("cetak tamu: antre → booth ambil berpasangan → hasil ke HP tamu", async
         ).json()
       ).jobs as { id: string; number: number; guestName: string; url: string; layout: unknown }[];
 
-    const a = await guest(1, "strip-3");
+    const a = await guest(1, "renda-strip");
     // Frame belum ada di album → ditolak; frame ada → antre #1; ulang = sama (1 tamu 1 cetak).
     expect(
-      (await a.ctx.post(`${base}/print`, { data: { idx: 1, designId: "strip-3" } })).status(),
+      (await a.ctx.post(`${base}/print`, { data: { idx: 1, designId: "renda-strip" } })).status(),
     ).toBe(400);
     expect(await (await a.print()).json()).toEqual({ number: 1, status: "queued" });
     expect(await (await a.print()).json()).toEqual({ number: 1, status: "queued" });
     // Strip tunggal ditahan (menunggu pasangan) → booth belum dapat apa-apa.
     expect(await claim("2x6x2")).toEqual([]);
-    const b = await guest(2, "strip-3");
+    const b = await guest(2, "renda-strip");
     expect((await (await b.print()).json()).number).toBe(2);
     // Kertas lain tidak mengambil strip.
     expect(await claim("4R")).toEqual([]);
@@ -117,7 +117,7 @@ test("cetak tamu: antre → booth ambil berpasangan → hasil ke HP tamu", async
     expect((await (await b.ctx.get(`${base}/print`)).json()).status).toBe("failed");
 
     // 4R satu per lembar: langsung diambil tanpa menunggu pasangan.
-    const c = await guest(3, "4r-grid");
+    const c = await guest(3, "renda-4r");
     expect((await (await c.print()).json()).number).toBe(3);
     expect((await claim("4R")).map((j) => j.number)).toEqual([3]);
 
@@ -126,7 +126,7 @@ test("cetak tamu: antre → booth ambil berpasangan → hasil ke HP tamu", async
       .from("events")
       .update({ settings: { guestCam: { enabled: true, shots: 3, strip: true, print: false } } })
       .eq("id", eventId);
-    const d = await guest(4, "strip-3");
+    const d = await guest(4, "renda-strip");
     expect((await d.print()).status()).toBe(404);
   } finally {
     await Promise.all(phones.map((p) => p.dispose()));

@@ -26,6 +26,7 @@ import {
   storeBundleFile,
   storeOverlay,
 } from "@/lib/event-bundle";
+import { CARD_DESIGNS, type CardDesignId } from "@/lib/guest-card-art";
 import { copyLayout, StoredLayout } from "@/lib/layouts";
 import { consentVersion, LEAD_FIELDS } from "@/lib/leads";
 import type { PhotoboxLayoutSetting, PhotoboxSettings } from "@/lib/payments";
@@ -114,7 +115,9 @@ const Form = z.object({
   /** Batas tamu tier Guest Cam (#221); "" = tak terbatas. */
   gc_max_guests: z.enum(["", "100", "200", "300", "500"]).default(""),
   /** Desain kartu QR kartu nama (#225). */
-  gc_card: z.enum(["sekali-pakai", "polaroid", "film", "elegan", "poster"]).default("sekali-pakai"),
+  gc_card: z
+    .enum(CARD_DESIGNS.map((c) => c.id) as [CardDesignId, ...CardDesignId[]])
+    .default("zamrud"),
   gc_reveal: z.enum(["live", "after"]).default("after"),
   gc_approval: z.enum(["auto", "manual"]).default("auto"),
   gc_consent: z.string().trim().max(600).default(""),

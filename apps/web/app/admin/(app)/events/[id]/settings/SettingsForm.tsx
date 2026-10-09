@@ -20,6 +20,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { CARD_DESIGNS, cardDesign } from "@/lib/guest-card-art";
 import { OPS_PAPER, OpsPaperWarning } from "../../OpsPaperWarning";
 import { type SaveResult, saveEvent } from "./actions";
 import { type DesignOption, DesignPicker, forMode } from "./DesignPicker";
@@ -403,13 +404,7 @@ function Field({
 }
 
 /** Desain kartu QR Kamera Tamu (#227); id sama dengan CARD_DESIGNS di lib/guest-card-art. */
-const CARD_OPTIONS = [
-  { value: "sekali-pakai", label: "Retro Cam" },
-  { value: "polaroid", label: "Polaroid" },
-  { value: "film", label: "Roll Film" },
-  { value: "elegan", label: "Elegan" },
-  { value: "poster", label: "Poster Jelas" },
-];
+const CARD_OPTIONS = CARD_DESIGNS.map((c) => ({ value: c.id, label: c.name }));
 
 /** Tier Guest Cam (#221, rekap pricing 8 Okt). */
 const GUEST_TIER_OPTIONS = [
@@ -465,11 +460,7 @@ export function SettingsForm({
   const [leadOn, setLeadOn] = useState(!!v.lead?.enabled);
   const [gcOn, setGcOn] = useState(v.guestCam.enabled);
   const [gcMax, setGcMax] = useState(v.gc_max_guests);
-  const [gcCard, setGcCard] = useState(
-    CARD_OPTIONS.some((o) => o.value === v.guestCam.cardDesign)
-      ? v.guestCam.cardDesign
-      : "sekali-pakai",
-  );
+  const [gcCard, setGcCard] = useState<string>(cardDesign(v.guestCam.cardDesign));
   const [gcLen, setGcLen] = useState(v.guestCam.consentText.length);
   const [dirty, setDirty] = useState(false);
   const [active, setActive] = useState("informasi");

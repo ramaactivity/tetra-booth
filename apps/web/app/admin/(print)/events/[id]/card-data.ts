@@ -6,7 +6,7 @@ import { eventKey } from "@/lib/events";
 import type { CardData } from "@/lib/guest-card-art";
 import { requireMember } from "@/lib/supabase/server";
 
-/** Data kartu QR Kamera Tamu (#227) untuk halaman cetak; 404 kalau link Guest Cam belum dibuat. */
+/** Data kartu QR Snapbook (#230) untuk halaman cetak; 404 kalau link Guest Cam belum dibuat. */
 export async function loadCardEvent(id: string) {
   const { db, orgId } = await requireMember(["owner", "admin"]);
   const { data: ev } = await db
@@ -24,7 +24,6 @@ export async function loadCardEvent(id: string) {
     date: ev.event_date,
     url: `${origin}/c/${ev.guest_token}`,
     shots: cam.shots,
-    reveal: cam.reveal,
     voice: cam.voice,
     strip: cam.strip,
   };

@@ -1,0 +1,462 @@
+{
+  "version": "2026-10-09",
+  "total": 45,
+  "categories": [
+    "wedding",
+    "analog",
+    "playful",
+    "netral"
+  ],
+  "frames": [
+    {
+      "id": "renda-strip",
+      "name": "Renda Marun — Strip 2R",
+      "style": "renda",
+      "paper": "2x6x2",
+      "slots": 3,
+      "dir": "frames/renda-strip/",
+      "category": "wedding",
+      "sortOrder": 1
+    },
+    {
+      "id": "renda-4r",
+      "name": "Renda Marun — 4R",
+      "style": "renda",
+      "paper": "4R",
+      "slots": 4,
+      "dir": "frames/renda-4r/",
+      "category": "wedding",
+      "sortOrder": 1
+    },
+    {
+      "id": "renda-polaroid",
+      "name": "Renda Marun — Polaroid",
+      "style": "renda",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/renda-polaroid/",
+      "category": "wedding",
+      "sortOrder": 1
+    },
+    {
+      "id": "pita-strip",
+      "name": "Pita Krem — Strip 2R",
+      "style": "pita",
+      "paper": "2x6x2",
+      "slots": 3,
+      "dir": "frames/pita-strip/",
+      "category": "wedding",
+      "sortOrder": 2
+    },
+    {
+      "id": "pita-4r",
+      "name": "Pita Krem — 4R",
+      "style": "pita",
+      "paper": "4R",
+      "slots": 3,
+      "dir": "frames/pita-4r/",
+      "category": "wedding",
+      "sortOrder": 2
+    },
+    {
+      "id": "pita-polaroid",
+      "name": "Pita Krem — Polaroid",
+      "style": "pita",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/pita-polaroid/",
+      "category": "wedding",
+      "sortOrder": 2
+    },
+    {
+      "id": "zamrud-strip",
+      "name": "Lengkung Zamrud — Strip 2R",
+      "style": "zamrud",
+      "paper": "2x6x2",
+      "slots": 3,
+      "dir": "frames/zamrud-strip/",
+      "category": "wedding",
+      "sortOrder": 3
+    },
+    {
+      "id": "zamrud-4r",
+      "name": "Lengkung Zamrud — 4R",
+      "style": "zamrud",
+      "paper": "4R",
+      "slots": 2,
+      "dir": "frames/zamrud-4r/",
+      "category": "wedding",
+      "sortOrder": 3
+    },
+    {
+      "id": "zamrud-polaroid",
+      "name": "Lengkung Zamrud — Polaroid",
+      "style": "zamrud",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/zamrud-polaroid/",
+      "category": "wedding",
+      "sortOrder": 3
+    },
+    {
+      "id": "doily-strip",
+      "name": "Renda Hijau — Strip 2R",
+      "style": "doily",
+      "paper": "2x6x2",
+      "slots": 3,
+      "dir": "frames/doily-strip/",
+      "category": "wedding",
+      "sortOrder": 4
+    },
+    {
+      "id": "doily-4r",
+      "name": "Renda Hijau — 4R",
+      "style": "doily",
+      "paper": "4R",
+      "slots": 1,
+      "dir": "frames/doily-4r/",
+      "category": "wedding",
+      "sortOrder": 4
+    },
+    {
+      "id": "doily-polaroid",
+      "name": "Renda Hijau — Polaroid",
+      "style": "doily",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/doily-polaroid/",
+      "category": "wedding",
+      "sortOrder": 4
+    },
+    {
+      "id": "mono-strip",
+      "name": "Film Monokrom — Strip 2R",
+      "style": "mono",
+      "paper": "2x6x2",
+      "slots": 3,
+      "dir": "frames/mono-strip/",
+      "category": "wedding",
+      "sortOrder": 5
+    },
+    {
+      "id": "mono-4r",
+      "name": "Film Monokrom — 4R",
+      "style": "mono",
+      "paper": "4R",
+      "slots": 4,
+      "dir": "frames/mono-4r/",
+      "category": "wedding",
+      "sortOrder": 5
+    },
+    {
+      "id": "mono-polaroid",
+      "name": "Film Monokrom — Polaroid",
+      "style": "mono",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/mono-polaroid/",
+      "category": "wedding",
+      "sortOrder": 5
+    },
+    {
+      "id": "teater-strip",
+      "name": "Tiket Pertunjukan — Strip 2R",
+      "style": "teater",
+      "paper": "2x6x2",
+      "slots": 4,
+      "dir": "frames/teater-strip/",
+      "category": "wedding",
+      "sortOrder": 6
+    },
+    {
+      "id": "teater-4r",
+      "name": "Tiket Pertunjukan — 4R",
+      "style": "teater",
+      "paper": "4R",
+      "slots": 4,
+      "dir": "frames/teater-4r/",
+      "category": "wedding",
+      "sortOrder": 6
+    },
+    {
+      "id": "teater-polaroid",
+      "name": "Tiket Pertunjukan — Polaroid",
+      "style": "teater",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/teater-polaroid/",
+      "category": "wedding",
+      "sortOrder": 6
+    },
+    {
+      "id": "film-strip",
+      "name": "Roll Film — Strip 2R",
+      "style": "film",
+      "paper": "2x6x2",
+      "slots": 4,
+      "dir": "frames/film-strip/",
+      "category": "analog",
+      "sortOrder": 7
+    },
+    {
+      "id": "film-4r",
+      "name": "Roll Film — 4R",
+      "style": "film",
+      "paper": "4R",
+      "slots": 4,
+      "dir": "frames/film-4r/",
+      "category": "analog",
+      "sortOrder": 7
+    },
+    {
+      "id": "film-polaroid",
+      "name": "Roll Film — Polaroid",
+      "style": "film",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/film-polaroid/",
+      "category": "analog",
+      "sortOrder": 7
+    },
+    {
+      "id": "koran-strip",
+      "name": "Harian Snapbook — Strip 2R",
+      "style": "koran",
+      "paper": "2x6x2",
+      "slots": 3,
+      "dir": "frames/koran-strip/",
+      "category": "playful",
+      "sortOrder": 8
+    },
+    {
+      "id": "koran-4r",
+      "name": "Harian Snapbook — 4R",
+      "style": "koran",
+      "paper": "4R",
+      "slots": 4,
+      "dir": "frames/koran-4r/",
+      "category": "playful",
+      "sortOrder": 8
+    },
+    {
+      "id": "koran-polaroid",
+      "name": "Harian Snapbook — Polaroid",
+      "style": "koran",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/koran-polaroid/",
+      "category": "playful",
+      "sortOrder": 8
+    },
+    {
+      "id": "majalah-strip",
+      "name": "Cover Majalah — Strip 2R",
+      "style": "majalah",
+      "paper": "2x6x2",
+      "slots": 3,
+      "dir": "frames/majalah-strip/",
+      "category": "playful",
+      "sortOrder": 9
+    },
+    {
+      "id": "majalah-4r",
+      "name": "Cover Majalah — 4R",
+      "style": "majalah",
+      "paper": "4R",
+      "slots": 1,
+      "dir": "frames/majalah-4r/",
+      "category": "playful",
+      "sortOrder": 9
+    },
+    {
+      "id": "majalah-polaroid",
+      "name": "Cover Majalah — Polaroid",
+      "style": "majalah",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/majalah-polaroid/",
+      "category": "playful",
+      "sortOrder": 9
+    },
+    {
+      "id": "musik-strip",
+      "name": "Sedang Diputar — Strip 2R",
+      "style": "musik",
+      "paper": "2x6x2",
+      "slots": 3,
+      "dir": "frames/musik-strip/",
+      "category": "playful",
+      "sortOrder": 10
+    },
+    {
+      "id": "musik-4r",
+      "name": "Sedang Diputar — 4R",
+      "style": "musik",
+      "paper": "4R",
+      "slots": 3,
+      "dir": "frames/musik-4r/",
+      "category": "playful",
+      "sortOrder": 10
+    },
+    {
+      "id": "musik-polaroid",
+      "name": "Sedang Diputar — Polaroid",
+      "style": "musik",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/musik-polaroid/",
+      "category": "playful",
+      "sortOrder": 10
+    },
+    {
+      "id": "pass-strip",
+      "name": "Boarding Pass — Strip 2R",
+      "style": "pass",
+      "paper": "2x6x2",
+      "slots": 3,
+      "dir": "frames/pass-strip/",
+      "category": "netral",
+      "sortOrder": 11
+    },
+    {
+      "id": "pass-4r",
+      "name": "Boarding Pass — 4R",
+      "style": "pass",
+      "paper": "4R",
+      "slots": 4,
+      "dir": "frames/pass-4r/",
+      "category": "netral",
+      "sortOrder": 11
+    },
+    {
+      "id": "pass-polaroid",
+      "name": "Boarding Pass — Polaroid",
+      "style": "pass",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/pass-polaroid/",
+      "category": "netral",
+      "sortOrder": 11
+    },
+    {
+      "id": "photobox-strip",
+      "name": "Photobox Klasik — Strip 2R",
+      "style": "photobox",
+      "paper": "2x6x2",
+      "slots": 4,
+      "dir": "frames/photobox-strip/",
+      "category": "netral",
+      "sortOrder": 12
+    },
+    {
+      "id": "photobox-4r",
+      "name": "Photobox Klasik — 4R",
+      "style": "photobox",
+      "paper": "4R",
+      "slots": 8,
+      "dir": "frames/photobox-4r/",
+      "category": "netral",
+      "sortOrder": 12
+    },
+    {
+      "id": "photobox-polaroid",
+      "name": "Photobox Klasik — Polaroid",
+      "style": "photobox",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/photobox-polaroid/",
+      "category": "netral",
+      "sortOrder": 12
+    },
+    {
+      "id": "struk-strip",
+      "name": "Struk Kasir — Strip 2R",
+      "style": "struk",
+      "paper": "2x6x2",
+      "slots": 3,
+      "dir": "frames/struk-strip/",
+      "category": "playful",
+      "sortOrder": 13
+    },
+    {
+      "id": "struk-4r",
+      "name": "Struk Kasir — 4R",
+      "style": "struk",
+      "paper": "4R",
+      "slots": 4,
+      "dir": "frames/struk-4r/",
+      "category": "playful",
+      "sortOrder": 13
+    },
+    {
+      "id": "struk-polaroid",
+      "name": "Struk Kasir — Polaroid",
+      "style": "struk",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/struk-polaroid/",
+      "category": "playful",
+      "sortOrder": 13
+    },
+    {
+      "id": "zine-strip",
+      "name": "Scrapbook Zine — Strip 2R",
+      "style": "zine",
+      "paper": "2x6x2",
+      "slots": 3,
+      "dir": "frames/zine-strip/",
+      "category": "playful",
+      "sortOrder": 14
+    },
+    {
+      "id": "zine-4r",
+      "name": "Scrapbook Zine — 4R",
+      "style": "zine",
+      "paper": "4R",
+      "slots": 3,
+      "dir": "frames/zine-4r/",
+      "category": "playful",
+      "sortOrder": 14
+    },
+    {
+      "id": "zine-polaroid",
+      "name": "Scrapbook Zine — Polaroid",
+      "style": "zine",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/zine-polaroid/",
+      "category": "playful",
+      "sortOrder": 14
+    },
+    {
+      "id": "bold-strip",
+      "name": "Bold Grafis — Strip 2R",
+      "style": "bold",
+      "paper": "2x6x2",
+      "slots": 3,
+      "dir": "frames/bold-strip/",
+      "category": "netral",
+      "sortOrder": 15
+    },
+    {
+      "id": "bold-4r",
+      "name": "Bold Grafis — 4R",
+      "style": "bold",
+      "paper": "4R",
+      "slots": 4,
+      "dir": "frames/bold-4r/",
+      "category": "netral",
+      "sortOrder": 15
+    },
+    {
+      "id": "bold-polaroid",
+      "name": "Bold Grafis — Polaroid",
+      "style": "bold",
+      "paper": "3x4x2",
+      "slots": 1,
+      "dir": "frames/bold-polaroid/",
+      "category": "netral",
+      "sortOrder": 15
+    }
+  ]
+}
