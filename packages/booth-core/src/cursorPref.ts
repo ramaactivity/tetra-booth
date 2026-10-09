@@ -20,3 +20,25 @@ export const guestCursor = {
     }
   },
 };
+
+/**
+ * Suara booth (permintaan Rama 9 Okt): suara pemandu, sorakan, dan bunyi tik/jepret hitung mundur. Bawaan nyala;
+ * crew bisa mematikan per laptop (mis. acara formal / ruang ibadah). Disimpan seperti kursor.
+ */
+const SOUND_KEY = "tb.sound";
+export const boothSound = {
+  on: (): boolean => {
+    try {
+      return typeof localStorage === "undefined" || localStorage.getItem(SOUND_KEY) !== "0";
+    } catch {
+      return true;
+    }
+  },
+  set: (on: boolean) => {
+    try {
+      localStorage.setItem(SOUND_KEY, on ? "1" : "0");
+    } catch {
+      // diblokir: abaikan
+    }
+  },
+};

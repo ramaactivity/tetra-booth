@@ -5,9 +5,9 @@ import { LayoutSpecSchema } from "./layout";
 
 /** Pengaturan pengalaman per event (FSD §5.4 "Pengalaman"). Field kosong = default. */
 export const EventSettingsSchema = z.object({
-  countdownSec: z.number().int().min(1).max(10).default(3),
+  countdownSec: z.number().int().min(1).max(10).default(5),
   shotDelaySec: z.number().min(0).max(10).default(2),
-  retakeMax: z.number().int().min(0).max(5).default(1),
+  retakeMax: z.number().int().min(0).max(5).default(2),
   maxPrints: z.number().int().min(1).max(10).default(2),
   reviewTimeoutSec: z.number().int().min(5).max(120).default(20),
   qrScreenSec: z.number().int().min(10).max(300).default(45),

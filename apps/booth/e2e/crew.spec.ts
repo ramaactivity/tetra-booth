@@ -142,13 +142,13 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   // Pengaturan event di booth (DECISIONS #100), langsung di halaman Event & Desain: override lokal, kembalikan.
   await w.getByTestId("crew-nav-event").click();
   const countdown = w.getByTestId("setting-countdownSec");
-  await expect(countdown).toContainText("cloud: 3");
+  await expect(countdown).toContainText("cloud: 5"); // bawaan 5 dtk (Rama 9 Okt)
   await expect(w.getByTestId("setting-sessionSec")).toHaveCount(0);
   await w.getByRole("button", { name: "Hitung mundur (detik) +" }).click();
   await w.getByRole("button", { name: "Hitung mundur (detik) +" }).click();
   await w.getByRole("button", { name: "Simpan", exact: true }).click();
   await expect(countdown).toContainText("diubah di booth");
-  await expect(countdown).toContainText("5");
+  await expect(countdown).toContainText("7");
   await expect(w.getByTestId("settings-local")).toBeVisible();
   await w.screenshot({ path: "test-results/crew-event-settings.png" });
   await w.getByRole("button", { name: "Kembalikan ke cloud" }).click();
@@ -427,6 +427,10 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await w.getByTestId("step-event").getByRole("button").click();
   await w.getByRole("button", { name: /Mode Event/ }).click();
   await w.getByRole("button", { name: "Ambil event terbaru" }).click();
+  // Pilih event (#242): terbaru di atas, label desain / peringatan belum ada desain, tombol kembali jelas.
+  await expect(w.getByRole("listitem").filter({ hasText: "Rina & Dimas" })).toBeVisible();
+  await expect(w.getByTestId("to-crew")).toBeVisible();
+  await w.screenshot({ path: "test-results/start-events-cloud.png" });
   await w.getByRole("button", { name: /Rina & Dimas/ }).click();
   // Event cloud belum mulai: Buka untuk Tamu = pop-up Mulai acara / Tes dulu + panduan masuk crew (#152).
   await expect(w.getByTestId("crew-run")).toHaveAttribute("data-state", "idle");
@@ -528,6 +532,11 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await expect(recap.getByTestId("booth-recap-note")).toContainText(
     `127.0.0.1:${port}/g/rina-dimas-2026-10-12`,
   );
+  // QR Galeri (#240): link yang sama sebagai QR besar untuk tamu/klien.
+  await recap.getByRole("button", { name: /QR Galeri/ }).click();
+  await expect(w.getByTestId("gallery-qr-url")).toContainText("/g/rina-dimas-2026-10-12");
+  await w.screenshot({ path: "test-results/booth-recap-qr.png" });
+  await w.getByTestId("gallery-qr").getByRole("button", { name: "Tutup" }).click();
   expect(await app.evaluate(({ clipboard }) => clipboard.readText())).toBe(
     `http://127.0.0.1:${port}/g/rina-dimas-2026-10-12`,
   );

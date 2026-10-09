@@ -8,6 +8,7 @@ import {
   Minus,
   Plus,
   Printer,
+  QrCode as QrCodeIcon,
   QrCode as QrIcon,
 } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
@@ -15,6 +16,7 @@ import { copy } from "../copy";
 import { errText } from "../errors";
 import type { BoothEvent } from "../event";
 import { encode } from "../finalize";
+import { GalleryQr } from "../GalleryQr";
 import {
   byHour,
   clock,
@@ -88,6 +90,8 @@ export function Gallery({
   onClose: () => void;
 }) {
   const p = usePlatform();
+  const [showQr, setShowQr] = useState(false);
+  const publicUrl = event.slug && event.publicGallery ? `${guestBaseUrl}/l/${event.slug}` : null;
   const root = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const [list, setList] = useState<SessionPiece[]>(at ? [at] : []);
@@ -242,6 +246,16 @@ export function Gallery({
             </div>
             <p className="text-[26px] font-medium text-text-2">{copy.gallery.sub}</p>
           </div>
+          {/* Galeri online acara (#240): hanya galeri publik, jadi galeri klien tidak terbuka ke tamu. Offline pun QR tampil. */}
+          {publicUrl && (
+            <Button
+              className="h-[88px] shrink-0 rounded-[24px] px-8 text-[28px]"
+              onClick={() => setShowQr(true)}
+            >
+              <QrCodeIcon size={34} strokeWidth={2.5} />
+              {copy.galleryQr.guestButton}
+            </Button>
+          )}
         </header>
 
         {meta.hours.length > 1 && (
@@ -336,6 +350,7 @@ export function Gallery({
           onHome={onClose}
         />
       )}
+      {showQr && publicUrl && <GalleryQr url={publicUrl} onClose={() => setShowQr(false)} />}
     </div>
   );
 }

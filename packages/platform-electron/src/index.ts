@@ -131,6 +131,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       resetPaper: (n) => bridge.crewResetPaper(n),
       failedPrints: () => bridge.crewFailedPrints(),
       reprint: (id) => bridge.crewReprint(id),
+      clearFailedPrints: () => bridge.crewClearFailedPrints(),
       exit: () => bridge.crewExit(),
       printerSettings: () => bridge.crewPrinterSettings(),
       autoStart: () => bridge.crewAutoStart(),

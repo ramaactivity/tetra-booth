@@ -17,19 +17,22 @@ import {
   Flag,
   Focus,
   LayoutGrid,
+  Link2,
   type LucideIcon,
   Palette,
   Pause,
   Play,
   Printer,
+  QrCode as QrCodeIcon,
   Settings,
 } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
-import { guestCursor } from "../cursorPref";
+import { boothSound, guestCursor } from "../cursorPref";
 import { eventDesigns } from "../designEdit";
 import { crewText, errText } from "../errors";
 import { type BoothEvent, DEFAULT_EVENT } from "../event";
+import { GalleryQr } from "../GalleryQr";
 import { usePlatform } from "../PlatformContext";
 import type { BoothRunState, CrewStatus, FailedPrint, UpdateCheck } from "../platform";
 import { type SharpenProgress, sharpenOldSessions } from "../rerender";
@@ -228,6 +231,7 @@ export function CrewMenu({
   const p = usePlatform();
   const [status, setStatus] = useState<CrewStatus>();
   const [failed, setFailed] = useState<FailedPrint[]>([]);
+  const [clearAsk, setClearAsk] = useState(false);
   const [roll, setRoll] = useState<string | null>(null);
   const [sheet, setSheet] = useState<"roll" | "exit" | "update" | null>(startExit ? "exit" : null);
   const [localSettings, setLocalSettings] = useState(false);
@@ -254,6 +258,7 @@ export function CrewMenu({
   /** Pop-up Mulai acara / Tes dulu (#152) dan kartu rekap (#154). */
   const [goAsk, setGoAsk] = useState(false);
   const [recapOpen, setRecapOpen] = useState(false);
+  const [galleryQr, setGalleryQr] = useState<string | null>(null);
   useEffect(() => {
     if (!hasEvent) return;
     p.crew.runState(event.id).then(setRun, () => {});
@@ -302,6 +307,7 @@ export function CrewMenu({
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [blurWarn, setBlurWarn] = useState(() => sharpNotes.crewWarning());
   const [cursorOn, setCursorOn] = useState(guestCursor.shown);
+  const [soundOn, setSoundOn] = useState(boothSound.on);
   /** Job test print / cetak ulang terakhir: hasil akhirnya menggantikan catatan "dikirim" (W-018). */
   const [, setWatching] = useState<string | null>(null);
   const [auto, setAuto] = useState<{ enabled: boolean; supported: boolean }>();
@@ -539,6 +545,38 @@ export function CrewMenu({
             </Row>
           </li>
         ))}
+        <li className="flex flex-wrap items-center gap-3 border-t-2 border-dashed border-line-soft pt-4">
+          {clearAsk ? (
+            <>
+              <span className="text-lg font-semibold">{c.clearFailedAsk(failed.length)}</span>
+              <Button
+                className="h-14 rounded-2xl px-5 text-xl"
+                onClick={act(async () => {
+                  setClearAsk(false);
+                  await p.crew.clearFailedPrints();
+                }, c.clearFailedDone)}
+              >
+                {c.clearFailedYes}
+              </Button>
+              <Button
+                variant="plain"
+                className="h-14 rounded-2xl px-5 text-xl"
+                onClick={() => setClearAsk(false)}
+              >
+                {c.cancel}
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="secondary"
+              data-testid="clear-failed"
+              className="h-14 rounded-2xl px-5 text-xl"
+              onClick={() => setClearAsk(true)}
+            >
+              {c.clearFailed}
+            </Button>
+          )}
+        </li>
       </ul>
     );
 
@@ -645,6 +683,23 @@ export function CrewMenu({
           onClick={() => setRecapOpen(true)}
         >
           <ClipboardList size={24} strokeWidth={2.5} /> {c.run.recap}
+        </Button>
+        {/* Galeri online (#240): salin link atau tampilkan QR untuk tamu/klien. Butuh internet. */}
+        <Button
+          variant="secondary"
+          className={btn}
+          disabled={!hasEvent || event.id === "local"}
+          onClick={act(() => p.crew.galleryLink(event.id), copy.galleryQr.copied)}
+        >
+          <Link2 size={24} strokeWidth={2.5} /> {copy.crew.recap.link}
+        </Button>
+        <Button
+          variant="secondary"
+          className={btn}
+          disabled={!hasEvent || event.id === "local"}
+          onClick={act(() => p.crew.galleryLink(event.id).then(setGalleryQr))}
+        >
+          <QrCodeIcon size={24} strokeWidth={2.5} /> {copy.galleryQr.button}
         </Button>
       </div>
     </Panel>
@@ -965,53 +1020,6 @@ export function CrewMenu({
             </Row>
           </Panel>
           <RoleChoice dev={dev} />
-          <Panel title={c.systemTitle}>
-            <div className="flex flex-col gap-4">
-              <ToggleRow
-                testId="guest-cursor"
-                label={c.cursor}
-                hint={c.flow.cursorHint}
-                on={cursorOn}
-                onLabel={c.cursorOn}
-                offLabel={c.cursorOff}
-                onClick={() => {
-                  guestCursor.set(!cursorOn);
-                  setCursorOn(!cursorOn);
-                }}
-              />
-              {auto?.supported ? (
-                <ToggleRow
-                  label={c.autoStart}
-                  hint={c.flow.autoStartHint}
-                  on={auto.enabled}
-                  onLabel={c.on}
-                  offLabel={c.off}
-                  onClick={act(async () => setAuto(await p.crew.setAutoStart(!auto.enabled)))}
-                />
-              ) : (
-                <Row label={c.autoStart} hint={auto ? c.autoStartDev : "…"} />
-              )}
-            </div>
-          </Panel>
-        </div>
-        <div className="flex min-w-0 flex-col gap-6">
-          <Panel title={c.appTitle}>
-            <Row label={c.update} hint={c.flow.updateHint}>
-              <Button variant="secondary" className={btn} onClick={openUpdate}>
-                {c.flow.checkUpdate}
-              </Button>
-            </Row>
-            <Row label={c.flow.pin} hint={c.flow.pinHint}>
-              <Button variant="secondary" className={btn} onClick={onChangePin}>
-                {c.changePin}
-              </Button>
-            </Row>
-            <Row label={c.exit} hint={c.flow.exitHint}>
-              <Button variant="destructive" className={btn} onClick={() => setSheet("exit")}>
-                {c.exit}
-              </Button>
-            </Row>
-          </Panel>
           <Panel title={c.sharpen.title} hint={c.sharpen.body}>
             {sharpen && (
               <p data-testid="sharpen-status" className="text-2xl font-bold">
@@ -1042,6 +1050,65 @@ export function CrewMenu({
                 {c.sharpen.start}
               </Button>
             )}
+          </Panel>
+        </div>
+        <div className="flex min-w-0 flex-col gap-6">
+          <Panel title={c.systemTitle}>
+            <div className="flex flex-col gap-4">
+              <ToggleRow
+                testId="booth-sound"
+                label={c.sound}
+                hint={c.soundHint}
+                on={soundOn}
+                onLabel={c.on}
+                offLabel={c.off}
+                onClick={() => {
+                  boothSound.set(!soundOn);
+                  setSoundOn(!soundOn);
+                }}
+              />
+              <ToggleRow
+                testId="guest-cursor"
+                label={c.cursor}
+                hint={c.flow.cursorHint}
+                on={cursorOn}
+                onLabel={c.cursorOn}
+                offLabel={c.cursorOff}
+                onClick={() => {
+                  guestCursor.set(!cursorOn);
+                  setCursorOn(!cursorOn);
+                }}
+              />
+              {auto?.supported ? (
+                <ToggleRow
+                  label={c.autoStart}
+                  hint={c.flow.autoStartHint}
+                  on={auto.enabled}
+                  onLabel={c.on}
+                  offLabel={c.off}
+                  onClick={act(async () => setAuto(await p.crew.setAutoStart(!auto.enabled)))}
+                />
+              ) : (
+                <Row label={c.autoStart} hint={auto ? c.autoStartDev : "…"} />
+              )}
+            </div>
+          </Panel>
+          <Panel title={c.appTitle}>
+            <Row label={c.update} hint={c.flow.updateHint}>
+              <Button variant="secondary" className={btn} onClick={openUpdate}>
+                {c.flow.checkUpdate}
+              </Button>
+            </Row>
+            <Row label={c.flow.pin} hint={c.flow.pinHint}>
+              <Button variant="secondary" className={btn} onClick={onChangePin}>
+                {c.changePin}
+              </Button>
+            </Row>
+            <Row label={c.exit} hint={c.flow.exitHint}>
+              <Button variant="destructive" className={btn} onClick={() => setSheet("exit")}>
+                {c.exit}
+              </Button>
+            </Row>
           </Panel>
         </div>
       </div>
@@ -1231,6 +1298,13 @@ export function CrewMenu({
         />
       )}
       {recapOpen && <BoothRecap event={event} onClose={() => setRecapOpen(false)} />}
+      {galleryQr && (
+        <GalleryQr
+          url={galleryQr}
+          onCopy={act(() => p.crew.galleryLink(event.id), copy.galleryQr.copied)}
+          onClose={() => setGalleryQr(null)}
+        />
+      )}
       {sheet === "exit" && (
         <Sheet title={c.exitConfirm} onClose={() => setSheet(null)}>
           <p className="text-2xl font-medium text-text-2">{c.exitBody}</p>

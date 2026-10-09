@@ -67,6 +67,7 @@ export type TetraBridge = {
   crewResetPaper: BoothCrew["resetPaper"];
   crewFailedPrints: BoothCrew["failedPrints"];
   crewReprint: BoothCrew["reprint"];
+  crewClearFailedPrints: BoothCrew["clearFailedPrints"];
   crewExit: BoothCrew["exit"];
   crewPrinterSettings: BoothCrew["printerSettings"];
   crewAutoStart: BoothCrew["autoStart"];

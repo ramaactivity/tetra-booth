@@ -2,9 +2,12 @@
  * Bunyi hitung mundur (DECISIONS #102): nada pendek dari Web Audio, tanpa file suara.
  * `tick` tiap detik, `shutter` saat hitungan habis. Gagal (tanpa perangkat audio) = diam.
  */
+import { boothSound } from "./cursorPref";
+
 let ctx: AudioContext | null = null;
 
 export function beep(kind: "tick" | "shutter") {
+  if (!boothSound.on()) return;
   try {
     ctx ??= new AudioContext();
     const o = ctx.createOscillator();

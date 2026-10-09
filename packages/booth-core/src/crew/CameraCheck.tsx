@@ -49,6 +49,8 @@ type TestShot = {
   s: ShotSettings;
 };
 const HISTORY_MAX = 6;
+/** Lama hasil Tes Jepret tampil di area live view sebelum live view kembali. */
+const PREVIEW_MS = 5000;
 /** Saran crew saat jepret gagal karena kamera sibuk/tidak menjawab (mode M, live view kamera mati, AF → MF). */
 const afText = `Cek di kamera: ${copy.camera.afSteps.map((x, i) => `${i + 1}) ${x}`).join("; ")}.`;
 const SAME = "Sama dengan live view";
@@ -104,6 +106,13 @@ export function CameraCheck({
     });
   // Riwayat Tes Jepret (terbaru di depan): diklik = tampil besar, bisa dibandingkan & dipakai setelannya (Rama).
   const [shots, setShots] = useState<TestShot[]>([]);
+  // Hasil Tes Jepret tampil besar di area live view sebentar, lalu live view kembali (Rama 9 Okt).
+  const [flash, setFlash] = useState<{ url: string; n: number } | null>(null);
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(null), PREVIEW_MS);
+    return () => clearTimeout(t);
+  }, [flash]);
   const [viewer, setViewer] = useState<{ mode: "one"; i: number } | { mode: "compare" } | null>(
     null,
   );
@@ -194,6 +203,7 @@ export function CameraCheck({
           s: snap,
         };
         for (const old of prev.slice(HISTORY_MAX - 1)) URL.revokeObjectURL(old.url);
+        setFlash({ url, n: next.n });
         return [next, ...prev.slice(0, HISTORY_MAX - 1)];
       });
     } catch (e) {
@@ -273,6 +283,27 @@ export function CameraCheck({
           <p className="pointer-events-none absolute top-6 left-6 rounded-full border-2 border-ink bg-white/90 px-5 py-2 text-lg font-semibold">
             {copy.crew.tapToFocus}
           </p>
+        )}
+        {flash && (
+          <button
+            type="button"
+            data-testid="shot-flash"
+            aria-label={copy.crew.backToLive}
+            onClick={() => setFlash(null)}
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-ink p-6"
+          >
+            <img src={flash.url} alt="" className="min-h-0 w-full flex-1 object-contain" />
+            <span className="flex items-center gap-3 rounded-full border-2 border-ink bg-white px-5 py-2 text-lg font-bold">
+              {copy.crew.shotNo(flash.n)} · {copy.crew.backToLive}
+              <span className="h-2 w-24 overflow-hidden rounded-full bg-neutral">
+                <span
+                  key={flash.n}
+                  className="block h-full bg-butter"
+                  style={{ animation: `fill ${PREVIEW_MS}ms linear forwards`, width: 0 }}
+                />
+              </span>
+            </span>
+          </button>
         )}
       </section>
 
