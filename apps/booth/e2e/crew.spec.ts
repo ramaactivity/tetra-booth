@@ -427,6 +427,10 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await w.getByTestId("step-event").getByRole("button").click();
   await w.getByRole("button", { name: /Mode Event/ }).click();
   await w.getByRole("button", { name: "Ambil event terbaru" }).click();
+  // Pilih event (#242): terbaru di atas, label desain / peringatan belum ada desain, tombol kembali jelas.
+  await expect(w.getByRole("listitem").filter({ hasText: "Rina & Dimas" })).toBeVisible();
+  await expect(w.getByTestId("to-crew")).toBeVisible();
+  await w.screenshot({ path: "test-results/start-events-cloud.png" });
   await w.getByRole("button", { name: /Rina & Dimas/ }).click();
   // Event cloud belum mulai: Buka untuk Tamu = pop-up Mulai acara / Tes dulu + panduan masuk crew (#152).
   await expect(w.getByTestId("crew-run")).toHaveAttribute("data-state", "idle");

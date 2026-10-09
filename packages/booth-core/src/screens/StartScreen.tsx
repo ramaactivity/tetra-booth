@@ -1,4 +1,5 @@
-import { type EventBundle, paperLabel } from "@tetra/shared";
+import { type EventBundle, type LayoutSpec, paperLabel } from "@tetra/shared";
+import { dateVars } from "@tetra/template-engine";
 import { Button } from "@tetra/ui";
 import {
   ArrowLeft,
@@ -8,31 +9,43 @@ import {
   Pencil,
   QrCode,
   RefreshCw,
+  TriangleAlert,
 } from "lucide-react";
 import { useState } from "react";
 import { copy } from "../copy";
 import { errText } from "../errors";
 import { DEFAULT_EVENT } from "../event";
 import { Logo } from "../ui";
-import { SampleCard } from "./Attract";
+import { DesignThumb } from "./DesignThumb";
 
 type Mode = "event" | "photobox";
 type Row = Pick<EventBundle, "id" | "name" | "date" | "layout" | "designs" | "photobox">;
 const t = copy.start;
 
-/** Keterangan satu event di daftar: tanggal · kertas · jumlah desain/layout. */
-const info = (b: Row) =>
-  [
-    b.date,
-    paperLabel(b.layout.paper, b.layout.canvas),
-    b.photobox
-      ? t.layouts(b.photobox.layouts.length)
-      : b.designs
-        ? t.designs(b.designs.length)
-        : undefined,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+type Sort = "newest" | "soonest" | "name";
+const iso = (b: Row) => (b.date ? dateVars(b.date).date_iso : "");
+/** Urutan daftar event (#242): bawaan acara terbaru di atas; event default bawaan selalu paling bawah. */
+const sorted = (rows: Row[], sort: Sort, today: string) =>
+  [...rows].sort((a, b) => {
+    if (a.id === "local" || b.id === "local") return a.id === "local" ? 1 : -1;
+    if (sort === "name") return a.name.localeCompare(b.name, "id");
+    const x = iso(a);
+    const y = iso(b);
+    if (!x || !y) return x ? -1 : y ? 1 : 0;
+    if (sort === "newest") return y.localeCompare(x);
+    // Terdekat: yang akan datang paling dekat dulu, lalu yang sudah lewat (terbaru dulu).
+    const ax = x >= today;
+    const by = y >= today;
+    return ax !== by ? (ax ? -1 : 1) : ax ? x.localeCompare(y) : y.localeCompare(x);
+  });
+/** Layout desain event yang punya gambar (overlay/latar dari klien); kosong = belum ada desain. */
+const layoutsOf = (b: Row): LayoutSpec[] =>
+  b.photobox
+    ? b.photobox.layouts.map((l) => l.layout)
+    : b.designs
+      ? b.designs.map((d) => d.layout)
+      : [b.layout];
+const hasArt = (l: LayoutSpec) => !!(l.overlay?.assetId || l.background?.assetId);
 
 /** Urutan persiapan crew; `at` = langkah yang sedang dikerjakan di layar ini. */
 function SetupSteps({ at }: { at: number }) {
@@ -82,6 +95,8 @@ export function StartScreen({
   crewLabel?: string;
 }) {
   const [mode, setMode] = useState<Mode | null>(null);
+  const [sort, setSort] = useState<Sort>("newest");
+  const today = new Date().toISOString().slice(0, 10);
   const [note, setNote] = useState<string>();
   const of = (m: Mode) => bundles.filter((b) => (b.mode ?? "event") === m);
   // Event default (lokal) hanya untuk mode event.
@@ -119,7 +134,14 @@ export function StartScreen({
               {t.admin}
             </button>
           )}
-          <button type="button" className="text-xl font-bold underline" onClick={onCrew}>
+          {/* Tombol jelas (masukan Rama 9 Okt), bukan tautan teks. */}
+          <button
+            type="button"
+            data-testid="to-crew"
+            className="pressable layered flex items-center gap-2.5 rounded-2xl border-[2.5px] border-ink bg-lavender px-6 py-3 text-xl font-extrabold [--lb:2.5px] [--lx:5px]"
+            onClick={onCrew}
+          >
+            <ArrowLeft size={22} strokeWidth={2.75} />
             {crewLabel}
           </button>
         </div>
@@ -174,7 +196,7 @@ export function StartScreen({
             <div>
               <button
                 type="button"
-                className="flex items-center gap-2 text-xl font-bold underline"
+                className="pressable flex items-center gap-2 rounded-2xl border-2 border-ink bg-white px-4 py-2 text-xl font-bold"
                 onClick={() => setMode(null)}
               >
                 <ArrowLeft size={22} strokeWidth={2.5} /> {t.back}
@@ -183,58 +205,117 @@ export function StartScreen({
                 {t.mode[mode]} · {t.pickEvent}
               </h1>
             </div>
-            {onSync && (
-              <Button
-                variant="secondary"
-                className="h-[76px] rounded-[20px] px-6 text-xl"
-                onClick={sync}
+            <div className="flex flex-wrap items-center justify-end gap-4">
+              <div
+                role="group"
+                aria-label={t.sortLabel}
+                className="flex overflow-hidden rounded-[18px] border-[2.5px] border-ink bg-white"
               >
-                <RefreshCw size={24} strokeWidth={2.5} /> {copy.crew.syncEvents}
-              </Button>
-            )}
+                {(["newest", "soonest", "name"] as const).map((k, i) => (
+                  <button
+                    key={k}
+                    type="button"
+                    aria-pressed={sort === k}
+                    onClick={() => setSort(k)}
+                    className={`h-[68px] px-5 text-xl font-bold ${sort === k ? "bg-ink text-white" : ""} ${i ? "border-l-[2.5px] border-ink" : ""}`}
+                  >
+                    {t.sort[k]}
+                  </button>
+                ))}
+              </div>
+              {onSync && (
+                <Button
+                  variant="secondary"
+                  className="h-[76px] rounded-[20px] px-6 text-xl"
+                  onClick={sync}
+                >
+                  <RefreshCw size={24} strokeWidth={2.5} /> {copy.crew.syncEvents}
+                </Button>
+              )}
+            </div>
           </div>
           {note && <p className="text-xl font-semibold text-text-2">{note}</p>}
-          <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pb-2">
-            {list.map((b) => (
-              <div key={b.id} className="flex items-stretch gap-4">
-                <button
-                  type="button"
-                  onClick={() => onPick(b.id)}
-                  className={`pressable flex min-h-[112px] flex-1 items-center gap-6 rounded-[24px] border-[2.5px] border-ink py-3 pr-8 pl-5 text-left ${b.id === activeId ? "bg-mint-soft" : "bg-white"}`}
-                >
-                  <span
-                    aria-hidden
-                    className="flex h-[84px] w-[84px] shrink-0 items-center justify-center"
+          <div className="flex min-h-0 flex-col gap-5 overflow-y-auto pb-2">
+            <ul className="grid grid-cols-2 gap-5 portrait:grid-cols-1">
+              {sorted(list, sort, today).map((b) => {
+                const local = b.id === "local";
+                const layouts = layoutsOf(b);
+                const art = layouts.filter(hasArt).length;
+                const active = b.id === activeId;
+                const d = iso(b);
+                return (
+                  <li
+                    key={b.id}
+                    data-testid={`event-${b.id}`}
+                    className={`layered relative rounded-[28px] border-[2.5px] border-ink [--lb:2.5px] [--lx:6px] ${active ? "bg-mint-soft" : "bg-white"}`}
                   >
-                    <span
-                      style={{
-                        aspectRatio: `${b.layout.canvas.width} / ${b.layout.canvas.height}`,
-                        [b.layout.canvas.width > b.layout.canvas.height ? "width" : "height"]:
-                          "100%",
-                      }}
-                      className="block overflow-hidden rounded-md border-2 border-ink"
+                    <button
+                      type="button"
+                      onClick={() => onPick(b.id)}
+                      className="flex w-full items-stretch gap-6 p-5 pr-6 text-left"
                     >
-                      <SampleCard layout={b.layout} />
-                    </span>
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-[30px] font-bold">{b.name}</span>
-                    <span className="block font-mono text-xl text-text-2">{info(b)}</span>
-                  </span>
-                </button>
-                {onEditEvent && b.id !== "local" && (
-                  <button
-                    type="button"
-                    data-testid={`edit-${b.id}`}
-                    onClick={() => onEditEvent(b.id)}
-                    className="pressable flex w-[150px] items-center justify-center gap-2 rounded-[24px] border-[2.5px] border-ink bg-white text-2xl font-bold"
-                  >
-                    <Pencil size={22} strokeWidth={2.5} />
-                    {t.edit}
-                  </button>
-                )}
-              </div>
-            ))}
+                      <span
+                        aria-hidden
+                        className="flex h-[210px] w-[160px] shrink-0 items-center justify-center rounded-[16px] bg-neutral p-2"
+                      >
+                        <span className="block h-full max-w-full overflow-hidden rounded-[6px] border-2 border-ink">
+                          <DesignThumb eventId={b.id} layout={b.layout} />
+                        </span>
+                      </span>
+                      <span className="flex min-w-0 flex-1 flex-col gap-2.5 py-1">
+                        {active && (
+                          <span className="self-start rounded-full border-2 border-ink bg-mint px-3 py-0.5 text-base font-extrabold">
+                            {t.active}
+                          </span>
+                        )}
+                        <span className="line-clamp-2 text-[28px] leading-tight font-extrabold tracking-[-0.02em]">
+                          {b.name}
+                        </span>
+                        {b.date && (
+                          <span className="font-mono text-xl text-text-2">
+                            {b.date}
+                            {d && d >= today && d === today ? ` · ${t.today}` : ""}
+                          </span>
+                        )}
+                        <span className="mt-auto flex flex-wrap gap-2">
+                          <span className="rounded-full border-2 border-ink bg-white px-3 py-1 text-base font-bold">
+                            {paperLabel(b.layout.paper, b.layout.canvas)}
+                          </span>
+                          {local ? (
+                            <span className="rounded-full border-2 border-ink bg-white px-3 py-1 text-base font-bold">
+                              {t.defaultDesign}
+                            </span>
+                          ) : art ? (
+                            <span className="rounded-full border-2 border-ink bg-lavender px-3 py-1 text-base font-bold">
+                              {b.photobox ? t.layouts(layouts.length) : t.designs(layouts.length)}
+                            </span>
+                          ) : (
+                            <span
+                              data-testid={`no-design-${b.id}`}
+                              className="flex items-center gap-1.5 rounded-full border-2 border-ink bg-coral px-3 py-1 text-base font-extrabold"
+                            >
+                              <TriangleAlert size={18} strokeWidth={2.5} />
+                              {t.noDesign}
+                            </span>
+                          )}
+                        </span>
+                      </span>
+                    </button>
+                    {onEditEvent && !local && (
+                      <button
+                        type="button"
+                        data-testid={`edit-${b.id}`}
+                        onClick={() => onEditEvent(b.id)}
+                        className="pressable absolute top-4 right-4 flex items-center gap-1.5 rounded-xl border-2 border-ink bg-white px-3 py-1.5 text-lg font-bold"
+                      >
+                        <Pencil size={18} strokeWidth={2.5} />
+                        {t.edit}
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
             {onEditEvent && list.some((b) => b.id !== "local") && (
               <p className="text-xl font-medium text-text-2">{t.editHint}</p>
             )}
