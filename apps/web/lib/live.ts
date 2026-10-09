@@ -2,6 +2,7 @@ import "server-only";
 import { EventSettingsSchema } from "@tetra/shared";
 import { guestPhotosVisible } from "@/lib/events";
 import { byLink, LINK } from "@/lib/gallery";
+import { guestPath } from "@/lib/guest-link";
 import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -24,7 +25,7 @@ export async function loadLive(token: string, limit = 24) {
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, organization_id, name, event_date, branding, purged_at, public_gallery, settings, run, guest_revealed_at, guest_token",
+      "id, organization_id, name, event_date, branding, purged_at, public_gallery, settings, run, guest_revealed_at, guest_token, guest_link",
     )
     .or(byLink("live_token", token))
     .not("live_token", "is", null)
@@ -88,7 +89,7 @@ export async function loadLive(token: string, limit = 24) {
         .eq("sessions.event_id", ev.id)
         .eq("sessions.source", "guest"),
     ]);
-    guest = { path: `/c/${ev.guest_token}`, photos: photos ?? 0, guests: guests ?? 0 };
+    guest = { path: guestPath(ev), photos: photos ?? 0, guests: guests ?? 0 };
   }
   return {
     event: {

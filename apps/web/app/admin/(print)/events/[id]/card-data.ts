@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { eventKey } from "@/lib/events";
 import type { CardData } from "@/lib/guest-card-art";
+import { guestPath } from "@/lib/guest-link";
 import { requireMember } from "@/lib/supabase/server";
 
 /** Data kartu QR Snapbook (#230) untuk halaman cetak; 404 kalau link Guest Cam belum dibuat. */
@@ -11,7 +12,7 @@ export async function loadCardEvent(id: string) {
   const { db, orgId } = await requireMember(["owner", "admin"]);
   const { data: ev } = await db
     .from("events")
-    .select("name, event_date, settings, guest_token")
+    .select("name, event_date, settings, guest_token, guest_link")
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -22,7 +23,7 @@ export async function loadCardEvent(id: string) {
   const data: CardData = {
     name: ev.name,
     date: ev.event_date,
-    url: `${origin}/c/${ev.guest_token}`,
+    url: `${origin}${guestPath(ev)}`,
     shots: cam.shots,
     voice: cam.voice,
     strip: cam.strip,

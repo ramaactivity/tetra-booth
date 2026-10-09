@@ -8,6 +8,7 @@ import {
 import { z } from "zod";
 import { apiError, authDevice, deviceEvents } from "@/lib/booth";
 import { longDate } from "@/lib/guest";
+import { guestPath } from "@/lib/guest-link";
 import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -23,7 +24,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const { data: ev, error } = await createServiceClient()
     .from("events")
     .select(
-      "id, name, event_date, bundle_version, bundle, slug, scheduled_start, scheduled_end, package_name, package_hours, public_gallery, live_token, guest_token, settings",
+      "id, name, event_date, bundle_version, bundle, slug, scheduled_start, scheduled_end, package_name, package_hours, public_gallery, live_token, guest_token, guest_link, settings",
     )
     .eq("id", id)
     .eq("organization_id", device.organizationId)
@@ -43,7 +44,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     publicGallery: ev.public_gallery && !!ev.live_token,
     ...(ev.guest_token &&
       EventSettingsSchema.safeParse(ev.settings ?? {}).data?.guestCam.enabled && {
-        guestCam: `/c/${ev.guest_token}`,
+        guestCam: guestPath(ev),
       }),
   };
   // URL GET bertanda tangan 15 menit (TSD §4.1); r2.dev diblokir ISP Indonesia (DECISIONS #63).

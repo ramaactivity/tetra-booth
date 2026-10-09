@@ -317,6 +317,7 @@ export type Database = {
           created_by: string | null
           event_date: string
           guest_expires_at: string | null
+          guest_link: string | null
           guest_revealed_at: string | null
           guest_token: string | null
           id: string
@@ -359,6 +360,7 @@ export type Database = {
           created_by?: string | null
           event_date: string
           guest_expires_at?: string | null
+          guest_link?: string | null
           guest_revealed_at?: string | null
           guest_token?: string | null
           id?: string
@@ -401,6 +403,7 @@ export type Database = {
           created_by?: string | null
           event_date?: string
           guest_expires_at?: string | null
+          guest_link?: string | null
           guest_revealed_at?: string | null
           guest_token?: string | null
           id?: string

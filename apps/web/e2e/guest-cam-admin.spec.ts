@@ -42,7 +42,14 @@ test("admin: setelan Guest Cam → tamu unggah → setujui → galeri klien", as
     await page.getByRole("button", { name: "Simpan", exact: true }).click();
     await expect(page.getByText("Tidak ada perubahan")).toBeVisible({ timeout: 30_000 });
     await page.locator("#guest-cam").getByRole("button", { name: "Buat Link" }).click();
-    await expect(page.getByTestId("link-guest")).toContainText("/c/");
+    // Alamat rapi dari nama acara (#231), bisa diubah manual; token lama tetap jalan.
+    await expect(page.getByTestId("link-guest")).toContainText(/\/c\/e2e-guest-admin(-\d+)?/);
+    const nice = `e2e-snap-${Date.now()}`;
+    await page.getByRole("button", { name: "Ubah alamat" }).click();
+    await page.getByLabel("Alamat Snapbook").fill(nice);
+    await page.locator("#guest-cam").getByRole("button", { name: "Simpan" }).click();
+    await expect(page.getByTestId("link-guest")).toContainText(`/c/${nice}`);
+    expect(await (await request.get(`/c/${nice}`)).text()).toContain("Snapbook");
     if (process.env.GC_SHOTS) {
       const card = await page.context().newPage();
       await card.goto(`/admin/events/${slug}/guest-card`);
@@ -53,10 +60,12 @@ test("admin: setelan Guest Cam → tamu unggah → setujui → galeri klien", as
     await shot("E14");
     const { data: ev } = await db
       .from("events")
-      .select("id, settings, guest_token")
+      .select("id, settings, guest_token, guest_link")
       .eq("slug", slug)
       .single();
     eventId = ev?.id ?? "";
+    expect(ev?.guest_link).toBe(nice);
+    expect((await request.get(`/c/${ev?.guest_token}`)).ok()).toBe(true);
     expect((ev?.settings as { guestCam?: unknown } | null)?.guestCam).toMatchObject({
       enabled: true,
       shots: 3,

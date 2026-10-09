@@ -10,6 +10,7 @@ import {
   type EventTemplate,
 } from "@/lib/event-bundle";
 import { eventKey } from "@/lib/events";
+import { guestPath } from "@/lib/guest-link";
 import type { PhotoboxSettings } from "@/lib/payments";
 import { photoboxKey } from "@/lib/payments";
 import { presignGet } from "@/lib/r2";
@@ -29,7 +30,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, guest_token, all_devices, package_name, package_hours, ops_frame_size, scheduled_start, scheduled_end, ops_project_id, client_instagram, promo_off, event_devices(device_id)",
+      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, guest_token, guest_link, all_devices, package_name, package_hours, ops_frame_size, scheduled_start, scheduled_end, ops_project_id, client_instagram, promo_off, event_devices(device_id)",
     )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
@@ -174,7 +175,13 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           allDevices: ev.all_devices,
           hasClientLink: !!ev.client_token,
         }}
-        guestLinks={<GuestLinkPanel eventId={ev.id} origin={origin} token={ev.guest_token} />}
+        guestLinks={
+          <GuestLinkPanel
+            eventId={ev.id}
+            origin={origin}
+            path={ev.guest_token ? guestPath(ev) : null}
+          />
+        }
         links={
           <LinksPanel
             eventId={ev.id}

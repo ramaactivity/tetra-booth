@@ -16,6 +16,7 @@ import { sha256 } from "@/lib/booth";
 import type { EventBranding } from "@/lib/event-bundle";
 import { eventPhase, guestPhotosVisible, ymdWib } from "@/lib/events";
 import { LINK } from "@/lib/gallery";
+import { guestPath } from "@/lib/guest-link";
 import { presignGet } from "@/lib/r2";
 import SNAPBOOK_FRAMES from "@/lib/snapbook-frames.json";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -30,10 +31,12 @@ export async function guestEvent(token: string) {
   const { data } = await createServiceClient()
     .from("events")
     .select(
-      "id, organization_id, slug, name, event_date, branding, settings, bundle, run, guest_revealed_at, guest_expires_at, purged_at, public_gallery, live_token, guest_token",
+      "id, organization_id, slug, name, event_date, branding, settings, bundle, run, guest_revealed_at, guest_expires_at, purged_at, public_gallery, live_token, guest_token, guest_link",
     )
-    // Token acak, bukan slug: "Cabut & buat ulang" harus mematikan QR yang sudah dicetak (#203).
-    .eq("guest_token", token)
+    // Alamat rapi (#231) atau token acak (#203; QR lama tetap jalan). Aktif = token terisi; "Cabut & buat ulang"
+    // mengganti keduanya, jadi QR yang sudah dicetak mati.
+    .or(`guest_link.eq.${token},guest_token.eq.${token}`)
+    .not("guest_token", "is", null)
     .limit(1)
     .maybeSingle();
   if (!data || data.purged_at) return null;
@@ -197,7 +200,7 @@ export async function guestInfo(ev: GuestEvent) {
     eventGallery: ev.public_gallery && ev.live_token ? `/l/${ev.slug}` : null,
     galleryUntil: ev.guest_expires_at,
     /** Isi elemen QR di desain strip: halaman Guest Cam acara ini. */
-    link: `/c/${ev.guest_token}`,
+    link: guestPath(ev),
   };
 }
 export type GuestInfo = Awaited<ReturnType<typeof guestInfo>>;

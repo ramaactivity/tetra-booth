@@ -1,7 +1,7 @@
 "use client";
 import { QrCode } from "@tetra/ui";
 import { useRef, useState, useTransition } from "react";
-import { setLink } from "./links";
+import { setGuestLink, setLink } from "./links";
 
 /**
  * Link & QR Guest Cam (desain E14, #197/#203): QR asli, salin, cabut & buat ulang (token baru → QR & kartu lama
@@ -10,16 +10,28 @@ import { setLink } from "./links";
 export function GuestLinkPanel({
   eventId,
   origin,
-  token,
+  path,
 }: {
   eventId: string;
   origin: string;
-  token: string | null;
+  /** `/c/<alamat>` (rapi #231, atau token), null = link belum aktif. */
+  path: string | null;
 }) {
   const [pending, start] = useTransition();
   const [copied, setCopied] = useState(false);
   const qr = useRef<HTMLDivElement>(null);
-  const url = token ? `${origin}/c/${token}` : null;
+  const url = path ? `${origin}${path}` : null;
+  const [edit, setEdit] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const save = () =>
+    start(async () => {
+      const r = await setGuestLink(eventId, edit ?? "");
+      setErr(r.error);
+      if (!r.error) {
+        setEdit(null);
+        setCopied(false);
+      }
+    });
   const btn =
     "flex h-[42px] items-center rounded-[11px] border-[1.5px] border-ink px-3.5 text-[13px] font-bold whitespace-nowrap no-underline";
 
@@ -77,6 +89,18 @@ export function GuestLinkPanel({
               </button>
             )}
           </div>
+          {url && (
+            <button
+              type="button"
+              onClick={() => {
+                setEdit(path?.slice(3) ?? "");
+                setErr(null);
+              }}
+              className={`${btn} bg-white`}
+            >
+              Ubah alamat
+            </button>
+          )}
           {url ? (
             <button
               type="button"
@@ -108,6 +132,50 @@ export function GuestLinkPanel({
             </button>
           )}
         </div>
+        {edit !== null && (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex flex-wrap gap-2.5">
+              <label className="flex h-[42px] min-w-0 flex-1 items-center rounded-[11px] border-[1.5px] border-ink bg-white pl-3 font-mono text-[13px]">
+                <span className="flex-none text-text-2">
+                  {origin.replace(/^https?:\/\//, "")}/c/
+                </span>
+                <input
+                  aria-label="Alamat Snapbook"
+                  value={edit}
+                  onChange={(e) => {
+                    // Disimpan sendiri lewat Simpan, bukan bagian form Pengaturan (tidak menandai "belum disimpan").
+                    e.stopPropagation();
+                    setEdit(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"));
+                  }}
+                  maxLength={40}
+                  onKeyDown={(e) => {
+                    // Panel ada di dalam form Pengaturan: Enter menyimpan alamat, bukan form.
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      save();
+                    }
+                  }}
+                  className="h-full min-w-0 flex-1 bg-transparent pr-3 outline-none"
+                />
+              </label>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={save}
+                className={`${btn} bg-butter`}
+              >
+                Simpan
+              </button>
+              <button type="button" onClick={() => setEdit(null)} className={`${btn} bg-white`}>
+                Batal
+              </button>
+            </div>
+            <p className={`text-xs ${err ? "font-bold text-coral-strong" : "text-text-2"}`}>
+              {err ??
+                "QR yang sudah dicetak dengan alamat lama ikut berhenti; QR token acak lama tetap jalan."}
+            </p>
+          </div>
+        )}
         {url && (
           <div className="flex flex-wrap items-center gap-2.5">
             <a

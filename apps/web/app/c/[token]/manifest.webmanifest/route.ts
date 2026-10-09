@@ -20,7 +20,7 @@ export async function GET(_req: Request, ctx: Ctx) {
       display: "fullscreen",
       display_override: ["fullscreen", "standalone"],
       orientation: "portrait",
-      background_color: "#000000",
+      background_color: "#F8D98B",
       theme_color: "#000000",
       icons: [
         { src: "/guest-cam/icon-192.png", sizes: "192x192", type: "image/png" },
