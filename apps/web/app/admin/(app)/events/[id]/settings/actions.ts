@@ -114,7 +114,7 @@ const Form = z.object({
   /** Batas tamu tier Guest Cam (#221); "" = tak terbatas. */
   gc_max_guests: z.enum(["", "100", "200", "300", "500"]).default(""),
   /** Desain kartu QR kartu nama (#225). */
-  gc_card: z.enum(["klasik", "mint", "butter", "gelap"]).default("klasik"),
+  gc_card: z.enum(["sekali-pakai", "polaroid", "film", "elegan", "poster"]).default("sekali-pakai"),
   gc_reveal: z.enum(["live", "after"]).default("after"),
   gc_approval: z.enum(["auto", "manual"]).default("auto"),
   gc_consent: z.string().trim().max(600).default(""),

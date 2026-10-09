@@ -1,8 +1,8 @@
 "use server";
 import { DEFAULT_SETTINGS, LAYOUT_PRESETS, SOUND_CUES } from "@tetra/shared";
 import { z } from "zod";
-import { BIZ_CARDS } from "@/lib/biz-card";
 import { DEFAULT_TEMPLATE } from "@/lib/event-bundle";
+import { CARD_IDS } from "@/lib/guest-card-art";
 import { copyLayout } from "@/lib/layouts";
 import { requireMember } from "@/lib/supabase/server";
 import { layoutFromUpload } from "@/lib/template-upload";
@@ -149,12 +149,7 @@ export async function createEventWizard(
       event_date: p.data.event_date,
       ops_project_id: p.data.ops_project_id,
     });
-    const gc = now?.booking
-      ? opsGuestCam(
-          now.booking,
-          BIZ_CARDS.map((c) => c.id),
-        )
-      : {};
+    const gc = now?.booking ? opsGuestCam(now.booking, CARD_IDS) : {};
     if (Object.keys(gc).length) {
       const { data: cur } = await db
         .from("events")

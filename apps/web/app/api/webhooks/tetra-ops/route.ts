@@ -1,5 +1,5 @@
 import type { Json } from "@tetra/db";
-import { BIZ_CARDS } from "@/lib/biz-card";
+import { CARD_IDS } from "@/lib/guest-card-art";
 import {
   nextOpsSync,
   type OpsSync,
@@ -54,10 +54,7 @@ export async function POST(req: Request) {
   // ponytail: perubahan IG di Ops setelah terisi tidak ikut; admin mengubahnya di pengaturan event.
   const ig = opsInstagram(body.booking.client_instagram);
   // Paket Guest Cam (tier, cetak) + desain kartu QR pilihan klien (#225/#226, kontrak v0.9).
-  const gc = opsGuestCam(
-    body.booking,
-    BIZ_CARDS.map((c) => c.id),
-  );
+  const gc = opsGuestCam(body.booking, CARD_IDS);
   for (const ev of events ?? []) {
     const prev = (ev.ops_sync ?? {}) as OpsSync;
     const next = nextOpsSync(prev, body);

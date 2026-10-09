@@ -9,10 +9,14 @@ import {
 import {
   Camera as CameraIcon,
   Check,
+  CircleHelp,
   Compass,
   Frame,
+  Gift,
+  Images,
   Mic,
   Share,
+  ShieldCheck,
   SquarePlus,
   X,
 } from "lucide-react";
@@ -107,6 +111,7 @@ export function Join({
 }) {
   const [sheet, setSheet] = useState(false);
   const [a2hs, setA2hs] = useState(false);
+  const [what, setWhat] = useState(false);
   const [name, setName] = useState("");
   const [via, setVia] = useState<"whatsapp" | "instagram">("whatsapp");
   const [contact, setContact] = useState("");
@@ -276,10 +281,78 @@ export function Join({
             >
               <CameraIcon size={20} strokeWidth={2.4} /> {t.join}
             </Primary>
-            <p className="mt-2.5 text-center text-[11px] text-paper/50">
+            <button
+              type="button"
+              onClick={() => setWhat(true)}
+              className="mt-2 flex min-h-10 w-full items-center justify-center gap-1.5 text-[13px] font-bold text-paper/80 underline underline-offset-4"
+            >
+              <CircleHelp size={15} /> {t.whatLink}
+            </button>
+            <p className="mt-1 text-center text-[11px] text-paper/50">
               {info.reveal === "after" ? t.revealAfter : t.revealLive} · {t.powered}
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Penjelasan Kamera Tamu (#227): tamu Indonesia belum kenal guest cam. */}
+      <div
+        className={`absolute inset-0 z-30 transition-opacity duration-200 ${what ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        aria-hidden={!what}
+        role="dialog"
+        aria-label={t.whatTitle}
+      >
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label={t.readLess}
+          onClick={() => setWhat(false)}
+          className="absolute inset-0 bg-black/60"
+        />
+        <div
+          className={`absolute inset-x-0 bottom-0 flex flex-col gap-4 rounded-t-[30px] bg-[#151514] px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] transition-transform duration-300 ease-out ${what ? "translate-y-0" : "translate-y-full"}`}
+        >
+          <div className="mx-auto h-1 w-10 rounded-full bg-white/25" />
+          <h2 className="text-xl leading-tight font-extrabold">{t.whatTitle}</h2>
+          <ul className="flex flex-col gap-3.5">
+            {t
+              .whatItems({
+                shots: info.shots,
+                name: info.name,
+                live: info.reveal !== "after",
+                voice: info.voice,
+                strip: info.strip,
+              })
+              .map(([h, b], i) => (
+                <li key={h} className="flex gap-3.5">
+                  <span className="flex size-9 flex-none items-center justify-center rounded-full bg-white/10">
+                    {
+                      [
+                        <CameraIcon key="c" size={18} />,
+                        <Images key="i" size={18} />,
+                        <Gift key="g" size={18} />,
+                        <ShieldCheck key="s" size={18} />,
+                      ][i === 2 && !(info.voice || info.strip) ? 3 : Math.min(i, 3)]
+                    }
+                  </span>
+                  <span>
+                    <span className="block text-[15px] font-extrabold">{h}</span>
+                    <span className="mt-0.5 block text-[13px] leading-snug text-paper/70">{b}</span>
+                  </span>
+                </li>
+              ))}
+          </ul>
+          <Primary
+            tabIndex={what ? 0 : -1}
+            onClick={() => {
+              setWhat(false);
+              goFullscreen();
+              if (wantsA2hs()) setA2hs(true);
+              else setSheet(true);
+            }}
+          >
+            <CameraIcon size={18} /> {t.whatOk}
+          </Primary>
         </div>
       </div>
 

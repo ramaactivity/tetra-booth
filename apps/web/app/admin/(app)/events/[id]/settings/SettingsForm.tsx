@@ -402,12 +402,13 @@ function Field({
   );
 }
 
-/** Desain kartu QR kartu nama (#225); id sama dengan BIZ_CARDS di lib/biz-card. */
+/** Desain kartu QR Kamera Tamu (#227); id sama dengan CARD_DESIGNS di lib/guest-card-art. */
 const CARD_OPTIONS = [
-  { value: "klasik", label: "Klasik" },
-  { value: "mint", label: "Mint" },
-  { value: "butter", label: "Butter" },
-  { value: "gelap", label: "Gelap" },
+  { value: "sekali-pakai", label: "Sekali Pakai" },
+  { value: "polaroid", label: "Polaroid" },
+  { value: "film", label: "Roll Film" },
+  { value: "elegan", label: "Elegan" },
+  { value: "poster", label: "Poster Jelas" },
 ];
 
 /** Tier Guest Cam (#221, rekap pricing 8 Okt). */
@@ -464,7 +465,11 @@ export function SettingsForm({
   const [leadOn, setLeadOn] = useState(!!v.lead?.enabled);
   const [gcOn, setGcOn] = useState(v.guestCam.enabled);
   const [gcMax, setGcMax] = useState(v.gc_max_guests);
-  const [gcCard, setGcCard] = useState(v.guestCam.cardDesign);
+  const [gcCard, setGcCard] = useState(
+    CARD_OPTIONS.some((o) => o.value === v.guestCam.cardDesign)
+      ? v.guestCam.cardDesign
+      : "sekali-pakai",
+  );
   const [gcLen, setGcLen] = useState(v.guestCam.consentText.length);
   const [dirty, setDirty] = useState(false);
   const [active, setActive] = useState("informasi");
@@ -1326,9 +1331,9 @@ export function SettingsForm({
                   />
                 </Field>
                 <Field
-                  label="Desain kartu QR (kartu nama)"
+                  label="Desain kartu QR (meja & kartu nama)"
                   hint="Dicetak Tetra 90×55 mm; klien bisa memilih di portal booking. Unduh lewat link Guest Cam di bawah."
-                  def="Klasik"
+                  def="Sekali Pakai"
                 >
                   <Select
                     label="Desain kartu QR"

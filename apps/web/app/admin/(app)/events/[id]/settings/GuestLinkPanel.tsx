@@ -18,7 +18,6 @@ export function GuestLinkPanel({
 }) {
   const [pending, start] = useTransition();
   const [copied, setCopied] = useState(false);
-  const [variant, setVariant] = useState<"wedding" | "corporate">("wedding");
   const qr = useRef<HTMLDivElement>(null);
   const url = token ? `${origin}/c/${token}` : null;
   const btn =
@@ -112,12 +111,12 @@ export function GuestLinkPanel({
         {url && (
           <div className="flex flex-wrap items-center gap-2.5">
             <a
-              href={`/admin/events/${eventId}/guest-card?v=${variant}`}
+              href={`/admin/events/${eventId}/guest-card?size=a5`}
               target="_blank"
               rel="noreferrer"
               className={`${btn} layered bg-white [--lb:1.5px] [--lx:4px]`}
             >
-              Unduh kartu QR meja · PDF A6
+              Kartu QR meja · A5 / A6
             </a>
             <a
               href={`/admin/events/${eventId}/business-card`}
@@ -127,19 +126,6 @@ export function GuestLinkPanel({
             >
               Kartu nama QR · 90×55 mm
             </a>
-            <div className="flex h-[42px] overflow-hidden rounded-[11px] border-[1.5px] border-ink bg-white text-[13px] font-bold">
-              {(["wedding", "corporate"] as const).map((v, i) => (
-                <button
-                  key={v}
-                  type="button"
-                  aria-pressed={variant === v}
-                  onClick={() => setVariant(v)}
-                  className={`px-3.5 ${i ? "" : "border-r-[1.5px] border-ink"} ${variant === v ? "bg-lavender" : ""}`}
-                >
-                  {v === "wedding" ? "Wedding" : "Corporate"}
-                </button>
-              ))}
-            </div>
             <button type="button" onClick={() => void png()} className={`${btn} bg-white`}>
               Unduh QR · PNG
             </button>

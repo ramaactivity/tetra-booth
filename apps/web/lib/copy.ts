@@ -84,7 +84,44 @@ export const copy = {
     meta: "Guest Cam · Tetra Photobooth",
     powered: "Powered by Tetra Photobooth",
     // A1 Pembuka
-    heroLine: "Foto dari HP kamu langsung masuk album acara. Gak perlu install apa-apa.",
+    heroLine:
+      "Kamera sekali pakai, versi HP. Foto dari kamu langsung masuk album acara. Gratis, gak perlu install apa-apa.",
+    // Penjelasan untuk tamu yang belum kenal guest cam (#227)
+    whatLink: "Kamera Tamu itu apa?",
+    whatTitle: "Kamera Tamu itu apa?",
+    whatItems: (o: {
+      shots: number;
+      name: string;
+      live: boolean;
+      voice: boolean;
+      strip: boolean;
+    }) =>
+      [
+        [
+          "Kamera sekali pakai, versi HP",
+          `Kamu dapat ${o.shots} jepretan. Langsung dari browser, gak perlu download aplikasi.`,
+        ],
+        [
+          "Fotonya buat pengantin",
+          `Semua foto masuk satu album ${o.name}, bareng foto photobooth. ${o.live ? "Fotomu langsung tampil di album." : "Fotonya dibuka setelah acara, kayak cuci film."}`,
+        ],
+        ...(o.voice || o.strip
+          ? [
+              [
+                "Bonus",
+                [
+                  o.voice && "rekam ucapan suara buat pengantin",
+                  o.strip && "susun fotomu jadi frame",
+                ]
+                  .filter(Boolean)
+                  .join(" dan ")
+                  .replace(/^./, (c) => c.toUpperCase()),
+              ],
+            ]
+          : []),
+        ["Gratis & aman", "Pakai kuota sedikit. Nama & kontakmu cuma buat acara ini."],
+      ] as [string, string][],
+    whatOk: "Oke, ikut motret",
     join: "Ikut motret",
     formTitle: "Kenalan dulu, yuk",
     a2hsTitle: "Biar full screen kayak app",

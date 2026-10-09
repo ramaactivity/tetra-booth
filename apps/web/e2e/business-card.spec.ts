@@ -1,26 +1,18 @@
 import { expect, test } from "@playwright/test";
 import { db, hasDb, login, makeUser } from "./admin-helpers";
 
-/** Kartu QR Guest Cam ukuran kartu nama (#225): katalog publik untuk portal Ops + halaman cetak admin. */
+/** Kartu QR Kamera Tamu (#227): katalog publik 5 desain + cetak kartu meja A6/A5 & kartu nama dua sisi di admin. */
 test.skip(!hasDb, "butuh Supabase dev (apps/web/.env.local)");
 
-test("katalog kartu QR publik + cetak kartu nama di admin dengan desain pilihan", async ({
-  page,
-  request,
-}) => {
+const IDS = ["sekali-pakai", "polaroid", "film", "elegan", "poster"];
+
+test("katalog 5 desain + cetak kartu meja & kartu nama per desain", async ({ page, request }) => {
+  test.setTimeout(120_000);
   const cat = await (await request.get("/api/guest-cards")).json();
-  expect(cat.size_mm).toEqual({ width: 90, height: 55, bleed: 3 });
-  expect(cat.designs.map((d: { id: string }) => d.id)).toEqual([
-    "klasik",
-    "mint",
-    "butter",
-    "gelap",
-  ]);
-  const thumb = await request.get("/api/guest-cards/mint");
+  expect(cat.designs.map((d: { id: string }) => d.id)).toEqual(IDS);
+  const thumb = await request.get("/api/guest-cards/film?side=card");
   expect(thumb.headers()["content-type"]).toContain("image/svg+xml");
-  const svg = await thumb.text();
-  expect(svg).toContain("Rina &amp; Dimas");
-  expect(svg).toContain('width="90mm"');
+  expect(await thumb.text()).toContain("Rina &amp; Dimas");
   expect((await request.get("/api/guest-cards/nope")).status()).toBe(404);
 
   const admin = await makeUser("admin");
@@ -28,31 +20,43 @@ test("katalog kartu QR publik + cetak kartu nama di admin dengan desain pilihan"
     .from("events")
     .insert({
       organization_id: admin.org,
-      name: "e2e kartu nama Ayu & Bima",
+      name: "e2e Wedding Adel & Alpi",
       mode: "event",
-      event_date: "2026-12-12",
+      event_date: "2026-10-10",
       guest_token: `e2e-bc-${Date.now()}`,
-      branding: { tagline: "The Wedding of" },
-      settings: { guestCam: { enabled: true, shots: 12, cardDesign: "gelap" } },
+      // Id lama v0.9 (butter) dipetakan ke desain baru (Sekali Pakai).
+      settings: { guestCam: { enabled: true, shots: 15, cardDesign: "butter" } },
     })
     .select("id, slug")
     .single();
   try {
-    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.setViewportSize({ width: 1280, height: 1000 });
     await login(page, admin);
-    await page.goto(`/admin/events/${ev?.slug}/business-card`);
-    const card = page.getByTestId("business-card");
-    await expect(card.locator("svg")).toHaveAttribute("width", "96mm");
-    await expect(card).toContainText("Ayu & Bima");
-    await expect(card).toContainText("12.12.2026");
-    await expect(card).toContainText("jepret 12 foto");
-    // Desain pilihan event (gelap) = latar tinta.
-    await expect(card.locator("svg > rect").first()).toHaveAttribute("fill", "#1D1D1B");
-    await page.screenshot({ path: "test-results/business-card-gelap.png" });
-    await page.getByRole("link", { name: "Mint" }).click();
-    await expect(page).toHaveURL(/\?d=mint$/);
-    await expect(card.locator("svg > rect").first()).toHaveAttribute("fill", "#D6F1EA");
-    await page.screenshot({ path: "test-results/business-card-mint.png" });
+    await page.goto(`/admin/events/${ev?.slug}/guest-card`);
+    await expect(page.getByRole("link", { name: "Sekali Pakai" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    for (const id of IDS) {
+      await page.goto(`/admin/events/${ev?.slug}/guest-card?d=${id}&size=a6`);
+      const card = page.getByTestId("table-card");
+      await expect(card.locator("svg")).toHaveAttribute("width", "105mm");
+      await expect(card).toContainText("Adel");
+      await card.screenshot({ path: `test-results/card-a6-${id}.png` });
+      await page.goto(`/admin/events/${ev?.slug}/business-card?d=${id}`);
+      await expect(page.getByTestId("business-card").locator("svg")).toHaveAttribute(
+        "width",
+        "96mm",
+      );
+      await page
+        .getByTestId("business-card")
+        .screenshot({ path: `test-results/card-front-${id}.png` });
+      await page
+        .getByTestId("business-card-back")
+        .screenshot({ path: `test-results/card-back-${id}.png` });
+    }
+    await page.goto(`/admin/events/${ev?.slug}/guest-card?d=poster&size=a5`);
+    await expect(page.getByTestId("table-card").locator("svg")).toHaveAttribute("width", "148mm");
   } finally {
     await db
       .from("events")

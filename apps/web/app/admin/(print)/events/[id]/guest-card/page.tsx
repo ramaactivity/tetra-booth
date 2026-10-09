@@ -1,41 +1,43 @@
-import { EventSettingsSchema } from "@tetra/shared";
-import { headers } from "next/headers";
-import { notFound } from "next/navigation";
-import { eventKey } from "@/lib/events";
-import { requireMember } from "@/lib/supabase/server";
-import { GuestCard } from "./GuestCard";
+import { cardDesign, tableCardSvg } from "@/lib/guest-card-art";
+import { CardPicker } from "../CardPicker";
+import { loadCardEvent } from "../card-data";
 
-/** B11 Kartu QR meja Guest Cam (A6 105×148 mm, #203): `?v=wedding|corporate`. Cetak / simpan PDF dari browser. */
+const SIZES = [
+  { id: "a6", label: "A6 · 10,5×14,8 cm" },
+  { id: "a5", label: "A5 · 14,8×21 cm (akrilik meja)" },
+];
+
+/**
+ * Kartu QR meja Kamera Tamu (#227): standing akrilik A5 (umum di meja) atau A6, 5 desain. `?d=` desain, `?size=`.
+ * Cetak / simpan PDF dari browser.
+ */
 export default async function GuestCardPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ v?: string }>;
+  searchParams: Promise<{ d?: string; size?: string }>;
 }) {
-  const { db, orgId } = await requireMember(["owner", "admin"]);
-  const { id } = await params;
-  const { data: ev } = await db
-    .from("events")
-    .select("name, event_date, branding, settings, guest_token")
-    .eq(eventKey(id), id)
-    .eq("organization_id", orgId)
-    .maybeSingle();
-  if (!ev?.guest_token) notFound();
-  const h = await headers();
-  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
-  const cam = EventSettingsSchema.parse(ev.settings ?? {}).guestCam;
-  const branding = (ev.branding ?? {}) as { tagline?: string };
+  const { data, design: saved } = await loadCardEvent((await params).id);
+  const sp = await searchParams;
+  const design = cardDesign(sp.d ?? saved);
+  const a5 = sp.size === "a5";
   return (
-    <GuestCard
-      variant={(await searchParams).v === "corporate" ? "corporate" : "wedding"}
-      name={ev.name}
-      date={ev.event_date}
-      tagline={branding.tagline ?? null}
-      url={`${origin}/c/${ev.guest_token}`}
-      shots={cam.shots}
-      reveal={cam.reveal}
-      approval={cam.approval}
-    />
+    <>
+      <style>{`@page { size: ${a5 ? "148mm 210mm" : "105mm 148mm"}; margin: 0 } @media print { body { margin: 0 } }`}</style>
+      <div className="flex flex-col items-center gap-5 py-8 print:p-0">
+        <CardPicker design={design} sizes={SIZES} size={a5 ? "a5" : "a6"} />
+        <p className="max-w-[460px] text-center text-xs text-text-2 print:hidden">
+          Di dialog cetak pilih ukuran kertas {a5 ? "A5" : "A6"}, skala 100%, tanpa margin. Untuk
+          akrilik meja biasanya A5.
+        </p>
+        <div
+          data-testid="table-card"
+          className="shadow-[0_0_0_1.5px_var(--ink)] print:shadow-none [&>svg]:block"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG dibuat server dari data event yang di-escape
+          dangerouslySetInnerHTML={{ __html: tableCardSvg(design, data, a5) }}
+        />
+      </div>
+    </>
   );
 }

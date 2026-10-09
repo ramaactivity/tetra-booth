@@ -67,3 +67,45 @@ test("album Guest Cam: preview besar dengan pindah kiri-kanan", async ({ page })
       .eq("id", ev?.id ?? "");
   }
 });
+
+test("layar pertama Guest Cam: penjelasan 'Kamera Tamu itu apa?' lalu langsung ke form", async ({
+  page,
+}) => {
+  const org =
+    (await db.from("organizations").select("id").eq("slug", "tetra").single()).data?.id ?? "";
+  const token = `e2e-gcw-${Date.now()}`;
+  const { data: ev } = await db
+    .from("events")
+    .insert({
+      organization_id: org,
+      name: "e2e Adel & Alpi",
+      mode: "event",
+      event_date: "2026-12-31",
+      guest_token: token,
+      settings: {
+        guestCam: { enabled: true, shots: 15, reveal: "live", voice: true, strip: true },
+      },
+    })
+    .select("id")
+    .single();
+  try {
+    await page.goto(`/c/${token}`);
+    await page.getByRole("button", { name: "Kamera Tamu itu apa?" }).click();
+    const sheet = page.getByRole("dialog", { name: "Kamera Tamu itu apa?" });
+    await expect(sheet).toContainText("Kamera sekali pakai, versi HP");
+    await expect(sheet).toContainText("Kamu dapat 15 jepretan");
+    await expect(sheet).toContainText("Fotomu langsung tampil di album");
+    await expect(sheet).toContainText(
+      "Rekam ucapan suara buat pengantin dan susun fotomu jadi frame",
+    );
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: "test-results/guest-cam-what.png" });
+    await sheet.getByRole("button", { name: "Oke, ikut motret" }).click();
+    await expect(page.getByText("Kenalan dulu, yuk")).toBeVisible();
+  } finally {
+    await db
+      .from("events")
+      .delete()
+      .eq("id", ev?.id ?? "");
+  }
+});
