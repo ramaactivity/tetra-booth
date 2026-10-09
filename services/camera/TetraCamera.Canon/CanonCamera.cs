@@ -13,9 +13,11 @@ namespace TetraCamera.Canon;
 public sealed class CanonCamera : ICameraSource, IDisposable
 {
     public static readonly TimeSpan CaptureTimeout = TimeSpan.FromSeconds(10);
-    /// <summary>Coba ulang ubah setelan jepret saat kamera sibuk: total ±1 s.</summary>
-    private const int SetRetries = 5;
-    private static readonly TimeSpan SetRetryDelay = TimeSpan.FromMilliseconds(200);
+    /// <summary>Total waktu menukar ISO/shutter jepret sebelum rana (lebih = dilewati, foto pakai setelan live view).</summary>
+    private static readonly TimeSpan OverrideBudget = TimeSpan.FromSeconds(1.5);
+    /// <summary>Setelan live view yang belum berhasil dikembalikan setelah jepret (prop → nilai), thread SDK.</summary>
+    private readonly Dictionary<uint, uint> _restore = [];
+    private DateTime _nextRestore;
     /// <summary>
     /// Thread SDK tanpa detak selama ini = macet (mis. OpenSession 60D yang sibuk tidak pernah kembali, 2026-09-30).
     /// Operasi terlama yang wajar: jepret (10 s) atau sambung dengan coba ulang BUSY (±2 s).
@@ -104,6 +106,11 @@ public sealed class CanonCamera : ICameraSource, IDisposable
             try { if (_driver.IsOpen) _driver.Pump(); } catch { /* event gagal diambil: dicek lagi putaran berikutnya */ }
             if (_listen is { } listen && _driver.IsOpen) TakeShot(listen);
             var now = DateTime.UtcNow;
+            if (_restore.Count > 0 && _driver.IsOpen && now >= _nextRestore)
+            {
+                _nextRestore = now + TimeSpan.FromSeconds(1);
+                RestoreLive();
+            }
             if (!_driver.IsOpen)
             {
                 if (_info is not null)
@@ -247,54 +254,57 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     }
 
     /// <summary>
-    /// Jepret; ISO/shutter jepret yang beda dari live view ditukar sebentar lalu dikembalikan (flash #113, shutter W-034).
+    /// Jepret; ISO/shutter jepret yang beda dari live view ditukar sebentar (flash #113, shutter W-034). Anggaran waktu
+    /// (lapangan 9 Okt, 700D DEVICE_BUSY): penukaran maks. <see cref="OverrideBudget"/> dan sekali coba per setelan,
+    /// pengembalian ke setelan live view tidak memblokir (dicoba ulang loop), jadi service selalu menjawab sebelum
+    /// batas waktu booth dan crew melihat pesan yang jelas.
     /// </summary>
     private byte[] CaptureWithIso()
     {
-        var restore = new List<(uint Prop, uint Live)>();
-        try
+        var until = DateTime.UtcNow + OverrideBudget;
+        foreach (var o in _kind.CaptureOverrides)
         {
-            foreach (var o in _kind.CaptureOverrides)
+            if (!_atCapture.TryGetValue(o.Name, out var label)) continue;
+            var want = o.Values.Where(kv => kv.Value == label).Select(kv => (uint?)kv.Key).FirstOrDefault();
+            if (want is not { } w || w == CanonProps.SameAsLive) continue;
+            if (DateTime.UtcNow > until)
             {
-                if (!_atCapture.TryGetValue(o.Name, out var label)) continue;
-                var want = o.Values.Where(kv => kv.Value == label).Select(kv => (uint?)kv.Key).FirstOrDefault();
-                if (want is not { } w || w == CanonProps.SameAsLive) continue;
-                var live = _driver.GetProp(o.PropId);
-                if (live == w) continue;
-                // Kamera menolak (700D: DEVICE_BUSY 0x81 terus, 2026-10-07) → tetap jepret dengan setelan live view,
-                // jangan batalkan jepretan (tamu menunggu "menyiapkan kamera" tanpa akhir).
-                if (!TrySet(o.PropId, w, o.Name)) continue;
-                restore.Add((o.PropId, live));
+                Console.Error.WriteLine($"[{Brand}] setelan jepret {o.Name} dilewati: waktu habis");
+                continue;
             }
-            return _driver.Capture(CaptureTimeout);
-        }
-        finally
-        {
-            for (var i = restore.Count - 1; i >= 0; i--) TrySet(restore[i].Prop, restore[i].Live, "kembalikan");
-        }
-    }
-
-    /// <summary>Ubah setelan dengan coba ulang singkat saat kamera sibuk; gagal = false + log (tidak melempar).</summary>
-    private bool TrySet(uint prop, uint value, string what)
-    {
-        for (var i = 0; ; i++)
-        {
             try
             {
-                _driver.SetProp(prop, value);
-                return true;
+                var live = _driver.GetProp(o.PropId);
+                if (live == w) continue;
+                // Kamera menolak (700D: DEVICE_BUSY 0x81 terus, 2026-10-07) → tetap jepret dengan setelan live view.
+                if (!TrySet(o.PropId, w, o.Name)) continue;
+                _restore[o.PropId] = live;
             }
-            catch (Exception e) when (i < SetRetries)
-            {
-                _ = e;
-                Thread.Sleep(SetRetryDelay);
-                try { _driver.Pump(); } catch { /* event dicek lagi berikutnya */ }
-            }
-            catch (Exception e)
-            {
-                Console.Error.WriteLine($"[{Brand}] setelan jepret {what} dilewati: {e.Message}");
-                return false;
-            }
+            catch (Exception e) { Console.Error.WriteLine($"[{Brand}] setelan jepret {o.Name} dilewati: {e.Message}"); }
+        }
+        try { return _driver.Capture(CaptureTimeout); }
+        finally { RestoreLive(); }
+    }
+
+    /// <summary>Thread SDK: kembalikan setelan live view yang ditukar saat jepret; yang ditolak dicoba lagi nanti.</summary>
+    private void RestoreLive()
+    {
+        foreach (var (prop, live) in _restore.ToArray())
+            if (TrySet(prop, live, "kembalikan")) _restore.Remove(prop);
+    }
+
+    /// <summary>Ubah setelan sekali (driver sudah mencoba ulang saat BUSY); gagal = false + log (tidak melempar).</summary>
+    private bool TrySet(uint prop, uint value, string what)
+    {
+        try
+        {
+            _driver.SetProp(prop, value);
+            return true;
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine($"[{Brand}] setelan jepret {what} dilewati: {e.Message}");
+            return false;
         }
     }
 

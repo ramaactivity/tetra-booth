@@ -145,11 +145,7 @@ public sealed class EdsdkDriver : ICanonDriver
         Release(ref _pending);
         EdsSendCommand(_cam, CmdExtendShutDownTimer, 0);
         var deadline = DateTime.UtcNow + timeout;
-        uint err;
-        // Kamera sibuk (mis. baru selesai AF) → coba lagi sebentar.
-        while ((err = EdsSendCommand(_cam, CmdTakePicture, 0)) == ErrDeviceBusy && DateTime.UtcNow < deadline)
-            Thread.Sleep(100);
-        Check(err, "jepret");
+        Check(Release(deadline), "jepret");
         while (_pending == IntPtr.Zero)
         {
             if (!IsOpen) throw new CameraFailure("camera_disconnected", "kamera terputus saat jepret");
@@ -160,6 +156,32 @@ public sealed class EdsdkDriver : ICanonDriver
         var item = _pending;
         _pending = IntPtr.Zero;
         return Download(item);
+    }
+
+    /// <summary>Kamera sibuk menerima perintah rana maks. selama ini; sisanya untuk transfer foto.</summary>
+    private static readonly TimeSpan PressBudget = TimeSpan.FromSeconds(4);
+
+    /// <summary>
+    /// Lepas rana tanpa AF (lapangan 9 Okt, 700D ISO 12800): `TakePicture` menyuruh kamera AF dulu, dan di ruang gelap AF
+    /// tidak pernah mengunci sehingga kamera menjawab DEVICE_BUSY sampai batas waktu lalu macet. Fokus sudah diurus
+    /// tap-to-focus / AF sebelum jepret, jadi tombol ditekan penuh `Completely_NonAF` lalu SELALU dilepas. Bodi lama
+    /// tanpa PressShutterButton (NOT_SUPPORTED) memakai `TakePicture`.
+    /// </summary>
+    private uint Release(DateTime deadline)
+    {
+        var until = DateTime.UtcNow + PressBudget < deadline ? DateTime.UtcNow + PressBudget : deadline;
+        uint err;
+        try
+        {
+            while ((err = EdsSendCommand(_cam, CmdPressShutterButton, ShutterButtonCompletelyNonAf)) == ErrDeviceBusy
+                   && DateTime.UtcNow < until)
+                Thread.Sleep(100);
+        }
+        finally { EdsSendCommand(_cam, CmdPressShutterButton, ShutterButtonOff); }
+        if (err != ErrNotSupported) return err;
+        while ((err = EdsSendCommand(_cam, CmdTakePicture, 0)) == ErrDeviceBusy && DateTime.UtcNow < until)
+            Thread.Sleep(100);
+        return err;
     }
 
     public byte[]? TakeUnsolicited()

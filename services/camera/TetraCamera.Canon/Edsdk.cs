@@ -28,6 +28,10 @@ internal static class Edsdk
     public const uint EvfOutputDevicePc = 2;
 
     public const uint CmdTakePicture = 0x00000000;
+    public const uint CmdPressShutterButton = 0x00000004;
+    public const int ShutterButtonOff = 0x00000000;
+    public const int ShutterButtonCompletelyNonAf = 0x00010003;
+    public const uint ErrNotSupported = 0x00000007;
     public const uint CmdExtendShutDownTimer = 0x00000001;
     public const uint CmdDoEvfAf = 0x00000102;
     public const uint CmdDriveLensEvf = 0x00000103;
