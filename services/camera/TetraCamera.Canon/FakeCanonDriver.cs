@@ -22,6 +22,10 @@ public sealed class FakeCanonDriver(
     }
 
     public volatile bool Plugged = true;
+    /// <summary>
+    /// Kamera dimatikan tanpa event shutdown (lapangan 9 Okt): sesi SDK masih "terbuka" tapi setiap panggilan gagal.
+    /// </summary>
+    public volatile bool Silent;
     /// <summary>Jepret tertahan selama ini (ms): meniru panggilan EDSDK yang tidak kembali.</summary>
     public volatile int HangMs;
     public bool LiveView { get; private set; }
@@ -41,7 +45,7 @@ public sealed class FakeCanonDriver(
 
     public (string Model, string Serial)? Open()
     {
-        if (!Plugged) return null;
+        if (!Plugged || Silent) return null;
         _open = true;
         return (model, "fake-usb");
     }
@@ -69,7 +73,9 @@ public sealed class FakeCanonDriver(
     }
 
     public void SetLiveView(bool on) => LiveView = on;
-    public byte[]? LiveViewFrame() => LiveView && IsOpen ? Jpeg : null;
+    public byte[]? LiveViewFrame() =>
+        Silent ? throw new CameraFailure("canon_error", "EDSDK unduh frame live view gagal: 0x00000081")
+        : LiveView && IsOpen ? Jpeg : null;
     public void Focus(string step) => FocusSteps.Add(step);
     public void FocusAt(double x, double y) => FocusSteps.Add($"at {x:0.00},{y:0.00}");
 
@@ -87,7 +93,8 @@ public sealed class FakeCanonDriver(
         [0x106] = [0, 1, 2, 3, 8],
         [0x100] = [0x0013FF0F, 0x0113FF0F, 0x0213FF0F, 0x0E13FF0F],
     };
-    public uint GetProp(uint propId) => Props[propId];
+    public uint GetProp(uint propId) =>
+        Silent ? throw new CameraFailure("canon_error", "EDSDK baca setelan gagal: 0x000000C0") : Props[propId];
     public uint[] PropOptions(uint propId) => _options[propId];
     /// <summary>true = ubah setelan selalu ditolak DEVICE_BUSY (700D saat jepret, 2026-10-07).</summary>
     public volatile bool RejectSet;

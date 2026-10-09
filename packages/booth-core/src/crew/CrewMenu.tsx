@@ -427,7 +427,7 @@ export function CrewMenu({
       (e: unknown) => setNote(crewText(e)),
     );
 
-  const cameraOk = !!status?.cameraService;
+  const cameraOk = !!(status?.camera ?? status?.cameraService);
   const printerReady = status?.printer.status === "ready";
   const printerTone: Tone = printerReady
     ? "mint"

@@ -155,7 +155,9 @@ export function registerIpc(
   );
 
   // Kamera lewat Camera Service (Canon EDSDK, hot folder teknisi): foto ditulis service ke raw/ sesi.
-  const CAPTURE_TIMEOUT_MS = 15_000;
+  // Lebih lama dari batas Camera Service (jepret 10 s + 5 s): pesan jelas dari service ("kamera tidak menjawab; matikan
+  // lalu nyalakan kamera") yang sampai ke crew, bukan "Camera Service tidak menjawab" (lapangan 9 Okt).
+  const CAPTURE_TIMEOUT_MS = 20_000;
   ipcMain.handle("cameraCapture", async (_e, req: unknown) => {
     const { sessionId, index } = z
       .object({ sessionId: SessionId, index: z.number().int().min(0).max(20) })
@@ -264,6 +266,14 @@ export function registerIpc(
       () => true,
       () => false,
     );
+    // Kamera SDK: service hidup belum berarti kamera tersambung (kamera dimatikan tetap ✓, lapangan 9 Okt).
+    const camera =
+      cameraService && canonOn
+        ? await request({ id: crypto.randomUUID(), type: "camera.status" }, 2000).then(
+            (r) => r.connected,
+            () => false,
+          )
+        : cameraService;
     return {
       online: net.isOnline(),
       uploadPending: db.uploadPending(),
@@ -271,6 +281,7 @@ export function registerIpc(
       paper: db.paper(),
       printer: alerts.printer(),
       cameraService,
+      camera,
       device: cloud.device(),
     };
   });

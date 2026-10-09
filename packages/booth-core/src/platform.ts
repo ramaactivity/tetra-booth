@@ -87,6 +87,8 @@ export type CrewStatus = {
   paper: { remaining: number; capacity: number };
   printer: { status: string; message?: string | undefined };
   cameraService: boolean;
+  /** Kamera benar-benar tersambung (kamera SDK: dari Camera Service; lainnya = service hidup). Kosong = versi lama. */
+  camera?: boolean | undefined;
   /** Booth di cloud (Fase 2), null = belum dipasangkan. */
   device: CloudDevice | null;
 };

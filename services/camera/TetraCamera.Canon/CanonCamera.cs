@@ -33,6 +33,15 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     /// <summary>Live view diminta tapi tanpa frame selama ini → EVF dinyalakan ulang (maks. sekali per selang ini).</summary>
     private static readonly TimeSpan EvfRetry = TimeSpan.FromSeconds(2);
     /// <summary>
+    /// Kamera dimatikan tanpa event shutdown (lapangan 9 Okt): live view gagal terus selama ini, atau cek ringan
+    /// (baca satu setelan tiap <see cref="ProbeEvery"/> saat live view mati) gagal dua kali → sesi ditutup, status
+    /// "terputus", dan loop menyambung ulang seperti kabel dicabut.
+    /// </summary>
+    private static readonly TimeSpan DeadAfter = TimeSpan.FromSeconds(6);
+    private static readonly TimeSpan ProbeEvery = TimeSpan.FromSeconds(3);
+    private DateTime _failSince = DateTime.MaxValue, _nextProbe;
+    private int _probeFails;
+    /// <summary>
     /// Terakhir ada frame / terakhir EVF dinyalakan (thread SDK). 60D kadang mengabaikan EVF yang dinyalakan tepat
     /// setelah sambung ulang (cabut-colok USB saat live view, W-034): frame tidak pernah siap sampai layar dibuka ulang.
     /// </summary>
@@ -131,7 +140,9 @@ public sealed class CanonCamera : ICameraSource, IDisposable
                 nextFrame = now + _frameEvery;
                 try
                 {
-                    if (_driver.LiveViewFrame() is { } f)
+                    var got = _driver.LiveViewFrame();
+                    _failSince = DateTime.MaxValue;
+                    if (got is { } f)
                     {
                         _frame = f;
                         _frameAt = now;
@@ -143,9 +154,37 @@ public sealed class CanonCamera : ICameraSource, IDisposable
                         _driver.SetLiveView(true);
                     }
                 }
-                catch (Exception e) { Console.Error.WriteLine($"[{Brand}] frame live view gagal: {e.Message}"); }
+                catch (Exception e)
+                {
+                    if (_failSince == DateTime.MaxValue)
+                    {
+                        _failSince = now;
+                        Console.Error.WriteLine($"[{Brand}] frame live view gagal: {e.Message}");
+                    }
+                    else if (now - _failSince > DeadAfter) Lost("live view gagal terus");
+                }
+            }
+            else if (!_live && now >= _nextProbe)
+            {
+                _nextProbe = now + ProbeEvery;
+                try
+                {
+                    _driver.GetProp(_kind.Props[0].PropId);
+                    _probeFails = 0;
+                }
+                catch (Exception e) when (++_probeFails >= 2) { Lost($"cek kamera gagal: {e.Message}"); }
+                catch { /* sekali gagal bisa karena sibuk: dicek lagi berikutnya */ }
             }
         }
+    }
+
+    /// <summary>Thread SDK: kamera tidak lagi menjawab → tutup sesi; putaran berikutnya melapor terputus & menyambung ulang.</summary>
+    private void Lost(string why)
+    {
+        Console.WriteLine($"[{Brand}] kamera tidak merespons ({why}), dianggap terputus");
+        _failSince = DateTime.MaxValue;
+        _probeFails = 0;
+        try { _driver.Close(); } catch { /* sesi memang sudah rusak */ }
     }
 
     /// <summary>Jalankan di thread SDK; tidak dijawab dalam <c>commandTimeout</c> = error "kamera tidak menjawab".</summary>
