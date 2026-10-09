@@ -1,4 +1,5 @@
 import type { Json } from "@tetra/db";
+import { CARD_IDS } from "@/lib/guest-card-art";
 import {
   nextOpsSync,
   type OpsSync,
@@ -7,6 +8,7 @@ import {
   opsSignatureOk,
 } from "@/lib/ops-sync";
 import { createServiceClient } from "@/lib/supabase/service";
+import { opsGuestCam, opsInstagram } from "@/lib/tetra-ops";
 
 /**
  * Kabar dari Tetra Ops (kontrak v0.2 §4, DECISIONS #173): verifikasi HMAC + jendela waktu, simpan per
@@ -43,18 +45,30 @@ export async function POST(req: Request) {
   // Tandai dulu, catat delivery sesudahnya: kalau tanda gagal, kiriman ulang Ops memproses lagi (nextOpsSync idempoten).
   const { data: events, error } = await db
     .from("events")
-    .select("id, ops_sync")
+    .select("id, ops_sync, client_instagram, settings")
     .eq("organization_id", org)
     .eq("ops_project_id", projectId);
   if (error) return new Response("server error", { status: 500 });
   // ponytail: baca-lalu-tulis per event (jarang > 3 spot); kabar bersamaan untuk event yang sama bisa saling timpa.
+  // IG klien (#215, kontrak v0.7) mengisi event yang belum punya; isian admin di Booth tidak ditimpa.
+  // ponytail: perubahan IG di Ops setelah terisi tidak ikut; admin mengubahnya di pengaturan event.
+  const ig = opsInstagram(body.booking.client_instagram);
+  // Paket Guest Cam (tier, cetak) + desain kartu QR pilihan klien (#225/#226, kontrak v0.9).
+  const gc = opsGuestCam(body.booking, CARD_IDS);
   for (const ev of events ?? []) {
     const prev = (ev.ops_sync ?? {}) as OpsSync;
     const next = nextOpsSync(prev, body);
-    if (next === prev) continue;
+    const fillIg = ig.length > 0 && !ev.client_instagram.length;
+    const settings = (ev.settings ?? {}) as { guestCam?: Record<string, unknown> };
+    const setGc = Object.entries(gc).some(([k, v]) => settings.guestCam?.[k] !== v);
+    if (next === prev && !fillIg && !setGc) continue;
     const { error: upd } = await db
       .from("events")
-      .update({ ops_sync: next as unknown as NonNullable<Json> })
+      .update({
+        ops_sync: next as unknown as NonNullable<Json>,
+        ...(fillIg && { client_instagram: ig }),
+        ...(setGc && { settings: { ...settings, guestCam: { ...settings.guestCam, ...gc } } }),
+      })
       .eq("id", ev.id)
       .eq("organization_id", org);
     if (upd) return new Response("server error", { status: 500 });

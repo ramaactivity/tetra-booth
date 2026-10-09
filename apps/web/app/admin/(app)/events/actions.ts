@@ -2,6 +2,7 @@
 import { DEFAULT_SETTINGS, LAYOUT_PRESETS, SOUND_CUES } from "@tetra/shared";
 import { z } from "zod";
 import { DEFAULT_TEMPLATE } from "@/lib/event-bundle";
+import { CARD_IDS } from "@/lib/guest-card-art";
 import { copyLayout } from "@/lib/layouts";
 import { requireMember } from "@/lib/supabase/server";
 import { layoutFromUpload } from "@/lib/template-upload";
@@ -9,7 +10,9 @@ import {
   OPS_MAX_DAYS,
   type OpsBooking,
   type OpsPackage,
+  opsBookingNow,
   opsBookings,
+  opsGuestCam,
   opsPackages,
 } from "@/lib/tetra-ops";
 import { applySettings } from "./[id]/settings/actions";
@@ -140,7 +143,29 @@ export async function createEventWizard(
       await db.from("layouts").delete().eq("id", made).eq("organization_id", orgId);
     }
     return { ok: false, message: r.message };
+  } // Paket Guest Cam dari booking Ops (#226, kontrak v0.9): batas tamu, add-on cetak, desain kartu QR.
+  if (p.data.ops_project_id) {
+    const now = await opsBookingNow({
+      event_date: p.data.event_date,
+      ops_project_id: p.data.ops_project_id,
+    });
+    const gc = now?.booking ? opsGuestCam(now.booking, CARD_IDS) : {};
+    if (Object.keys(gc).length) {
+      const { data: cur } = await db
+        .from("events")
+        .select("settings")
+        .eq("id", ev.id)
+        .eq("organization_id", orgId)
+        .single();
+      const settings = (cur?.settings ?? {}) as { guestCam?: Record<string, unknown> };
+      await db
+        .from("events")
+        .update({ settings: { ...settings, guestCam: { ...settings.guestCam, ...gc } } })
+        .eq("id", ev.id)
+        .eq("organization_id", orgId);
+    }
   }
+
   const copied = made ?? r.copied;
   return { ok: true, slug: r.slug ?? ev.id, ...(copied && { copied }) };
 }

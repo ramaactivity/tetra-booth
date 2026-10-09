@@ -1,15 +1,28 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { EventSettingsSchema, type GuestMe, parseRun, runState } from "@tetra/shared";
+import {
+  EventDesignSchema,
+  EventSettingsSchema,
+  type GuestMe,
+  type GuestPrintStatus,
+  guestHardCap,
+  type LayoutSpec,
+  parseRun,
+  runState,
+  StoredBundle,
+} from "@tetra/shared";
 import { cookies } from "next/headers";
 import { sha256 } from "@/lib/booth";
-import { eventPhase, ymdWib } from "@/lib/events";
-import { byLinkGuest, LINK } from "@/lib/gallery";
+import type { EventBranding } from "@/lib/event-bundle";
+import { eventPhase, guestPhotosVisible, ymdWib } from "@/lib/events";
+import { LINK } from "@/lib/gallery";
+import { guestPath } from "@/lib/guest-link";
 import { presignGet } from "@/lib/r2";
+import SNAPBOOK_FRAMES from "@/lib/snapbook-frames.json";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /**
- * Guest Cam (#197): event dari link QR `/c/{slug atau guest_token}`. Aktif = `guest_token` terisi + setelan
+ * Guest Cam (#197): event dari link QR `/c/{guest_token}` (token acak, #203). Aktif = `guest_token` terisi + setelan
  * guestCam.enabled + belum purge/kedaluwarsa. Browser tamu diikat ke sesinya lewat cookie berisi kunci acak;
  * server hanya menyimpan hash-nya (`sessions.guest_key_hash`).
  */
@@ -18,9 +31,11 @@ export async function guestEvent(token: string) {
   const { data } = await createServiceClient()
     .from("events")
     .select(
-      "id, organization_id, name, event_date, branding, settings, run, guest_revealed_at, guest_expires_at, purged_at",
+      "id, organization_id, slug, name, event_date, branding, settings, bundle, run, guest_revealed_at, guest_expires_at, purged_at, public_gallery, live_token, guest_token, guest_link",
     )
-    .or(byLinkGuest(token))
+    // Alamat rapi (#231) atau token acak (#203; QR lama tetap jalan). Aktif = token terisi; "Cabut & buat ulang"
+    // mengganti keduanya, jadi QR yang sudah dicetak mati.
+    .or(`guest_link.eq.${token},guest_token.eq.${token}`)
     .not("guest_token", "is", null)
     .limit(1)
     .maybeSingle();
@@ -33,11 +48,161 @@ export async function guestEvent(token: string) {
 export type GuestEvent = NonNullable<Awaited<ReturnType<typeof guestEvent>>>;
 
 /** Foto boleh dilihat: reveal live, dibuka owner, atau acara sudah selesai (Hentikan Acara / tanggal lewat). */
-export const guestRevealed = (ev: GuestEvent, now = Date.now()) => {
-  if (ev.cam.reveal === "live" || ev.guest_revealed_at) return true;
+export const guestRevealed = (ev: GuestEvent, now = Date.now()) => guestPhotosVisible(ev, now);
+
+/**
+ * Kamera tamu ditutup setelah acara (desain A10 "Acara selesai"): Hentikan Acara atau tanggal lewat. Daftar baru
+ * ditolak; unggahan yang masih antre di HP tetap diterima. "Segera dibuka" (sebelum tanggal) sengaja tidak ada,
+ * supaya owner/crew bisa mencoba H-1 (DECISIONS #203).
+ */
+export const guestClosed = (ev: GuestEvent, now = Date.now()) => {
   const run = runState(parseRun(ev.run));
   return run === "finished" || eventPhase(ev.event_date, run, ymdWib(now)) === "selesai";
 };
+
+/** Foto sampul pembuka (A1): original booth/Photo Stage pertama event ini, atau null (belum ada foto). */
+async function guestCover(ev: GuestEvent) {
+  const { data } = await createServiceClient()
+    .from("assets")
+    .select("r2_key, sessions!inner(event_id, source, is_test, hidden_at, deleted_at)")
+    .eq("organization_id", ev.organization_id)
+    .eq("kind", "original")
+    .is("hidden_at", null)
+    .eq("sessions.event_id", ev.id)
+    .in("sessions.source", ["booth", "stage"])
+    .eq("sessions.is_test", false)
+    .is("sessions.hidden_at", null)
+    .is("sessions.deleted_at", null)
+    .order("created_at")
+    .limit(1)
+    .maybeSingle();
+  return data ? presignGet(data.r2_key.split("#")[0] ?? data.r2_key, 6 * 3600) : null;
+}
+
+/** Header halaman tamu: warna + logo (URL bertanda tangan), sama dengan halaman tamu booth. */
+export async function guestBranding(ev: GuestEvent) {
+  const b = (ev.branding ?? {}) as EventBranding;
+  return {
+    ...(b.tagline && { tagline: b.tagline }),
+    ...(b.color && { color: b.color }),
+    ...(b.logoKey && { logoUrl: await presignGet(b.logoKey) }),
+  };
+}
+
+/** Font pustaka `lib-*` dari /fonts (same origin). */
+const libFonts = (l: LayoutSpec) =>
+  Object.fromEntries(
+    l.texts.flatMap(({ fontAssetId: id }) =>
+      id.startsWith("lib-") ? [[id, `/fonts/${id.slice(4)}.woff2`]] : [],
+    ),
+  );
+
+/**
+ * Desain Photo frame tamu (#197/#212): desain booth event dulu (bundle `designs`, atau layout utama, + layout photobox)
+ * supaya paket bundling memakai frame yang sama dengan booth, lalu frame bawaan Snapbook (#229). Layout + URL
+ * bertanda tangan aset & font dirender di HP lewat template engine yang sama dengan booth (aturan 2). Font pustaka
+ * `lib-*` dari /fonts (same origin).
+ */
+async function guestDesigns(ev: GuestEvent) {
+  const b = StoredBundle.safeParse(ev.bundle);
+  const cfg = (b.success ? b.data.config : {}) as {
+    layout?: unknown;
+    designs?: unknown[];
+    photobox?: { layouts?: unknown[] };
+    assets?: Record<string, string>;
+  };
+  const parsed = [
+    ...(cfg.designs ?? [{ id: "main", name: "Desain booth", info: "", layout: cfg.layout }]),
+    ...(cfg.photobox?.layouts ?? []),
+  ].flatMap((d) => {
+    const r = EventDesignSchema.safeParse(d);
+    return r.success ? [r.data] : [];
+  });
+  // Kertas di printer booth = kertas desain booth event (#223); tanpa desain booth (Print Station) semua boleh.
+  const papers = new Set<string>(parsed.map((d) => d.layout.paper));
+  const printable = (paper: string) => !papers.size || papers.has(paper);
+  // Desain polos (preset tanpa gambar overlay/latar, mis. placeholder sebelum desain klien diunggah) tidak
+  // ditawarkan ke tamu: frame Snapbook jauh lebih menarik (#232).
+  const booth = parsed.filter((d) => d.layout.overlay?.assetId || d.layout.background?.assetId);
+  const names = cfg.assets ?? {};
+  const url = async (id: string) => {
+    const key = b.success ? b.data.files.find((f) => f.file === names[id])?.key : undefined;
+    return key ? presignGet(key, 6 * 3600) : null;
+  };
+  const out = [];
+  for (const d of booth.slice(0, 6)) {
+    const assets: Record<string, string> = {};
+    for (const id of [d.layout.overlay?.assetId, d.layout.background?.assetId]) {
+      const u = id ? await url(id) : null;
+      if (id && u) assets[id] = u;
+    }
+    const fonts: Record<string, string> = {};
+    for (const { fontAssetId: id } of d.layout.texts) {
+      const u = id.startsWith("lib-") ? `/fonts/${id.slice(4)}.woff2` : await url(id);
+      if (u) fonts[id] = u;
+    }
+    out.push({
+      id: `b-${d.id}`,
+      name: d.name,
+      style: "event",
+      booth: true,
+      printable: true,
+      layout: d.layout,
+      assets,
+      fonts,
+    });
+  }
+  // Frame bawaan Snapbook (#229): 15 gaya × Strip 2R / 4R / Polaroid, aset statis di /snapbook.
+  for (const f of SNAPBOOK_FRAMES) {
+    const layout = f.layout as unknown as LayoutSpec;
+    out.push({
+      id: f.id,
+      name: f.styleName,
+      style: f.style,
+      booth: false,
+      printable: printable(layout.paper),
+      layout,
+      assets: {
+        [`snap-${f.id}-bg`]: `/snapbook/${f.id}-bg.png`,
+        [`snap-${f.id}-overlay`]: `/snapbook/${f.id}-overlay.png`,
+      },
+      fonts: libFonts(layout),
+    });
+  }
+  return out;
+}
+
+/** Info publik untuk halaman Guest Cam (GET /api/c/{token} dan render awal /c/{token}). */
+export async function guestInfo(ev: GuestEvent) {
+  const picked = (EventSettingsSchema.parse(ev.settings ?? {}).filters ?? []).filter(
+    (f) => f !== "normal",
+  );
+  return {
+    name: ev.name,
+    date: ev.event_date,
+    branding: await guestBranding(ev),
+    filters: ["normal", ...picked],
+    shots: ev.cam.shots,
+    reveal: ev.cam.reveal,
+    approval: ev.cam.approval,
+    voice: ev.cam.voice,
+    strip: ev.cam.strip,
+    consentText: ev.cam.consentText,
+    revealed: guestRevealed(ev),
+    designs: ev.cam.strip ? await guestDesigns(ev) : [],
+    /** Add-on cetak di lokasi (#223). */
+    print: ev.cam.print && ev.cam.strip,
+    coverUrl: await guestCover(ev),
+    closed: guestClosed(ev),
+    publicGallery: ev.public_gallery,
+    /** Galeri publik dari luar sesi tamu (A10 "Acara selesai"): `/l/{slug}`, perlu link live aktif. */
+    eventGallery: ev.public_gallery && ev.live_token ? `/l/${ev.slug}` : null,
+    galleryUntil: ev.guest_expires_at,
+    /** Isi elemen QR di desain strip: halaman Guest Cam acara ini. */
+    link: guestPath(ev),
+  };
+}
+export type GuestInfo = Awaited<ReturnType<typeof guestInfo>>;
 
 const cookieName = (ev: { id: string }) => `tgc_${ev.id.slice(0, 8)}`;
 
@@ -59,7 +224,7 @@ export async function guestSession(ev: GuestEvent) {
   if (!key) return null;
   const { data } = await createServiceClient()
     .from("sessions")
-    .select("id, group_name")
+    .select("id, group_name, asset_count")
     .eq("organization_id", ev.organization_id)
     .eq("event_id", ev.id)
     .eq("source", "guest")
@@ -99,6 +264,7 @@ export async function guestMe(
             const t = assets.find((x) => x.kind === thumb && x.idx === a.idx);
             return {
               idx: a.idx,
+              waiting: a.review_status === "pending",
               url: await presignGet(a.r2_key, 6 * 3600),
               thumbUrl: t ? await presignGet(t.r2_key, 6 * 3600) : undefined,
             };
@@ -112,7 +278,72 @@ export async function guestMe(
     usedIdx: used.sort((a, b) => a - b),
     photos: await items("original", "thumb_original"),
     strips: await items("strip_web", "thumb_strip"),
+    stripCount: assets.filter((a) => a.kind === "strip_web").length,
     audio: assets.some((a) => a.kind === "audio"),
     revealed,
   };
+}
+
+/** Identitas tamu untuk kuota (#221): nomor WA, lalu IG; tanpa keduanya = sesi itu sendiri. */
+export const guestIdentity = (
+  d: { whatsapp?: string | undefined; instagram?: string | undefined } | null,
+  sessionId: string,
+) => d?.whatsapp ?? (d?.instagram ? `ig:${d.instagram}` : sessionId);
+
+/**
+ * Kuota tamu per tier (#221). Tamu = sesi Guest Cam yang sudah mengirim ≥ 1 foto; satu nomor WA/IG = satu tamu
+ * walau dari beberapa HP. Tamu yang sudah terhitung selalu boleh lanjut; tamu baru ditolak hanya kalau
+ * pemakaian sudah mencapai batas + 10%. Tanpa batas (`maxGuests` null) = selalu boleh.
+ */
+export async function guestQuota(ev: GuestEvent) {
+  const max = ev.cam.maxGuests;
+  if (!max) return { used: null, max: null, admits: () => true };
+  const { data } = await createServiceClient()
+    .from("sessions")
+    .select("id, leads(data)")
+    .eq("organization_id", ev.organization_id)
+    .eq("event_id", ev.id)
+    .eq("source", "guest")
+    .gt("asset_count", 0)
+    .is("deleted_at", null);
+  const counted = new Set(
+    (data ?? []).map((s) =>
+      guestIdentity(s.leads[0]?.data as { whatsapp?: string; instagram?: string } | null, s.id),
+    ),
+  );
+  return {
+    used: counted.size,
+    max,
+    admits: (identity: string) => counted.has(identity) || counted.size < guestHardCap(max),
+  };
+}
+
+/** Identitas sesi tamu dari lead-nya (dipakai saat foto pertama). */
+export async function sessionIdentity(ev: GuestEvent, sessionId: string) {
+  const { data } = await createServiceClient()
+    .from("leads")
+    .select("data")
+    .eq("organization_id", ev.organization_id)
+    .eq("session_id", sessionId)
+    .limit(1)
+    .maybeSingle();
+  return guestIdentity(data?.data as { whatsapp?: string; instagram?: string } | null, sessionId);
+}
+
+export const quotaFull = () => Response.json({ error: "guest_full" }, { status: 403 });
+
+/** Satu desain frame tamu (dengan tanda boleh dicetak) menurut id. */
+export async function guestDesignById(ev: GuestEvent, id: string) {
+  return (await guestDesigns(ev)).find((d) => d.id === id) ?? null;
+}
+
+/** Cetak tamu ini (#223), atau null kalau belum pernah. */
+export async function guestPrint(ev: GuestEvent, sessionId: string) {
+  const { data } = await createServiceClient()
+    .from("guest_prints")
+    .select("number, status")
+    .eq("organization_id", ev.organization_id)
+    .eq("session_id", sessionId)
+    .maybeSingle();
+  return data ? { number: data.number, status: data.status as GuestPrintStatus } : null;
 }

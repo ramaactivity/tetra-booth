@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Lumix Remote Control Library (DECISIONS #214): Lmxptpif.dll Panasonic tidak di-commit. Dev: taruh di sdk/ (disalin ke output); booth: flag lumix berisi folder DLL. -->
+  <ItemGroup>
+    <None Include="sdk/**/*.dll" CopyToOutputDirectory="PreserveNewest" LinkBase="" />
+    <ProjectReference Include="../TetraCamera.Canon/TetraCamera.Canon.csproj" />
+  </ItemGroup>
+</Project>

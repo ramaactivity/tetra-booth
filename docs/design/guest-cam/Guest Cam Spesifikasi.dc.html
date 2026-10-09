@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet"><style>body{margin:0;background:#F8F7F4;font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#1D1D1B}a{color:#1D1D1B;font-weight:700}a:hover{color:#3A3936}code{font-family:'Geist Mono',monospace;font-size:.92em}</style></helmet>
+<div style="max-width:980px;margin:0 auto;padding:56px 32px 96px;display:flex;flex-direction:column;gap:44px">
+
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="align-self:flex-start;height:26px;padding:0 10px;border-radius:999px;border:1.5px solid #1D1D1B;background:#CEC8F6;font-size:12px;font-weight:700;display:flex;align-items:center">Handoff · G5 Desain final</div>
+<div style="font-size:44px;line-height:1;font-weight:800;letter-spacing:-.04em">Guest Cam: spesifikasi komponen</div>
+<div style="font-size:15px;line-height:1.6;color:#3A3936;max-width:720px;text-wrap:pretty">Pelengkap untuk <code>02-sistem-desain-tetra-booth.md</code>. Isinya hanya hal baru di Guest Cam. Semua warna memakai token di <code>packages/ui/src/tokens.css</code>, tidak ada hex baru. Teks layar tamu ada di <code>apps/web/lib/copy.ts</code> dengan kunci <code>guestCam.*</code>.</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+<a href="Guest Cam Arah Desain.dc.html" style="height:38px;padding:0 14px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;display:flex;align-items:center;text-decoration:none">1 · Arah A1 + A3</a>
+<a href="Guest Cam HP Tamu.dc.html" style="height:38px;padding:0 14px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;display:flex;align-items:center;text-decoration:none">2 · HP tamu A2–A10</a>
+<a href="Guest Cam Kartu TV Galeri.dc.html" style="height:38px;padding:0 14px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;display:flex;align-items:center;text-decoration:none">3 · B11 · C12 · D13</a>
+<a href="Guest Cam Admin.dc.html" style="height:38px;padding:0 14px;border-radius:12px;border:1.5px solid #1D1D1B;background:#fff;font-size:13px;display:flex;align-items:center;text-decoration:none">4 · Admin E14 · E15</a>
+<a href="Guest Cam Prototipe.dc.html" style="height:38px;padding:0 14px;border-radius:12px;border:1.5px solid #1D1D1B;background:#F8D98B;font-size:13px;display:flex;align-items:center;text-decoration:none">Prototipe klik A1–A10</a>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="font-size:22px;font-weight:800;letter-spacing:-.02em">1. Ukuran dasar HP tamu</div>
+<div style="border-radius:18px;border:1.5px solid #1D1D1B;background:#fff;overflow:hidden">
+<sc-for list="{{ base }}" as="r" hint-placeholder-count="8">
+<div style="display:grid;grid-template-columns:220px 180px minmax(0,1fr);gap:16px;padding:12px 18px;border-top:1.5px dashed #D6D3CC;font-size:13px;line-height:1.5"><span style="font-weight:800">{{ r.a }}</span><code>{{ r.b }}</code><span style="color:#3A3936">{{ r.c }}</span></div>
+</sc-for>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="font-size:22px;font-weight:800;letter-spacing:-.02em">2. Komponen baru</div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+<sc-for list="{{ comps }}" as="c" hint-placeholder-count="8">
+<div style="border-radius:18px;border:1.5px solid #1D1D1B;background:#fff;padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><span style="font-size:15px;font-weight:800">{{ c.n }}</span><code style="font-size:11px;color:#5F5E5A">{{ c.f }}</code></div>
+<div style="font-size:13px;line-height:1.55;color:#3A3936">{{ c.d }}</div>
+<div style="border-top:1.5px dashed #1D1D1B;padding-top:8px;font-size:12px;line-height:1.55"><b>State:</b> {{ c.s }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="font-size:22px;font-weight:800;letter-spacing:-.02em">3. Gerak</div>
+<div style="border-radius:18px;border:1.5px solid #1D1D1B;background:#fff;overflow:hidden">
+<sc-for list="{{ motion }}" as="r" hint-placeholder-count="7">
+<div style="display:grid;grid-template-columns:220px 180px minmax(0,1fr);gap:16px;padding:12px 18px;border-top:1.5px dashed #D6D3CC;font-size:13px;line-height:1.5"><span style="font-weight:800">{{ r.a }}</span><code>{{ r.b }}</code><span style="color:#3A3936">{{ r.c }}</span></div>
+</sc-for>
+</div>
+<div style="font-size:13px;color:#3A3936">Kalau <code>prefers-reduced-motion: reduce</code> aktif, semua durasi menjadi 0. Kilat diganti pil "Tersimpan" yang tampil 1,2 detik, dan suara rana tetap opsional.</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="font-size:22px;font-weight:800;letter-spacing:-.02em">4. Matriks setelan → tampilan</div>
+<div style="border-radius:18px;border:1.5px solid #1D1D1B;background:#fff;overflow:hidden">
+<div style="display:grid;grid-template-columns:220px repeat(3,minmax(0,1fr));gap:16px;padding:12px 18px;font-size:12px;font-weight:800;background:#EFEDE8"><span>Kondisi</span><span>HP tamu</span><span>Galeri klien / TV</span><span>Admin</span></div>
+<sc-for list="{{ matrix }}" as="r" hint-placeholder-count="5">
+<div style="display:grid;grid-template-columns:220px repeat(3,minmax(0,1fr));gap:16px;padding:12px 18px;border-top:1.5px dashed #D6D3CC;font-size:13px;line-height:1.5"><code>{{ r.k }}</code><span>{{ r.a }}</span><span>{{ r.b }}</span><span>{{ r.c }}</span></div>
+</sc-for>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="font-size:22px;font-weight:800;letter-spacing:-.02em">5. Keputusan baru yang perlu dicek owner</div>
+<div style="display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ open }}" as="o" hint-placeholder-count="5">
+<div style="border-radius:14px;border:1.5px dashed #1D1D1B;background:#FCE3C6;padding:12px 16px;font-size:13px;line-height:1.55"><b>{{ o.t }}</b> {{ o.d }}</div>
+</sc-for>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      base: [
+        { a: 'Viewport desain', b: '390×844 · cek 360×740', c: 'Layar paper tidak boleh scroll di 390. Di 360×740, foto sampul A1 mengecil ke 150 px, yang lain tetap.' },
+        { a: 'Padding layar', b: '52 20 28 px', c: 'Atas 52 px = safe area + jarak. Bawah 28 px + env(safe-area-inset-bottom).' },
+        { a: 'Tombol utama', b: 'h56 r14 · butter', c: 'Lapisan 4px (--lx:4px, --lb:1.5px). Selalu di bawah garis putus-putus, mengikuti pola R01.' },
+        { a: 'Rana', b: 'Ø96 cincin · Ø80 isi', c: 'Isi butter dengan garis tinta. Saat ditahan scale .88. Jatah habis: isi neutral dan rana nonaktif.' },
+        { a: 'Target sentuh kecil', b: '≥ 48 px', c: 'Foto terakhir 54, ganti kamera 54, panah filter 44×44 di dalam pil setinggi 44 (area sentuh diperluas ke 48).' },
+        { a: 'Viewfinder', b: 'tinggi 618 · r 0 0 26 26', c: 'Sisanya (226 px) bodi tinta #1D1D1B. Di 360×740 bodi tetap 226 px, viewfinder yang menyusut.' },
+        { a: 'Pil di atas viewfinder', b: 'h32 · isi solid', c: 'Putih atau pastel dengan garis tinta. Tanpa transparansi atau blur, supaya tetap terbaca di foto terang maupun gelap.' },
+        { a: 'Input', b: 'h48 r12 · 1.5px', c: 'Fokus = cincin mint 3 px. Nomor WA dan handle IG memakai Geist Mono. Keyboard: tel untuk WA, text dengan autocapitalize=off untuk IG.' },
+      ],
+      comps: [
+        { n: 'FilmCounter', f: 'guest/FilmCounter.tsx', d: 'Jendela putih 86×48 dengan angka sisa jatah (Geist Mono 30). Di belakangnya ada pita tick 2 px tiap 16 px yang bergeser −16 px per jepretan.', s: 'normal · sisa ≤ 3 (pil "3 lagi" peach muncul sekali) · 0 (angka "00", rana nonaktif → A5)' },
+        { n: 'FilterPill', f: 'guest/FilterPill.tsx', d: 'Pil putih ‹ label ›. Bisa ditap atau digeser di viewfinder untuk ganti filter. Isinya PHOTO_FILTERS yang aktif di event, dengan "normal" selalu ada di awal.', s: 'satu filter (pil disembunyikan) · banyak filter' },
+        { n: 'UploadPill', f: 'guest/UploadPill.tsx', d: 'Pil kanan atas. Ketuk untuk membuka sheet A6b. Datanya dari antrean IndexedDB.', s: 'Aman (mint-soft, titik hijau) · N menunggu sinyal (peach, titik putus-putus) · N gagal, dicoba lagi (coral, ↻)' },
+        { n: 'LastShot', f: 'guest/LastShot.tsx', d: 'Kotak 54 di kiri rana.', s: 'reveal live: thumbnail foto · reveal after: kotak putus-putus berisi nomor jepretan · belum ada: kosong' },
+        { n: 'ShotFlyout', f: 'guest/ShotFlyout.tsx', d: 'Kartu foto 78×96 miring −7° yang melayang dari tengah viewfinder ke jendela film, disertai toast di atas.', s: 'after: kartu tinta + nomor, toast peach · live/manual: foto asli, toast mint-soft "menunggu ditinjau" · live/auto: toast "Masuk album"' },
+        { n: 'ContactField', f: 'guest/ContactField.tsx', d: 'Segmented WhatsApp | Instagram (aktif = lavender) di atas satu input. Validasinya WhatsappSchema dan InstagramSchema dari shared.', s: 'kosong · fokus · tidak valid ("Cek lagi nomornya" di bawah input, garis coral-strong)' },
+        { n: 'ConsentRow', f: 'guest/ConsentRow.tsx', d: 'Kotak putus-putus dengan centang bulat. Teks dari consentText dipotong satu baris, lalu "Baca selengkapnya" untuk membuka penuh. Tombol utama nonaktif sampai dicentang.', s: 'belum · tercentang (hijau ✓) · terbuka penuh' },
+        { n: 'VoiceRecorder', f: 'guest/VoiceRecorder.tsx', d: 'Timer Geist Mono 64 dengan 40 batang waveform yang mengisi garis 30 detik. MediaRecorder memakai webm/opus, dan mp4 di iOS. Berhenti otomatis di 00:30.', s: 'siap · merekam (pil coral) · dengar ulang · mengirim · terkirim (terkunci) · ditolak izin mikrofon (pola A2b)' },
+        { n: 'StripPicker', f: 'guest/StripPicker.tsx', d: 'Grid 3 kolom. Foto yang dipilih diberi nomor urut di lingkaran mint. Kalau jumlahnya sudah sama dengan slot, foto lain nonaktif. Pratinjau dirender DesignPreview (template engine), urutan diubah dengan tahan lalu geser.', s: 'memilih · penuh · pratinjau · mengirim · terkirim (strip n dari 5)' },
+        { n: 'ModerationGrid', f: 'admin/guest/ModerationGrid.tsx', d: 'Grid 6 kolom. Fokus = cincin mint. A = setujui, X = tolak, ←→ = pindah, Shift+klik = pilih banyak. Bar tinta muncul saat ada pilihan.', s: 'kosong (✓ "Antrean kosong") · fokus · terpilih · memproses (kartu redup)' },
+      ],
+      motion: [
+        { a: 'Jeda sebelum rana', b: '380 ms', c: 'Isi rana scale .88 (120 ms ease-out). Mencegah jepretan dobel dan memberi rasa "menekan tombol kamera".' },
+        { a: 'Kilat', b: '150 ms', c: 'Lapisan putih penuh di viewfinder, opacity 1 → 0.' },
+        { a: 'Film maju', b: '300 ms ease-out', c: 'Pita tick translateX −16 px, angka berganti dengan efek tick yang sama seperti countdown booth (scale 1.1 → 1).' },
+        { a: 'Kartu melayang', b: '300 ms', c: 'Dari tengah ke jendela film, scale 1 → .4, lalu hilang.' },
+        { a: 'Ganti filter', b: '200 ms', c: 'Transisi filter CSS pada pratinjau. Piksel yang diunggah memakai applyPhotoFilter, bukan ctx.filter.' },
+        { a: 'Transisi layar', b: '250 ms', c: 'Fade dan geser 12 px, sama dengan booth.' },
+        { a: 'Tombol ditekan', b: '100 ms', c: 'Utilitas pressable: geser 4 px ke lapisan belakang.' },
+      ],
+      matrix: [
+        { k: 'reveal=after', a: 'Kotak tertutup, toast "Terbuka setelah acara", Foto saya = A7b terkunci. Strip baru bisa dibuat setelah dibuka.', b: 'Tidak tampil sampai guest_revealed_at terisi.', c: 'Kartu peach "masih tertutup" dan tombol "Buka foto sekarang" dengan konfirmasi.' },
+        { k: 'reveal=live, approval=auto', a: 'Foto langsung terlihat, toast "Masuk album".', b: 'Langsung tampil, label "oleh {nama}".', c: 'Bisa disembunyikan dari moderasi biasa (hidden_at).' },
+        { k: 'approval=manual', a: 'Tamu melihat fotonya sendiri dengan label "Ditinjau" sampai disetujui.', b: 'Tampil hanya kalau review_status = null.', c: 'Antrean "Perlu disetujui" dan badge jumlah di tab.' },
+        { k: 'voice=false', a: 'Kartu ucapan di A5 dan tautan rekam disembunyikan.', b: 'Chip Ucapan disembunyikan kalau jumlahnya 0.', c: 'Toggle mati.' },
+        { k: 'strip=false', a: 'Kartu strip di A5 dan A7 disembunyikan.', b: 'Tile strip tidak ada.', c: 'Toggle mati.' },
+      ],
+      open: [
+        { t: 'Strip di mode setelah acara.', d: 'Saya buat strip baru bisa dibuat setelah foto terbuka, karena sebelum itu tamu belum bisa melihat fotonya. Alternatifnya, strip dibuat dari thumbnail yang disamarkan, tapi itu terasa janggal.' },
+        { t: 'Filter Guest Cam = filter Sesi.', d: 'Schema tidak punya daftar filter terpisah, jadi E14 hanya menampilkan isinya dengan tautan "Ubah di Sesi".' },
+        { t: 'Kabar WhatsApp saat foto terbuka.', d: 'Copy di A5/A7b menjanjikan kabar lewat WA. Kalau pengirimannya belum ada di G1–G4, kalimat ini harus dihapus.' },
+        { t: 'Kartu ajakan di TV.', d: 'Muncul tiap 6 slide selama 12 detik. Angkanya bisa dijadikan setelan live.' },
+        { t: 'Arah desain.', d: 'Yang dipakai sekarang gabungan pembuka 1a dan kamera 1b. Kalau owner memilih kamera 1a, yang diganti hanya A3, A4, dan A6a.' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

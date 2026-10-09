@@ -5,7 +5,7 @@ import { crewText } from "../errors";
 import type { BoothEvent } from "../event";
 import { usePlatform } from "../PlatformContext";
 import type { EventOverride, EventSettingsInfo } from "../platform";
-import { Sheet } from "./Sheet";
+import { btn, Panel, Row } from "./parts";
 
 type Key = keyof EventOverride;
 /** Batas sama dengan EventSettingsSchema; langkah besar untuk detik QR & timer sesi. */
@@ -23,18 +23,17 @@ const stepBtn =
 /**
  * Pengaturan event di booth (DECISIONS #100): override lokal per booth untuk field yang aman diubah di lokasi.
  * "Ambil event terbaru" tidak menimpanya; "Kembalikan ke cloud" menghapusnya. Template & harga tetap dari admin.
+ * Panel langsung di halaman Event & Desain (bukan pop-up).
  */
-export function EventSettingsSheet({
+export function EventSettings({
   event,
   onNote,
   onSaved,
-  onClose,
 }: {
   event: BoothEvent;
   onNote: (m: string) => void;
   /** Muat ulang event aktif supaya sesi berikutnya memakai nilai baru. */
   onSaved: () => Promise<void>;
-  onClose: () => void;
 }) {
   const p = usePlatform();
   const [info, setInfo] = useState<EventSettingsInfo>();
@@ -69,25 +68,32 @@ export function EventSettingsSheet({
   };
 
   return (
-    <Sheet title={copy.crew.eventSettings} onClose={onClose}>
-      <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
+    <Panel
+      title={copy.crew.eventSettings}
+      hint={copy.crew.eventSettingsNote}
+      testId="event-settings"
+    >
+      <div className="flex flex-col gap-4">
         {info &&
           fields.map(({ key, min, max, step }) => {
             const v = draft[key] ?? info.cloud[key];
             const local = key in info.override;
             return (
-              <div key={key} className="flex items-center gap-4" data-testid={`setting-${key}`}>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xl font-bold">{copy.crew.setting[key]}</p>
-                  <p className="text-lg text-text-2">
+              <Row
+                key={key}
+                testId={`setting-${key}`}
+                label={copy.crew.setting[key]}
+                hint={
+                  <>
                     {copy.crew.cloudValue(info.cloud[key])}
                     {local && (
                       <span className="ml-2 rounded-full border-2 border-ink bg-butter px-3 text-base font-bold text-ink">
                         {copy.crew.changedHere}
                       </span>
                     )}
-                  </p>
-                </div>
+                  </>
+                }
+              >
                 <button
                   type="button"
                   aria-label={`${copy.crew.setting[key]} −`}
@@ -107,28 +113,27 @@ export function EventSettingsSheet({
                 >
                   +
                 </button>
-              </div>
+              </Row>
             );
           })}
-        <p className="text-lg text-text-2">{copy.crew.eventSettingsNote}</p>
       </div>
-      <div className="grid shrink-0 grid-cols-2 gap-4">
+      <div className="flex flex-wrap justify-end gap-4">
         <Button
-          variant="secondary"
-          className="h-[92px] rounded-[20px] text-2xl"
+          variant="plain"
+          className={btn}
           disabled={busy || !info || !Object.keys(info.override).length}
           onClick={() => save(null, copy.crew.eventSettingsReset)}
         >
           {copy.crew.resetToCloud}
         </Button>
         <Button
-          className="h-[92px] rounded-[20px] text-2xl"
+          className={`${btn} px-12`}
           disabled={busy || !changed}
           onClick={() => save(draft, copy.crew.eventSettingsSaved)}
         >
           {copy.crew.save}
         </Button>
       </div>
-    </Sheet>
+    </Panel>
   );
 }

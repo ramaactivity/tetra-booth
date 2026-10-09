@@ -12,6 +12,12 @@ export const GuestCamSettingsSchema = z.object({
   enabled: z.boolean().default(false),
   /** Jatah foto per tamu (per HP). */
   shots: z.number().int().min(1).max(50).default(15),
+  /** Batas tamu sesuai tier paket (#221); null = tak terbatas. Tamu = HP yang mengirim ≥ 1 foto. */
+  maxGuests: z.number().int().min(1).max(100_000).nullable().default(null),
+  /** Add-on cetak di lokasi (#223): tiap tamu boleh mencetak satu frame lewat printer booth / Print Station. */
+  print: z.boolean().default(false),
+  /** Desain kartu QR ukuran kartu nama (#225), dipilih klien di portal Ops atau admin. */
+  cardDesign: z.string().max(20).default("zamrud"),
   /** live = foto langsung tampil di album/TV; after = terbuka setelah acara (gaya kamera sekali pakai). */
   reveal: z.enum(["live", "after"]).default("after"),
   /** auto = tampil otomatis (bisa disembunyikan); manual = harus disetujui owner/crew dulu. */
@@ -32,6 +38,23 @@ export const WhatsappSchema = z
   .string()
   .transform((s) => s.replace(/\D/g, "").replace(/^0/, "62").replace(/^8/, "628"))
   .pipe(z.string().regex(/^62\d{8,13}$/));
+/**
+ * Nomor HP tamu (#232): WhatsappSchema + harus nomor seluler Indonesia (628…, 10–13 digit setelah 0) dan bukan nomor
+ * asal ketik (semua digit sama, deret 1234567 / 7654321). Nomor dipakai untuk mempertanggungjawabkan foto tamu.
+ */
+export const GuestWhatsappSchema = WhatsappSchema.pipe(
+  z
+    .string()
+    .regex(/^628[1-9]\d{6,10}$/)
+    .refine((n) => {
+      const d = n.slice(3);
+      return (
+        !/^(\d)\1+$/.test(d) &&
+        !"01234567890".includes(d.slice(-7)) &&
+        !"09876543210".includes(d.slice(-7))
+      );
+    }),
+);
 /** "@Nama.Akun" / "instagram.com/nama.akun" → "nama.akun". */
 export const InstagramSchema = z
   .string()
@@ -48,18 +71,25 @@ export const InstagramSchema = z
 /** POST /api/c/{token}/join: nama + WhatsApp atau Instagram (minimal satu) + persetujuan. */
 export const GuestJoinRequest = z
   .object({
-    name: z.string().trim().min(2).max(80),
+    // Nama harus berisi huruf (bukan "..", "123"): tuan rumah perlu tahu siapa yang datang.
+    name: z
+      .string()
+      .trim()
+      .min(2)
+      .max(80)
+      .regex(/\p{L}.*\p{L}/u),
     whatsapp: z.string().max(30).optional(),
     instagram: z.string().max(80).optional(),
     consent: z.literal(true),
   })
   .transform((b, ctx) => {
-    const wa = b.whatsapp?.trim() ? WhatsappSchema.safeParse(b.whatsapp) : null;
+    const wa = b.whatsapp?.trim() ? GuestWhatsappSchema.safeParse(b.whatsapp) : null;
     const ig = b.instagram?.trim() ? InstagramSchema.safeParse(b.instagram) : null;
     if (wa && !wa.success) ctx.addIssue({ code: "custom", path: ["whatsapp"], message: "invalid" });
     if (ig && !ig.success)
       ctx.addIssue({ code: "custom", path: ["instagram"], message: "invalid" });
-    if (!wa && !ig) ctx.addIssue({ code: "custom", path: ["whatsapp"], message: "required" });
+    // WA wajib (#232): foto tamu bisa dipertanggungjawabkan. IG tetap diterima sebagai tambahan.
+    if (!wa) ctx.addIssue({ code: "custom", path: ["whatsapp"], message: "required" });
     return {
       name: b.name,
       whatsapp: wa?.success ? wa.data : undefined,
@@ -95,6 +125,8 @@ const GuestItem = z.object({
   idx: z.number().int(),
   url: z.string(),
   thumbUrl: z.string().optional(),
+  /** Moderasi manual: belum disetujui (tamu tetap melihat fotonya sendiri). */
+  waiting: z.boolean(),
 });
 /** GET /api/c/{token}/me (dan respons join/done): isi milik tamu ini. */
 export const GuestMe = z.object({
@@ -106,6 +138,8 @@ export const GuestMe = z.object({
   /** Foto/strip hanya diisi kalau reveal live atau sudah dibuka; `after` = HP cuma lihat hitungan. */
   photos: z.array(GuestItem),
   strips: z.array(GuestItem),
+  /** Jumlah strip yang sudah tercatat (termasuk yang disembunyikan), dasar idx strip berikutnya. */
+  stripCount: z.number().int(),
   audio: z.boolean(),
   revealed: z.boolean(),
 });
@@ -139,3 +173,32 @@ export const idxAllowed = (cam: GuestCamSettings, kind: GuestUploadKind, idx: nu
     : kind === "strip"
       ? cam.strip && idx < GUEST_MAX_STRIPS
       : cam.voice && idx === 0;
+
+/** Tier Guest Cam yang dijual (#221, rekap pricing 8 Okt); null = tak terbatas. */
+export const GUEST_TIERS = [100, 200, 300, 500, null] as const;
+/** Kuota benar-benar berhenti di +10% (tamu asli tidak tertolak di tengah acara). */
+export const guestHardCap = (max: number) => Math.ceil(max * 1.1);
+
+/** Status cetak satu tamu (#223), dibaca HP tamu. */
+export type GuestPrintStatus = "queued" | "claimed" | "printed" | "failed";
+export const GuestPrintRequest = z.object({
+  idx: z.number().int().min(0).max(4),
+  designId: z.string().max(80),
+});
+export type GuestPrintInfo = { number: number; status: GuestPrintStatus } | null;
+
+/** Job cetak tamu yang diambil booth (#223). `layout` = layout potong frame; `url` = gambar frame (GET bertanda tangan). */
+export const GuestPrintJob = z.object({
+  id: z.uuid(),
+  number: z.number().int(),
+  guestName: z.string().nullable(),
+  paper: z.string(),
+  layout: z.unknown(),
+  url: z.url(),
+});
+export type GuestPrintJob = z.infer<typeof GuestPrintJob>;
+export const GuestPrintClaim = z.object({ jobs: z.array(GuestPrintJob) });
+export const GuestPrintResult = z.object({
+  status: z.enum(["printed", "failed"]),
+  error: z.string().max(300).optional(),
+});

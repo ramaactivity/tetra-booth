@@ -1,12 +1,14 @@
 "use client";
 import {
   EVENT_PRESETS,
+  GUEST_PRESETS,
+  type GuestCamSettings,
   LAYOUT_PRESETS,
   type LayoutPaper,
   PHOTO_FILTERS,
   paperLabel,
 } from "@tetra/shared";
-import { ColorPicker } from "@tetra/ui";
+import { ColorPicker, Select } from "@tetra/ui";
 import { ArrowRight, Check, Play } from "lucide-react";
 import Link from "next/link";
 import {
@@ -18,6 +20,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { CARD_DESIGNS, cardDesign } from "@/lib/guest-card-art";
 import { OPS_PAPER, OpsPaperWarning } from "../../OpsPaperWarning";
 import { type SaveResult, saveEvent } from "./actions";
 import { type DesignOption, DesignPicker, forMode } from "./DesignPicker";
@@ -32,6 +35,10 @@ export type SettingsValues = {
   location: string;
   tagline: string;
   client_name: string;
+  /** IG klien untuk kartu promosi tamu (#215). */
+  clientInstagram: string[];
+  /** Kartu promosi tampil di halaman tamu (#215). */
+  promoCard: boolean;
   /** Paket yang dijual (#150): nama + durasi jam, untuk rekap durasi. */
   package_name: string;
   /** Booking Tetra Ops yang ditautkan (#193); "" = belum. */
@@ -51,6 +58,8 @@ export type SettingsValues = {
   countdownSound: boolean;
   bumper: boolean;
   countdownVideo: boolean;
+  /** Polaroid & 2R: sisi kiri/kanan foto berbeda (#207). */
+  pairDifferent: boolean;
   /** Filter yang ditawarkan ke tamu (#116). */
   filters: string[];
   promptsBefore: string[];
@@ -59,6 +68,11 @@ export type SettingsValues = {
   stageGroups: string[];
   stageGapSec: number;
   stageTvSec: number;
+  /** Guest Cam (#197): kamera HP tamu lewat /c/{slug}. */
+  guestCam: GuestCamSettings;
+  gc_shots: number;
+  /** Batas tamu tier (#221); "" = tak terbatas. */
+  gc_max_guests: string;
   /** Usulan daftar grup dari portal Ops saat daftar masih kosong (#182). */
   opsStageGroups: string[];
   /** Suara per cue (#104): nyala/mati + URL file pengganti (presigned) kalau ada. */
@@ -147,6 +161,37 @@ export function Box({ radio, ...p }: InputHTMLAttributes<HTMLInputElement> & { r
 }
 
 /** Saklar nyala/mati (Toggle v2). */
+/** Pilihan kartu (E14): dua kartu radio, yang terpilih mint-soft berlapis dengan centang hijau. */
+function GcChoice({
+  legend,
+  name,
+  value,
+  options,
+}: {
+  legend: string;
+  name: string;
+  value: string;
+  options: [string, string, string][];
+}) {
+  return (
+    <fieldset className="grid grid-cols-1 gap-3 md:col-span-2 md:grid-cols-2">
+      <legend className="mb-2.5 text-sm font-extrabold">{legend}</legend>
+      {options.map(([v, t, d]) => (
+        <label
+          key={v}
+          className="flex cursor-pointer gap-3 rounded-[16px] border-[1.5px] border-ink bg-white px-4 py-3.5 has-[:checked]:layered has-[:checked]:bg-mint-soft has-[:checked]:[--lb:1.5px] has-[:checked]:[--lx:4px]"
+        >
+          <Box radio name={name} value={v} defaultChecked={value === v} />
+          <span>
+            <span className="block text-[15px] font-extrabold">{t}</span>
+            <span className="mt-1 block text-xs leading-normal text-text-2">{d}</span>
+          </span>
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
 function Switch(p: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <span className="relative inline-flex h-[26px] w-[46px] flex-none">
@@ -358,6 +403,18 @@ function Field({
   );
 }
 
+/** Desain kartu QR Kamera Tamu (#227); id sama dengan CARD_DESIGNS di lib/guest-card-art. */
+const CARD_OPTIONS = CARD_DESIGNS.map((c) => ({ value: c.id, label: c.name }));
+
+/** Tier Guest Cam (#221, rekap pricing 8 Okt). */
+const GUEST_TIER_OPTIONS = [
+  { value: "100", label: "100 tamu" },
+  { value: "200", label: "200 tamu" },
+  { value: "300", label: "300 tamu" },
+  { value: "500", label: "500 tamu" },
+  { value: "", label: "Tak terbatas" },
+];
+
 const MODES = [
   {
     v: "event",
@@ -376,6 +433,7 @@ export function SettingsForm({
   slug,
   v,
   links,
+  guestLinks,
 }: {
   eventId: string;
   /** Segmen URL saat ini; simpan yang mengganti slug membuka URL barunya. */
@@ -383,6 +441,8 @@ export function SettingsForm({
   v: SettingsValues;
   /** Panel link klien (di luar data form, aksi sendiri). */
   links: ReactNode;
+  /** Panel link /c Guest Cam + kartu QR meja (#197). */
+  guestLinks: ReactNode;
 }) {
   const [name, setName] = useState(v.name);
   const [date, setDate] = useState(v.event_date);
@@ -398,6 +458,10 @@ export function SettingsForm({
   const [sold, setSold] = useState(() => new Set(Object.keys(v.prices)));
   const [soundOn, setSoundOn] = useState(v.countdownSound);
   const [leadOn, setLeadOn] = useState(!!v.lead?.enabled);
+  const [gcOn, setGcOn] = useState(v.guestCam.enabled);
+  const [gcMax, setGcMax] = useState(v.gc_max_guests);
+  const [gcCard, setGcCard] = useState<string>(cardDesign(v.guestCam.cardDesign));
+  const [gcLen, setGcLen] = useState(v.guestCam.consentText.length);
   const [dirty, setDirty] = useState(false);
   const [active, setActive] = useState("informasi");
   const [r, action, pending] = useActionState<SaveResult, FormData>(
@@ -519,6 +583,9 @@ export function SettingsForm({
                 Badge,
               ],
             ]
+          : []),
+        ...(!pb
+          ? [["guest-cam", "Guest Cam", gcOn ? "ok" : "opsional"] as [string, string, Badge]]
           : []),
         ...(pb
           ? [["photobox", "Photobox", ok.photobox ? "ok" : "wajib"] as [string, string, Badge]]
@@ -1110,6 +1177,12 @@ export function SettingsForm({
               title="Rekam video saat hitung mundur"
               hint="Muncul di tab Video di halaman tamu. Bawaan: mati."
             />
+            <ToggleRow
+              name="pairDifferent"
+              defaultChecked={v.pairDifferent}
+              title="Polaroid & 2R: kiri dan kanan foto berbeda"
+              hint="Satu kertas 4R berisi dua potong. Nyala = tamu foto 2× lebih banyak, sisi kiri & kanan beda foto (GIF ikut jadi). Mati = kedua sisi sama. Tidak berlaku untuk desain 4R."
+            />
             <fieldset className="flex flex-col gap-2 md:col-span-2">
               <legend className="mb-1.5 text-[13px] font-bold">
                 Filter pilihan tamu <span className="font-semibold text-muted">· opsional</span>
@@ -1202,6 +1275,174 @@ export function SettingsForm({
             >
               {num("stageTvSec", 10, 120)}
             </Field>
+          </Section>
+
+          {/* Guest Cam (#197, desain E14 #203): disembunyikan di photobox tapi tetap di form. */}
+          <Section
+            id="guest-cam"
+            title="Guest Cam"
+            hidden={pb}
+            badge={gcOn ? "ok" : "opsional"}
+            desc="Tamu memotret dari HP sendiri lewat QR. Fotonya masuk album yang sama dengan foto booth dan Photo Stage. Eksklusif klien Tetra."
+          >
+            <input type="hidden" name="gc_present" value="1" />
+            <ToggleRow
+              name="gc_enabled"
+              checked={gcOn}
+              onChange={(e) => setGcOn(e.target.checked)}
+              title="Nyalakan Guest Cam"
+              hint="Tamu mengisi nama + WhatsApp atau Instagram, lalu memotret dengan jatah foto. Bawaan: mati."
+            />
+            <div hidden={!gcOn} className="md:col-span-2">
+              <div className="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-2">
+                <Field
+                  id="gc_shots"
+                  label="Jatah foto per HP"
+                  unit="foto"
+                  hint="Tanpa hapus atau ulang: setiap jepretan memakai jatah. Maks. 50."
+                  def="15"
+                >
+                  {num("gc_shots", 1, 50)}
+                </Field>
+                <Field
+                  label="Batas tamu (tier paket)"
+                  hint="Tamu = HP yang mengirim minimal 1 foto; satu nomor WA/IG dihitung satu. Tamu baru ditolak setelah lewat 10% dari batas."
+                  def="tak terbatas"
+                >
+                  <Select
+                    label="Batas tamu"
+                    name="gc_max_guests"
+                    className="w-full"
+                    value={gcMax}
+                    onChange={(v) => {
+                      setGcMax(v);
+                      setDirty(true);
+                    }}
+                    options={GUEST_TIER_OPTIONS}
+                  />
+                </Field>
+                <Field
+                  label="Desain kartu QR (meja & kartu nama)"
+                  hint="Dicetak Tetra 90×55 mm; klien bisa memilih di portal booking. Unduh lewat link Guest Cam di bawah."
+                  def="Retro Cam"
+                >
+                  <Select
+                    label="Desain kartu QR"
+                    name="gc_card"
+                    className="w-full"
+                    value={gcCard}
+                    onChange={(v) => {
+                      setGcCard(v);
+                      setDirty(true);
+                    }}
+                    options={CARD_OPTIONS}
+                  />
+                </Field>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[13px] font-bold">Kamera di HP tamu</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {GUEST_PRESETS.map((p) => (
+                      <span
+                        key={p.id}
+                        className="flex h-8 items-center gap-1.5 rounded-full border-[1.5px] border-ink bg-white px-3 text-xs font-bold"
+                      >
+                        <span
+                          className="size-3 rounded-full border border-ink"
+                          style={{ background: p.body }}
+                        />
+                        {p.name}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-text-2">
+                    Preset film gaya kamera retro (grain, vignette, stempel tanggal). Tamu memilih
+                    sendiri di kamera.
+                  </p>
+                </div>
+                <GcChoice
+                  legend="Kapan foto tamu terlihat"
+                  name="gc_reveal"
+                  value={v.guestCam.reveal}
+                  options={[
+                    [
+                      "live",
+                      "Langsung",
+                      "Tamu melihat fotonya dan album acara saat itu juga. Foto ikut tampil di TV.",
+                    ],
+                    [
+                      "after",
+                      "Setelah acara",
+                      "Gaya kamera sekali pakai. Tamu hanya melihat hitungan; semua foto terbuka saat acara dihentikan atau lewat tombol di dashboard.",
+                    ],
+                  ]}
+                />
+                <GcChoice
+                  legend="Moderasi"
+                  name="gc_approval"
+                  value={v.guestCam.approval}
+                  options={[
+                    [
+                      "auto",
+                      "Tampil otomatis",
+                      "Foto langsung masuk album dan TV. Kamu tetap bisa menyembunyikannya kapan saja.",
+                    ],
+                    [
+                      "manual",
+                      "Perlu disetujui",
+                      "Foto masuk antrean di dashboard dulu. Tamu tetap melihat fotonya sendiri dengan label “Ditinjau”.",
+                    ],
+                  ]}
+                />
+                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-[14px] border-[1.5px] border-ink bg-white px-4 py-3.5">
+                  <span>
+                    <span className="block text-sm font-extrabold">Ucapan suara</span>
+                    <span className="mt-0.5 block text-xs leading-normal text-text-2">
+                      Maks. 30 detik, satu per tamu. Muncul di tab Ucapan galeri.
+                    </span>
+                  </span>
+                  <Switch name="gc_voice" defaultChecked={v.guestCam.voice} />
+                </label>
+                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-[14px] border-[1.5px] border-ink bg-white px-4 py-3.5">
+                  <span>
+                    <span className="block text-sm font-extrabold">Strip virtual</span>
+                    <span className="mt-0.5 block text-xs leading-normal text-text-2">
+                      Pakai desain frame event · {main ? `${main.name}` : "desain utama"}. Maks. 5
+                      strip per tamu.
+                    </span>
+                  </span>
+                  <Switch name="gc_strip" defaultChecked={v.guestCam.strip} />
+                </label>
+                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-[14px] border-[1.5px] border-ink bg-white px-4 py-3.5">
+                  <span>
+                    <span className="block text-sm font-extrabold">Cetak di lokasi (add-on)</span>
+                    <span className="mt-0.5 block text-xs leading-normal text-text-2">
+                      Tiap tamu boleh mencetak 1 frame lewat printer booth, mengikuti kertas &
+                      desain booth. Butuh Strip virtual.
+                    </span>
+                  </span>
+                  <Switch name="gc_print" defaultChecked={v.guestCam.print} />
+                </label>
+                <Field
+                  id="gc_consent"
+                  label="Persetujuan data Guest Cam"
+                  wide
+                  hint="Tamu wajib mencentang ini sebelum motret (UU PDP). Tamu mengisi nama + WhatsApp atau Instagram, minimal salah satu."
+                >
+                  <textarea
+                    id="gc_consent"
+                    name="gc_consent"
+                    maxLength={600}
+                    rows={3}
+                    defaultValue={v.guestCam.consentText}
+                    onInput={(e) => setGcLen(e.currentTarget.value.length)}
+                    aria-describedby="gc_consent-hint"
+                    className={textarea}
+                  />
+                  <span className="self-start font-mono text-[11px] text-text-2">{gcLen}/600</span>
+                </Field>
+                <div className="md:col-span-2">{guestLinks}</div>
+              </div>
+            </div>
           </Section>
 
           {/* Disembunyikan di Mode Event, tapi tetap di form: harga photobox tidak hilang saat simpan. */}
@@ -1309,6 +1550,30 @@ export function SettingsForm({
                 <Box name="remove_logo" /> Hapus logo yang sekarang
               </label>
             )}
+            <Field
+              id="client_instagram"
+              label="Instagram klien"
+              optional
+              wide
+              hint="IG pengantin, perusahaan/acara, atau WO/EO; pisahkan dengan spasi. Tamu diarahkan untuk follow dan tag akun ini (bersama IG Tetra) saat upload foto ke story. Terisi otomatis dari booking Tetra Ops."
+            >
+              <input
+                id="client_instagram"
+                name="client_instagram"
+                defaultValue={v.clientInstagram.map((h) => `@${h}`).join(" ")}
+                placeholder="@dimas @rina @weddingorganizer"
+                aria-describedby="client_instagram-hint"
+                className={input}
+              />
+            </Field>
+            <input type="hidden" name="promo_card" value="off" />
+            <ToggleRow
+              name="promo_card"
+              value="on"
+              defaultChecked={v.promoCard}
+              title="Kartu promosi di halaman tamu"
+              hint="Follow & tag Instagram, ulasan Google, dan “Mau pakai di acaramu?”. Isinya diatur di menu Promosi. Matikan kalau klien tidak mau ada promosi di galerinya."
+            />
           </Section>
 
           <Section

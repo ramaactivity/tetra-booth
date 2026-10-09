@@ -27,6 +27,7 @@ export default async function LivePage({ params }: { params: Promise<{ token: st
       event={live.event}
       initial={live.strips}
       galleryUrl={live.event.publicGallery ? `${origin}/l/${token}` : null}
+      guestUrl={live.event.guest ? `${origin}${live.event.guest.path}` : null}
     />
   );
 }

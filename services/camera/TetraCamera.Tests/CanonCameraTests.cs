@@ -45,6 +45,31 @@ public class CanonCameraTests
     }
 
     [Fact]
+    public async Task Kamera_dimatikan_tanpa_event_shutdown_terdeteksi_terputus_lalu_tersambung_lagi()
+    {
+        // Lapangan 9 Okt: kamera dimatikan, status crew tetap tersambung. Tanpa live view: cek ringan tiap 3 s, gagal 2×.
+        var d = new FakeCanonDriver();
+        using var cam = Make(d);
+        await Until(() => cam.Connected);
+        d.Silent = true;
+        await Until(() => !cam.Connected, 9000);
+        d.Silent = false;
+        await Until(() => cam.Connected, 3000);
+    }
+
+    [Fact]
+    public async Task Live_view_gagal_terus_dianggap_terputus()
+    {
+        var d = new FakeCanonDriver();
+        using var cam = Make(d);
+        await Until(() => cam.Connected);
+        await cam.StartLiveViewAsync();
+        await Until(() => cam.LatestFrame is not null);
+        d.Silent = true;
+        await Until(() => !cam.Connected, 9000);
+    }
+
+    [Fact]
     public async Task Tersambung_lalu_jepret_menyimpan_JPEG_ke_folder_sesi()
     {
         var d = new FakeCanonDriver();

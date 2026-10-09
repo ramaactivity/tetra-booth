@@ -4,6 +4,7 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import {
   AssetKindSchema,
+  LayoutPaperSchema,
   LayoutSpecSchema,
   newerVersion,
   outsideRun,
@@ -28,6 +29,7 @@ import {
   lockedByArgv,
   printerName,
   RESUME_KEY,
+  SDK_CAMERAS,
   UPDATE_PENDING_KEY,
 } from "./config";
 import { assetPath, createPinGuard, type LoadedBundle, loadBundles } from "./crew";
@@ -52,6 +54,7 @@ import {
 import { allowQuit, autoStart, setAutoStart, setKioskOn } from "./kiosk";
 import { onPhase } from "./shots";
 import { stageInbox, stageListen } from "./stage";
+import { stageHelperKey, stageLanUrls } from "./stage-lan";
 import { downloadInstaller, runInstaller } from "./update";
 
 /** %APPDATA%/TetraBooth/sessions (TSD §3). Renderer hanya boleh baca/tulis di bawah folder ini. */
@@ -152,7 +155,9 @@ export function registerIpc(
   );
 
   // Kamera lewat Camera Service (Canon EDSDK, hot folder teknisi): foto ditulis service ke raw/ sesi.
-  const CAPTURE_TIMEOUT_MS = 15_000;
+  // Lebih lama dari batas Camera Service (jepret 10 s + 5 s): pesan jelas dari service ("kamera tidak menjawab; matikan
+  // lalu nyalakan kamera") yang sampai ke crew, bukan "Camera Service tidak menjawab" (lapangan 9 Okt).
+  const CAPTURE_TIMEOUT_MS = 20_000;
   ipcMain.handle("cameraCapture", async (_e, req: unknown) => {
     const { sessionId, index } = z
       .object({ sessionId: SessionId, index: z.number().int().min(0).max(20) })
@@ -166,9 +171,9 @@ export function registerIpc(
     return { ...r, path: inSessions(r.path) };
   });
   ipcMain.handle("cameraStatus", () => request({ id: crypto.randomUUID(), type: "camera.status" }));
-  // Canon EDSDK (#111) & Sony (#171): live view & fokus lewat Camera Service; frame JPEG terbaru dari /liveview.jpg.
-  // Diambil di main supaya CSP renderer tetap 'self'.
-  const canonOn = config.camera === "canon" || config.camera === "sony";
+  // Canon EDSDK (#111), Sony (#171), Lumix (#214) & Nikon (#216): live view & fokus lewat Camera Service; frame JPEG terbaru dari
+  // /liveview.jpg. Diambil di main supaya CSP renderer tetap 'self'.
+  const canonOn = SDK_CAMERAS.has(config.camera);
   ipcMain.handle("liveViewStart", async () => {
     if (!canonOn) return;
     // Frame pertama setelah live view dinyalakan ulang selalu dikirim, walau sama dengan frame terakhir sebelum jepret
@@ -261,6 +266,14 @@ export function registerIpc(
       () => true,
       () => false,
     );
+    // Kamera SDK: service hidup belum berarti kamera tersambung (kamera dimatikan tetap ✓, lapangan 9 Okt).
+    const camera =
+      cameraService && canonOn
+        ? await request({ id: crypto.randomUUID(), type: "camera.status" }, 2000).then(
+            (r) => r.connected,
+            () => false,
+          )
+        : cameraService;
     return {
       online: net.isOnline(),
       uploadPending: db.uploadPending(),
@@ -268,11 +281,17 @@ export function registerIpc(
       paper: db.paper(),
       printer: alerts.printer(),
       cameraService,
+      camera,
       device: cloud.device(),
     };
   });
   // Timer event (#149): Buka untuk Tamu / Jeda / Lanjutkan / Selesai → antrean ke cloud, jam saat ditekan.
   const EventId = z.string().min(1).max(64);
+  const GuestPrintReport = z.object({
+    id: z.uuid(),
+    status: z.enum(["printed", "failed"]),
+    error: z.string().max(300).optional(),
+  });
   ipcMain.handle("crewRunState", (_e, id: unknown) => {
     crewOnly();
     return cloud.runState(EventId.parse(id));
@@ -335,6 +354,25 @@ export function registerIpc(
       if (err) throw new Error(`Folder tidak bisa dibuka: ${err}`);
     }
     return dest;
+  });
+  // Cetak tamu Guest Cam (#223): jalan di layar tamu (bukan hanya crew). Offline/gagal = daftar kosong, diam.
+  ipcMain.handle("guestPrintsClaim", async (_e, id: unknown, paper: unknown) => {
+    try {
+      return await cloud.claimGuestPrints(EventId.parse(id), LayoutPaperSchema.parse(paper));
+    } catch (err) {
+      console.warn(`[cloud] cetak tamu: ${err instanceof Error ? err.message : String(err)}`);
+      return [];
+    }
+  });
+  ipcMain.handle("guestPrintsReport", async (_e, id: unknown, status: unknown, error: unknown) => {
+    const r = GuestPrintReport.parse({ id, status, error: error ?? undefined });
+    await cloud
+      .reportGuestPrint(r.id, r.status, r.error)
+      .catch((err: unknown) =>
+        console.warn(
+          `[cloud] lapor cetak tamu: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
   });
   // "Salin link galeri" (#155): aktifkan link galeri klien di cloud, salin alamatnya ke clipboard.
   ipcMain.handle("crewGalleryLink", async (_e, id: unknown) => {
@@ -475,7 +513,10 @@ export function registerIpc(
 
   ipcMain.handle("crewCheckUpdate", async () => {
     crewOnly();
-    const { current, r, available } = await release();
+    // Offline / belum dipasangkan bukan error di checklist crew: versi terpasang tetap ditampilkan (#222).
+    const got = await release().catch(() => null);
+    if (!got) return { current: app.getVersion(), latest: null, available: false, offline: true };
+    const { current, r, available } = got;
     return { current, latest: r?.version ?? null, available, ready: !!r && ready === r.version };
   });
   ipcMain.handle("crewInstallUpdate", async (e) => {
@@ -591,15 +632,15 @@ export function registerIpc(
   });
   ipcMain.handle("crewFocus", async (_e, step: unknown) => {
     crewOnly();
-    if (!canonOn) throw new Error("Kontrol fokus hanya untuk kamera Canon / Sony");
+    if (!canonOn) throw new Error("Kontrol fokus hanya untuk kamera Canon / Sony / Lumix / Nikon");
     const s = z.enum(["af", "near3", "near2", "near1", "far1", "far2", "far3"]).parse(step);
     await request({ id: crypto.randomUUID(), type: "camera.focus", payload: { step: s } }, 5000);
     console.info(`[camera] fokus ${s}`);
   });
   ipcMain.handle("crewSetCameraProp", async (_e, name: unknown, value: unknown) => {
     crewOnly();
-    if (!canonOn) throw new Error("Setelan kamera hanya untuk kamera Canon / Sony");
-    // Canon (#113): eksposur live view + ISO/shutter jepret (flash) & kualitas JPEG. Sony (#171): + EV.
+    if (!canonOn) throw new Error("Setelan kamera hanya untuk kamera Canon / Sony / Lumix / Nikon");
+    // Canon (#113): eksposur live view + ISO/shutter jepret (flash) & kualitas JPEG. Sony (#171), Lumix (#214), Nikon (#216): + EV.
     const n = z
       .enum([
         "iso",
@@ -857,7 +898,13 @@ export function registerIpc(
       (r) => ({ connected: r.connected, model: r.model }),
       () => null,
     );
-    return { online: net.isOnline(), camera, ...db.stageUploads(list) };
+    return {
+      online: net.isOnline(),
+      camera,
+      lanUrls: stageLanUrls(),
+      helperKey: stageHelperKey(),
+      ...db.stageUploads(list),
+    };
   });
 
   ipcMain.handle("sessionStarted", (_e, x: unknown) => {

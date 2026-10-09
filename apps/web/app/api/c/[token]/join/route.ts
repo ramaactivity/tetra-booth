@@ -1,6 +1,15 @@
 import { GuestJoinRequest, newSessionId } from "@tetra/shared";
 import { apiError, clientIp, parseBody, rateOk } from "@/lib/booth";
-import { guestEvent, guestMe, guestSession, newGuestKey } from "@/lib/guest-cam";
+import {
+  guestClosed,
+  guestEvent,
+  guestIdentity,
+  guestMe,
+  guestQuota,
+  guestSession,
+  newGuestKey,
+  quotaFull,
+} from "@/lib/guest-cam";
 import { consentVersion } from "@/lib/leads";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -14,10 +23,16 @@ export async function POST(req: Request, ctx: Ctx) {
   if (!(await rateOk(`gjoin:${clientIp(req)}`, 600, 30))) return apiError("rate_limited", 429);
   const ev = await guestEvent((await ctx.params).token);
   if (!ev) return apiError("not_found", 404);
+  // Acara selesai (A10): tidak menerima tamu baru.
+  if (guestClosed(ev)) return apiError("not_found", 404);
   const body = await parseBody(req, GuestJoinRequest);
   if (!body) return apiError("bad_request", 400);
   const existing = await guestSession(ev);
   if (existing) return Response.json(await guestMe(ev, existing));
+  // Kuota tier (#221): tamu baru ditolak kalau kuota +10% penuh; nomor WA/IG yang sudah terhitung tetap boleh.
+  const quota = await guestQuota(ev);
+  if (!quota.admits(guestIdentity({ whatsapp: body.whatsapp, instagram: body.instagram }, "")))
+    return quotaFull();
 
   const db = createServiceClient();
   const now = new Date().toISOString();

@@ -3,6 +3,7 @@ export * from "./camera-protocol";
 export * from "./event";
 export * from "./filters";
 export * from "./guest-cam";
+export * from "./guest-presets";
 export * from "./ids";
 export * from "./layout";
 export * from "./paper";

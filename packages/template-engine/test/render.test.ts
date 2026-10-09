@@ -2,7 +2,7 @@ import { createCanvas } from "@napi-rs/canvas";
 import { LAYOUT_PRESETS } from "@tetra/shared";
 import { describe, expect, it } from "vitest";
 import type { RenderContext } from "../src";
-import { FIXTURES, makeFixtureInputs, pixelHash, render, renderPiece } from "../src";
+import { FIXTURES, makeFixtureInputs, pixelHash, render, renderPiece, toSheet } from "../src";
 
 const ctx: RenderContext = {
   createCanvas: (w, h) => createCanvas(w, h),
@@ -99,5 +99,24 @@ describe("template engine", () => {
   it("spec tidak valid ditolak", () => {
     const bad = { ...FIXTURES["4R"], canvas: { width: 10, height: 10, dpi: 300 as const } };
     expect(() => render(bad, makeFixtureInputs(ctx, FIXTURES["4R"]), ctx)).toThrow();
+  });
+  it("dua sisi berbeda (#207): potong kedua di sisi kanan, tanpa potong kedua = digandakan", () => {
+    const spec = FIXTURES["2x6x2"];
+    const solid = (color: string) => {
+      const c = createCanvas(spec.canvas.width, spec.canvas.height);
+      const g = c.getContext("2d");
+      g.fillStyle = color;
+      g.fillRect(0, 0, c.width, c.height);
+      return c;
+    };
+    const at = (c: ReturnType<typeof toSheet>, x: number, y: number) => [
+      ...(c.getContext("2d")?.getImageData(x, y, 1, 1).data ?? []).slice(0, 3),
+    ];
+    const pair = toSheet(spec, solid("#ff0000"), ctx, solid("#0000ff"));
+    expect([pair.width, pair.height]).toEqual([1200, 1800]);
+    expect(at(pair, 300, 900)).toEqual([255, 0, 0]);
+    expect(at(pair, 900, 900)).toEqual([0, 0, 255]);
+    const same = toSheet(spec, solid("#ff0000"), ctx);
+    expect(at(same, 900, 900)).toEqual([255, 0, 0]);
   });
 });

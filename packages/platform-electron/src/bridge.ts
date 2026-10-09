@@ -5,13 +5,14 @@ import type {
   BoothPayments,
   BoothPlatform,
   SessionAsset,
+  StageRemote,
   StageStatus,
 } from "@tetra/booth-core";
 import type { CommandResult, Paper } from "@tetra/shared";
 
 export type BoothConfig = {
   /** Sumber kamera Fase 1 (DECISIONS #26). */
-  camera: "webcam" | "simulated" | "hotfolder" | "canon" | "sony";
+  camera: "webcam" | "simulated" | "hotfolder" | "canon" | "sony" | "lumix" | "nikon";
   /** Sesi berjalan sendiri tanpa sentuhan. */
   demo: boolean;
   /** Demo dipercepat untuk stress test (M8): countdown 1 s, jeda pendek. */
@@ -33,7 +34,7 @@ export type BoothConfig = {
   /** Opsi crew: hasil foto ikut dibalik (bawaan mati). */
   mirrorPhoto?: boolean;
   /** Peran laptop (#178): `stage` = Photo Stage (fotografer pelaminan); bawaan booth. */
-  role?: "booth" | "stage";
+  role?: "booth" | "stage" | "print";
 };
 
 /**
@@ -79,6 +80,8 @@ export type TetraBridge = {
   crewOpenEventFolder: BoothCrew["openEventFolder"];
   crewEventSize: BoothCrew["eventSize"];
   crewGalleryLink: BoothCrew["galleryLink"];
+  guestPrintsClaim: NonNullable<BoothPlatform["guestPrints"]>["claim"];
+  guestPrintsReport: NonNullable<BoothPlatform["guestPrints"]>["report"];
   crewOldSessions: BoothCrew["oldSessions"];
   crewReupload: BoothCrew["reupload"];
   crewCheckUpdate: BoothCrew["checkUpdate"];
@@ -110,6 +113,7 @@ export type TetraBridge = {
   /** Photo Stage (#178). */
   stageListen(on: boolean): Promise<void>;
   onStageShot(cb: (s: { path: string; width: number; height: number }) => void): () => void;
+  onStageRemote(cb: (m: StageRemote) => void): () => void;
   stageRename(sessionId: string, name: string | null): Promise<void>;
   stageStatus(ids: string[]): Promise<StageStatus>;
   stageHide(sessionId: string, idx: number[]): Promise<void>;

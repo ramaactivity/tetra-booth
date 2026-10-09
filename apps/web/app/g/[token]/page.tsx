@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { GuestPromo } from "@/components/GuestPromo";
 import { loadGallery } from "@/lib/gallery";
 import { shortDate } from "@/lib/guest";
+import { loadPromo } from "@/lib/promo";
 import { GallerySettings } from "./GallerySettings";
 import { GalleryView } from "./GalleryView";
 
@@ -22,6 +24,7 @@ const fmt = (d: string) =>
 export default async function GalleryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const g = await loadGallery(token);
+  const promo = g.state === "ok" ? await loadPromo(g.eventId) : null;
   if (g.state === "gone")
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-paper px-8 text-center">
@@ -35,8 +38,12 @@ export default async function GalleryPage({ params }: { params: Promise<{ token:
       </main>
     );
   // Cover lebar = foto original (2400 px), bukan strip sempit yang di-crop & diperbesar (buram, Rama 30 Sep).
+  // Foto tamu Guest Cam (#203) bukan sampul: bisa buram/acak; booth & Photo Stage dulu.
+  const own = g.photos.filter((p) => p.source !== "guest");
   const cover =
-    g.photos.find((p) => p.kind === "original") ?? g.photos.find((p) => p.kind === "strip");
+    own.find((p) => p.kind === "original") ??
+    own.find((p) => p.kind === "strip") ??
+    g.photos.find((p) => p.kind === "original");
   const left = g.expiresAt
     ? Math.max(0, Math.ceil((new Date(g.expiresAt).getTime() - Date.now()) / 86_400_000))
     : null;
@@ -115,6 +122,11 @@ export default async function GalleryPage({ params }: { params: Promise<{ token:
         </div>
       </section>
       <GalleryView token={token} photos={g.photos} />
+      {promo && (
+        <div className="mx-auto mt-4 w-full max-w-[480px]">
+          <GuestPromo promo={promo} client />
+        </div>
+      )}
     </main>
   );
 }

@@ -9,6 +9,7 @@ import {
   BundleManifest,
   EdsdkResponse,
   GalleryLinkResponse,
+  GuestPrintClaim,
   type HeartbeatRequest,
   type LocalStorage,
   PairResponse,
@@ -16,13 +17,15 @@ import {
   PaymentCreateResponse,
   PaymentStatusResponse,
   type RunAction,
+  type SdkKit,
 } from "@tetra/shared";
 import { app, safeStorage, screen } from "electron";
+import { ZodError } from "zod";
 import type { Alerts } from "./alerts";
 import { installBundle } from "./bundle-sync";
 import { cameraHealth, request } from "./camera-client";
-import { CloudError, cloudErrorText } from "./cloud-error";
-import { config, printerName } from "./config";
+import { BundleSkipped, CloudError, cloudErrorText } from "./cloud-error";
+import { config, printerName, SDK_CAMERAS } from "./config";
 import type { BoothDb } from "./db";
 import { createRunQueue } from "./run-queue";
 import { createUploader } from "./upload";
@@ -66,12 +69,11 @@ async function statusSnapshot(db: BoothDb, alerts: Alerts): Promise<BoothStatus>
     // bundle tidak ada/rusak: admin menampilkan id saja
   }
   const health = await cameraHealth().catch(() => null);
-  const model =
-    config.camera === "canon" || config.camera === "sony"
-      ? await request({ id: randomUUID(), type: "camera.status" })
-          .then((s) => s.model?.slice(0, 80) ?? null)
-          .catch(() => null)
-      : null;
+  const model = SDK_CAMERAS.has(config.camera)
+    ? await request({ id: randomUUID(), type: "camera.status" })
+        .then((s) => s.model?.slice(0, 80) ?? null)
+        .catch(() => null)
+    : null;
   const printer = alerts.printer();
   const disk = await statfs(userData).catch(() => null);
   return {
@@ -211,14 +213,27 @@ export function createCloud(
       if (!t) return 0;
       const { events } = BoothEventsResponse.parse(await get("/api/booth/events", t));
       let updated = 0;
+      const broken: string[] = [];
       for (const e of events) {
         if (!force && db.kv.get(`bundle_version:${e.id}`) === String(e.bundleVersion)) continue;
         const m = BundleManifest.parse(await get(`/api/booth/events/${e.id}/bundle`, t));
-        await installBundle(join(app.getPath("userData"), "events", e.id), m, download);
+        try {
+          await installBundle(join(app.getPath("userData"), "events", e.id), m, download);
+        } catch (err) {
+          // Satu bundle tidak lengkap tidak boleh menggagalkan event lain (W-043 temuan 0.6.7); jaringan tetap gagal total.
+          if (!(err instanceof ZodError)) throw err;
+          log(`[cloud] bundle ${e.name} (${e.id}) tidak valid, dilewati: ${err.message}`);
+          broken.push(e.name);
+          continue;
+        }
         db.kv.set(`bundle_version:${e.id}`, String(m.bundleVersion));
         log(`[cloud] bundle ${e.name} v${m.bundleVersion} terpasang`);
         updated++;
       }
+      if (broken.length)
+        throw new BundleSkipped(
+          `Event ${broken.map((n) => `"${n}"`).join(", ")} dari cloud tidak lengkap, dilewati. Buka pengaturan event di admin lalu Simpan, kemudian sync lagi`,
+        );
       return updated;
     })().finally(() => {
       syncing = null;
@@ -273,6 +288,20 @@ export function createCloud(
       return GalleryLinkResponse.parse(await api(`/api/booth/events/${eventId}/gallery-link`, {}))
         .slug;
     },
+    /**
+     * Cetak tamu Guest Cam (#223): ambil job untuk kertas printer ini + unduh frame-nya. Offline / gagal = Error
+     * (pemanggil diam saja; booth tidak pernah menunggu jaringan).
+     */
+    async claimGuestPrints(eventId: string, paper: string) {
+      const { jobs } = GuestPrintClaim.parse(
+        await api(`/api/booth/events/${eventId}/guest-prints`, { paper }),
+      );
+      return Promise.all(jobs.map(async (j) => ({ ...j, bytes: await download(j.url) })));
+    },
+    /** Hasil cetak tamu (#223) ke cloud → status di HP tamu. */
+    async reportGuestPrint(id: string, status: "printed" | "failed", error?: string) {
+      await api(`/api/booth/guest-prints/${id}`, { status, ...(error && { error }) });
+    },
     /** Rilis booth terbaru di cloud (DECISIONS #80); null = belum ada rilis. */
     async latestRelease() {
       const t = token();
@@ -285,11 +314,11 @@ export function createCloud(
       if (!res.ok) throw new Error(`/api/booth/update: server ${res.status}`);
       return BoothUpdateResponse.parse(await res.json());
     },
-    /** DLL Canon EDSDK privat (DECISIONS #112); null = belum ada di cloud. */
-    async edsdk() {
+    /** DLL SDK kamera privat (DECISIONS #112; `lumix` #214, `nikon`/`nikonz` #216); null = belum ada di cloud. */
+    async edsdk(kit: SdkKit = "edsdk") {
       const t = token();
       if (!t) throw new Error("booth belum dipasangkan");
-      const res = await fetch(`${baseUrl}/api/booth/edsdk`, {
+      const res = await fetch(`${baseUrl}/api/booth/edsdk?kit=${kit}`, {
         headers: { authorization: `Bearer ${t}` },
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });

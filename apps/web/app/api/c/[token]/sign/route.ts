@@ -1,6 +1,13 @@
 import { GuestSignRequest, type GuestSignResponse, guestParts, idxAllowed } from "@tetra/shared";
 import { apiError, clientIp, parseBody, rateOk } from "@/lib/booth";
-import { guestEvent, guestKey, guestSession } from "@/lib/guest-cam";
+import {
+  guestEvent,
+  guestKey,
+  guestQuota,
+  guestSession,
+  quotaFull,
+  sessionIdentity,
+} from "@/lib/guest-cam";
 import { presignPut } from "@/lib/r2";
 
 type Ctx = { params: Promise<{ token: string }> };
@@ -18,6 +25,11 @@ export async function POST(req: Request, ctx: Ctx) {
     return apiError("rate_limited", 429);
   const body = await parseBody(req, GuestSignRequest);
   if (!body || !idxAllowed(ev.cam, body.kind, body.idx)) return apiError("bad_request", 400);
+  // Foto pertama = tamu mulai terhitung (#221): cek kuota tier sekali di sini.
+  if (!s.asset_count) {
+    const quota = await guestQuota(ev);
+    if (!quota.admits(await sessionIdentity(ev, s.id))) return quotaFull();
+  }
   const uploads = await Promise.all(
     guestParts(body.kind, body.audioType).map(async (p) => ({
       part: p.part as "main" | "thumb",

@@ -4,6 +4,7 @@ import {
   CalendarDays,
   Laptop,
   LayoutTemplate,
+  Megaphone,
   ReceiptText,
   Store,
   Users,
@@ -39,6 +40,13 @@ const items = [
     t: copy.admin.nav.transactions,
     I: ReceiptText,
     match: (p: string) => p.startsWith("/admin/transactions"),
+    roles: ["owner", "admin"],
+  },
+  {
+    href: "/admin/promo",
+    t: copy.admin.nav.promo,
+    I: Megaphone,
+    match: (p: string) => p.startsWith("/admin/promo"),
     roles: ["owner", "admin"],
   },
   {

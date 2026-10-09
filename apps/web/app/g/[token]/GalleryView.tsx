@@ -1,17 +1,28 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { PROMO_SAVED } from "@/components/GuestPromo";
 import { PhotoViewer } from "@/components/PhotoViewer";
 import type { GalleryPhoto } from "@/lib/gallery";
+import { GuestRows, VoiceList } from "./GuestTabs";
 
-type Filter = "strip" | "original" | "animation" | "stage" | "favorit";
+type Filter = "strip" | "original" | "animation" | "stage" | "guest" | "ucapan" | "favorit";
 const CHIPS: [Filter, string][] = [
   ["strip", "Strip"],
   ["original", "Original"],
   ["animation", "Animasi"],
   ["stage", "Photo Stage"],
+  ["guest", "Snapbook"],
+  ["ucapan", "Ucapan"],
   ["favorit", "♥ Favorit"],
 ];
-const ext = (p: GalleryPhoto) => (p.kind === "animation" ? "gif" : "jpg");
+const ext = (p: GalleryPhoto) =>
+  p.kind === "animation"
+    ? "gif"
+    : p.kind === "audio"
+      ? p.full.includes(".m4a")
+        ? "m4a"
+        : "webm"
+      : "jpg";
 const hh = (h: number) => `${String(h).padStart(2, "0")}.00`;
 
 /**
@@ -42,6 +53,7 @@ function download(p: GalleryPhoto) {
   document.body.append(a);
   a.click();
   a.remove();
+  window.dispatchEvent(new Event(PROMO_SAVED));
 }
 
 /**
@@ -71,22 +83,25 @@ export function GalleryView({
     return photos.filter((p) =>
       filter === "favorit"
         ? p.favorite
-        : filter === "stage"
-          ? p.source === "stage" &&
-            p.kind === "original" &&
+        : filter === "stage" || filter === "guest"
+          ? p.source === filter &&
+            (p.kind === "original" || (filter === "guest" && p.kind === "strip")) &&
             (!needle || (p.group ?? "").toLowerCase().includes(needle))
-          : p.source === "booth" && p.kind === filter,
+          : filter === "ucapan"
+            ? p.kind === "audio"
+            : p.source === "booth" && p.kind === filter,
     );
   }, [photos, filter, q]);
   /** Bagian grid: per jam (booth), per rombongan (Photo Stage). */
   const sections = useMemo(() => {
     const m = new Map<string, { id: string; title: string; sub: string; idx: number[] }>();
     for (const [i, p] of shown.entries()) {
-      const k = filter === "stage" ? p.sessionId : String(p.hour);
+      const grouped = filter === "stage" || filter === "guest";
+      const k = grouped ? p.sessionId : String(p.hour);
       const sec = m.get(k) ?? {
-        id: filter === "stage" ? `rombongan-${p.sessionId}` : `jam-${p.hour}`,
-        title: filter === "stage" ? (p.group ?? "") : hh(p.hour),
-        sub: filter === "stage" ? p.time : "",
+        id: grouped ? `rombongan-${p.sessionId}` : `jam-${p.hour}`,
+        title: grouped ? (p.group ?? "") : hh(p.hour),
+        sub: grouped ? p.time : "",
         idx: [],
       };
       sec.idx.push(i);
@@ -96,7 +111,7 @@ export function GalleryView({
   }, [shown, filter]);
   // Photo Stage (#191, desain C8/D9): rombongan dikelompokkan per jam mulai; chip Jam lompat ke blok jam.
   const stageHours = useMemo(() => {
-    if (filter !== "stage") return [];
+    if (filter !== "stage" && filter !== "guest") return [];
     const m = new Map<
       number,
       { id: string; title: string; idx: number[]; groups: typeof sections }
@@ -110,7 +125,8 @@ export function GalleryView({
     }
     return [...m.values()];
   }, [filter, sections, shown]);
-  const hours = filter === "stage" ? stageHours : sections;
+  const grouped = filter === "stage" || filter === "guest";
+  const hours = filter === "guest" || filter === "ucapan" ? [] : grouped ? stageHours : sections;
   const [zipped, setZipped] = useState<Set<string>>(new Set());
   const favCount = photos.filter((p) => p.favorite).length;
   const chips = CHIPS.filter(([k]) =>
@@ -118,7 +134,12 @@ export function GalleryView({
       ? !readOnly
       : k === "stage"
         ? hasStage
-        : (k === "strip" && !hasStage) || photos.some((p) => p.source === "booth" && p.kind === k),
+        : k === "guest"
+          ? photos.some((p) => p.source === "guest" && p.kind !== "audio")
+          : k === "ucapan"
+            ? photos.some((p) => p.kind === "audio")
+            : (k === "strip" && !hasStage) ||
+              photos.some((p) => p.source === "booth" && p.kind === k),
   );
   const grid = filter === "strip" ? GRID.strip : GRID.photo;
   // Slideshow (C1 "Putar Slideshow"): viewer maju sendiri tiap 4 dtk, berulang.
@@ -196,7 +217,7 @@ export function GalleryView({
       <span className="mr-auto font-mono text-xs whitespace-nowrap text-text-2 lg:mr-1">
         {shown.length.toLocaleString("id-ID")} foto
       </span>
-      {shown.length > 0 && (
+      {shown.length > 0 && filter !== "ucapan" && (
         <button
           type="button"
           onClick={() => {
@@ -208,11 +229,20 @@ export function GalleryView({
           ▶ Putar Slideshow
         </button>
       )}
-      {!readOnly && filter !== "animation" && filter !== "favorit" && shown.length > 0 && !q && (
-        <a href={`/api/g/${token}/zip?kind=${filter}`} className={`${btn} bg-sky`}>
-          {filter === "stage" ? "Unduh semua Photo Stage" : "↓ Download Semua"}
-        </a>
-      )}
+      {!readOnly &&
+        filter !== "animation" &&
+        filter !== "favorit" &&
+        filter !== "ucapan" &&
+        shown.length > 0 &&
+        !q && (
+          <a href={`/api/g/${token}/zip?kind=${filter}`} className={`${btn} bg-sky`}>
+            {filter === "stage"
+              ? "Unduh semua Photo Stage"
+              : filter === "guest"
+                ? "Unduh Snapbook"
+                : "↓ Download Semua"}
+          </a>
+        )}
     </div>
   );
 
@@ -223,13 +253,17 @@ export function GalleryView({
         {sub && <span className="font-mono text-xs text-text-2">{sub}</span>}
         <span className="flex-1 border-t-[1.5px] border-dashed border-ink" />
         <span className="font-mono text-xs text-text-2">{idx.length} foto</span>
-        {filter === "stage" && !readOnly && (
+        {grouped && !readOnly && (
           <a
-            href={`/api/g/${token}/zip?kind=stage&session=${id.slice(10)}`}
+            href={`/api/g/${token}/zip?kind=${filter}&session=${id.slice(10)}`}
             onClick={() => setZipped((z) => new Set(z).add(id))}
             className={`${btn} h-9 ${zipped.has(id) ? "bg-mint-soft" : "bg-white"}`}
           >
-            {zipped.has(id) ? "Diunduh ✓" : "Unduh rombongan"}
+            {zipped.has(id)
+              ? "Diunduh ✓"
+              : filter === "guest"
+                ? "Unduh foto tamu"
+                : "Unduh rombongan"}
           </a>
         )}
       </div>
@@ -237,7 +271,7 @@ export function GalleryView({
         {idx.map((i) => {
           const p = shown[i];
           if (!p) return null;
-          const w = p.kind === "animation" ? null : W[p.kind];
+          const w = p.kind === "original" || p.kind === "strip" ? W[p.kind] : null;
           return (
             <button
               key={p.id}
@@ -282,21 +316,31 @@ export function GalleryView({
               className={`${btn} ${filter === k ? "bg-lavender" : "bg-white"}`}
             >
               {k === "favorit" ? `${t} (${favCount})` : t}
-              {k === "stage" && (
+              {(k === "stage" || k === "guest" || k === "ucapan") && (
                 <span className="ml-1.5 font-mono text-[11px] font-normal text-text-2">
-                  {new Set(photos.filter((p) => p.source === "stage").map((p) => p.sessionId)).size}
+                  {k === "stage"
+                    ? new Set(photos.filter((p) => p.source === k).map((p) => p.sessionId)).size
+                    : photos
+                        .filter((p) =>
+                          k === "ucapan"
+                            ? p.kind === "audio"
+                            : p.source === "guest" && p.kind === "original",
+                        )
+                        .length.toLocaleString("id-ID")}
                 </span>
               )}
             </button>
           ))}
         </div>
-        {filter === "stage" && (
+        {grouped && (
           <input
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Cari nama grup, mis. Keluarga Bpk. Hadi"
-            aria-label="Cari nama grup"
+            placeholder={
+              filter === "guest" ? "Cari nama tamu" : "Cari nama grup, mis. Keluarga Bpk. Hadi"
+            }
+            aria-label={filter === "guest" ? "Cari nama tamu" : "Cari nama grup"}
             className="h-11 min-w-0 rounded-[10px] border-[1.5px] border-ink bg-white px-3.5 text-[14px] md:w-80"
           />
         )}
@@ -332,24 +376,30 @@ export function GalleryView({
         {actions("hidden lg:ml-auto lg:flex")}
       </div>
 
-      {filter === "stage"
-        ? stageHours.map((h) => (
-            <section
-              key={h.id}
-              id={h.id}
-              className="flex scroll-mt-32 flex-col gap-5 md:scroll-mt-20"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="rounded-full border-[1.5px] border-ink bg-lavender px-3 py-1 text-[13px] font-extrabold">
-                  {h.title} – {hh((Number(h.id.slice(4)) + 1) % 24)}
-                </span>
-                <span className="font-mono text-xs text-text-2">{h.groups.length} rombongan</span>
-              </div>
-              {h.groups.map((g) => groupSection(g))}
-            </section>
-          ))
-        : sections.map((g) => groupSection(g))}
-      {filter === "stage" && q.trim() && !shown.length && (
+      {filter === "ucapan" ? (
+        <VoiceList items={shown} onDownload={download} />
+      ) : filter === "guest" ? (
+        <GuestRows shown={shown} all={photos} token={token} readOnly={readOnly} onOpen={setOpen} />
+      ) : grouped ? (
+        stageHours.map((h) => (
+          <section
+            key={h.id}
+            id={h.id}
+            className="flex scroll-mt-32 flex-col gap-5 md:scroll-mt-20"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="rounded-full border-[1.5px] border-ink bg-lavender px-3 py-1 text-[13px] font-extrabold">
+                {h.title} – {hh((Number(h.id.slice(4)) + 1) % 24)}
+              </span>
+              <span className="font-mono text-xs text-text-2">{h.groups.length} rombongan</span>
+            </div>
+            {h.groups.map((g) => groupSection(g))}
+          </section>
+        ))
+      ) : (
+        sections.map((g) => groupSection(g))
+      )}
+      {grouped && q.trim() && !shown.length && (
         <div className="rounded-[18px] border-[1.5px] border-dashed border-ink bg-white p-5 text-center">
           <p className="text-base font-extrabold">“{q.trim()}” belum ketemu</p>
           <p className="mt-1 text-sm text-text-2">

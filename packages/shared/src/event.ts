@@ -26,6 +26,8 @@ export const EventSettingsSchema = z.object({
   promptsAfter: z.array(z.string().min(1).max(40)).max(10).default([]),
   /** Photo Stage (#181): daftar grup foto dari klien/WO (urutan foto pelaminan), pilihan cepat di laptop stage. */
   stageGroups: z.array(z.string().min(1).max(120)).max(300).default([]),
+  /** Polaroid & 2R (#207): sisi kiri/kanan (atas/bawah) memakai foto berbeda → jepretan per sesi ×2. */
+  pairDifferent: z.boolean().default(false),
   /** Photo Stage (#192): pisah otomatis bawaan (dtk) untuk laptop stage yang belum pernah mengaturnya. */
   stageGapSec: z.number().int().min(15).max(180).default(45),
   /** Photo Stage (#192): lama rombongan tampil di TV setelah jepretan terakhir (dtk). */
@@ -113,6 +115,13 @@ export const EventInfoSchema = z.object({
   slug: z
     .string()
     .regex(/^[\w-]{1,80}$/)
+    .optional(),
+  /** Galeri acara `/l/{slug}` bisa dibuka tamu (galeri publik dinyalakan klien + link live aktif, #199). */
+  publicGallery: z.boolean().optional(),
+  /** Link Guest Cam `/c/{token}` (QR di layar Print Station, #224); tidak ada = Guest Cam mati / link dicabut. */
+  guestCam: z
+    .string()
+    .regex(/^\/c\/[\w-]{1,80}$/)
     .optional(),
 });
 export type EventInfo = z.infer<typeof EventInfoSchema>;

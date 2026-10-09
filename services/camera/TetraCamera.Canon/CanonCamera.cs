@@ -5,7 +5,8 @@ using TetraCamera.HotFolder;
 namespace TetraCamera.Canon;
 
 /// <summary>
-/// Kamera Canon lewat EDSDK (TSD §2.1, DECISIONS #111). EDSDK tidak thread-safe: semua panggilan driver berjalan di
+/// Kamera lewat DLL SDK pabrikan: Canon EDSDK (TSD §2.1, DECISIONS #111) dan Panasonic Lumix (#214, <see cref="DriverKind"/>).
+/// SDK tidak thread-safe: semua panggilan driver berjalan di
 /// satu thread khusus yang juga memompa event, menyambung ulang tiap <c>reconnect</c> kalau kamera tidak ada/dicabut,
 /// dan (saat live view nyala) mengambil frame terbaru ±30 fps ke <see cref="LatestFrame"/>.
 /// </summary>
@@ -25,11 +26,21 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     private static readonly HashSet<string> Steps = ["af", "near1", "near2", "near3", "far1", "far2", "far3"];
 
     private readonly ICanonDriver _driver;
+    private readonly DriverKind _kind;
     private readonly BlockingCollection<Action> _queue = new();
     private readonly Thread _thread;
     private readonly TimeSpan _reconnect, _frameEvery;
     /// <summary>Live view diminta tapi tanpa frame selama ini → EVF dinyalakan ulang (maks. sekali per selang ini).</summary>
     private static readonly TimeSpan EvfRetry = TimeSpan.FromSeconds(2);
+    /// <summary>
+    /// Kamera dimatikan tanpa event shutdown (lapangan 9 Okt): live view gagal terus selama ini, atau cek ringan
+    /// (baca satu setelan tiap <see cref="ProbeEvery"/> saat live view mati) gagal dua kali → sesi ditutup, status
+    /// "terputus", dan loop menyambung ulang seperti kabel dicabut.
+    /// </summary>
+    private static readonly TimeSpan DeadAfter = TimeSpan.FromSeconds(6);
+    private static readonly TimeSpan ProbeEvery = TimeSpan.FromSeconds(3);
+    private DateTime _failSince = DateTime.MaxValue, _nextProbe;
+    private int _probeFails;
     /// <summary>
     /// Terakhir ada frame / terakhir EVF dinyalakan (thread SDK). 60D kadang mengabaikan EVF yang dinyalakan tepat
     /// setelah sambung ulang (cabut-colok USB saat live view, W-034): frame tidak pernah siap sampai layar dibuka ulang.
@@ -56,13 +67,15 @@ public sealed class CanonCamera : ICameraSource, IDisposable
         TimeSpan? frameEvery = null,
         string? settingsPath = null,
         TimeSpan? stuckAfter = null,
-        TimeSpan? commandTimeout = null)
+        TimeSpan? commandTimeout = null,
+        DriverKind? kind = null)
     {
+        _kind = kind ?? DriverKind.Canon;
         _stuckAfter = stuckAfter ?? StuckAfter;
         _commandTimeout = commandTimeout ?? CommandTimeout;
         _settingsPath = settingsPath;
         _saved = Load(settingsPath);
-        foreach (var o in CanonProps.CaptureOverrides)
+        foreach (var o in _kind.CaptureOverrides)
             if (_saved.TryGetValue(o.Name, out var v) && v != CanonProps.SameAsLiveLabel) _atCapture[o.Name] = v;
         _driver = driver;
         _reconnect = reconnect ?? TimeSpan.FromSeconds(2);
@@ -71,13 +84,13 @@ public sealed class CanonCamera : ICameraSource, IDisposable
         _thread.Start();
     }
 
-    public string Brand => "canon";
-    public string Id => "canon";
+    public string Brand => _kind.Brand;
+    public string Id => _kind.Brand;
     public bool Connected => _info is not null;
     public string? Model => _info?.Model;
     public string Serial => _info?.Serial ?? "";
     public byte[]? LatestFrame => _live ? _frame : null;
-    public bool CanFocusAt => Connected;
+    public bool CanFocusAt => _kind.FocusAt && Connected;
     public bool Stuck => Environment.TickCount64 - Interlocked.Read(ref _beat) > _stuckAfter.TotalMilliseconds;
 
     private void Loop()
@@ -97,7 +110,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
                 {
                     _info = null;
                     _frame = null;
-                    Console.WriteLine("[canon] kamera terputus, menyambung ulang");
+                    Console.WriteLine($"[{Brand}] kamera terputus, menyambung ulang");
                     ConnectionChanged?.Invoke(false);
                 }
                 if (now < nextTry) continue;
@@ -107,11 +120,11 @@ public sealed class CanonCamera : ICameraSource, IDisposable
                     var info = _driver.Open();
                     if (info is null) continue;
                     _info = info;
-                    Console.WriteLine($"[canon] tersambung: {info.Value.Model}");
+                    Console.WriteLine($"[{Brand}] tersambung: {info.Value.Model}");
                     foreach (var (name, value) in _saved)
                     {
                         try { ApplyProp(name, value); }
-                        catch (Exception e) { Console.Error.WriteLine($"[canon] setelan {name}={value} tidak dipasang: {e.Message}"); }
+                        catch (Exception e) { Console.Error.WriteLine($"[{Brand}] setelan {name}={value} tidak dipasang: {e.Message}"); }
                     }
                     ConnectionChanged?.Invoke(true);
                     if (_live)
@@ -120,14 +133,16 @@ public sealed class CanonCamera : ICameraSource, IDisposable
                         _evfOnAt = _frameAt = DateTime.UtcNow;
                     }
                 }
-                catch (Exception e) { Console.Error.WriteLine($"[canon] sambung gagal: {e.Message}"); }
+                catch (Exception e) { Console.Error.WriteLine($"[{Brand}] sambung gagal: {e.Message}"); }
             }
             else if (_live && now >= nextFrame)
             {
                 nextFrame = now + _frameEvery;
                 try
                 {
-                    if (_driver.LiveViewFrame() is { } f)
+                    var got = _driver.LiveViewFrame();
+                    _failSince = DateTime.MaxValue;
+                    if (got is { } f)
                     {
                         _frame = f;
                         _frameAt = now;
@@ -135,13 +150,41 @@ public sealed class CanonCamera : ICameraSource, IDisposable
                     else if (now - _frameAt > EvfRetry && now - _evfOnAt > EvfRetry)
                     {
                         _evfOnAt = now;
-                        Console.WriteLine("[canon] live view tanpa frame, EVF dinyalakan ulang");
+                        Console.WriteLine($"[{Brand}] live view tanpa frame, EVF dinyalakan ulang");
                         _driver.SetLiveView(true);
                     }
                 }
-                catch (Exception e) { Console.Error.WriteLine($"[canon] frame live view gagal: {e.Message}"); }
+                catch (Exception e)
+                {
+                    if (_failSince == DateTime.MaxValue)
+                    {
+                        _failSince = now;
+                        Console.Error.WriteLine($"[{Brand}] frame live view gagal: {e.Message}");
+                    }
+                    else if (now - _failSince > DeadAfter) Lost("live view gagal terus");
+                }
+            }
+            else if (!_live && now >= _nextProbe)
+            {
+                _nextProbe = now + ProbeEvery;
+                try
+                {
+                    _driver.GetProp(_kind.Props[0].PropId);
+                    _probeFails = 0;
+                }
+                catch (Exception e) when (++_probeFails >= 2) { Lost($"cek kamera gagal: {e.Message}"); }
+                catch { /* sekali gagal bisa karena sibuk: dicek lagi berikutnya */ }
             }
         }
+    }
+
+    /// <summary>Thread SDK: kamera tidak lagi menjawab → tutup sesi; putaran berikutnya melapor terputus & menyambung ulang.</summary>
+    private void Lost(string why)
+    {
+        Console.WriteLine($"[{Brand}] kamera tidak merespons ({why}), dianggap terputus");
+        _failSince = DateTime.MaxValue;
+        _probeFails = 0;
+        try { _driver.Close(); } catch { /* sesi memang sudah rusak */ }
     }
 
     /// <summary>Jalankan di thread SDK; tidak dijawab dalam <c>commandTimeout</c> = error "kamera tidak menjawab".</summary>
@@ -160,7 +203,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
             if (_driver.TakeUnsolicited() is not { } bytes) return;
             if (JpegInfo.ReadSize(new MemoryStream(bytes)) is not { } dims)
             {
-                Console.Error.WriteLine("[canon] jepretan stage bukan JPEG (set kualitas ke JPEG), dilewati");
+                Console.Error.WriteLine($"[{Brand}] jepretan stage bukan JPEG (set kualitas ke JPEG), dilewati");
                 return;
             }
             Directory.CreateDirectory(listen.Item1);
@@ -168,7 +211,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
             File.WriteAllBytes(dst, bytes);
             listen.Item2(new CaptureResult(dst, dims.Width, dims.Height));
         }
-        catch (Exception e) { Console.Error.WriteLine($"[canon] jepretan stage gagal diunduh: {e.Message}"); }
+        catch (Exception e) { Console.Error.WriteLine($"[{Brand}] jepretan stage gagal diunduh: {e.Message}"); }
     }
 
     private async Task<T> Run<T>(Func<T> f)
@@ -182,13 +225,13 @@ public sealed class CanonCamera : ICameraSource, IDisposable
         try { return await tcs.Task.WaitAsync(_commandTimeout); }
         catch (TimeoutException)
         {
-            throw new CameraFailure("camera_stuck", "kamera Canon tidak menjawab; matikan lalu nyalakan kamera");
+            throw new CameraFailure("camera_stuck", $"kamera {_kind.Name} tidak menjawab; matikan lalu nyalakan kamera");
         }
     }
 
     private void RequireConnected()
     {
-        if (!Connected) throw new CameraFailure("camera_disconnected", "kamera Canon belum tersambung");
+        if (!Connected) throw new CameraFailure("camera_disconnected", $"kamera {_kind.Name} belum tersambung");
     }
 
     public async Task<CaptureResult> CaptureAsync(string outputDir, int index, CancellationToken ct = default)
@@ -211,7 +254,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
         var restore = new List<(uint Prop, uint Live)>();
         try
         {
-            foreach (var o in CanonProps.CaptureOverrides)
+            foreach (var o in _kind.CaptureOverrides)
             {
                 if (!_atCapture.TryGetValue(o.Name, out var label)) continue;
                 var want = o.Values.Where(kv => kv.Value == label).Select(kv => (uint?)kv.Key).FirstOrDefault();
@@ -249,7 +292,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($"[canon] setelan jepret {what} dilewati: {e.Message}");
+                Console.Error.WriteLine($"[{Brand}] setelan jepret {what} dilewati: {e.Message}");
                 return false;
             }
         }
@@ -280,6 +323,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     public async Task<bool> FocusAtAsync(double x, double y)
     {
         if (x is < 0 or > 1 || y is < 0 or > 1) throw new CameraFailure("bad_focus", "titik fokus harus 0–1");
+        if (!_kind.FocusAt) return false;
         RequireConnected();
         await Run(() => { _driver.FocusAt(x, y); return 0; });
         return true;
@@ -289,7 +333,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     public async Task<IReadOnlyList<CameraProp>> PropsAsync()
     {
         if (!Connected) return [];
-        var list = await Run(() => CanonProps.All.Select(d =>
+        var list = await Run(() => _kind.Props.Select(d =>
         {
             try
             {
@@ -300,9 +344,9 @@ public sealed class CanonCamera : ICameraSource, IDisposable
             catch (CameraFailure) { return null; }
         }).OfType<CameraProp>().ToList());
         // ISO/shutter jepret memakai pilihan kamera yang sama, ditambah "Sama dengan live view", tepat di bawahnya.
-        foreach (var o in CanonProps.CaptureOverrides)
+        foreach (var o in _kind.CaptureOverrides)
         {
-            var i = list.FindIndex(p => p.Name == CanonProps.All.First(d => d.PropId == o.PropId).Name);
+            var i = list.FindIndex(p => p.Name == _kind.Props.First(d => d.PropId == o.PropId).Name);
             if (i < 0) continue;
             list.Insert(i + 1, new CameraProp(
                 o.Name,
@@ -313,7 +357,8 @@ public sealed class CanonCamera : ICameraSource, IDisposable
         // Baterai: hanya dibaca (tanpa pilihan), terbaca tiap sheet crew dibuka. 0xFFFFFFFF = adaptor AC.
         try
         {
-            var level = await Run(() => _driver.GetProp(Edsdk.PropBatteryLevel));
+            if (_kind.BatteryProp is not { } battery) return list;
+            var level = await Run(() => _driver.GetProp(battery));
             list.Add(new CameraProp("battery", "Baterai", level > 100 ? "Adaptor AC" : $"{level}%", []));
         }
         catch (CameraFailure) { /* model tanpa info baterai */ }
@@ -323,7 +368,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     public async Task SetPropAsync(string name, string value)
     {
         // ISO/shutter jepret tidak dikirim ke kamera saat diubah: boleh diset kapan saja.
-        if (CanonProps.CaptureOverrides.FirstOrDefault(o => o.Name == name) is { } ov)
+        if (_kind.CaptureOverrides.FirstOrDefault(o => o.Name == name) is { } ov)
         {
             if (!ov.Values.Values.Contains(value))
                 throw new CameraFailure("bad_prop", $"nilai '{value}' tidak dikenal untuk {ov.Label}");
@@ -340,8 +385,8 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     /// <summary>Pasang satu setelan ke kamera (thread SDK). Label tak dikenal = CameraFailure.</summary>
     private void ApplyProp(string name, string value)
     {
-        if (CanonProps.CaptureOverrides.Any(o => o.Name == name)) return; // virtual, dipakai saat jepret
-        var d = CanonProps.All.FirstOrDefault(x => x.Name == name)
+        if (_kind.CaptureOverrides.Any(o => o.Name == name)) return; // virtual, dipakai saat jepret
+        var d = _kind.Props.FirstOrDefault(x => x.Name == name)
             ?? throw new CameraFailure("bad_prop", $"setelan '{name}' tidak dikenal");
         var code = d.Values.Where(kv => kv.Value == value).Select(kv => (uint?)kv.Key).FirstOrDefault()
             ?? throw new CameraFailure("bad_prop", $"nilai '{value}' tidak dikenal untuk {d.Label}");
@@ -366,7 +411,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
             _saved[name] = value;
             if (_settingsPath is null) return;
             try { File.WriteAllText(_settingsPath, JsonSerializer.Serialize(_saved)); }
-            catch (IOException e) { Console.Error.WriteLine($"[canon] setelan tidak tersimpan: {e.Message}"); }
+            catch (IOException e) { Console.Error.WriteLine($"[{Brand}] setelan tidak tersimpan: {e.Message}"); }
         }
     }
 

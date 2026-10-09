@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><title>Snapbook — Template kartu QR</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,600;0,6..96,700;1,6..96,500;1,6..96,600&family=Pinyon+Script&family=Reenie+Beanie&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700;0,6..72,800;1,6..72,400&family=UnifrakturMaguntia&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap">
+<style>
+body{margin:0;padding:24px;background:#EFEDE8;font-family:'Plus Jakarta Sans',sans-serif;display:flex;flex-direction:column;gap:32px}
+section.card h2{font:600 13px/1.4 'DM Mono',monospace;color:#5F5E5A;margin:0 0 8px}
+@media print{body{padding:0;background:none;gap:0}section.card{break-after:page}section.card h2{display:none}}
+</style></head><body>
+<!--
+  Template kartu QR Snapbook (10 konsep × A5 + kartu nama depan/belakang).
+  Placeholder: {event_name} {date} {date_long} {date_dot} {shots} {frame_no} {qr_src}
+  QR: <img id="qr"> — ukuran sudah final (≥35mm A5, ≥22mm kartu nama), latar putih + quiet zone ≥2mm.
+  Kondisional: hapus elemen id="if-voice" / id="if-frame" bila fitur mati. {frame_no} = 5 bila voice aktif, 4 bila tidak.
+  Teks bertanda data-fit dipadatkan horizontal agar muat 1 baris (lihat script di bawah).
+  Render ke PDF vektor per kartu dengan Playwright: page.pdf({width:'148mm',height:'210mm'}) / ({width:'96mm',height:'61mm'}).
+-->
+
+<section class="card" data-card="teater-a5" data-size="148mm × 210mm (A5, potret)">
+<h2>Tiket Pertunjukan — Kartu meja A5 · 148mm × 210mm (A5, potret)</h2>
+<div style="position:relative;width:148mm;height:210mm;background:#6B1A1F;overflow:hidden;color:#6B1A1F;font-family:'Bodoni Moda',serif">
+  <div style="position:absolute;inset:8mm;background:#F6EDE0"></div>
+  <div style="position:absolute;left:5mm;top:8mm;bottom:8mm;width:6mm;background:radial-gradient(circle at 3mm 3.5mm, #6B1A1F 2.2mm, transparent 2.3000000000000003mm) 0 0/6mm 7mm repeat-y"></div>
+  <div style="position:absolute;right:5mm;top:8mm;bottom:8mm;width:6mm;background:radial-gradient(circle at 3mm 3.5mm, #6B1A1F 2.2mm, transparent 2.3000000000000003mm) 0 0/6mm 7mm repeat-y"></div>
+  <div style="position:absolute;inset:13mm;border:0.5mm solid #6B1A1F"></div>
+  <div style="position:absolute;left:19mm;right:19mm;top:19mm;bottom:18mm;display:flex;flex-direction:column">
+    <div style="text-align:center;font:500 2.6mm/1 'Bodoni Moda',serif;letter-spacing:.32em">TETRA PHOTOBOOTH MEMPERSEMBAHKAN</div>
+    <div style="margin-top:4mm;text-align:center;font:400 17mm/1.05 'Pinyon Script',cursive">Snapbook Show</div>
+    <div style="margin-top:1mm;text-align:center;font:500 3.2mm/1 'Bodoni Moda',serif;letter-spacing:.28em">BUKU TAMU VERSI KEKINIAN</div>
+    <div style="margin-top:6mm;display:grid;grid-template-columns:1fr 1fr 1.6fr;border:.5mm solid #6B1A1F">
+      <div style="padding:2.2mm 0;text-align:center;border-right:.5mm solid #6B1A1F"><div style="font:500 3.2mm/1 'Bodoni Moda',serif">Kursi</div><div style="margin-top:1.4mm;font:600 8mm/1 'Bodoni Moda',serif">Bebas</div></div>
+      <div style="padding:2.2mm 0;text-align:center;border-right:.5mm solid #6B1A1F"><div style="font:500 3.2mm/1 'Bodoni Moda',serif">Foto</div><div style="margin-top:1.4mm;font:600 8mm/1 'Bodoni Moda',serif">{shots}</div></div>
+      <div style="display:flex;flex-direction:column"><div style="flex:1;display:flex;align-items:center;justify-content:center;border-bottom:.5mm solid #6B1A1F;font:600 3.8mm/1 'Bodoni Moda',serif">{date_long}</div><div style="flex:1;display:flex;align-items:center;justify-content:center;font:600 3.8mm/1 'Bodoni Moda',serif">Tiket gratis</div></div>
+    </div>
+    <div style="margin-top:7mm;display:flex;gap:6mm;align-items:center">
+      <div style="background:#FFFFFF;padding:2.5mm;border:.4mm solid #6B1A1F;flex-shrink:0"><img src="{qr_src}" style="width:38mm;height:38mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:1.8mm;font:500 4.1mm/1.2 'Bodoni Moda',serif">
+        <div style="font:400 8mm/1 'Pinyon Script',cursive;margin-bottom:1mm">Cara masuk</div>
+        <div>1. Scan QR pakai kamera HP</div><div>2. Isi nama</div><div>3. Jepret &amp; spill</div>
+        <div id="if-voice">4. Titip voice note</div>
+        <div id="if-frame">{frame_no}. Bikin frame &amp; cetak</div>
+        <div style="font-style:italic;font-size:3.6mm">Gak perlu install aplikasi.</div>
+      </div>
+    </div>
+    <div style="margin-top:auto;border-top:.4mm solid #6B1A1F;border-bottom:.4mm solid #6B1A1F;padding:1.8mm 0;text-align:center;font:500 3mm/1 'Bodoni Moda',serif;letter-spacing:.2em">SPILL MOMEN SERUMU ★ SPILL MOMEN SERUMU</div>
+    <div style="margin-top:4.5mm;text-align:center;font:500 3mm/1 'Bodoni Moda',serif;letter-spacing:.24em">PERTUNJUKAN</div>
+    <div style="margin-top:2mm;display:flex;justify-content:center;white-space:nowrap;font:italic 500 8mm/1.1 'Bodoni Moda',serif"><span data-fit="center" style="flex-shrink:0;display:inline-block">{event_name}</span></div>
+    <div style="margin-top:4mm;display:flex;justify-content:space-between;font:500 2.5mm/1 'Bodoni Moda',serif;letter-spacing:.14em"><span>BY TETRA PHOTOBOOTH</span><span>@TETRAPHOTOBOOTH</span></div>
+  </div>
+</div>
+</section>
+
+<section class="card" data-card="teater-front" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Tiket Pertunjukan — Kartu nama depan · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#6B1A1F;overflow:hidden;color:#6B1A1F;font-family:'Bodoni Moda',serif">
+  <div style="position:absolute;inset:6mm;background:#F6EDE0"></div>
+  <div style="position:absolute;left:4.2mm;top:6mm;bottom:6mm;width:3.6mm;background:radial-gradient(circle at 1.8mm 2.2mm, #6B1A1F 1.3mm, transparent 1.4000000000000001mm) 0 0/3.6mm 4.4mm repeat-y"></div>
+  <div style="position:absolute;right:4.2mm;top:6mm;bottom:6mm;width:3.6mm;background:radial-gradient(circle at 1.8mm 2.2mm, #6B1A1F 1.3mm, transparent 1.4000000000000001mm) 0 0/3.6mm 4.4mm repeat-y"></div>
+  <div style="position:absolute;inset:8.6mm;border:0.35mm solid #6B1A1F"></div>
+  <div style="position:absolute;left:11mm;right:11mm;top:10.5mm;bottom:10mm;display:flex;flex-direction:column;align-items:center">
+    <div style="font:500 1.7mm/1 'Bodoni Moda',serif;letter-spacing:.3em">TETRA PHOTOBOOTH MEMPERSEMBAHKAN</div>
+    <div style="margin-top:1.6mm;font:400 11mm/1.05 'Pinyon Script',cursive">Snapbook Show</div>
+    <div style="margin-top:1.2mm;align-self:stretch;border-top:.3mm solid #6B1A1F;border-bottom:.3mm solid #6B1A1F;padding:1mm 0;text-align:center;font:500 1.9mm/1 'Bodoni Moda',serif;letter-spacing:.16em">GRATIS ★ GAK PERLU INSTALL ★ {shots} FOTO</div>
+    <div style="margin-top:auto;align-self:stretch;display:flex;justify-content:center;white-space:nowrap;font:italic 500 3.4mm/1.1 'Bodoni Moda',serif"><span data-fit="center" style="flex-shrink:0;display:inline-block">{event_name}</span></div>
+  </div>
+</div>
+</section>
+
+<section class="card" data-card="teater-back" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Tiket Pertunjukan — Kartu nama belakang · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#6B1A1F;overflow:hidden;color:#6B1A1F;font-family:'Bodoni Moda',serif">
+  <div style="position:absolute;inset:6mm;background:#F6EDE0"></div>
+  <div style="position:absolute;left:4.2mm;top:6mm;bottom:6mm;width:3.6mm;background:radial-gradient(circle at 1.8mm 2.2mm, #6B1A1F 1.3mm, transparent 1.4000000000000001mm) 0 0/3.6mm 4.4mm repeat-y"></div>
+  <div style="position:absolute;right:4.2mm;top:6mm;bottom:6mm;width:3.6mm;background:radial-gradient(circle at 1.8mm 2.2mm, #6B1A1F 1.3mm, transparent 1.4000000000000001mm) 0 0/3.6mm 4.4mm repeat-y"></div>
+  <div style="position:absolute;inset:8.6mm;border:0.35mm solid #6B1A1F"></div>
+  <div style="position:absolute;left:11mm;right:11mm;top:10mm;bottom:10mm;display:flex;gap:4mm;align-items:center">
+    <div style="background:#FFFFFF;padding:1.6mm;border:.3mm solid #6B1A1F;flex-shrink:0"><img src="{qr_src}" style="width:23mm;height:23mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:.7mm;font:500 2.7mm/1.2 'Bodoni Moda',serif">
+      <div style="font:400 5mm/1 'Pinyon Script',cursive;margin-bottom:.6mm">Cara masuk</div>
+      <div>1. Scan QR</div><div>2. Isi nama</div><div>3. Jepret &amp; spill</div>
+      <div id="if-voice">4. Titip voice note</div>
+      <div id="if-frame">{frame_no}. Bikin frame</div>
+      <div style="font-size:1.9mm;letter-spacing:.1em;margin-top:.6mm">@TETRAPHOTOBOOTH</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="card" data-card="koran-a5" data-size="148mm × 210mm (A5, potret)">
+<h2>Harian Snapbook — Kartu meja A5 · 148mm × 210mm (A5, potret)</h2>
+<div style="position:relative;width:148mm;height:210mm;background:#F4F1EA;overflow:hidden;color:#1D1D1B">
+  <div style="position:absolute;left:12mm;right:12mm;top:11mm;bottom:11mm;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;font:600 2.6mm/1 'Newsreader',serif;letter-spacing:.14em"><span>EDISI KHUSUS</span><span>HARGA: GRATIS</span></div>
+    <div style="margin-top:2.5mm;text-align:center;font:400 15.5mm/1 'UnifrakturMaguntia',serif">Harian Snapbook</div>
+    <div style="margin-top:2.5mm;border-top:1mm solid #1D1D1B;border-bottom:.3mm solid #1D1D1B;height:1mm"></div>
+    <div style="display:flex;justify-content:space-between;padding:1.6mm 0;border-bottom:.3mm solid #1D1D1B;font:500 2.8mm/1 'Newsreader',serif"><span>{date_long}</span><span style="font-style:italic">Buku tamu versi kekinian</span><span>Bogor</span></div>
+    <div style="margin-top:5mm;font:800 12.5mm/.98 'Newsreader',serif;letter-spacing:-.025em;text-wrap:balance">Tamu Kini Isi Buku Tamu Pakai HP</div>
+    <div style="margin-top:3mm;font:italic 400 4.6mm/1.25 'Newsreader',serif;color:#3A3936;text-wrap:pretty">Cukup scan, isi nama, lalu jepret sampai {shots} foto. Semua masuk album acara.</div>
+    <div style="margin-top:4.5mm;border-top:.3mm solid #1D1D1B"></div>
+    <div style="margin-top:4.5mm;display:grid;grid-template-columns:1fr 45mm;gap:6mm">
+      <div style="font:400 3.5mm/1.42 'Newsreader',serif;text-align:justify;hyphens:auto;column-count:1">
+        <p style="margin:0"><span style="float:left;font:800 10.5mm/.82 'Newsreader',serif;margin:.6mm 1.4mm 0 0">T</span>amu tidak perlu lagi antre di meja buku tamu. Kode di samping membuka Snapbook langsung di browser HP, tanpa install aplikasi. Setiap foto masuk album bersama yang bisa dilihat semua tamu dan tuan rumah.</p>
+        <p id="if-voice" style="margin:2mm 0 0">Tamu juga bisa menitipkan ucapan lewat voice note.</p>
+        <p id="if-frame" style="margin:2mm 0 0">Foto pilihan bisa dirangkai jadi frame, lalu dicetak di booth.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2.4mm">
+        <div style="background:#FFFFFF;padding:2.5mm;border:.3mm solid #1D1D1B"><img src="{qr_src}" style="width:39mm;height:39mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+        <div style="font:italic 400 3.2mm/1.2 'Newsreader',serif;text-align:center">Scan untuk ikut diliput</div>
+        <div style="border-top:.3mm solid #1D1D1B;padding-top:2mm;font:600 3.3mm/1.45 'Newsreader',serif">1 Scan QR<br />2 Isi nama<br />3 Snap &amp; spill</div>
+      </div>
+    </div>
+    <div style="margin-top:auto;border-top:.3mm solid #1D1D1B;border-bottom:1mm solid #1D1D1B;height:1mm"></div>
+    <div style="margin-top:3mm;font:600 2.6mm/1 'Newsreader',serif;letter-spacing:.16em">LIPUTAN KHUSUS</div>
+    <div style="margin-top:1.6mm;display:flex;white-space:nowrap;font:700 7.4mm/1.1 'Newsreader',serif;letter-spacing:-.015em"><span data-fit="left" style="flex-shrink:0;display:inline-block">{event_name}</span></div>
+    <div style="margin-top:3.5mm;display:flex;justify-content:space-between;font:500 2.6mm/1 'Newsreader',serif"><span>by Tetra Photobooth</span><span>@tetraphotobooth</span></div>
+  </div>
+</div>
+</section>
+
+<section class="card" data-card="koran-front" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Harian Snapbook — Kartu nama depan · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#F4F1EA;overflow:hidden;color:#1D1D1B">
+  <div style="position:absolute;left:9.5mm;right:9.5mm;top:9mm;bottom:9mm;display:flex;flex-direction:column">
+    <div style="text-align:center;font:400 8.6mm/1 'UnifrakturMaguntia',serif">Harian Snapbook</div>
+    <div style="margin-top:1.4mm;border-top:.6mm solid #1D1D1B;border-bottom:.2mm solid #1D1D1B;height:.6mm"></div>
+    <div style="display:flex;justify-content:space-between;padding:.9mm 0;border-bottom:.2mm solid #1D1D1B;font:500 1.9mm/1 'Newsreader',serif"><span>EDISI KHUSUS</span><span>HARGA: GRATIS</span></div>
+    <div style="margin-top:2.2mm;font:800 6mm/1 'Newsreader',serif;letter-spacing:-.02em">Tamu Kini Isi Buku Tamu Pakai HP</div>
+    <div style="margin-top:auto;display:flex;white-space:nowrap;font:italic 400 2.6mm/1.1 'Newsreader',serif"><span data-fit="left" style="flex-shrink:0;display:inline-block">Liputan khusus {event_name}</span></div>
+  </div>
+</div>
+</section>
+
+<section class="card" data-card="koran-back" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Harian Snapbook — Kartu nama belakang · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#F4F1EA;overflow:hidden;color:#1D1D1B">
+  <div style="position:absolute;left:9mm;right:9.5mm;top:9mm;bottom:9mm;display:flex;gap:4mm;align-items:center">
+    <div style="background:#FFFFFF;padding:1.8mm;border:.25mm solid #1D1D1B;flex-shrink:0"><img src="{qr_src}" style="width:24mm;height:24mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:.6mm;font:600 2.7mm/1.3 'Newsreader',serif">
+      <div style="font:600 1.9mm/1 'Newsreader',serif;letter-spacing:.16em;border-bottom:.25mm solid #1D1D1B;padding-bottom:1mm;margin-bottom:.6mm">CARA IKUT DILIPUT</div>
+      <div>1 Scan QR</div><div>2 Isi nama</div><div>3 Jepret {shots} foto</div>
+      <div id="if-voice" style="font-weight:400">+ titip voice note</div>
+      <div id="if-frame" style="font-weight:400">+ bikin frame &amp; cetak</div>
+      <div style="margin-top:.6mm;font:italic 400 2.1mm/1.3 'Newsreader',serif">Gratis, gak perlu install · @tetraphotobooth</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="card" data-card="musik-a5" data-size="148mm × 210mm (A5, potret)">
+<h2>Sedang Diputar — Kartu meja A5 · 148mm × 210mm (A5, potret)</h2>
+<div style="position:relative;width:148mm;height:210mm;background:#CEC8F6;overflow:hidden;color:#1D1D1B">
+  <div style="position:absolute;left:14mm;top:14mm;right:10mm;bottom:10mm;background:#1D1D1B;border-radius:7mm"></div>
+  <div style="position:absolute;left:11mm;top:11mm;right:13mm;bottom:13mm;background:#FFFFFF;border:.8mm solid #1D1D1B;border-radius:7mm;box-sizing:border-box;padding:7mm 8mm;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;font:500 2.6mm/1 'DM Mono',monospace;letter-spacing:.12em"><span>SEDANG DIPUTAR</span><span>DARI MEJA TAMU</span></div>
+    <div style="margin-top:4.5mm;height:58mm;background:#D6EEF8;border:.6mm solid #1D1D1B;border-radius:4mm;display:flex;align-items:center;justify-content:space-between;padding:0 5mm 0 4.5mm">
+      <div style="background:#FFFFFF;padding:2.5mm;border:.6mm solid #1D1D1B;border-radius:2mm"><img src="{qr_src}" style="width:43mm;height:43mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:1.5mm">
+        <span style="font:800 13mm/.85 'Bricolage Grotesque',sans-serif;letter-spacing:-.05em">Vol.<br />{shots}</span>
+        <span style="font:500 2.6mm/1.3 'DM Mono',monospace">scan<br />untuk<br />putar</span>
+      </div>
+    </div>
+    <div style="margin-top:5mm;display:flex;justify-content:space-between;align-items:center;gap:4mm">
+      <div style="min-width:0;flex:1">
+        <div style="font:800 9.5mm/1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.04em">Snapbook</div>
+        <div style="margin-top:1.6mm;display:flex;white-space:nowrap;font:600 4mm/1.1 'Plus Jakarta Sans',sans-serif;color:#3A3936"><span data-fit="left" style="flex-shrink:0;display:inline-block">{event_name}</span></div>
+      </div>
+      <div style="width:8mm;height:8mm;border:.6mm solid #1D1D1B;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 5mm/1 'Plus Jakarta Sans',sans-serif;flex-shrink:0">+</div>
+    </div>
+    <div style="margin-top:4.5mm"><div><div style="position:relative;height:1mm;background:#D6D3CC;border-radius:1mm"><div style="position:absolute;left:0;top:0;bottom:0;width:38%;background:#1D1D1B;border-radius:1mm"></div><div style="position:absolute;left:38%;top:50%;width:3.2mm;height:3.2mm;margin:-1.6mm 0 0 -1.6mm;border-radius:50%;background:#1D1D1B"></div></div><div style="margin-top:1.6mm;display:flex;justify-content:space-between;font:500 2.5mm/1 'DM Mono',monospace;color:#5F5E5A"><span>0:00</span><span>{shots} foto</span></div></div></div>
+    <div style="margin-top:4mm"><div style="display:flex;align-items:center;justify-content:center;gap:9mm">
+  <span style="display:flex;align-items:center"><span style="width:0.8mm;height:4.6mm;background:#1D1D1B"></span><span style="width:0;height:0;border-top:2.3mm solid transparent;border-bottom:2.3mm solid transparent;border-right:4.2mm solid #1D1D1B"></span></span>
+  <span style="width:14mm;height:14mm;border-radius:50%;background:#1D1D1B;display:flex;align-items:center;justify-content:center;padding-left:1mm;box-sizing:border-box"><span style="width:0;height:0;border-top:2.7mm solid transparent;border-bottom:2.7mm solid transparent;border-left:4.6mm solid #FFFFFF"></span></span>
+  <span style="display:flex;align-items:center"><span style="width:0;height:0;border-top:2.3mm solid transparent;border-bottom:2.3mm solid transparent;border-left:4.2mm solid #1D1D1B"></span><span style="width:0.8mm;height:4.6mm;background:#1D1D1B"></span></span>
+</div></div>
+    <div style="margin-top:5.5mm;font:500 2.6mm/1 'DM Mono',monospace;letter-spacing:.12em;margin-bottom:1.4mm">BERIKUTNYA</div>
+    <div style="display:grid;grid-template-columns:6mm 1fr auto;align-items:baseline;padding:1.7mm 0;border-top:.3mm dashed #1D1D1B"><span style="font:500 3mm/1 'DM Mono',monospace">1</span><span style="font:700 3.7mm/1.1 'Plus Jakarta Sans',sans-serif">Scan QR</span><span style="font:500 2.9mm/1 'Plus Jakarta Sans',sans-serif;color:#5F5E5A">kamera HP</span></div>
+    <div style="display:grid;grid-template-columns:6mm 1fr auto;align-items:baseline;padding:1.7mm 0;border-top:.3mm dashed #1D1D1B"><span style="font:500 3mm/1 'DM Mono',monospace">2</span><span style="font:700 3.7mm/1.1 'Plus Jakarta Sans',sans-serif">Isi nama</span><span style="font:500 2.9mm/1 'Plus Jakarta Sans',sans-serif;color:#5F5E5A">sekali aja</span></div>
+    <div style="display:grid;grid-template-columns:6mm 1fr auto;align-items:baseline;padding:1.7mm 0;border-top:.3mm dashed #1D1D1B"><span style="font:500 3mm/1 'DM Mono',monospace">3</span><span style="font:700 3.7mm/1.1 'Plus Jakarta Sans',sans-serif">Jepret &amp; spill</span><span style="font:500 2.9mm/1 'Plus Jakarta Sans',sans-serif;color:#5F5E5A">{shots} foto</span></div>
+    <div id="if-voice" style="display:grid;grid-template-columns:6mm 1fr auto;align-items:baseline;padding:1.7mm 0;border-top:.3mm dashed #1D1D1B"><span style="font:500 3mm/1 'DM Mono',monospace">4</span><span style="font:700 3.7mm/1.1 'Plus Jakarta Sans',sans-serif">Rekam voice note</span><span style="font:500 2.9mm/1 'Plus Jakarta Sans',sans-serif;color:#5F5E5A">buat tuan rumah</span></div>
+    <div id="if-frame" style="display:grid;grid-template-columns:6mm 1fr auto;align-items:baseline;padding:1.7mm 0;border-top:.3mm dashed #1D1D1B"><span style="font:500 3mm/1 'DM Mono',monospace">{frame_no}</span><span style="font:700 3.7mm/1.1 'Plus Jakarta Sans',sans-serif">Bikin frame</span><span style="font:500 2.9mm/1 'Plus Jakarta Sans',sans-serif;color:#5F5E5A">cetak di booth</span></div>
+    <div style="margin-top:auto;padding-top:2mm;border-top:.3mm dashed #1D1D1B;display:flex;justify-content:space-between;font:500 2.5mm/1 'DM Mono',monospace"><span>GRATIS · GAK PERLU INSTALL</span><span>by Tetra · @tetraphotobooth</span></div>
+  </div>
+</div>
+</section>
+
+<section class="card" data-card="musik-front" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Sedang Diputar — Kartu nama depan · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#FFFFFF;overflow:hidden;color:#1D1D1B">
+  <div style="position:absolute;left:0;top:0;bottom:0;width:30mm;background:#CEC8F6;border-right:.5mm solid #1D1D1B"></div>
+  <div style="position:absolute;left:9mm;top:12mm;width:16mm;font:800 7mm/.85 'Bricolage Grotesque',sans-serif;letter-spacing:-.05em">Vol.<br />{shots}</div>
+  <div style="position:absolute;left:9mm;bottom:9.5mm;font:500 1.8mm/1.3 'DM Mono',monospace">SEDANG<br />DIPUTAR</div>
+  <div style="position:absolute;left:35mm;right:9.5mm;top:10mm;bottom:9mm;display:flex;flex-direction:column">
+    <div style="font:800 6.6mm/1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.04em">Snapbook</div>
+    <div style="margin-top:1mm;display:flex;white-space:nowrap;font:600 2.5mm/1.1 'Plus Jakarta Sans',sans-serif;color:#3A3936"><span data-fit="left" style="flex-shrink:0;display:inline-block">{event_name}</span></div>
+    <div style="margin-top:auto"><div><div style="position:relative;height:0.62mm;background:#D6D3CC;border-radius:1mm"><div style="position:absolute;left:0;top:0;bottom:0;width:38%;background:#1D1D1B;border-radius:1mm"></div><div style="position:absolute;left:38%;top:50%;width:1.984mm;height:1.984mm;margin:-0.992mm 0 0 -0.992mm;border-radius:50%;background:#1D1D1B"></div></div><div style="margin-top:0.992mm;display:flex;justify-content:space-between;font:500 1.55mm/1 'DM Mono',monospace;color:#5F5E5A"><span>0:00</span><span>{shots} foto</span></div></div></div>
+    <div style="margin-top:2.4mm"><div style="display:flex;align-items:center;justify-content:center;gap:4.95mm">
+  <span style="display:flex;align-items:center"><span style="width:0.44000000000000006mm;height:2.53mm;background:#1D1D1B"></span><span style="width:0;height:0;border-top:1.265mm solid transparent;border-bottom:1.265mm solid transparent;border-right:2.3100000000000005mm solid #1D1D1B"></span></span>
+  <span style="width:7.700000000000001mm;height:7.700000000000001mm;border-radius:50%;background:#1D1D1B;display:flex;align-items:center;justify-content:center;padding-left:0.55mm;box-sizing:border-box"><span style="width:0;height:0;border-top:1.4850000000000003mm solid transparent;border-bottom:1.4850000000000003mm solid transparent;border-left:2.53mm solid #FFFFFF"></span></span>
+  <span style="display:flex;align-items:center"><span style="width:0;height:0;border-top:1.265mm solid transparent;border-bottom:1.265mm solid transparent;border-left:2.3100000000000005mm solid #1D1D1B"></span><span style="width:0.44000000000000006mm;height:2.53mm;background:#1D1D1B"></span></span>
+</div></div>
+  </div>
+</div>
+</section>
+
+<section class="card" data-card="musik-back" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Sedang Diputar — Kartu nama belakang · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#FFFFFF;overflow:hidden;color:#1D1D1B">
+  <div style="position:absolute;left:8mm;top:8mm;right:9.5mm;bottom:8mm;display:flex;gap:4mm;align-items:center">
+    <div style="background:#D6EEF8;border:.4mm solid #1D1D1B;border-radius:2.4mm;padding:2mm;flex-shrink:0"><div style="background:#FFFFFF;padding:1.6mm;border-radius:1mm"><img src="{qr_src}" style="width:23mm;height:23mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div></div>
+    <div style="flex:1;display:flex;flex-direction:column;font:700 2.7mm/1.2 'Plus Jakarta Sans',sans-serif">
+      <div style="font:500 1.9mm/1 'DM Mono',monospace;letter-spacing:.12em;margin-bottom:1.2mm">BERIKUTNYA</div>
+      <div style="padding:.8mm 0;border-top:.25mm dashed #1D1D1B">1 Scan QR</div>
+      <div style="padding:.8mm 0;border-top:.25mm dashed #1D1D1B">2 Isi nama</div>
+      <div style="padding:.8mm 0;border-top:.25mm dashed #1D1D1B">3 Jepret {shots} foto</div>
+      <div id="if-voice" style="padding:.8mm 0;border-top:.25mm dashed #1D1D1B;font-weight:500">+ voice note</div>
+      <div id="if-frame" style="padding:.8mm 0;border-top:.25mm dashed #1D1D1B;font-weight:500">+ bikin frame</div>
+      <div style="padding-top:1mm;border-top:.25mm dashed #1D1D1B;font:500 1.8mm/1.35 'DM Mono',monospace">GRATIS · GAK PERLU INSTALL<br />@tetraphotobooth</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="card" data-card="kamera-a5" data-size="148mm × 210mm (A5, potret)">
+<h2>Kamera Sekali Pakai — Kartu meja A5 · 148mm × 210mm (A5, potret)</h2>
+<div style="position:relative;width:148mm;height:210mm;background:#F8D98B;overflow:hidden;color:#1D1D1B">
+  <div style="position:absolute;left:12mm;top:13mm;right:12mm;display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <div style="font:800 21mm/.85 'Bricolage Grotesque',sans-serif;letter-spacing:-.045em">Snap<br />book</div>
+      <div style="margin-top:4mm;font:700 5mm/1.2 'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em;max-width:72mm">Kamera sekali pakai,<br />versi HP-mu sendiri.</div>
+    </div>
+    <div style="position:relative;width:38mm;height:44mm;flex-shrink:0">
+      <div style="position:absolute;left:2mm;top:2mm;width:38mm;height:44mm;background:#1D1D1B;border-radius:3mm"></div>
+      <div style="position:absolute;inset:0;background:#CEC8F6;border:.8mm solid #1D1D1B;border-radius:3mm;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box">
+        <span style="font:800 24mm/.85 'Bricolage Grotesque',sans-serif;letter-spacing:-.06em">{shots}</span>
+        <span style="font:500 4.2mm/1 'DM Mono',monospace;margin-top:1.5mm;letter-spacing:.12em">EXP</span>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;left:12mm;right:14mm;top:84mm">
+    <div style="position:absolute;left:2mm;top:2mm;right:-2mm;bottom:-2mm;background:#1D1D1B;border-radius:4mm"></div>
+    <div style="position:relative;background:#FFFFFF;border:.8mm solid #1D1D1B;border-radius:4mm;padding:5mm;display:flex;gap:5mm;align-items:flex-start">
+      <div style="flex-shrink:0;padding:0"><img src="{qr_src}" style="width:40mm;height:40mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+      <div style="flex:1;display:flex;flex-direction:column">
+        <div style="font:500 2.8mm/1 'DM Mono',monospace;letter-spacing:.14em;margin-bottom:2.6mm">CARA PAKAI</div>
+        <div style="display:flex;gap:2.4mm;padding:1.6mm 0;border-top:.4mm dashed #1D1D1B;font:700 3.8mm/1.2 'Plus Jakarta Sans',sans-serif"><span style="font-family:'DM Mono',monospace;font-weight:500">1</span>Scan QR pakai kamera HP</div>
+        <div style="display:flex;gap:2.4mm;padding:1.6mm 0;border-top:.4mm dashed #1D1D1B;font:700 3.8mm/1.2 'Plus Jakarta Sans',sans-serif"><span style="font-family:'DM Mono',monospace;font-weight:500">2</span>Isi nama</div>
+        <div style="display:flex;gap:2.4mm;padding:1.6mm 0;border-top:.4mm dashed #1D1D1B;border-bottom:.4mm dashed #1D1D1B;font:700 3.8mm/1.2 'Plus Jakarta Sans',sans-serif"><span style="font-family:'DM Mono',monospace;font-weight:500">3</span>Jepret, langsung masuk album</div>
+        <div id="if-voice" style="margin-top:1.8mm;font:500 3.2mm/1.2 'Plus Jakarta Sans',sans-serif">+ titip voice note buat pengantin</div>
+        <div id="if-frame" style="margin-top:1.2mm;font:500 3.2mm/1.2 'Plus Jakarta Sans',sans-serif">+ bikin frame, cetak di booth</div>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;left:12mm;right:12mm;top:150mm;display:flex;justify-content:space-between;border-top:.8mm solid #1D1D1B;border-bottom:.8mm solid #1D1D1B;padding:2.4mm 0;font:500 3mm/1 'DM Mono',monospace;letter-spacing:.06em"><span>ISO TAMU</span><span>GRATIS</span><span>GAK PERLU INSTALL</span></div>
+  <div style="position:absolute;left:12mm;right:12mm;top:166mm;display:flex;flex-direction:column;gap:1.6mm">
+    <div style="display:flex;white-space:nowrap;font:800 6.4mm/1.1 'Bricolage Grotesque',sans-serif;letter-spacing:-.03em"><span data-fit="left" style="flex-shrink:0;display:inline-block">{event_name}</span></div>
+    <div style="font:500 3.4mm/1 'DM Mono',monospace">{date}</div>
+  </div>
+  <div style="position:absolute;left:12mm;right:12mm;bottom:11mm;display:flex;justify-content:space-between;font:600 2.7mm/1 'Plus Jakarta Sans',sans-serif"><span>by Tetra Photobooth</span><span>@tetraphotobooth</span></div>
+</div>
+</section>
+
+<section class="card" data-card="kamera-front" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Kamera Sekali Pakai — Kartu nama depan · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#F8D98B;overflow:hidden;color:#1D1D1B">
+  <div style="position:absolute;left:9.5mm;top:9mm;right:9.5mm;bottom:9mm;display:flex;justify-content:space-between;align-items:stretch">
+    <div style="display:flex;flex-direction:column">
+      <div style="font:800 11.5mm/.85 'Bricolage Grotesque',sans-serif;letter-spacing:-.045em">Snap<br />book</div>
+      <div style="margin-top:auto;font:700 2.8mm/1.25 'Plus Jakarta Sans',sans-serif">Kamera sekali pakai,<br />versi HP-mu sendiri.</div>
+    </div>
+    <div style="position:relative;width:24mm;flex-shrink:0">
+      <div style="position:absolute;left:1.2mm;top:1.2mm;right:-1.2mm;bottom:-1.2mm;background:#1D1D1B;border-radius:2mm"></div>
+      <div style="position:absolute;inset:0;background:#CEC8F6;border:.6mm solid #1D1D1B;border-radius:2mm;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box">
+        <span style="font:800 14mm/.85 'Bricolage Grotesque',sans-serif;letter-spacing:-.06em">{shots}</span>
+        <span style="font:500 2.6mm/1 'DM Mono',monospace;margin-top:1mm;letter-spacing:.12em">EXP</span>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="card" data-card="kamera-back" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Kamera Sekali Pakai — Kartu nama belakang · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#FFFFFF;overflow:hidden;color:#1D1D1B">
+  <div style="position:absolute;left:0;top:0;bottom:0;width:11mm;background:#F8D98B;border-right:.6mm solid #1D1D1B"></div>
+  <div style="position:absolute;left:15mm;top:9mm;right:9mm;bottom:9mm;display:flex;gap:4mm;align-items:center">
+    <img src="{qr_src}" style="width:25mm;height:25mm;display:block;image-rendering:pixelated;flex-shrink:0" id="qr" alt="QR" />
+    <div style="flex:1;display:flex;flex-direction:column;gap:.8mm;font:700 2.6mm/1.25 'Plus Jakarta Sans',sans-serif">
+      <div style="font:500 2mm/1 'DM Mono',monospace;letter-spacing:.14em;margin-bottom:.8mm">CARA PAKAI</div>
+      <div>1 Scan QR</div><div>2 Isi nama</div><div>3 Jepret {shots} foto</div>
+      <div id="if-voice" style="font-weight:500">+ voice note</div>
+      <div id="if-frame" style="font-weight:500">+ bikin frame &amp; cetak</div>
+      <div style="margin-top:.8mm;font:500 1.9mm/1.35 'DM Mono',monospace">GRATIS · GAK PERLU INSTALL<br />@tetraphotobooth</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="card" data-card="tiket-a5" data-size="148mm × 210mm (A5, potret)">
+<h2>Boarding Pass — Kartu meja A5 · 148mm × 210mm (A5, potret)</h2>
+<div style="position:relative;width:148mm;height:210mm;background:#FFFFFF;overflow:hidden;color:#1D1D1B">
+  <div style="position:absolute;left:0;top:0;right:0;height:22mm;background:#D6EEF8;border-bottom:.6mm solid #1D1D1B"></div>
+  <div style="position:absolute;left:13mm;top:9mm;right:13mm;display:flex;justify-content:space-between;align-items:center;font:500 3mm/1 'DM Mono',monospace;letter-spacing:.12em"><span style="font:800 5mm/1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em">Snapbook</span><span>BOARDING PASS</span></div>
+  <div style="position:absolute;left:13mm;right:13mm;top:32mm;display:grid;grid-template-columns:1fr auto 1fr;align-items:end">
+    <div><div style="font:800 25mm/.85 'Plus Jakarta Sans',sans-serif;letter-spacing:-.05em">MJA</div><div style="margin-top:2mm;font:500 3.3mm/1 'DM Mono',monospace">Meja tamu</div></div>
+    <div style="font:500 9mm/1 'DM Mono',monospace;padding:0 3mm 7mm">→</div>
+    <div style="text-align:right"><div style="font:800 25mm/.85 'Plus Jakarta Sans',sans-serif;letter-spacing:-.05em">ALB</div><div style="margin-top:2mm;font:500 3.3mm/1 'DM Mono',monospace">Album acara</div></div>
+  </div>
+  <div style="position:absolute;left:13mm;right:13mm;top:72mm;font:600 4.4mm/1.3 'Plus Jakarta Sans',sans-serif;max-width:110mm">Buku tamu versi kekinian. Fotomu terbang langsung ke album bareng.</div>
+  <div style="position:absolute;left:13mm;right:13mm;top:92mm;display:grid;grid-template-columns:repeat(3,1fr);row-gap:4.5mm;column-gap:4mm;border-top:.4mm solid #1D1D1B;padding-top:4.5mm">
+    <div><div style="font:500 2.4mm/1 'DM Mono',monospace;color:#5F5E5A;letter-spacing:.1em">PENUMPANG</div><div style="margin-top:1.4mm;font:700 4.4mm/1 'Plus Jakarta Sans',sans-serif">Kamu</div></div>
+    <div><div style="font:500 2.4mm/1 'DM Mono',monospace;color:#5F5E5A;letter-spacing:.1em">BAGASI</div><div style="margin-top:1.4mm;font:700 4.4mm/1 'Plus Jakarta Sans',sans-serif">{shots} foto</div></div>
+    <div><div style="font:500 2.4mm/1 'DM Mono',monospace;color:#5F5E5A;letter-spacing:.1em">TARIF</div><div style="margin-top:1.4mm;font:700 4.4mm/1 'Plus Jakarta Sans',sans-serif">Gratis</div></div>
+    <div style="grid-column:span 2"><div style="font:500 2.4mm/1 'DM Mono',monospace;color:#5F5E5A;letter-spacing:.1em">PENERBANGAN</div><div style="margin-top:1.4mm;display:flex;white-space:nowrap;font:700 4.4mm/1 'Plus Jakarta Sans',sans-serif"><span data-fit="left" style="flex-shrink:0;display:inline-block">{event_name}</span></div></div>
+    <div><div style="font:500 2.4mm/1 'DM Mono',monospace;color:#5F5E5A;letter-spacing:.1em">TANGGAL</div><div style="margin-top:1.4mm;font:700 4.4mm/1 'DM Mono',monospace">{date_dot}</div></div>
+  </div>
+  <div style="position:absolute;left:0;right:0;top:131mm;border-top:.5mm dashed #1D1D1B"></div>
+  <div style="position:absolute;left:-4mm;top:127mm;width:8mm;height:8mm;border-radius:50%;background:#D6EEF8;border:.5mm solid #1D1D1B;box-sizing:border-box"></div>
+  <div style="position:absolute;right:-4mm;top:127mm;width:8mm;height:8mm;border-radius:50%;background:#D6EEF8;border:.5mm solid #1D1D1B;box-sizing:border-box"></div>
+  <div style="position:absolute;left:13mm;right:13mm;top:140mm;display:flex;gap:6mm;align-items:flex-start">
+    <div style="padding:2.5mm;background:#FFFFFF;outline:.4mm solid #1D1D1B;flex-shrink:0"><img src="{qr_src}" style="width:38mm;height:38mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:2.2mm;padding-top:1mm">
+      <div style="font:500 2.4mm/1 'DM Mono',monospace;color:#5F5E5A;letter-spacing:.1em">CHECK-IN</div>
+      <div style="font:700 4mm/1.2 'Plus Jakarta Sans',sans-serif">1 Scan QR<br />2 Isi nama<br />3 Snap &amp; spill</div>
+      <div id="if-voice" style="font:500 3.3mm/1.2 'Plus Jakarta Sans',sans-serif">+ titip voice note</div>
+      <div id="if-frame" style="font:500 3.3mm/1.2 'Plus Jakarta Sans',sans-serif">+ bikin frame &amp; cetak</div>
+      <div style="font:500 3mm/1.3 'DM Mono',monospace">gak perlu install</div>
+    </div>
+  </div>
+  <div style="position:absolute;left:13mm;right:13mm;bottom:11mm;display:flex;justify-content:space-between;font:600 2.7mm/1 'Plus Jakarta Sans',sans-serif"><span>by Tetra Photobooth</span><span>@tetraphotobooth</span></div>
+</div>
+</section>
+
+<section class="card" data-card="tiket-front" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Boarding Pass — Kartu nama depan · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#FFFFFF;overflow:hidden;color:#1D1D1B">
+  <div style="position:absolute;left:0;top:0;right:0;height:16mm;background:#D6EEF8;border-bottom:.5mm solid #1D1D1B"></div>
+  <div style="position:absolute;left:9.5mm;top:8.6mm;right:9.5mm;display:flex;justify-content:space-between;align-items:center;font:500 2mm/1 'DM Mono',monospace;letter-spacing:.12em"><span style="font:800 3.4mm/1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em">Snapbook</span><span>BOARDING PASS</span></div>
+  <div style="position:absolute;left:9.5mm;right:9.5mm;top:20mm;display:flex;justify-content:space-between;align-items:flex-end">
+    <div><div style="font:800 13mm/.85 'Plus Jakarta Sans',sans-serif;letter-spacing:-.05em">MJA</div><div style="margin-top:1.2mm;font:500 2.2mm/1 'DM Mono',monospace">Meja tamu</div></div>
+    <div style="font:500 5mm/1 'DM Mono',monospace;padding-bottom:4mm">→</div>
+    <div style="text-align:right"><div style="font:800 13mm/.85 'Plus Jakarta Sans',sans-serif;letter-spacing:-.05em">ALB</div><div style="margin-top:1.2mm;font:500 2.2mm/1 'DM Mono',monospace">Album acara</div></div>
+  </div>
+  <div style="position:absolute;left:9.5mm;right:9.5mm;bottom:8.5mm;display:flex;white-space:nowrap;font:600 2.4mm/1 'Plus Jakarta Sans',sans-serif"><span data-fit="left" style="flex-shrink:0;display:inline-block">{event_name} · {date_dot}</span></div>
+</div>
+</section>
+
+<section class="card" data-card="tiket-back" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Boarding Pass — Kartu nama belakang · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#FFFFFF;overflow:hidden;color:#1D1D1B">
+  <div style="position:absolute;left:9mm;top:8.5mm;right:9mm;bottom:8.5mm;display:flex;gap:4.5mm;align-items:center">
+    <div style="padding:2mm;outline:.3mm solid #1D1D1B;flex-shrink:0"><img src="{qr_src}" style="width:24mm;height:24mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:1mm">
+      <div style="font:500 1.9mm/1 'DM Mono',monospace;color:#5F5E5A;letter-spacing:.1em">CHECK-IN</div>
+      <div style="font:700 2.9mm/1.25 'Plus Jakarta Sans',sans-serif">1 Scan QR<br />2 Isi nama<br />3 Snap &amp; spill</div>
+      <div id="if-voice" style="font:500 2.4mm/1.2 'Plus Jakarta Sans',sans-serif">+ titip voice note</div>
+      <div id="if-frame" style="font:500 2.4mm/1.2 'Plus Jakarta Sans',sans-serif">+ bikin frame &amp; cetak</div>
+      <div style="font:500 2mm/1.3 'DM Mono',monospace">BAGASI {shots} FOTO · GRATIS<br />@tetraphotobooth</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="card" data-card="zamrud-a5" data-size="148mm × 210mm (A5, potret)">
+<h2>Lengkung Zamrud — Kartu meja A5 · 148mm × 210mm (A5, potret)</h2>
+<div style="position:relative;width:148mm;height:210mm;background:#143D2E;overflow:hidden">
+
+ <div style="position:absolute;inset:6mm;border:.4mm solid #EFE6D2"></div>
+ <div style="position:absolute;left:16mm;right:16mm;top:15mm;bottom:13mm;display:flex;flex-direction:column;align-items:center;color:#EFE6D2">
+  <div style="font: 500 2.7mm/1.2 'Bodoni Moda',serif;letter-spacing:.3em;padding-left:.3em">MERAYAKAN BERSAMA</div>
+  <div style="display:flex;justify-content:center;white-space:nowrap;font:italic 500 6mm/1.2 'Bodoni Moda',serif;color:#EFE6D2;align-self:stretch;margin-top:1.5mm"><span data-fit="center" style="flex-shrink:0;display:inline-block">{event_name}</span></div>
+  <div style="margin-top:5mm;width:92mm;flex:1;border:.4mm solid #EFE6D2;border-bottom:0;border-radius:46mm 46mm 0 0;display:flex;flex-direction:column;align-items:center;padding-top:13mm;box-sizing:border-box">
+   <div style="font:400 16mm/1.1 'Pinyon Script',cursive">Snapbook</div>
+   <div style="margin-top:1mm;font: 500 3mm/1.2 'Bodoni Moda',serif;letter-spacing:.3em;padding-left:.3em">BUKU TAMU DIGITAL</div>
+   <div style="margin-top:6mm"><div style="background:#FFFFFF;padding:2.5mm;border:.4mm solid #EFE6D2;flex-shrink:0;display:inline-block"><img src="{qr_src}" style="width:38mm;height:38mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div></div>
+   <div style="margin-top:6mm"><div style="display:flex;flex-direction:column;gap:1.6mm;font: 500 3.9mm/1.2 'Bodoni Moda',serif;color:#EFE6D2;text-align:center">
+ <div>1. Scan QR pakai kamera HP</div><div>2. Isi nama</div><div>3. Jepret hingga {shots} foto</div>
+ <div id="if-voice">4. Titip ucapan voice note</div>
+ <div id="if-frame">{frame_no}. Bikin frame &amp; cetak</div></div></div>
+  </div>
+  <div style="align-self:stretch;border-top:.4mm solid #EFE6D2;padding-top:4mm;display:flex;justify-content:space-between;font: 500 3.3mm/1.2 'Bodoni Moda',serif"><span>{date_long}</span><span style="font-style:italic">Gratis, tanpa install</span></div>
+  <div style="margin-top:3mm;align-self:stretch;display:flex;justify-content:space-between;font: 500 2.4mm/1.2 'Bodoni Moda',serif;letter-spacing:.16em"><span>BY TETRA PHOTOBOOTH</span><span>@TETRAPHOTOBOOTH</span></div>
+ </div>
+</div>
+</section>
+
+<section class="card" data-card="zamrud-front" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Lengkung Zamrud — Kartu nama depan · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#EFE6D2;overflow:hidden">
+
+ <div style="position:absolute;left:27mm;top:9mm;width:42mm;bottom:0;background:#143D2E;border-radius:21mm 21mm 0 0"></div>
+ <div style="position:absolute;left:27mm;top:20mm;width:42mm;display:flex;flex-direction:column;align-items:center;color:#EFE6D2">
+  <div style="font:400 9.5mm/1.1 'Pinyon Script',cursive">Snapbook</div><div style="margin-top:.6mm;font: 500 1.7mm/1.2 'Bodoni Moda',serif;letter-spacing:.3em;padding-left:.3em">BUKU TAMU DIGITAL</div>
+  <div style="display:flex;justify-content:center;white-space:nowrap;font:italic 500 2.5mm/1.2 'Bodoni Moda',serif;color:#EFE6D2;align-self:stretch;margin:5mm 3mm 0"><span data-fit="center" style="flex-shrink:0;display:inline-block">{event_name}</span></div>
+ </div>
+</div>
+</section>
+
+<section class="card" data-card="zamrud-back" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Lengkung Zamrud — Kartu nama belakang · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#EFE6D2;overflow:hidden">
+
+ <div style="position:absolute;left:9mm;right:9mm;top:9mm;bottom:9mm;display:flex;gap:5mm;align-items:center;color:#143D2E">
+  <div style="background:#FFFFFF;padding:1.8mm;border:.35mm solid #143D2E;flex-shrink:0;display:inline-block"><img src="{qr_src}" style="width:24mm;height:24mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+  <div style="display:flex;flex-direction:column;gap:1mm"><div style="font:400 5.6mm/1.1 'Pinyon Script',cursive">Cara mengisi</div><div style="display:flex;flex-direction:column;gap:0.7mm;font: 500 2.7mm/1.2 'Bodoni Moda',serif;color:#143D2E">
+ <div>1. Scan QR</div><div>2. Isi nama</div><div>3. Jepret {shots} foto</div>
+ <div id="if-voice">4. Voice note</div>
+ <div id="if-frame">{frame_no}. Bikin frame</div></div><div style="font: 500 1.8mm/1.2 'Bodoni Moda',serif;letter-spacing:.12em;margin-top:.6mm">GRATIS · @TETRAPHOTOBOOTH</div></div>
+ </div>
+</div>
+</section>
+
+<section class="card" data-card="renda-a5" data-size="148mm × 210mm (A5, potret)">
+<h2>Renda Marun — Kartu meja A5 · 148mm × 210mm (A5, potret)</h2>
+<div style="position:relative;width:148mm;height:210mm;background-color:#8E2F45;background-image:radial-gradient(#9C3B52 .7mm,transparent .8mm);background-size:5mm 5mm;overflow:hidden">
+
+ <div style="position:absolute;left:22mm;top:55.4mm;width:104mm;height:5.2mm;background:radial-gradient(circle at 2.8600000000000003mm 2.6mm,#FFFFFF 2.6mm,transparent 2.65mm) 0 0/5.720000000000001mm 5.2mm repeat-x"></div>
+<div style="position:absolute;left:22mm;top:159.4mm;width:104mm;height:5.2mm;background:radial-gradient(circle at 2.8600000000000003mm 2.6mm,#FFFFFF 2.6mm,transparent 2.65mm) 0 0/5.720000000000001mm 5.2mm repeat-x"></div>
+<div style="position:absolute;left:19.4mm;top:58mm;width:5.2mm;height:104mm;background:radial-gradient(circle at 2.6mm 2.8600000000000003mm,#FFFFFF 2.6mm,transparent 2.65mm) 0 0/5.2mm 5.720000000000001mm repeat-y"></div>
+<div style="position:absolute;left:123.4mm;top:58mm;width:5.2mm;height:104mm;background:radial-gradient(circle at 2.6mm 2.8600000000000003mm,#FFFFFF 2.6mm,transparent 2.65mm) 0 0/5.2mm 5.720000000000001mm repeat-y"></div><div style="position:absolute;left:22mm;top:58mm;width:104mm;height:104mm;background:repeating-linear-gradient(45deg,#FFFFFF 0 .5mm,transparent .5mm 2.4mm),repeating-linear-gradient(-45deg,#FFFFFF 0 .5mm,transparent .5mm 2.4mm)"></div>
+ <div style="position:absolute;left:28mm;top:64mm;width:92mm;height:92mm;background:#FBF6F1;border-radius:3mm"></div>
+ <div style="position:absolute;left:12mm;right:12mm;top:14mm;display:flex;flex-direction:column;align-items:center;color:#FFFFFF">
+  <div style="font: 500 2.8mm/1.2 'Bodoni Moda',serif;letter-spacing:.3em;padding-left:.3em">SNAPBOOK · BUKU TAMU DIGITAL</div>
+  <div style="margin-top:2mm;font:400 15mm/1.1 'Pinyon Script',cursive">Tinggalkan jejakmu</div>
+ </div>
+ <div style="position:absolute;left:28mm;top:64mm;width:92mm;height:92mm;display:flex;gap:4mm;align-items:center;padding:0 5mm;box-sizing:border-box;color:#8E2F45">
+  <div style="background:#FFFFFF;padding:1.5mm;;flex-shrink:0;display:inline-block"><img src="{qr_src}" style="width:38mm;height:38mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+  <div style="display:flex;flex-direction:column;gap:1.4mm"><div style="font:400 6.4mm/1.1 'Pinyon Script',cursive">Caranya</div><div style="display:flex;flex-direction:column;gap:1.1mm;font: 500 3.4mm/1.2 'Bodoni Moda',serif;color:#8E2F45">
+ <div>1. Scan QR</div><div>2. Isi nama</div><div>3. Jepret {shots} foto</div>
+ <div id="if-voice">4. Voice note</div>
+ <div id="if-frame">{frame_no}. Bikin frame</div></div><div style="font:italic 500 2.6mm/1.2 'Bodoni Moda',serif">Gratis, gak perlu install</div></div>
+ </div>
+ <div style="position:absolute;left:14mm;right:14mm;top:172mm;display:flex;flex-direction:column;align-items:center;color:#FFFFFF">
+  <div style="display:flex;justify-content:center;white-space:nowrap;font:400 9mm/1.1 'Pinyon Script',cursive;color:#FFFFFF;align-self:stretch"><span data-fit="center" style="flex-shrink:0;display:inline-block">{event_name}</span></div>
+  <div style="margin-top:1.5mm;font:italic 500 3.4mm/1.2 'Bodoni Moda',serif">{date_long}</div>
+ </div>
+ <div style="position:absolute;left:14mm;right:14mm;bottom:9mm;display:flex;justify-content:space-between;color:#FFFFFF;font: 500 2.3mm/1.2 'Bodoni Moda',serif;letter-spacing:.14em"><span>BY TETRA PHOTOBOOTH</span><span>@TETRAPHOTOBOOTH</span></div>
+</div>
+</section>
+
+<section class="card" data-card="renda-front" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Renda Marun — Kartu nama depan · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background-color:#8E2F45;background-image:radial-gradient(#9C3B52 .7mm,transparent .8mm);background-size:5mm 5mm;overflow:hidden">
+
+ <div style="position:absolute;left:26mm;top:12.6mm;width:44mm;height:2.8mm;background:radial-gradient(circle at 1.54mm 1.4mm,#FFFFFF 1.4mm,transparent 1.45mm) 0 0/3.08mm 2.8mm repeat-x"></div>
+<div style="position:absolute;left:26mm;top:45.6mm;width:44mm;height:2.8mm;background:radial-gradient(circle at 1.54mm 1.4mm,#FFFFFF 1.4mm,transparent 1.45mm) 0 0/3.08mm 2.8mm repeat-x"></div>
+<div style="position:absolute;left:24.6mm;top:14mm;width:2.8mm;height:33mm;background:radial-gradient(circle at 1.4mm 1.54mm,#FFFFFF 1.4mm,transparent 1.45mm) 0 0/2.8mm 3.08mm repeat-y"></div>
+<div style="position:absolute;left:68.6mm;top:14mm;width:2.8mm;height:33mm;background:radial-gradient(circle at 1.4mm 1.54mm,#FFFFFF 1.4mm,transparent 1.45mm) 0 0/2.8mm 3.08mm repeat-y"></div><div style="position:absolute;left:26mm;top:14mm;width:44mm;height:33mm;background:repeating-linear-gradient(45deg,#FFFFFF 0 .5mm,transparent .5mm 2.4mm),repeating-linear-gradient(-45deg,#FFFFFF 0 .5mm,transparent .5mm 2.4mm)"></div>
+ <div style="position:absolute;left:29mm;top:17mm;width:38mm;height:27mm;background:#FBF6F1;border-radius:1.5mm"></div>
+ <div style="position:absolute;left:29mm;top:17mm;width:38mm;height:27mm;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8E2F45">
+  <div style="font:400 7.4mm/1.1 'Pinyon Script',cursive">Snapbook</div><div style="font: 500 1.6mm/1.2 'Bodoni Moda',serif;letter-spacing:.3em;padding-left:.3em">BUKU TAMU DIGITAL</div>
+ </div>
+ <div style="position:absolute;left:10mm;right:10mm;bottom:8.5mm;color:#FFFFFF"><div style="display:flex;justify-content:center;white-space:nowrap;font:italic 500 2.4mm/1.2 'Bodoni Moda',serif;color:#FFFFFF;"><span data-fit="center" style="flex-shrink:0;display:inline-block">{event_name}</span></div></div>
+</div>
+</section>
+
+<section class="card" data-card="renda-back" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Renda Marun — Kartu nama belakang · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#FBF6F1;overflow:hidden">
+
+ <div style="position:absolute;left:6mm;top:6mm;right:6mm;bottom:6mm;border:.35mm solid #8E2F45"></div>
+ <div style="position:absolute;left:10mm;right:10mm;top:10mm;bottom:10mm;display:flex;gap:4.5mm;align-items:center;color:#8E2F45">
+  <div style="background:#FFFFFF;padding:1mm;;flex-shrink:0;display:inline-block"><img src="{qr_src}" style="width:23mm;height:23mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+  <div style="display:flex;flex-direction:column;gap:.8mm"><div style="font:400 5.4mm/1.1 'Pinyon Script',cursive">Caranya</div><div style="display:flex;flex-direction:column;gap:0.6mm;font: 500 2.6mm/1.2 'Bodoni Moda',serif;color:#8E2F45">
+ <div>1. Scan QR</div><div>2. Isi nama</div><div>3. Jepret {shots} foto</div>
+ <div id="if-voice">4. Voice note</div>
+ <div id="if-frame">{frame_no}. Bikin frame</div></div><div style="font: 500 1.8mm/1.2 'Bodoni Moda',serif;letter-spacing:.12em;margin-top:.6mm">GRATIS · @TETRAPHOTOBOOTH</div></div>
+ </div>
+</div>
+</section>
+
+<section class="card" data-card="pita-a5" data-size="148mm × 210mm (A5, potret)">
+<h2>Pita Krem — Kartu meja A5 · 148mm × 210mm (A5, potret)</h2>
+<div style="position:relative;width:148mm;height:210mm;background:#F2EEE4;overflow:hidden">
+
+ <div style="position:absolute;left:7mm;top:7mm;right:7mm;bottom:7mm;border:.4mm solid #7A1F2B;border-radius:6mm"></div>
+ <div style="position:absolute;left:9mm;top:9mm;right:9mm;bottom:9mm;border:.4mm solid #7A1F2B;border-radius:4.5mm"></div>
+ <div style="position:absolute;left:20mm;top:18mm;width:0;height:0">
+ <div style="position:absolute;left:-8.58mm;top:-2.6mm;width:8.06mm;height:5.2mm;border:0.78mm solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+ <div style="position:absolute;left:0.52mm;top:-2.6mm;width:8.06mm;height:5.2mm;border:0.78mm solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+ <div style="position:absolute;left:-0.39mm;top:0.65mm;width:0.78mm;height:9.75mm;background:#7A1F2B;transform:rotate(18deg);transform-origin:top center"></div>
+ <div style="position:absolute;left:0.13mm;top:0.65mm;width:0.78mm;height:9.1mm;background:#7A1F2B;transform:rotate(-22deg);transform-origin:top center"></div>
+ <div style="position:absolute;left:-1.17mm;top:-1.17mm;width:2.34mm;height:2.34mm;background:#7A1F2B;border-radius:40%"></div></div><div style="position:absolute;left:128mm;top:18mm;width:0;height:0">
+ <div style="position:absolute;left:-8.58mm;top:-2.6mm;width:8.06mm;height:5.2mm;border:0.78mm solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+ <div style="position:absolute;left:0.52mm;top:-2.6mm;width:8.06mm;height:5.2mm;border:0.78mm solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+ <div style="position:absolute;left:-0.39mm;top:0.65mm;width:0.78mm;height:9.75mm;background:#7A1F2B;transform:rotate(18deg);transform-origin:top center"></div>
+ <div style="position:absolute;left:0.13mm;top:0.65mm;width:0.78mm;height:9.1mm;background:#7A1F2B;transform:rotate(-22deg);transform-origin:top center"></div>
+ <div style="position:absolute;left:-1.17mm;top:-1.17mm;width:2.34mm;height:2.34mm;background:#7A1F2B;border-radius:40%"></div></div>
+ <div style="position:absolute;left:18mm;right:18mm;top:30mm;bottom:16mm;display:flex;flex-direction:column;align-items:center;color:#7A1F2B">
+  <div style="font: 500 2.8mm/1.2 'Bodoni Moda',serif;letter-spacing:.3em;padding-left:.3em">BUKU TAMU</div>
+  <div style="margin-top:1mm;font:400 19mm/1.1 'Pinyon Script',cursive">Snapbook</div>
+  <div style="margin-top:1mm;font:italic 500 4mm/1.2 'Bodoni Moda',serif;text-align:center">foto &amp; ucapan untuk mempelai, dari HP-mu</div>
+  <div style="margin-top:8mm"><div style="background:#FFFFFF;padding:2.5mm;border:.4mm solid #7A1F2B;flex-shrink:0;display:inline-block"><img src="{qr_src}" style="width:40mm;height:40mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div></div>
+  <div style="margin-top:7mm;display:flex;gap:4mm;font: 500 3.6mm/1.2 'Bodoni Moda',serif;flex-wrap:wrap;justify-content:center"><span>i. Scan</span><span>·</span><span>ii. Isi nama</span><span>·</span><span>iii. Jepret {shots} foto</span></div>
+  <div id="if-voice" style="margin-top:1.4mm;font:italic 500 3.2mm/1.2 'Bodoni Moda',serif">dan titipkan ucapan lewat voice note</div>
+  <div id="if-frame" style="margin-top:1mm;font:italic 500 3.2mm/1.2 'Bodoni Moda',serif">lalu rangkai frame &amp; cetak di booth</div>
+  <div style="margin-top:auto;position:relative;width:100%;display:flex;flex-direction:column;align-items:center">
+   <div style="display:flex;justify-content:center;white-space:nowrap;font:400 8.6mm/1.1 'Pinyon Script',cursive;color:#7A1F2B;align-self:stretch"><span data-fit="center" style="flex-shrink:0;display:inline-block">{event_name}</span></div>
+   <div style="margin-top:1mm;font: 500 3.2mm/1.2 'Bodoni Moda',serif;letter-spacing:.18em">{date_long}</div>
+   <div style="margin-top:4mm;font: 500 2.3mm/1.2 'Bodoni Moda',serif;letter-spacing:.16em">GRATIS · TETRA PHOTOBOOTH · @TETRAPHOTOBOOTH</div>
+  </div>
+ </div>
+</div>
+</section>
+
+<section class="card" data-card="pita-front" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Pita Krem — Kartu nama depan · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#F2EEE4;overflow:hidden">
+
+ <div style="position:absolute;left:6mm;top:6mm;right:6mm;bottom:6mm;border:.3mm solid #7A1F2B;border-radius:3.5mm"></div>
+ <div style="position:absolute;left:48mm;top:14mm;width:0;height:0">
+ <div style="position:absolute;left:-5.94mm;top:-1.8mm;width:5.58mm;height:3.6mm;border:0.54mm solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+ <div style="position:absolute;left:0.36mm;top:-1.8mm;width:5.58mm;height:3.6mm;border:0.54mm solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+ <div style="position:absolute;left:-0.27mm;top:0.45mm;width:0.54mm;height:6.75mm;background:#7A1F2B;transform:rotate(18deg);transform-origin:top center"></div>
+ <div style="position:absolute;left:0.09mm;top:0.45mm;width:0.54mm;height:6.3mm;background:#7A1F2B;transform:rotate(-22deg);transform-origin:top center"></div>
+ <div style="position:absolute;left:-0.8099999999999999mm;top:-0.8099999999999999mm;width:1.6199999999999999mm;height:1.6199999999999999mm;background:#7A1F2B;border-radius:40%"></div></div>
+ <div style="position:absolute;left:10mm;right:10mm;top:22mm;display:flex;flex-direction:column;align-items:center;color:#7A1F2B">
+  <div style="font:400 10mm/1.1 'Pinyon Script',cursive">Snapbook</div><div style="margin-top:.4mm;font: 500 1.8mm/1.2 'Bodoni Moda',serif;letter-spacing:.3em;padding-left:.3em">BUKU TAMU</div>
+  <div style="display:flex;justify-content:center;white-space:nowrap;font:italic 500 2.4mm/1.2 'Bodoni Moda',serif;color:#7A1F2B;align-self:stretch;margin-top:3mm"><span data-fit="center" style="flex-shrink:0;display:inline-block">{event_name}</span></div>
+ </div>
+</div>
+</section>
+
+<section class="card" data-card="pita-back" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Pita Krem — Kartu nama belakang · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#F2EEE4;overflow:hidden">
+
+ <div style="position:absolute;left:6mm;top:6mm;right:6mm;bottom:6mm;border:.3mm solid #7A1F2B;border-radius:3.5mm"></div>
+ <div style="position:absolute;left:10mm;right:10mm;top:10mm;bottom:10mm;display:flex;gap:4.5mm;align-items:center;color:#7A1F2B">
+  <div style="background:#FFFFFF;padding:1.6mm;border:.3mm solid #7A1F2B;flex-shrink:0;display:inline-block"><img src="{qr_src}" style="width:23mm;height:23mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+  <div style="display:flex;flex-direction:column;gap:.8mm"><div style="font:400 5.4mm/1.1 'Pinyon Script',cursive">Caranya</div><div style="display:flex;flex-direction:column;gap:0.6mm;font: 500 2.6mm/1.2 'Bodoni Moda',serif;color:#7A1F2B">
+ <div>1. Scan QR</div><div>2. Isi nama</div><div>3. Jepret {shots} foto</div>
+ <div id="if-voice">4. Voice note</div>
+ <div id="if-frame">{frame_no}. Bikin frame</div></div><div style="font: 500 1.8mm/1.2 'Bodoni Moda',serif;letter-spacing:.12em;margin-top:.6mm">GRATIS · @TETRAPHOTOBOOTH</div></div>
+ </div>
+</div>
+</section>
+
+<section class="card" data-card="majalah-a5" data-size="148mm × 210mm (A5, potret)">
+<h2>Cover Majalah — Kartu meja A5 · 148mm × 210mm (A5, potret)</h2>
+<div style="position:relative;width:148mm;height:210mm;background:#F4EFE6;overflow:hidden">
+
+ <div style="position:absolute;left:10mm;right:10mm;top:9mm;text-align:center;font:600 25.5mm/.86 'Bodoni Moda',serif;letter-spacing:-.045em;color:#1D1D1B">SNAPBOOK</div>
+ <div style="position:absolute;left:10mm;right:10mm;top:36mm;display:flex;justify-content:space-between;font:500 2.8mm/1.2 'DM Mono',monospace;color:#1D1D1B;border-top:.6mm solid #1D1D1B;border-bottom:.6mm solid #1D1D1B;padding:1.4mm 0"><span>EDISI KHUSUS · No. 01</span><span>{date_dot}</span><span>HARGA: Rp0</span></div>
+ <div style="position:absolute;left:10mm;right:10mm;top:46mm;height:88mm;border:.6mm solid #1D1D1B;overflow:hidden"><img src="assets/cover-contoh.jpg" style="width:100%;height:100%;object-fit:cover;display:block" /></div>
+ <div style="position:absolute;left:14mm;top:100mm;width:80mm;font:italic 500 8.6mm/1.2 'Bodoni Moda',serif;line-height:1.35"><span style="background:#1D1D1B;color:#F8F7F4;padding:.3mm 1.4mm;-webkit-box-decoration-break:clone;box-decoration-break:clone">Spill momen</span><br /><span style="background:#1D1D1B;color:#F8F7F4;padding:.3mm 1.4mm;-webkit-box-decoration-break:clone;box-decoration-break:clone">serumu!</span></div>
+ <div style="position:absolute;right:14mm;top:51mm;text-align:right;font:700 3.2mm/1.2 'Plus Jakarta Sans',sans-serif;line-height:1.7"><span style="background:#1D1D1B;color:#F8F7F4;padding:.3mm 1.4mm;-webkit-box-decoration-break:clone;box-decoration-break:clone">{shots} foto per tamu</span><br /><span style="background:#1D1D1B;color:#F8F7F4;padding:.3mm 1.4mm;-webkit-box-decoration-break:clone;box-decoration-break:clone">Gak perlu install</span></div>
+ <div style="position:absolute;left:10mm;right:10mm;top:142mm;display:flex;gap:6mm;align-items:flex-start;color:#1D1D1B">
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1.4mm">
+   <div style="font:500 2.7mm/1.2 'DM Mono',monospace;letter-spacing:.12em">COVER STORY</div>
+   <div style="display:flex;justify-content:flex-start;white-space:nowrap;font:500 8.4mm/1.05 'Bodoni Moda',serif;color:#1D1D1B;letter-spacing:-.03em"><span data-fit="left" style="flex-shrink:0;display:inline-block">{event_name}</span></div>
+   <div style="margin-top:2mm;font:700 3.6mm/1.2 'Plus Jakarta Sans',sans-serif;line-height:1.45">Kamu yang jadi fotografernya. Scan, isi nama, jepret.</div>
+   <div id="if-voice" style="font:500 3.2mm/1.2 'Plus Jakarta Sans',sans-serif">+ titip voice note</div>
+   <div id="if-frame" style="font:500 3.2mm/1.2 'Plus Jakarta Sans',sans-serif">+ bikin frame, cetak di booth</div>
+  </div>
+  <div style="background:#FFFFFF;padding:2.5mm;border:.6mm solid #1D1D1B;flex-shrink:0;display:inline-block"><img src="{qr_src}" style="width:38mm;height:38mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+ </div>
+ <div style="position:absolute;left:10mm;right:10mm;bottom:8mm;display:flex;justify-content:space-between;font:500 2.5mm/1.2 'DM Mono',monospace;color:#1D1D1B"><span>by Tetra Photobooth</span><span>@tetraphotobooth</span></div>
+</div>
+</section>
+
+<section class="card" data-card="majalah-front" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Cover Majalah — Kartu nama depan · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#F4EFE6;overflow:hidden">
+
+ <div style="position:absolute;left:8.5mm;right:8.5mm;top:8.5mm;text-align:center;font:600 15.6mm/.86 'Bodoni Moda',serif;letter-spacing:-.045em;color:#1D1D1B">SNAPBOOK</div>
+ <div style="position:absolute;left:9mm;right:9mm;top:26mm;display:flex;justify-content:space-between;font:500 1.9mm/1.2 'DM Mono',monospace;border-top:.4mm solid #1D1D1B;border-bottom:.4mm solid #1D1D1B;padding:.8mm 0;color:#1D1D1B"><span>EDISI KHUSUS</span><span>{date_dot}</span><span>Rp0</span></div>
+ <div style="position:absolute;left:9.5mm;top:33mm;font:italic 500 4.6mm/1.2 'Bodoni Moda',serif;line-height:1.4;color:#F8F7F4"><span style="background:#1D1D1B;color:#F8F7F4;padding:.3mm 1.4mm;-webkit-box-decoration-break:clone;box-decoration-break:clone">Spill momen serumu!</span></div>
+ <div style="position:absolute;left:9.5mm;right:9.5mm;bottom:9mm"><div style="display:flex;justify-content:flex-start;white-space:nowrap;font:700 2.4mm/1.2 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;"><span data-fit="left" style="flex-shrink:0;display:inline-block">Cover story: {event_name}</span></div></div>
+</div>
+</section>
+
+<section class="card" data-card="majalah-back" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Cover Majalah — Kartu nama belakang · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#FFFFFF;overflow:hidden">
+
+ <div style="position:absolute;left:0;top:0;bottom:0;width:10mm;background:#F4EFE6;border-right:.5mm solid #1D1D1B"></div>
+ <div style="position:absolute;left:14mm;right:9mm;top:9mm;bottom:9mm;display:flex;gap:4mm;align-items:center;color:#1D1D1B">
+  <div style="background:#FFFFFF;padding:0mm;;flex-shrink:0;display:inline-block"><img src="{qr_src}" style="width:24mm;height:24mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+  <div style="display:flex;flex-direction:column;gap:.8mm"><div style="font:500 1.9mm/1.2 'DM Mono',monospace;letter-spacing:.12em">CARA MASUK COVER</div><div style="display:flex;flex-direction:column;gap:0.5mm;font:700 2.6mm/1.2 'Plus Jakarta Sans',sans-serif;color:#1D1D1B">
+ <div>1. Scan QR</div><div>2. Isi nama</div><div>3. Jepret {shots} foto</div>
+ <div id="if-voice">4. Voice note</div>
+ <div id="if-frame">{frame_no}. Bikin frame</div></div><div style="font:500 1.8mm/1.2 'DM Mono',monospace;margin-top:.6mm">GRATIS · @tetraphotobooth</div></div>
+ </div>
+</div>
+</section>
+
+<section class="card" data-card="kartupos-a5" data-size="148mm × 210mm (A5, potret)">
+<h2>Kartu Pos — Kartu meja A5 · 148mm × 210mm (A5, potret)</h2>
+<div style="position:relative;width:148mm;height:210mm;background:repeating-linear-gradient(-45deg,#E8836F 0 5mm,#FBF8F1 5mm 7.5mm,#3F6E9C 7.5mm 12.5mm,#FBF8F1 12.5mm 15mm);overflow:hidden">
+
+ <div style="position:absolute;left:6mm;top:6mm;right:6mm;bottom:6mm;background:#FBF8F1"></div>
+ <div style="position:absolute;left:14mm;top:15mm;font:500 3mm/1.2 'DM Mono',monospace;letter-spacing:.2em;color:#1D1D1B">KARTU POS</div>
+ <div style="position:absolute;left:14mm;top:20mm;font:800 6.2mm/1.2 'Plus Jakarta Sans',sans-serif;letter-spacing:-.03em;color:#1D1D1B">dari meja tamu</div>
+ <div style="position:absolute;left:106mm;top:13mm;width:28mm;height:34mm">
+ <div style="position:absolute;left:0mm;top:-3.06mm;width:28mm;height:6.12mm;background:radial-gradient(circle at 4.42mm 3.06mm,#FBF8F1 3.06mm,transparent 3.11mm) 0 0/8.84mm 6.12mm repeat-x"></div>
+<div style="position:absolute;left:0mm;top:30.94mm;width:28mm;height:6.12mm;background:radial-gradient(circle at 4.42mm 3.06mm,#FBF8F1 3.06mm,transparent 3.11mm) 0 0/8.84mm 6.12mm repeat-x"></div>
+<div style="position:absolute;left:-3.06mm;top:0mm;width:6.12mm;height:34mm;background:radial-gradient(circle at 3.06mm 4.42mm,#FBF8F1 3.06mm,transparent 3.11mm) 0 0/6.12mm 8.84mm repeat-y"></div>
+<div style="position:absolute;left:24.94mm;top:0mm;width:6.12mm;height:34mm;background:radial-gradient(circle at 3.06mm 4.42mm,#FBF8F1 3.06mm,transparent 3.11mm) 0 0/6.12mm 8.84mm repeat-y"></div>
+ <div style="position:absolute;inset:0;background:#F8D98B;border:1.02mm solid #FBF8F1;box-sizing:border-box"></div>
+ <div style="position:absolute;inset:3.06mm;border:0.40800000000000003mm solid #1D1D1B;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#1D1D1B">
+  <div style="font:800 14.28mm/.86 'Bricolage Grotesque',sans-serif;letter-spacing:-.05em">{shots}</div><div style="font:500 2.72mm/1.2 'DM Mono',monospace;margin-top:1.02mm">FOTO · GRATIS</div><div style="font:800 2.72mm/1.2 'Plus Jakarta Sans',sans-serif;margin-top:1.7000000000000002mm">SNAPBOOK</div></div></div>
+ <div style="position:absolute;left:84mm;top:36mm;width:28mm;height:28mm;border:.5mm solid #3F6E9C;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#3F6E9C;transform:rotate(-12deg);font:500 2.4mm/1.2 'DM Mono',monospace;text-align:center;line-height:1.3"><span>SNAPBOOK</span><span style="font-size:3mm">{date_dot}</span><span>BOGOR</span></div>
+ <div style="position:absolute;left:14mm;top:42mm;width:70mm;font:400 9mm/1.05 'Reenie Beanie',cursive;color:#2A3550;transform:rotate(-1.5deg)">Hai! Jangan cuma makan ya. Scan, jepret, terus titip ucapan buat kami.<br /><span style="font-size:7.5mm">— tuan rumah</span></div>
+ <div style="position:absolute;left:14mm;right:14mm;top:107mm;border-top:.4mm solid #1D1D1B"></div>
+ <div style="position:absolute;left:14mm;top:115mm;display:flex;flex-direction:column;gap:2mm;align-items:flex-start"><div style="background:#FFFFFF;padding:2.5mm;border:.4mm solid #1D1D1B;flex-shrink:0;display:inline-block"><img src="{qr_src}" style="width:38mm;height:38mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div><div style="font:500 2.8mm/1.2 'DM Mono',monospace;color:#1D1D1B">scan = kirim kartu</div></div>
+ <div style="position:absolute;left:66mm;right:14mm;top:116mm;display:flex;flex-direction:column;color:#1D1D1B">
+  <div style="font:500 2.6mm/1.2 'DM Mono',monospace;letter-spacing:.14em">KEPADA</div>
+  <div style="border-bottom:.3mm solid #1D1D1B;padding:2mm 0 1mm;font:400 7.6mm/1.05 'Reenie Beanie',cursive;color:#2A3550">Album acara</div>
+  <div style="border-bottom:.3mm solid #1D1D1B;padding:2mm 0 1mm;display:flex;white-space:nowrap;font:400 7.6mm/1.05 'Reenie Beanie',cursive;color:#2A3550"><span data-fit="left" style="flex-shrink:0;display:inline-block">{event_name}</span></div>
+  <div style="margin-top:4mm;font:500 2.6mm/1.2 'DM Mono',monospace;letter-spacing:.14em">CARA KIRIM</div>
+  <div style="margin-top:1.4mm;font:700 3.3mm/1.2 'Plus Jakarta Sans',sans-serif;line-height:1.5">1 Scan QR<br />2 Isi nama<br />3 Jepret {shots} foto</div>
+ </div>
+ <div style="position:absolute;left:14mm;right:14mm;top:166mm;font:400 7mm/1.05 'Reenie Beanie',cursive;color:#2A3550;display:flex;flex-direction:column;gap:.5mm">
+  <div id="if-voice">P.S. bisa titip voice note juga!</div>
+  <div id="if-frame">P.P.S. fotonya bisa dibikin frame &amp; dicetak di booth</div>
+ </div>
+ <div style="position:absolute;left:14mm;right:14mm;bottom:12mm;display:flex;justify-content:space-between;font:500 2.5mm/1.2 'DM Mono',monospace;color:#1D1D1B"><span>GRATIS · GAK PERLU INSTALL</span><span>by Tetra · @tetraphotobooth</span></div>
+</div>
+</section>
+
+<section class="card" data-card="kartupos-front" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Kartu Pos — Kartu nama depan · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:repeating-linear-gradient(-45deg,#E8836F 0 5mm,#FBF8F1 5mm 7.5mm,#3F6E9C 7.5mm 12.5mm,#FBF8F1 12.5mm 15mm);overflow:hidden">
+
+ <div style="position:absolute;left:6mm;top:6mm;right:6mm;bottom:6mm;background:#FBF8F1"></div>
+ <div style="position:absolute;left:10mm;top:10.5mm;font:500 2mm/1.2 'DM Mono',monospace;letter-spacing:.2em;color:#1D1D1B">KARTU POS</div>
+ <div style="position:absolute;left:10mm;top:14mm;font:800 4.6mm/1.2 'Plus Jakarta Sans',sans-serif;letter-spacing:-.03em;color:#1D1D1B">dari meja tamu</div>
+ <div style="position:absolute;left:67mm;top:10mm;width:18mm;height:22mm">
+ <div style="position:absolute;left:0mm;top:-1.98mm;width:18mm;height:3.96mm;background:radial-gradient(circle at 2.8600000000000003mm 1.98mm,#FBF8F1 1.98mm,transparent 2.03mm) 0 0/5.720000000000001mm 3.96mm repeat-x"></div>
+<div style="position:absolute;left:0mm;top:20.02mm;width:18mm;height:3.96mm;background:radial-gradient(circle at 2.8600000000000003mm 1.98mm,#FBF8F1 1.98mm,transparent 2.03mm) 0 0/5.720000000000001mm 3.96mm repeat-x"></div>
+<div style="position:absolute;left:-1.98mm;top:0mm;width:3.96mm;height:22mm;background:radial-gradient(circle at 1.98mm 2.8600000000000003mm,#FBF8F1 1.98mm,transparent 2.03mm) 0 0/3.96mm 5.720000000000001mm repeat-y"></div>
+<div style="position:absolute;left:16.02mm;top:0mm;width:3.96mm;height:22mm;background:radial-gradient(circle at 1.98mm 2.8600000000000003mm,#FBF8F1 1.98mm,transparent 2.03mm) 0 0/3.96mm 5.720000000000001mm repeat-y"></div>
+ <div style="position:absolute;inset:0;background:#F8D98B;border:0.6599999999999999mm solid #FBF8F1;box-sizing:border-box"></div>
+ <div style="position:absolute;inset:1.98mm;border:0.264mm solid #1D1D1B;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#1D1D1B">
+  <div style="font:800 9.24mm/.86 'Bricolage Grotesque',sans-serif;letter-spacing:-.05em">{shots}</div><div style="font:500 1.76mm/1.2 'DM Mono',monospace;margin-top:0.6599999999999999mm">FOTO · GRATIS</div><div style="font:800 1.76mm/1.2 'Plus Jakarta Sans',sans-serif;margin-top:1.1mm">SNAPBOOK</div></div></div>
+ <div style="position:absolute;left:10mm;top:26mm;width:52mm;font:400 6mm/1.05 'Reenie Beanie',cursive;color:#2A3550;transform:rotate(-1.5deg)">Scan baliknya, jepret, titip ucapan ya!</div>
+ <div style="position:absolute;left:10mm;right:10mm;bottom:9.5mm"><div style="display:flex;justify-content:flex-start;white-space:nowrap;font:500 1.9mm/1.2 'DM Mono',monospace;color:#1D1D1B;"><span data-fit="left" style="flex-shrink:0;display:inline-block">Kepada: {event_name}</span></div></div>
+</div>
+</section>
+
+<section class="card" data-card="kartupos-back" data-size="96mm × 61mm (90×55 + bleed 3mm)">
+<h2>Kartu Pos — Kartu nama belakang · 96mm × 61mm (90×55 + bleed 3mm)</h2>
+<div style="position:relative;width:96mm;height:61mm;background:#FBF8F1;overflow:hidden">
+
+ <div style="position:absolute;left:9mm;right:9mm;top:9mm;bottom:9mm;display:flex;gap:4.5mm;align-items:center;color:#1D1D1B">
+  <div style="background:#FFFFFF;padding:1.6mm;border:.3mm solid #1D1D1B;flex-shrink:0;display:inline-block"><img src="{qr_src}" style="width:24mm;height:24mm;display:block;image-rendering:pixelated" id="qr" alt="QR" /></div>
+  <div style="display:flex;flex-direction:column;gap:.8mm"><div style="font:500 1.9mm/1.2 'DM Mono',monospace;letter-spacing:.14em">CARA KIRIM</div><div style="display:flex;flex-direction:column;gap:0.5mm;font:700 2.6mm/1.2 'Plus Jakarta Sans',sans-serif;color:#1D1D1B">
+ <div>1. Scan QR</div><div>2. Isi nama</div><div>3. Jepret {shots} foto</div>
+ <div id="if-voice">4. Voice note</div>
+ <div id="if-frame">{frame_no}. Bikin frame</div></div><div style="font:400 4mm/1.05 'Reenie Beanie',cursive;color:#2A3550">gratis, gak perlu install!</div><div style="font:500 1.8mm/1.2 'DM Mono',monospace">@tetraphotobooth</div></div>
+ </div>
+</div>
+</section>
+
+<script>
+function snapFit(){document.querySelectorAll('[data-fit]').forEach(function(el){el.style.transform='';var w=el.parentElement.clientWidth,sw=el.scrollWidth;el.style.transformOrigin=(el.dataset.fit==='center'?'center':'left')+' top';if(sw>w)el.style.transform='scaleX('+(w/sw)+')';});}
+document.fonts.ready.then(snapFit);window.snapFit=snapFit;
+</script>
+</body></html>

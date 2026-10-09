@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,600;0,6..96,700;1,6..96,500&family=Pinyon+Script&family=Instrument+Serif:ital@0;1&family=DM+Serif+Display:ital@0;1&family=UnifrakturMaguntia&family=Unbounded:wght@600&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Reenie+Beanie&family=Shrikhand&display=swap">
+</helmet>
+<div style="width:{{ boxW }}px;height:{{ boxH }}px;overflow:hidden;position:relative;flex-shrink:0">
+<div ref="{{ rootRef }}" style="position:absolute;left:0;top:0;transform:scale({{ scale }});transform-origin:0 0">
+
+<sc-if value="{{ is_film_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background:#1A1816;overflow:hidden">
+  <img src="foto/p3.jpg" style="position:absolute;left:96px;top:70px;width:408px;height:306px;object-fit:cover"></img>
+  <img src="foto/p4.jpg" style="position:absolute;left:96px;top:406px;width:408px;height:306px;object-fit:cover"></img>
+  <img src="foto/p6.jpg" style="position:absolute;left:96px;top:742px;width:408px;height:306px;object-fit:cover"></img>
+  <img src="foto/p5.jpg" style="position:absolute;left:96px;top:1078px;width:408px;height:306px;object-fit:cover"></img>
+  <div style="position:absolute;left:34px;top:36px;width:30px;height:1728px;background:repeating-linear-gradient(to bottom,#EFEAE0 0 44px,transparent 44px 88px)"></div>
+  <div style="position:absolute;left:536px;top:36px;width:30px;height:1728px;background:repeating-linear-gradient(to bottom,#EFEAE0 0 44px,transparent 44px 88px)"></div>
+  <div style="position:absolute;left:96px;top:382px;width:408px;display:flex;justify-content:space-between;font:500 16px/1 'DM Mono',monospace;color:#F8D98B"><span>▸ 1</span><span>1A</span></div>
+  <div style="position:absolute;left:96px;top:718px;width:408px;display:flex;justify-content:space-between;font:500 16px/1 'DM Mono',monospace;color:#F8D98B"><span>▸ 2</span><span>SNAPBOOK 400</span></div>
+  <div style="position:absolute;left:96px;top:1054px;width:408px;display:flex;justify-content:space-between;font:500 16px/1 'DM Mono',monospace;color:#F8D98B"><span>▸ 3</span><span>3A</span></div>
+  <div style="position:absolute;left:96px;top:1390px;width:408px;display:flex;justify-content:space-between;font:500 16px/1 'DM Mono',monospace;color:#F8D98B"><span>▸ 4</span><span>SNAPBOOK 400</span></div>
+  <div style="position:absolute;left:96px;top:1450px;width:408px;display:flex;justify-content:flex-start;font:800 34px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em;color:#F6F1E6;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+  <div style="position:absolute;left:96px;top:1502px;width:408px;display:flex;justify-content:flex-start;font:400 28px/1 'DM Mono',monospace;color:#F08A3C;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+  <div style="position:absolute;left:96px;top:1700px;width:408px;display:flex;justify-content:space-between;font:500 17px/1 'DM Mono',monospace;color:#F8D98B"><span>SNAPBOOK BY TETRA</span><span>▸ 24</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_film_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background:#F1EDE4;overflow:hidden">
+  <div style="position:absolute;left:0;top:60px;width:1200px;height:648px;background:#1A1816"></div>
+  <div style="position:absolute;left:0;top:748px;width:1200px;height:648px;background:#1A1816"></div>
+  <img src="foto/p3.jpg" style="position:absolute;left:60px;top:124px;width:520px;height:520px;object-fit:cover"></img>
+  <img src="foto/p1.jpg" style="position:absolute;left:620px;top:124px;width:520px;height:520px;object-fit:cover;object-position:50% 25%"></img>
+  <img src="foto/p4.jpg" style="position:absolute;left:60px;top:812px;width:520px;height:520px;object-fit:cover"></img>
+  <img src="foto/p6.jpg" style="position:absolute;left:620px;top:812px;width:520px;height:520px;object-fit:cover"></img>
+  <div style="position:absolute;left:20px;top:76px;width:1160px;height:34px;background:repeating-linear-gradient(to right,#F1EDE4 0 44px,transparent 44px 80px)"></div>
+  <div style="position:absolute;left:20px;top:658px;width:1160px;height:34px;background:repeating-linear-gradient(to right,#F1EDE4 0 44px,transparent 44px 80px)"></div>
+  <div style="position:absolute;left:20px;top:764px;width:1160px;height:34px;background:repeating-linear-gradient(to right,#F1EDE4 0 44px,transparent 44px 80px)"></div>
+  <div style="position:absolute;left:20px;top:1346px;width:1160px;height:34px;background:repeating-linear-gradient(to right,#F1EDE4 0 44px,transparent 44px 80px)"></div>
+  <div style="position:absolute;left:60px;top:698px;width:1080px;display:flex;justify-content:space-between;font:500 16px/1 'DM Mono',monospace;color:#F8D98B"><span>▸ 7    SNAPBOOK 400</span><span>▸ 8</span></div>
+  <div style="position:absolute;left:60px;top:1386px;width:1080px;display:flex;justify-content:space-between;font:500 16px/1 'DM Mono',monospace;color:#F8D98B"><span>▸ 9    SNAPBOOK 400</span><span>▸ 10</span></div>
+  <div style="position:absolute;left:604px;top:112px;width:552px;height:546px;border:8px solid #D9452B;border-radius:44px;box-sizing:border-box;transform:rotate(-1.6deg)"></div>
+  <div style="position:absolute;left:60px;top:1466px;width:1080px;display:flex;justify-content:flex-start;font:800 70px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.03em;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+  <div style="position:absolute;left:60px;top:1566px;width:1080px;display:flex;justify-content:flex-start;font:400 40px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+  <div style="position:absolute;left:60px;top:1704px;width:1080px;display:flex;justify-content:space-between;font:500 20px/1 'DM Mono',monospace;color:#1D1D1B"><span>SNAPBOOK BY TETRA — CONTACT SHEET</span><span>ROLL 01</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_film_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background:#1A1816;overflow:hidden">
+  <img src="foto/p2.jpg" style="position:absolute;left:130px;top:80px;width:640px;height:800px;object-fit:cover"></img>
+  <div style="position:absolute;left:46px;top:40px;width:40px;height:1120px;background:repeating-linear-gradient(to bottom,#EFEAE0 0 56px,transparent 56px 100px)"></div>
+  <div style="position:absolute;left:814px;top:40px;width:40px;height:1120px;background:repeating-linear-gradient(to bottom,#EFEAE0 0 56px,transparent 56px 100px)"></div>
+  <div style="position:absolute;left:792px;top:80px;width:800px;height:18px;transform:rotate(90deg);transform-origin:0 0;display:flex;justify-content:space-between;font:500 18px/1 'DM Mono',monospace;color:#F8D98B"><span>SNAPBOOK 400</span><span>▸ 12</span></div>
+  <div style="position:absolute;left:130px;top:935px;width:640px;display:flex;justify-content:flex-start;font:800 50px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.025em;color:#F6F1E6;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+  <div style="position:absolute;left:130px;top:1008px;width:640px;display:flex;justify-content:flex-start;font:400 30px/1 'DM Mono',monospace;color:#F08A3C;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+  <div style="position:absolute;left:130px;top:1112px;width:640px;font:500 16px/1 'DM Mono',monospace;color:#F8D98B">SNAPBOOK BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_zine_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background-color:#F3EFE6;background-image:radial-gradient(#CFCBC2 3px,transparent 3.5px);background-size:36px 36px;background-position:12px 12px;overflow:hidden">
+  <div style="position:absolute;left:60px;top:82px;width:480px;height:366px;background:#FFFFFF;border:3px solid #1D1D1B;box-sizing:border-box;transform:rotate(-3deg)"></div>
+  <div style="position:absolute;left:60px;top:482px;width:480px;height:366px;background:#FFFFFF;border:3px solid #1D1D1B;box-sizing:border-box;transform:rotate(2.5deg)"></div>
+  <div style="position:absolute;left:60px;top:882px;width:480px;height:366px;background:#FFFFFF;border:3px solid #1D1D1B;box-sizing:border-box;transform:rotate(-1.5deg)"></div>
+  <div style="position:absolute;left:62px;top:1404px;width:330px;height:30px;background:#F8D98B;transform:rotate(-1.5deg)"></div>
+  <img src="foto/p3.jpg" style="position:absolute;left:80px;top:100px;width:440px;height:330px;object-fit:cover;transform:rotate(-3deg)"></img>
+  <img src="foto/p4.jpg" style="position:absolute;left:80px;top:500px;width:440px;height:330px;object-fit:cover;transform:rotate(2.5deg)"></img>
+  <img src="foto/p6.jpg" style="position:absolute;left:80px;top:900px;width:440px;height:330px;object-fit:cover;transform:rotate(-1.5deg)"></img>
+  <div style="position:absolute;left:236px;top:62px;width:130px;height:42px;background:rgba(206,200,246,.88);transform:rotate(4deg)"></div>
+  <div style="position:absolute;left:30px;top:482px;width:130px;height:42px;background:rgba(248,217,139,.9);transform:rotate(-36deg)"></div>
+  <div style="position:absolute;left:446px;top:480px;width:130px;height:42px;background:rgba(248,217,139,.9);transform:rotate(34deg)"></div>
+  <div style="position:absolute;left:240px;top:866px;width:130px;height:42px;background:rgba(142,220,203,.88);transform:rotate(-3deg)"></div>
+  <div style="position:absolute;left:404px;top:1172px;width:150px;height:150px;border-radius:50%;background:#CEC8F6;border:4px solid #1D1D1B;box-sizing:border-box;transform:rotate(12deg);display:flex;align-items:center;justify-content:center;text-align:center;font:400 27px/1 'Shrikhand',serif;color:#1D1D1B">snap<br>&amp; spill!</div>
+  <div style="position:absolute;left:70px;top:1352px;width:460px;display:flex;justify-content:flex-start;font:400 76px/1 'Reenie Beanie',cursive;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+  <div style="position:absolute;left:70px;top:1478px;width:270px;height:58px;background:#1D1D1B;border-radius:6px"></div>
+  <div style="position:absolute;left:70px;top:1492px;width:270px;display:flex;justify-content:center;font:500 30px/1 'DM Mono',monospace;color:#F8F7F4;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+  <div style="position:absolute;left:70px;top:1688px;font:700 20px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;letter-spacing:-.01em">snapbook <span style="font-weight:500;color:#5F5E5A">by tetra</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_zine_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background-color:#F3EFE6;background-image:radial-gradient(#CFCBC2 3px,transparent 3.5px);background-size:40px 40px;background-position:14px 14px;overflow:hidden">
+  <div style="position:absolute;left:72px;top:92px;width:1056px;height:716px;background:#FFFFFF;border:3px solid #1D1D1B;box-sizing:border-box;transform:rotate(-1.5deg)"></div>
+  <div style="position:absolute;left:92px;top:862px;width:476px;height:596px;background:#FFFFFF;border:3px solid #1D1D1B;box-sizing:border-box;transform:rotate(2.5deg)"></div>
+  <div style="position:absolute;left:612px;top:882px;width:506px;height:386px;background:#FFFFFF;border:3px solid #1D1D1B;box-sizing:border-box;transform:rotate(-3deg)"></div>
+  <div style="position:absolute;left:84px;top:1590px;width:620px;height:44px;background:#F8D98B;transform:rotate(-1deg)"></div>
+  <img src="foto/p3.jpg" style="position:absolute;left:90px;top:110px;width:1020px;height:680px;object-fit:cover;transform:rotate(-1.5deg)"></img>
+  <img src="foto/p2.jpg" style="position:absolute;left:110px;top:880px;width:440px;height:560px;object-fit:cover;transform:rotate(2.5deg)"></img>
+  <img src="foto/p4.jpg" style="position:absolute;left:630px;top:900px;width:470px;height:350px;object-fit:cover;transform:rotate(-3deg)"></img>
+  <div style="position:absolute;left:510px;top:70px;width:200px;height:56px;background:rgba(206,200,246,.88);transform:rotate(3deg)"></div>
+  <div style="position:absolute;left:44px;top:740px;width:190px;height:56px;background:rgba(248,217,139,.9);transform:rotate(38deg)"></div>
+  <div style="position:absolute;left:250px;top:846px;width:180px;height:54px;background:rgba(142,220,203,.88);transform:rotate(-4deg)"></div>
+  <div style="position:absolute;left:1000px;top:870px;width:170px;height:54px;background:rgba(248,217,139,.9);transform:rotate(40deg)"></div>
+  <div style="position:absolute;left:930px;top:1300px;width:200px;height:200px;border-radius:50%;background:#CEC8F6;border:5px solid #1D1D1B;box-sizing:border-box;transform:rotate(10deg);display:flex;align-items:center;justify-content:center;text-align:center;font:400 38px/1 'Shrikhand',serif;color:#1D1D1B">snap<br>&amp; spill!</div>
+  <div style="position:absolute;left:650px;top:1330px;width:250px;height:64px;background:#1D1D1B;border-radius:8px"></div>
+  <div style="position:absolute;left:650px;top:1345px;width:250px;display:flex;justify-content:center;font:500 32px/1 'DM Mono',monospace;color:#F8F7F4;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+  <div style="position:absolute;left:90px;top:1520px;width:1020px;display:flex;justify-content:flex-start;font:400 120px/1 'Reenie Beanie',cursive;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+  <div style="position:absolute;left:90px;top:1706px;font:700 24px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;letter-spacing:-.01em">snapbook <span style="font-weight:500;color:#5F5E5A">by tetra</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_zine_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background-color:#F3EFE6;background-image:radial-gradient(#CFCBC2 3px,transparent 3.5px);background-size:36px 36px;background-position:12px 12px;overflow:hidden">
+  <div style="position:absolute;left:96px;top:106px;width:708px;height:748px;background:#FFFFFF;border:3px solid #1D1D1B;box-sizing:border-box;transform:rotate(-2deg)"></div>
+  <div style="position:absolute;left:150px;top:948px;width:600px;height:36px;background:#F8D98B;transform:rotate(-1deg)"></div>
+  <img src="foto/p1.jpg" style="position:absolute;left:120px;top:130px;width:660px;height:700px;object-fit:cover;object-position:50% 25%;transform:rotate(-2deg)"></img>
+  <div style="position:absolute;left:340px;top:82px;width:210px;height:58px;background:rgba(248,217,139,.9);transform:rotate(-3deg)"></div>
+  <div style="position:absolute;left:690px;top:700px;width:160px;height:160px;border-radius:50%;background:#8EDCCB;border:4px solid #1D1D1B;box-sizing:border-box;transform:rotate(-10deg);display:flex;align-items:center;justify-content:center;text-align:center;font:400 30px/1 'Shrikhand',serif;color:#1D1D1B">snap<br>&amp; spill!</div>
+  <div style="position:absolute;left:90px;top:888px;width:720px;display:flex;justify-content:center;font:400 96px/1 'Reenie Beanie',cursive;color:#1D1D1B;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+  <div style="position:absolute;left:325px;top:1018px;width:250px;height:56px;background:#1D1D1B;border-radius:6px"></div>
+  <div style="position:absolute;left:325px;top:1032px;width:250px;display:flex;justify-content:center;font:500 28px/1 'DM Mono',monospace;color:#F8F7F4;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+  <div style="position:absolute;left:0;top:1118px;width:900px;text-align:center;font:700 18px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B">snapbook <span style="font-weight:500;color:#5F5E5A">by tetra</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_bold_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background:#F8F7F4;overflow:hidden">
+  <div style="position:absolute;left:74px;top:74px;width:460px;height:396px;background:#8EDCCB;border:8px solid #1D1D1B;border-radius:20px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:74px;top:504px;width:460px;height:396px;background:#CEC8F6;border:8px solid #1D1D1B;border-radius:20px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:74px;top:934px;width:460px;height:396px;background:#FCE3C6;border:8px solid #1D1D1B;border-radius:20px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:74px;top:1406px;width:460px;height:200px;background:#1D1D1B;border-radius:20px"></div>
+  <img src="foto/p3.jpg" style="position:absolute;left:66px;top:66px;width:444px;height:380px;object-fit:cover"></img>
+  <img src="foto/p4.jpg" style="position:absolute;left:66px;top:496px;width:444px;height:380px;object-fit:cover"></img>
+  <img src="foto/p6.jpg" style="position:absolute;left:66px;top:926px;width:444px;height:380px;object-fit:cover"></img>
+  <div style="position:absolute;left:58px;top:58px;width:460px;height:396px;border:8px solid #1D1D1B;border-radius:20px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:58px;top:488px;width:460px;height:396px;border:8px solid #1D1D1B;border-radius:20px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:58px;top:918px;width:460px;height:396px;border:8px solid #1D1D1B;border-radius:20px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:58px;top:1390px;width:460px;height:200px;background:#F8D98B;border:8px solid #1D1D1B;border-radius:20px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:90px;top:1428px;width:396px;display:flex;justify-content:flex-start;font:800 42px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.03em;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+  <div style="position:absolute;left:90px;top:1506px;width:396px;display:flex;justify-content:flex-start;font:400 28px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+  <div style="position:absolute;left:58px;top:1672px;display:flex;align-items:center;gap:12px"><span style="width:44px;height:44px;border:4px solid #1D1D1B;border-radius:11px;background:#8EDCCB;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:800 22px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B">T</span><span style="font:800 22px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;letter-spacing:-.02em">Snapbook <span style="font-weight:600">by Tetra</span></span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_bold_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background:#F8F7F4;overflow:hidden">
+  <div style="position:absolute;left:82px;top:82px;width:508px;height:616px;background:#8EDCCB;border:8px solid #1D1D1B;border-radius:24px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:634px;top:82px;width:508px;height:616px;background:#CEC8F6;border:8px solid #1D1D1B;border-radius:24px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:82px;top:738px;width:508px;height:616px;background:#FCE3C6;border:8px solid #1D1D1B;border-radius:24px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:634px;top:738px;width:508px;height:616px;background:#D6EEF8;border:8px solid #1D1D1B;border-radius:24px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:82px;top:1436px;width:1060px;height:220px;background:#1D1D1B;border-radius:24px"></div>
+  <img src="foto/p1.jpg" style="position:absolute;left:74px;top:74px;width:492px;height:600px;object-fit:cover;object-position:50% 20%"></img>
+  <img src="foto/p3.jpg" style="position:absolute;left:626px;top:74px;width:492px;height:600px;object-fit:cover"></img>
+  <img src="foto/p6.jpg" style="position:absolute;left:74px;top:730px;width:492px;height:600px;object-fit:cover"></img>
+  <img src="foto/p2.jpg" style="position:absolute;left:626px;top:730px;width:492px;height:600px;object-fit:cover"></img>
+  <div style="position:absolute;left:66px;top:66px;width:508px;height:616px;border:8px solid #1D1D1B;border-radius:24px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:618px;top:66px;width:508px;height:616px;border:8px solid #1D1D1B;border-radius:24px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:66px;top:722px;width:508px;height:616px;border:8px solid #1D1D1B;border-radius:24px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:618px;top:722px;width:508px;height:616px;border:8px solid #1D1D1B;border-radius:24px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:66px;top:1420px;width:1060px;height:220px;background:#F8D98B;border:8px solid #1D1D1B;border-radius:24px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:106px;top:1462px;width:980px;display:flex;justify-content:flex-start;font:800 76px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.035em;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+  <div style="position:absolute;left:106px;top:1566px;width:980px;display:flex;justify-content:flex-start;font:400 40px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+  <div style="position:absolute;right:74px;top:1696px;display:flex;align-items:center;gap:14px"><span style="width:52px;height:52px;border:4px solid #1D1D1B;border-radius:13px;background:#8EDCCB;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:800 26px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B">T</span><span style="font:800 26px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;letter-spacing:-.02em">Snapbook <span style="font-weight:600">by Tetra</span></span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_bold_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background:#F8D98B;overflow:hidden">
+  <div style="position:absolute;left:96px;top:96px;width:724px;height:776px;background:#1D1D1B;border-radius:24px"></div>
+  <img src="foto/p2.jpg" style="position:absolute;left:88px;top:88px;width:708px;height:760px;object-fit:cover"></img>
+  <div style="position:absolute;left:80px;top:80px;width:724px;height:776px;border:8px solid #1D1D1B;border-radius:24px;box-sizing:border-box"></div>
+  <div style="position:absolute;left:84px;top:924px;width:732px;display:flex;justify-content:flex-start;font:800 58px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.035em;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+  <div style="position:absolute;left:84px;top:1004px;width:732px;display:flex;justify-content:flex-start;font:400 30px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+  <div style="position:absolute;left:80px;top:1098px;display:flex;align-items:center;gap:10px"><span style="width:40px;height:40px;border:4px solid #1D1D1B;border-radius:10px;background:#8EDCCB;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:800 19px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B">T</span><span style="font:800 20px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;letter-spacing:-.02em">Snapbook <span style="font-weight:600">by Tetra</span></span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_teater_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background:#6B1A1F;overflow:hidden">
+<div style="position:absolute;left:36px;top:36px;width:528px;height:1728px;background:#F6EDE0"></div>
+<div style="position:absolute;left:22px;top:36px;width:28px;height:1728px;background:radial-gradient(circle at 14px 20px, #6B1A1F 11px, transparent 12px) 0 0/28px 40px repeat-y"></div>
+<div style="position:absolute;left:550px;top:36px;width:28px;height:1728px;background:radial-gradient(circle at 14px 20px, #6B1A1F 11px, transparent 12px) 0 0/28px 40px repeat-y"></div>
+<div style="position:absolute;left:62px;top:62px;width:476px;height:1676px;border:3px solid #6B1A1F;box-sizing:border-box"></div>
+<img src="foto/p3.jpg" style="position:absolute;left:80px;top:285px;width:440px;height:300px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p4.jpg" style="position:absolute;left:80px;top:600px;width:440px;height:300px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p6.jpg" style="position:absolute;left:80px;top:915px;width:440px;height:300px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p5.jpg" style="position:absolute;left:80px;top:1230px;width:440px;height:300px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:77px;top:282px;width:446px;height:306px;border:3px solid #6B1A1F;box-sizing:border-box"></div>
+<div style="position:absolute;left:77px;top:597px;width:446px;height:306px;border:3px solid #6B1A1F;box-sizing:border-box"></div>
+<div style="position:absolute;left:77px;top:912px;width:446px;height:306px;border:3px solid #6B1A1F;box-sizing:border-box"></div>
+<div style="position:absolute;left:77px;top:1227px;width:446px;height:306px;border:3px solid #6B1A1F;box-sizing:border-box"></div>
+<div style="position:absolute;left:62px;top:80px;width:476px;text-align:center;font:400 60px/1 'Pinyon Script',cursive;color:#6B1A1F;white-space:nowrap;">Snapbook Show</div>
+<div style="position:absolute;left:80px;top:170px;width:440px;height:95px;border:3px solid #6B1A1F;box-sizing:border-box"></div>
+<div style="position:absolute;left:80px;top:170px;width:110px;height:95px;border-right:3px solid #6B1A1F;box-sizing:border-box"></div><div style="position:absolute;left:80px;top:185.2px;width:110px;text-align:center;font:500 18px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap;">Kursi</div><div style="position:absolute;left:80px;top:210.79999999999998px;width:110px;text-align:center;font:600 30px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap;">Bebas</div>
+<div style="position:absolute;left:190px;top:170px;width:110px;height:95px;border-right:3px solid #6B1A1F;box-sizing:border-box"></div><div style="position:absolute;left:190px;top:185.2px;width:110px;text-align:center;font:500 18px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap;">Show</div><div style="position:absolute;left:190px;top:210.79999999999998px;width:110px;text-align:center;font:600 30px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap;">01</div>
+<div style="position:absolute;left:300px;top:204px;width:220px;display:flex;justify-content:center;font:600 24px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:80px;top:1552px;width:440px;height:3px;background:#6B1A1F"></div><div style="position:absolute;left:80px;top:1596px;width:440px;height:3px;background:#6B1A1F"></div><div style="position:absolute;left:80px;top:1568.5px;width:440px;text-align:center;font:500 15px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap;letter-spacing:.12em">SPILL MOMEN SERUMU ★ SPILL MOMEN SERUMU</div>
+<div style="position:absolute;left:80px;top:1628px;width:440px;display:flex;justify-content:center;font:500 40px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:62px;top:1700px;width:476px;text-align:center;font:500 15px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap;letter-spacing:.3em">SNAPBOOK BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_teater_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background:#6B1A1F;overflow:hidden">
+<div style="position:absolute;left:40px;top:40px;width:1120px;height:1720px;background:#F6EDE0"></div>
+<div style="position:absolute;left:23px;top:40px;width:34px;height:1720px;background:radial-gradient(circle at 17px 24px, #6B1A1F 13px, transparent 14px) 0 0/34px 48px repeat-y"></div>
+<div style="position:absolute;left:1143px;top:40px;width:34px;height:1720px;background:radial-gradient(circle at 17px 24px, #6B1A1F 13px, transparent 14px) 0 0/34px 48px repeat-y"></div>
+<div style="position:absolute;left:72px;top:72px;width:1056px;height:1656px;border:3px solid #6B1A1F;box-sizing:border-box"></div>
+<img src="foto/p1.jpg" style="position:absolute;left:110px;top:395px;width:480px;height:500px;object-fit:cover;object-position:50% 25%"></img>
+<img src="foto/p3.jpg" style="position:absolute;left:610px;top:395px;width:480px;height:500px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p2.jpg" style="position:absolute;left:110px;top:910px;width:480px;height:500px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p4.jpg" style="position:absolute;left:610px;top:910px;width:480px;height:500px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:107px;top:392px;width:486px;height:506px;border:3px solid #6B1A1F;box-sizing:border-box"></div>
+<div style="position:absolute;left:607px;top:392px;width:486px;height:506px;border:3px solid #6B1A1F;box-sizing:border-box"></div>
+<div style="position:absolute;left:107px;top:907px;width:486px;height:506px;border:3px solid #6B1A1F;box-sizing:border-box"></div>
+<div style="position:absolute;left:607px;top:907px;width:486px;height:506px;border:3px solid #6B1A1F;box-sizing:border-box"></div>
+<div style="position:absolute;left:72px;top:108px;width:1056px;text-align:center;font:400 104px/1 'Pinyon Script',cursive;color:#6B1A1F;white-space:nowrap;">Snapbook Show</div>
+<div style="position:absolute;left:110px;top:250px;width:980px;height:110px;border:3px solid #6B1A1F;box-sizing:border-box"></div>
+<div style="position:absolute;left:110px;top:250px;width:240px;height:110px;border-right:3px solid #6B1A1F;box-sizing:border-box"></div><div style="position:absolute;left:110px;top:267.6px;width:240px;text-align:center;font:500 24px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap;">Kursi</div><div style="position:absolute;left:110px;top:300.40000000000003px;width:240px;text-align:center;font:600 44px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap;">Bebas</div>
+<div style="position:absolute;left:350px;top:250px;width:240px;height:110px;border-right:3px solid #6B1A1F;box-sizing:border-box"></div><div style="position:absolute;left:350px;top:267.6px;width:240px;text-align:center;font:500 24px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap;">Show</div><div style="position:absolute;left:350px;top:300.40000000000003px;width:240px;text-align:center;font:600 44px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap;">01</div>
+<div style="position:absolute;left:600px;top:288px;width:480px;display:flex;justify-content:center;font:600 40px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:110px;top:1446px;width:980px;height:3px;background:#6B1A1F"></div><div style="position:absolute;left:110px;top:1498px;width:980px;height:3px;background:#6B1A1F"></div><div style="position:absolute;left:110px;top:1464px;width:980px;text-align:center;font:500 20px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap;letter-spacing:.12em">SPILL MOMEN SERUMU ★ SPILL MOMEN SERUMU ★ SPILL MOMEN SERUMU</div>
+<div style="position:absolute;left:110px;top:1545px;width:980px;display:flex;justify-content:center;font:500 76px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:72px;top:1676px;width:1056px;text-align:center;font:500 20px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap;letter-spacing:.3em">SNAPBOOK BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_teater_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background:#6B1A1F;overflow:hidden">
+<div style="position:absolute;left:34px;top:34px;width:832px;height:1132px;background:#F6EDE0"></div>
+<div style="position:absolute;left:20px;top:34px;width:28px;height:1132px;background:radial-gradient(circle at 14px 20px, #6B1A1F 11px, transparent 12px) 0 0/28px 40px repeat-y"></div>
+<div style="position:absolute;left:852px;top:34px;width:28px;height:1132px;background:radial-gradient(circle at 14px 20px, #6B1A1F 11px, transparent 12px) 0 0/28px 40px repeat-y"></div>
+<div style="position:absolute;left:60px;top:60px;width:780px;height:1080px;border:3px solid #6B1A1F;box-sizing:border-box"></div>
+<img src="foto/p2.jpg" style="position:absolute;left:100px;top:190px;width:700px;height:680px;object-fit:cover;object-position:50% 30%"></img>
+<div style="position:absolute;left:97px;top:187px;width:706px;height:686px;border:3px solid #6B1A1F;box-sizing:border-box"></div>
+<div style="position:absolute;left:60px;top:82px;width:780px;text-align:center;font:400 70px/1 'Pinyon Script',cursive;color:#6B1A1F;white-space:nowrap;">Snapbook Show</div>
+<div style="position:absolute;left:100px;top:892px;width:700px;height:3px;background:#6B1A1F"></div><div style="position:absolute;left:100px;top:932px;width:700px;height:3px;background:#6B1A1F"></div><div style="position:absolute;left:100px;top:906.5px;width:700px;text-align:center;font:500 15px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap;letter-spacing:.12em">SPILL MOMEN SERUMU ★ SPILL MOMEN SERUMU</div>
+<div style="position:absolute;left:100px;top:960px;width:700px;display:flex;justify-content:center;font:500 54px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:100px;top:1034px;width:700px;display:flex;justify-content:center;font:500 28px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:60px;top:1096px;width:780px;text-align:center;font:500 14px/1 'Bodoni Moda',serif;color:#6B1A1F;white-space:nowrap;letter-spacing:.3em">SNAPBOOK BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_pass_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background:#FFFFFF;overflow:hidden">
+<div style="position:absolute;left:0px;top:0px;width:600px;height:110px;background:#D6EEF8"></div>
+<div style="position:absolute;left:0px;top:110px;width:600px;height:4px;background:#1D1D1B"></div>
+<div style="position:absolute;left:40px;top:48px;width:300px;text-align:left;font:800 28px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;letter-spacing:-.02em">Snapbook</div>
+<div style="position:absolute;left:260px;top:54px;width:300px;text-align:right;font:500 18px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;letter-spacing:.12em">BOARDING PASS</div>
+<div style="position:absolute;left:40px;top:148px;width:520px;text-align:left;font:800 96px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;letter-spacing:-.05em">TMU</div><div style="position:absolute;left:40px;top:169.12px;width:520px;text-align:center;font:500 43.2px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">→</div><div style="position:absolute;left:40px;top:148px;width:520px;text-align:right;font:800 96px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;letter-spacing:-.05em">ALB</div><div style="position:absolute;left:40px;top:239.2px;width:520px;text-align:left;font:500 18px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">Tamu</div><div style="position:absolute;left:40px;top:239.2px;width:520px;text-align:right;font:500 18px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">Album acara</div>
+<div style="position:absolute;left:40px;top:296px;width:520px;height:3px;background:#1D1D1B"></div>
+<div style="position:absolute;left:40px;top:314px;width:300px;text-align:left;font:500 16px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">ACARA</div>
+<div style="position:absolute;left:40px;top:338px;width:520px;display:flex;justify-content:flex-start;font:800 34px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:40px;top:392px;width:200px;text-align:left;font:500 16px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">TANGGAL</div>
+<div style="position:absolute;left:40px;top:414px;width:320px;display:flex;justify-content:flex-start;font:400 28px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+<div style="position:absolute;left:400px;top:392px;width:160px;text-align:left;font:500 16px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">BAGASI</div>
+<div style="position:absolute;left:400px;top:412px;width:160px;text-align:left;font:800 28px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;">3 foto</div>
+<div style="position:absolute;left:0px;top:462px;width:600px;height:0px;border-top:3px dashed #1D1D1B"></div>
+<img src="foto/p3.jpg" style="position:absolute;left:40px;top:490px;width:520px;height:370px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p6.jpg" style="position:absolute;left:40px;top:880px;width:520px;height:370px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p4.jpg" style="position:absolute;left:40px;top:1270px;width:520px;height:370px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:40px;top:1672px;width:280px;height:70px;background:repeating-linear-gradient(90deg,#1D1D1B 0 5px,transparent 5px 9px,#1D1D1B 9px 12px,transparent 12px 18px,#1D1D1B 18px 26px,transparent 26px 30px)"></div>
+<div style="position:absolute;left:340px;top:1700px;width:220px;text-align:right;font:500 16px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">SNAPBOOK BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_pass_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background:#FFFFFF;overflow:hidden">
+<div style="position:absolute;left:0px;top:0px;width:1200px;height:100px;background:#D6EEF8"></div>
+<div style="position:absolute;left:0px;top:100px;width:1200px;height:4px;background:#1D1D1B"></div>
+<div style="position:absolute;left:60px;top:34px;width:400px;text-align:left;font:800 36px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;letter-spacing:-.02em">Snapbook</div>
+<div style="position:absolute;left:740px;top:42px;width:400px;text-align:right;font:500 22px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;letter-spacing:.12em">BOARDING PASS</div>
+<div style="position:absolute;left:860px;top:104px;width:0px;height:456px;border-left:3px dashed #1D1D1B"></div>
+<div style="position:absolute;left:60px;top:150px;width:760px;text-align:left;font:800 150px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;letter-spacing:-.05em">TMU</div><div style="position:absolute;left:60px;top:183px;width:760px;text-align:center;font:500 67.5px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">→</div><div style="position:absolute;left:60px;top:150px;width:760px;text-align:right;font:800 150px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;letter-spacing:-.05em">ALB</div><div style="position:absolute;left:60px;top:292.5px;width:760px;text-align:left;font:500 22px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">Tamu</div><div style="position:absolute;left:60px;top:292.5px;width:760px;text-align:right;font:500 22px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">Album acara</div>
+<div style="position:absolute;left:60px;top:372px;width:300px;text-align:left;font:500 18px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">ACARA</div>
+<div style="position:absolute;left:60px;top:398px;width:760px;display:flex;justify-content:flex-start;font:800 46px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:60px;top:470px;width:200px;text-align:left;font:500 18px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">PENUMPANG</div>
+<div style="position:absolute;left:60px;top:496px;width:200px;text-align:left;font:800 32px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;">Kamu</div>
+<div style="position:absolute;left:320px;top:470px;width:200px;text-align:left;font:500 18px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">BAGASI</div>
+<div style="position:absolute;left:320px;top:496px;width:200px;text-align:left;font:800 32px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;">4 foto</div>
+<div style="position:absolute;left:580px;top:470px;width:200px;text-align:left;font:500 18px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">KURSI</div>
+<div style="position:absolute;left:580px;top:496px;width:200px;text-align:left;font:800 32px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;">Bebas</div>
+<div style="position:absolute;left:892px;top:140px;width:250px;text-align:left;font:500 18px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">TANGGAL</div>
+<div style="position:absolute;left:892px;top:166px;width:250px;display:flex;justify-content:flex-start;font:400 34px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+<div style="position:absolute;left:892px;top:232px;width:250px;text-align:left;font:500 18px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">GATE</div>
+<div style="position:absolute;left:892px;top:258px;width:250px;text-align:left;font:800 30px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;">Booth Tetra</div>
+<div style="position:absolute;left:892px;top:330px;width:250px;height:190px;background:repeating-linear-gradient(90deg,#1D1D1B 0 5px,transparent 5px 9px,#1D1D1B 9px 12px,transparent 12px 18px,#1D1D1B 18px 26px,transparent 26px 30px)"></div>
+<div style="position:absolute;left:0px;top:560px;width:1200px;height:4px;background:#1D1D1B"></div>
+<img src="foto/p7.jpg" style="position:absolute;left:60px;top:600px;width:525px;height:520px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p3.jpg" style="position:absolute;left:615px;top:600px;width:525px;height:520px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p6.jpg" style="position:absolute;left:60px;top:1150px;width:525px;height:520px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p8.jpg" style="position:absolute;left:615px;top:1150px;width:525px;height:520px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:60px;top:1716px;width:500px;text-align:left;font:500 20px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">SNAPBOOK BY TETRA</div>
+<div style="position:absolute;left:640px;top:1716px;width:500px;text-align:right;font:500 20px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">JEPRET SEBELUM GATE DITUTUP</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_pass_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background:#FFFFFF;overflow:hidden">
+<div style="position:absolute;left:0px;top:0px;width:900px;height:90px;background:#D6EEF8"></div>
+<div style="position:absolute;left:0px;top:90px;width:900px;height:4px;background:#1D1D1B"></div>
+<div style="position:absolute;left:50px;top:32px;width:300px;text-align:left;font:800 28px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;letter-spacing:-.02em">Snapbook</div>
+<div style="position:absolute;left:500px;top:38px;width:350px;text-align:right;font:500 18px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;letter-spacing:.12em">BOARDING PASS</div>
+<div style="position:absolute;left:50px;top:124px;width:800px;text-align:left;font:800 110px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;letter-spacing:-.05em">TMU</div><div style="position:absolute;left:50px;top:148.2px;width:800px;text-align:center;font:500 49.5px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">→</div><div style="position:absolute;left:50px;top:124px;width:800px;text-align:right;font:800 110px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;letter-spacing:-.05em">ALB</div>
+<img src="foto/p2.jpg" style="position:absolute;left:50px;top:270px;width:800px;height:640px;object-fit:cover;object-position:50% 30%"></img>
+<div style="position:absolute;left:50px;top:940px;width:800px;height:0px;border-top:3px dashed #1D1D1B"></div>
+<div style="position:absolute;left:50px;top:966px;width:300px;text-align:left;font:500 16px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">ACARA</div>
+<div style="position:absolute;left:50px;top:988px;width:560px;display:flex;justify-content:flex-start;font:800 40px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:50px;top:1046px;width:300px;text-align:left;font:500 16px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">TANGGAL</div>
+<div style="position:absolute;left:50px;top:1068px;width:300px;display:flex;justify-content:flex-start;font:400 28px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+<div style="position:absolute;left:650px;top:966px;width:200px;height:110px;background:repeating-linear-gradient(90deg,#1D1D1B 0 5px,transparent 5px 9px,#1D1D1B 9px 12px,transparent 12px 18px,#1D1D1B 18px 26px,transparent 26px 30px)"></div>
+<div style="position:absolute;left:50px;top:1128px;width:500px;text-align:left;font:500 15px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">SNAPBOOK BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_musik_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background:#FFFFFF;overflow:hidden">
+<img src="foto/p3.jpg" style="position:absolute;left:50px;top:100px;width:500px;height:390px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p6.jpg" style="position:absolute;left:50px;top:510px;width:500px;height:390px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p4.jpg" style="position:absolute;left:50px;top:920px;width:500px;height:390px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:50px;top:100px;width:500px;height:390px;border-radius:26px;box-shadow:0 0 0 14px #FFFFFF"></div>
+<div style="position:absolute;left:50px;top:510px;width:500px;height:390px;border-radius:26px;box-shadow:0 0 0 14px #FFFFFF"></div>
+<div style="position:absolute;left:50px;top:920px;width:500px;height:390px;border-radius:26px;box-shadow:0 0 0 14px #FFFFFF"></div>
+<div style="position:absolute;left:50px;top:46px;width:300px;text-align:left;font:500 18px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;letter-spacing:.1em">SEDANG DIPUTAR</div>
+<div style="position:absolute;left:250px;top:46px;width:300px;text-align:right;font:500 18px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">dari album acara</div>
+<div style="position:absolute;left:50px;top:1348px;width:500px;display:flex;justify-content:flex-start;font:800 40px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:50px;top:1402px;width:500px;display:flex;justify-content:flex-start;font:500 26px/1 'Plus Jakarta Sans',sans-serif;color:#5F5E5A;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+<div style="position:absolute;left:50px;top:1466px;width:500px;height:8px;background:#D6D3CC;border-radius:8px"></div>
+<div style="position:absolute;left:50px;top:1466px;width:200px;height:8px;background:#1D1D1B;border-radius:8px"></div>
+<div style="position:absolute;left:238px;top:1458px;width:24px;height:24px;border-radius:50%;background:#1D1D1B"></div>
+<div style="position:absolute;left:50px;top:1488px;width:250px;text-align:left;font:500 18px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">1:24</div>
+<div style="position:absolute;left:300px;top:1488px;width:250px;text-align:right;font:500 18px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">-2:10</div>
+<div style="position:absolute;left:245px;top:1545px;width:110px;height:110px;border-radius:50%;background:#1D1D1B"></div>
+<div style="position:absolute;left:285.7px;top:1578px;width:0px;height:0px;border-top:22px solid transparent;border-bottom:22px solid transparent;border-left:37.400000000000006px solid #FFFFFF"></div>
+<div style="position:absolute;left:169px;top:1580px;width:0px;height:0px;border-top:20px solid transparent;border-bottom:20px solid transparent;border-right:36px solid #1D1D1B"></div>
+<div style="position:absolute;left:161.8px;top:1580px;width:7.199999999999999px;height:40px;background:#1D1D1B"></div>
+<div style="position:absolute;left:395px;top:1580px;width:0px;height:0px;border-top:20px solid transparent;border-bottom:20px solid transparent;border-left:36px solid #1D1D1B"></div>
+<div style="position:absolute;left:431px;top:1580px;width:7.199999999999999px;height:40px;background:#1D1D1B"></div>
+<div style="position:absolute;left:0px;top:1706px;width:600px;text-align:center;font:700 18px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;">Snapbook <span style="font-weight:500;color:#5F5E5A">by Tetra</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_musik_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background:#FFFFFF;overflow:hidden">
+<img src="foto/p3.jpg" style="position:absolute;left:80px;top:100px;width:1040px;height:760px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p1.jpg" style="position:absolute;left:80px;top:885px;width:510px;height:380px;object-fit:cover;object-position:50% 25%"></img>
+<img src="foto/p6.jpg" style="position:absolute;left:610px;top:885px;width:510px;height:380px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:80px;top:100px;width:1040px;height:760px;border-radius:32px;box-shadow:0 0 0 16px #FFFFFF"></div>
+<div style="position:absolute;left:80px;top:885px;width:510px;height:380px;border-radius:32px;box-shadow:0 0 0 16px #FFFFFF"></div>
+<div style="position:absolute;left:610px;top:885px;width:510px;height:380px;border-radius:32px;box-shadow:0 0 0 16px #FFFFFF"></div>
+<div style="position:absolute;left:80px;top:48px;width:500px;text-align:left;font:500 22px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;letter-spacing:.1em">SEDANG DIPUTAR</div>
+<div style="position:absolute;left:620px;top:48px;width:500px;text-align:right;font:500 22px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">dari album acara</div>
+<div style="position:absolute;left:80px;top:1308px;width:1040px;display:flex;justify-content:flex-start;font:800 64px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:80px;top:1392px;width:1040px;display:flex;justify-content:flex-start;font:500 36px/1 'Plus Jakarta Sans',sans-serif;color:#5F5E5A;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+<div style="position:absolute;left:80px;top:1470px;width:1040px;height:10px;background:#D6D3CC;border-radius:10px"></div>
+<div style="position:absolute;left:80px;top:1470px;width:420px;height:10px;background:#1D1D1B;border-radius:10px"></div>
+<div style="position:absolute;left:485px;top:1460px;width:30px;height:30px;border-radius:50%;background:#1D1D1B"></div>
+<div style="position:absolute;left:80px;top:1494px;width:520px;text-align:left;font:500 22px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">1:24</div>
+<div style="position:absolute;left:600px;top:1494px;width:520px;text-align:right;font:500 22px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">-2:10</div>
+<div style="position:absolute;left:525px;top:1535px;width:150px;height:150px;border-radius:50%;background:#1D1D1B"></div>
+<div style="position:absolute;left:580.5px;top:1580px;width:0px;height:0px;border-top:30px solid transparent;border-bottom:30px solid transparent;border-left:51.00000000000001px solid #FFFFFF"></div>
+<div style="position:absolute;left:400px;top:1582px;width:0px;height:0px;border-top:28px solid transparent;border-bottom:28px solid transparent;border-right:50px solid #1D1D1B"></div>
+<div style="position:absolute;left:389.92px;top:1582px;width:10.08px;height:56px;background:#1D1D1B"></div>
+<div style="position:absolute;left:750px;top:1582px;width:0px;height:0px;border-top:28px solid transparent;border-bottom:28px solid transparent;border-left:50px solid #1D1D1B"></div>
+<div style="position:absolute;left:800px;top:1582px;width:10.08px;height:56px;background:#1D1D1B"></div>
+<div style="position:absolute;left:0px;top:1722px;width:1200px;text-align:center;font:700 22px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;">Snapbook <span style="font-weight:500;color:#5F5E5A">by Tetra</span></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_musik_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background:#FFFFFF;overflow:hidden">
+<img src="foto/p2.jpg" style="position:absolute;left:70px;top:90px;width:760px;height:760px;object-fit:cover;object-position:50% 30%"></img>
+<div style="position:absolute;left:70px;top:90px;width:760px;height:760px;border-radius:30px;box-shadow:0 0 0 16px #FFFFFF"></div>
+<div style="position:absolute;left:70px;top:40px;width:400px;text-align:left;font:500 16px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;letter-spacing:.1em">SEDANG DIPUTAR</div>
+<div style="position:absolute;left:430px;top:40px;width:400px;text-align:right;font:700 16px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;">Snapbook <span style="font-weight:500;color:#5F5E5A">by Tetra</span></div>
+<div style="position:absolute;left:70px;top:884px;width:680px;display:flex;justify-content:flex-start;font:800 48px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:774px;top:884px;width:56px;height:56px;border:4px solid #1D1D1B;border-radius:50%;box-sizing:border-box"></div>
+<div style="position:absolute;left:774px;top:893px;width:56px;text-align:center;font:700 34px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;">+</div>
+<div style="position:absolute;left:70px;top:944px;width:680px;display:flex;justify-content:flex-start;font:500 28px/1 'Plus Jakarta Sans',sans-serif;color:#5F5E5A;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+<div style="position:absolute;left:70px;top:1004px;width:760px;height:8px;background:#D6D3CC;border-radius:8px"></div>
+<div style="position:absolute;left:70px;top:1004px;width:300px;height:8px;background:#1D1D1B;border-radius:8px"></div>
+<div style="position:absolute;left:359px;top:997px;width:22px;height:22px;border-radius:50%;background:#1D1D1B"></div>
+<div style="position:absolute;left:70px;top:1026px;width:380px;text-align:left;font:500 16px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">1:24</div>
+<div style="position:absolute;left:450px;top:1026px;width:380px;text-align:right;font:500 16px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap;">-2:10</div>
+<div style="position:absolute;left:405px;top:1061px;width:90px;height:90px;border-radius:50%;background:#1D1D1B"></div>
+<div style="position:absolute;left:438.3px;top:1088px;width:0px;height:0px;border-top:18px solid transparent;border-bottom:18px solid transparent;border-left:30.6px solid #FFFFFF"></div>
+<div style="position:absolute;left:330px;top:1089px;width:0px;height:0px;border-top:17px solid transparent;border-bottom:17px solid transparent;border-right:30px solid #1D1D1B"></div>
+<div style="position:absolute;left:323.88px;top:1089px;width:6.12px;height:34px;background:#1D1D1B"></div>
+<div style="position:absolute;left:540px;top:1089px;width:0px;height:0px;border-top:17px solid transparent;border-bottom:17px solid transparent;border-left:30px solid #1D1D1B"></div>
+<div style="position:absolute;left:570px;top:1089px;width:6.12px;height:34px;background:#1D1D1B"></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_koran_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background:#F4F1EA;overflow:hidden">
+<div style="position:absolute;left:0px;top:44px;width:600px;text-align:center;font:400 66px/1 'UnifrakturMaguntia',serif;color:#1D1D1B;white-space:nowrap;">Harian Snapbook</div>
+<div style="position:absolute;left:40px;top:132px;width:520px;height:6px;background:#1D1D1B"></div>
+<div style="position:absolute;left:40px;top:144px;width:520px;height:2px;background:#1D1D1B"></div>
+<div style="position:absolute;left:40px;top:158px;width:300px;display:flex;justify-content:flex-start;font: 400 20px/1 'DM Serif Display',serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:300px;top:161px;width:260px;text-align:right;font:500 15px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">EDISI KHUSUS</div>
+<div style="position:absolute;left:40px;top:190px;width:520px;height:2px;background:#1D1D1B"></div>
+<div style="position:absolute;left:40px;top:210px;width:520px;display:flex;justify-content:flex-start;font: 400 50px/1 'DM Serif Display',serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<img src="foto/p3.jpg" style="position:absolute;left:40px;top:286px;width:520px;height:350px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:40px;top:646px;width:520px;text-align:left;font:italic 400 16px/1 'DM Serif Display',serif;color:#5F5E5A;white-space:nowrap;">Foto oleh para tamu, dijepret dari HP sendiri.</div>
+<img src="foto/p4.jpg" style="position:absolute;left:40px;top:678px;width:520px;height:350px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p6.jpg" style="position:absolute;left:40px;top:1062px;width:520px;height:350px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:40px;top:1442px;width:250px;height:224px;overflow:hidden;font:400 25px/1.22 'Instrument Serif',serif;color:#3A3936;text-align:left" lang="id"><b style="font-family:'DM Serif Display',serif;font-weight:400;color:#1D1D1B">Tamu jadi fotografer.</b> Momen hari ini dipotret dari HP para tamu dan langsung masuk album acara.</div>
+<div style="position:absolute;left:310px;top:1442px;width:250px;height:224px;overflow:hidden;font:400 25px/1.22 'Instrument Serif',serif;color:#3A3936;text-align:left" lang="id"><b style="font-family:'DM Serif Display',serif;font-weight:400;color:#1D1D1B">Ucapan yang bisa didengar.</b> Doa dan pesan direkam lewat voice note, disimpan bersama foto hari ini.</div>
+<div style="position:absolute;left:40px;top:1690px;width:520px;height:2px;background:#1D1D1B"></div>
+<div style="position:absolute;left:40px;top:1706px;width:520px;text-align:left;font:500 15px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">SNAPBOOK BY TETRA</div>
+<div style="position:absolute;left:40px;top:1706px;width:520px;text-align:right;font:500 15px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">HAL. 1</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_koran_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background:#F4F1EA;overflow:hidden">
+<div style="position:absolute;left:0px;top:52px;width:1200px;text-align:center;font:400 124px/1 'UnifrakturMaguntia',serif;color:#1D1D1B;white-space:nowrap;">Harian Snapbook</div>
+<div style="position:absolute;left:60px;top:204px;width:1080px;height:8px;background:#1D1D1B"></div>
+<div style="position:absolute;left:60px;top:218px;width:1080px;height:3px;background:#1D1D1B"></div>
+<div style="position:absolute;left:60px;top:236px;width:560px;display:flex;justify-content:flex-start;font: 400 30px/1 'DM Serif Display',serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:640px;top:241px;width:500px;text-align:right;font:500 20px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">EDISI KHUSUS · HARGA: GRATIS</div>
+<div style="position:absolute;left:60px;top:282px;width:1080px;height:3px;background:#1D1D1B"></div>
+<div style="position:absolute;left:60px;top:310px;width:1080px;display:flex;justify-content:flex-start;font: 400 92px/1 'DM Serif Display',serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<img src="foto/p1.jpg" style="position:absolute;left:60px;top:440px;width:525px;height:430px;object-fit:cover;object-position:50% 25%"></img>
+<img src="foto/p3.jpg" style="position:absolute;left:615px;top:440px;width:525px;height:430px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p6.jpg" style="position:absolute;left:60px;top:890px;width:525px;height:430px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p8.jpg" style="position:absolute;left:615px;top:890px;width:525px;height:430px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:60px;top:1338px;width:1080px;text-align:left;font:italic 400 22px/1 'DM Serif Display',serif;color:#5F5E5A;white-space:nowrap;">Foto oleh para tamu, dijepret dari HP sendiri.</div>
+<div style="position:absolute;left:60px;top:1392px;width:330px;height:268px;overflow:hidden;font:400 31px/1.24 'Instrument Serif',serif;color:#3A3936;text-align:left" lang="id"><b style="font-family:'DM Serif Display',serif;font-weight:400;color:#1D1D1B">Tamu jadi fotografer.</b> Di acara ini tamu tidak cuma datang dan bersalaman. Momen dipotret dari HP masing-masing, lalu langsung masuk album acara.</div>
+<div style="position:absolute;left:435px;top:1392px;width:330px;height:268px;overflow:hidden;font:400 31px/1.24 'Instrument Serif',serif;color:#3A3936;text-align:left" lang="id"><b style="font-family:'DM Serif Display',serif;font-weight:400;color:#1D1D1B">Ucapan yang bisa didengar.</b> Doa dan pesan untuk tuan rumah direkam lewat voice note, disimpan bersama foto-foto hari ini.</div>
+<div style="position:absolute;left:810px;top:1392px;width:330px;height:268px;overflow:hidden;font:400 31px/1.24 'Instrument Serif',serif;color:#3A3936;text-align:left" lang="id"><b style="font-family:'DM Serif Display',serif;font-weight:400;color:#1D1D1B">Kenangan dibawa pulang.</b> Foto pilihan disusun jadi lembaran seperti ini. Simpan, pajang, atau kirim ke teman yang tak sempat datang.</div>
+<div style="position:absolute;left:60px;top:1690px;width:1080px;height:3px;background:#1D1D1B"></div>
+<div style="position:absolute;left:60px;top:1712px;width:1080px;text-align:left;font:500 20px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">SNAPBOOK BY TETRA</div>
+<div style="position:absolute;left:60px;top:1712px;width:1080px;text-align:right;font:500 20px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">HAL. 1</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_koran_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background:#F4F1EA;overflow:hidden">
+<div style="position:absolute;left:0px;top:40px;width:900px;text-align:center;font:400 84px/1 'UnifrakturMaguntia',serif;color:#1D1D1B;white-space:nowrap;">Harian Snapbook</div>
+<div style="position:absolute;left:50px;top:142px;width:800px;height:6px;background:#1D1D1B"></div>
+<div style="position:absolute;left:50px;top:152px;width:800px;height:2px;background:#1D1D1B"></div>
+<div style="position:absolute;left:50px;top:168px;width:800px;display:flex;justify-content:flex-start;font: 400 52px/1 'DM Serif Display',serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:50px;top:238px;width:480px;display:flex;justify-content:flex-start;font: 400 24px/1 'DM Serif Display',serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:500px;top:242px;width:350px;text-align:right;font:500 15px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">EDISI KHUSUS</div>
+<div style="position:absolute;left:50px;top:276px;width:800px;height:2px;background:#1D1D1B"></div>
+<img src="foto/p2.jpg" style="position:absolute;left:50px;top:298px;width:800px;height:676px;object-fit:cover;object-position:50% 30%"></img>
+<div style="position:absolute;left:50px;top:986px;width:800px;text-align:left;font:italic 400 16px/1 'DM Serif Display',serif;color:#5F5E5A;white-space:nowrap;">Foto oleh para tamu, dijepret dari HP sendiri.</div>
+<div style="position:absolute;left:50px;top:1020px;width:390px;height:92px;overflow:hidden;font:400 20px/1.22 'Instrument Serif',serif;color:#3A3936;text-align:left" lang="id"><b style="font-family:'DM Serif Display',serif;font-weight:400;color:#1D1D1B">Tamu jadi fotografer.</b> Momen dipotret dari HP sendiri, langsung masuk album acara.</div>
+<div style="position:absolute;left:460px;top:1020px;width:390px;height:92px;overflow:hidden;font:400 20px/1.22 'Instrument Serif',serif;color:#3A3936;text-align:left" lang="id"><b style="font-family:'DM Serif Display',serif;font-weight:400;color:#1D1D1B">Ucapan lewat suara.</b> Doa & pesan direkam jadi voice note untuk tuan rumah.</div>
+<div style="position:absolute;left:50px;top:1130px;width:800px;text-align:left;font:500 14px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">SNAPBOOK BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_struk_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background:#F7D5CC;overflow:hidden">
+<div style="position:absolute;left:36px;top:0px;width:528px;height:1772px;background:#FFFFFF;clip-path:polygon(0 0,528px 0,528px 1752px,501.59999999999997px 1772px,475.2px 1752px,448.79999999999995px 1772px,422.4px 1752px,396px 1772px,369.59999999999997px 1752px,343.2px 1772px,316.79999999999995px 1752px,290.4px 1772px,264px 1752px,237.6px 1772px,211.2px 1752px,184.79999999999998px 1772px,158.39999999999998px 1752px,132px 1772px,105.6px 1752px,79.19999999999999px 1772px,52.8px 1752px,26.4px 1772px,0px 1752px)"></div>
+<div style="position:absolute;left:36px;top:64px;width:528px;text-align:center;font:500 60px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;letter-spacing:-.04em">SNAPBOOK</div>
+<div style="position:absolute;left:36px;top:140px;width:528px;text-align:center;font:400 20px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">buku tamu versi kekinian</div>
+<div style="position:absolute;left:70px;top:184px;width:460px;display:flex;justify-content:center;font:500 24px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:70px;top:220px;width:460px;display:flex;justify-content:center;font:400 22px/1 'DM Mono',monospace;color:#3A3936;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+<div style="position:absolute;left:70px;top:264px;width:460px;height:0px;border-top:3px dashed #1D1D1B"></div>
+<img src="foto/p3.jpg" style="position:absolute;left:70px;top:290px;width:460px;height:330px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p4.jpg" style="position:absolute;left:70px;top:640px;width:460px;height:330px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p6.jpg" style="position:absolute;left:70px;top:990px;width:460px;height:330px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:70px;top:1350px;width:460px;height:0px;border-top:3px dashed #1D1D1B"></div>
+<div style="position:absolute;left:70px;top:1374px;width:460px;text-align:left;font:400 20px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">3&nbsp; FOTO</div><div style="position:absolute;left:70px;top:1374px;width:460px;text-align:right;font:400 20px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">GRATIS</div>
+<div style="position:absolute;left:70px;top:1406px;width:460px;text-align:left;font:400 20px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">1&nbsp; KENANGAN</div><div style="position:absolute;left:70px;top:1406px;width:460px;text-align:right;font:400 20px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">TAK TERNILAI</div>
+<div style="position:absolute;left:70px;top:1438px;width:460px;text-align:left;font:400 20px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">INSTALL APP</div><div style="position:absolute;left:70px;top:1438px;width:460px;text-align:right;font:400 20px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">GAK PERLU</div>
+<div style="position:absolute;left:70px;top:1478px;width:460px;height:0px;border-top:3px dashed #1D1D1B"></div>
+<div style="position:absolute;left:70px;top:1512px;width:460px;text-align:left;font:500 24px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">TOTAL</div>
+<div style="position:absolute;left:70px;top:1488px;width:460px;text-align:right;font:500 64px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;letter-spacing:-.05em">Rp0</div>
+<div style="position:absolute;left:70px;top:1574px;width:460px;height:0px;border-top:3px dashed #1D1D1B"></div>
+<div style="position:absolute;left:130px;top:1600px;width:340px;height:64px;background:repeating-linear-gradient(90deg,#1D1D1B 0 5px,transparent 5px 9px,#1D1D1B 9px 12px,transparent 12px 18px,#1D1D1B 18px 26px,transparent 26px 30px)"></div>
+<div style="position:absolute;left:36px;top:1692px;width:528px;text-align:center;font:400 15px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">** makasih udah dateng · snapbook by tetra **</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_struk_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background:#F7D5CC;overflow:hidden">
+<div style="position:absolute;left:90px;top:0px;width:1020px;height:1772px;background:#FFFFFF;clip-path:polygon(0 0,1020px 0,1020px 1746px,986px 1772px,952px 1746px,918px 1772px,884px 1746px,850px 1772px,816px 1746px,782px 1772px,748px 1746px,714px 1772px,680px 1746px,646px 1772px,612px 1746px,578px 1772px,544px 1746px,510px 1772px,476px 1746px,442px 1772px,408px 1746px,374px 1772px,340px 1746px,306px 1772px,272px 1746px,238px 1772px,204px 1746px,170px 1772px,136px 1746px,102px 1772px,68px 1746px,34px 1772px,0px 1746px)"></div>
+<div style="position:absolute;left:90px;top:58px;width:1020px;text-align:center;font:500 104px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;letter-spacing:-.04em">SNAPBOOK</div>
+<div style="position:absolute;left:90px;top:180px;width:1020px;text-align:center;font:400 28px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">buku tamu versi kekinian</div>
+<div style="position:absolute;left:150px;top:226px;width:900px;display:flex;justify-content:center;font:500 36px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:150px;top:276px;width:900px;display:flex;justify-content:center;font:400 28px/1 'DM Mono',monospace;color:#3A3936;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+<div style="position:absolute;left:150px;top:328px;width:900px;height:0px;border-top:3px dashed #1D1D1B"></div>
+<img src="foto/p1.jpg" style="position:absolute;left:150px;top:356px;width:440px;height:400px;object-fit:cover;object-position:50% 25%"></img>
+<img src="foto/p3.jpg" style="position:absolute;left:610px;top:356px;width:440px;height:400px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p6.jpg" style="position:absolute;left:150px;top:776px;width:440px;height:400px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p8.jpg" style="position:absolute;left:610px;top:776px;width:440px;height:400px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:150px;top:1208px;width:900px;height:0px;border-top:3px dashed #1D1D1B"></div>
+<div style="position:absolute;left:150px;top:1240px;width:900px;text-align:left;font:400 28px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">4&nbsp; FOTO</div><div style="position:absolute;left:150px;top:1240px;width:900px;text-align:right;font:400 28px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">GRATIS</div>
+<div style="position:absolute;left:150px;top:1284px;width:900px;text-align:left;font:400 28px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">1&nbsp; KENANGAN</div><div style="position:absolute;left:150px;top:1284px;width:900px;text-align:right;font:400 28px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">TAK TERNILAI</div>
+<div style="position:absolute;left:150px;top:1328px;width:900px;text-align:left;font:400 28px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">INSTALL APP</div><div style="position:absolute;left:150px;top:1328px;width:900px;text-align:right;font:400 28px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">GAK PERLU</div>
+<div style="position:absolute;left:150px;top:1384px;width:900px;height:0px;border-top:3px dashed #1D1D1B"></div>
+<div style="position:absolute;left:150px;top:1430px;width:900px;text-align:left;font:500 36px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">TOTAL</div>
+<div style="position:absolute;left:150px;top:1400px;width:900px;text-align:right;font:500 104px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;letter-spacing:-.05em">Rp0</div>
+<div style="position:absolute;left:150px;top:1524px;width:900px;height:0px;border-top:3px dashed #1D1D1B"></div>
+<div style="position:absolute;left:370px;top:1552px;width:460px;height:80px;background:repeating-linear-gradient(90deg,#1D1D1B 0 5px,transparent 5px 9px,#1D1D1B 9px 12px,transparent 12px 18px,#1D1D1B 18px 26px,transparent 26px 30px)"></div>
+<div style="position:absolute;left:90px;top:1672px;width:1020px;text-align:center;font:400 22px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">** makasih udah dateng · snapbook by tetra **</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_struk_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background:#F7D5CC;overflow:hidden">
+<div style="position:absolute;left:70px;top:0px;width:760px;height:1172px;background:#FFFFFF;clip-path:polygon(0 0,760px 0,760px 1152px,728.3333333333334px 1172px,696.6666666666667px 1152px,665px 1172px,633.3333333333334px 1152px,601.6666666666667px 1172px,570px 1152px,538.3333333333334px 1172px,506.6666666666667px 1152px,475px 1172px,443.33333333333337px 1152px,411.6666666666667px 1172px,380px 1152px,348.33333333333337px 1172px,316.6666666666667px 1152px,285px 1172px,253.33333333333334px 1152px,221.66666666666669px 1172px,190px 1152px,158.33333333333334px 1172px,126.66666666666667px 1152px,95px 1172px,63.333333333333336px 1152px,31.666666666666668px 1172px,0px 1152px)"></div>
+<div style="position:absolute;left:70px;top:48px;width:760px;text-align:center;font:500 64px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;letter-spacing:-.04em">SNAPBOOK</div>
+<div style="position:absolute;left:110px;top:130px;width:680px;display:flex;justify-content:center;font:500 26px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:110px;top:166px;width:680px;display:flex;justify-content:center;font:400 22px/1 'DM Mono',monospace;color:#3A3936;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateIso }}</span></div>
+<div style="position:absolute;left:110px;top:206px;width:680px;height:0px;border-top:3px dashed #1D1D1B"></div>
+<img src="foto/p2.jpg" style="position:absolute;left:110px;top:228px;width:680px;height:640px;object-fit:cover;object-position:50% 30%"></img>
+<div style="position:absolute;left:110px;top:892px;width:680px;height:0px;border-top:3px dashed #1D1D1B"></div>
+<div style="position:absolute;left:110px;top:930px;width:680px;text-align:left;font:500 26px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">TOTAL</div>
+<div style="position:absolute;left:110px;top:906px;width:680px;text-align:right;font:500 72px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;letter-spacing:-.05em">Rp0</div>
+<div style="position:absolute;left:110px;top:996px;width:680px;height:0px;border-top:3px dashed #1D1D1B"></div>
+<div style="position:absolute;left:250px;top:1020px;width:400px;height:62px;background:repeating-linear-gradient(90deg,#1D1D1B 0 5px,transparent 5px 9px,#1D1D1B 9px 12px,transparent 12px 18px,#1D1D1B 18px 26px,transparent 26px 30px)"></div>
+<div style="position:absolute;left:70px;top:1104px;width:760px;text-align:center;font:400 16px/1 'DM Mono',monospace;color:#1D1D1B;white-space:nowrap;">** snapbook by tetra **</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_majalah_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background:#F6F3EE;overflow:hidden">
+<div style="position:absolute;left:0px;top:40px;width:600px;text-align:center;font: 600 128px/1 'Bodoni Moda',serif;color:#1D1D1B;white-space:nowrap;letter-spacing:-.045em;line-height:.9">Snapbook</div>
+<div style="position:absolute;left:40px;top:170px;width:520px;height:3px;background:#1D1D1B"></div>
+<div style="position:absolute;left:40px;top:184px;width:300px;text-align:left;font:700 14px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;letter-spacing:.22em">EDISI KHUSUS</div>
+<div style="position:absolute;left:300px;top:184px;width:260px;display:flex;justify-content:flex-end;font:700 14px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap"><span data-fit="right" style="flex-shrink:0;display:inline-block">{{ dateDot }}</span></div>
+<img src="foto/p3.jpg" style="position:absolute;left:40px;top:220px;width:520px;height:390px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p4.jpg" style="position:absolute;left:40px;top:630px;width:520px;height:390px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p6.jpg" style="position:absolute;left:40px;top:1040px;width:520px;height:390px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:40px;top:1068px;width:300px;text-align:left;font:italic 500 40px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap;line-height:1;white-space:normal;text-shadow:0 0 18px rgba(0,0,0,.45)">Spill momen<br>serumu</div>
+<div style="position:absolute;left:40px;top:1470px;width:520px;text-align:left;font:700 14px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;letter-spacing:.22em">COVER STORY</div>
+<div style="position:absolute;left:40px;top:1498px;width:520px;display:flex;justify-content:flex-start;font: 500 54px/1 'Bodoni Moda',serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:40px;top:1572px;width:520px;display:flex;justify-content:flex-start;font: 500 26px/1 'Bodoni Moda',serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:40px;top:1680px;width:520px;height:3px;background:#1D1D1B"></div>
+<div style="position:absolute;left:40px;top:1700px;width:520px;text-align:left;font:600 14px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;">Snapbook by Tetra</div>
+<div style="position:absolute;left:40px;top:1700px;width:520px;text-align:right;font:600 14px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap;">No. 01</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_majalah_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background:#1D1D1B;overflow:hidden">
+<img src="foto/p1.jpg" style="position:absolute;left:0px;top:0px;width:1200px;height:1800px;object-fit:cover;object-position:50% 22%"></img>
+<div style="position:absolute;left:0px;top:0px;width:1200px;height:420px;background:linear-gradient(to bottom,rgba(10,8,6,.35),rgba(10,8,6,0))"></div>
+<div style="position:absolute;left:0px;top:1180px;width:1200px;height:620px;background:linear-gradient(to bottom,rgba(10,8,6,0),rgba(10,8,6,.62))"></div>
+<div style="position:absolute;left:0px;top:40px;width:1200px;text-align:center;font: 600 262px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap;letter-spacing:-.045em;line-height:.9">Snapbook</div>
+<div style="position:absolute;left:70px;top:348px;width:1060px;text-align:left;font:700 20px/1 'Plus Jakarta Sans',sans-serif;color:#FFFFFF;white-space:nowrap;letter-spacing:.24em">EDISI KHUSUS</div>
+<div style="position:absolute;left:600px;top:348px;width:530px;display:flex;justify-content:flex-end;font:700 20px/1 'Plus Jakarta Sans',sans-serif;color:#FFFFFF;white-space:nowrap"><span data-fit="right" style="flex-shrink:0;display:inline-block">{{ dateDot }}</span></div>
+<div style="position:absolute;left:70px;top:520px;width:440px;text-align:left;font:italic 500 62px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap;line-height:1;white-space:normal">Spill<br>momen<br>serumu</div>
+<div style="position:absolute;left:70px;top:740px;width:60px;height:3px;background:#FFFFFF"></div>
+<div style="position:absolute;left:70px;top:762px;width:420px;text-align:left;font:600 19px/1 'Plus Jakarta Sans',sans-serif;color:#FFFFFF;white-space:nowrap;line-height:1.4">Para tamu jadi<br>fotografernya.</div>
+<div style="position:absolute;left:70px;top:1380px;width:600px;text-align:left;font:700 20px/1 'Plus Jakarta Sans',sans-serif;color:#FFFFFF;white-space:nowrap;letter-spacing:.24em">COVER STORY</div>
+<div style="position:absolute;left:70px;top:1418px;width:1060px;display:flex;justify-content:flex-start;font: 500 108px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:70px;top:1560px;width:700px;display:flex;justify-content:flex-start;font: 500 40px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:70px;top:1660px;width:1060px;height:3px;background:#FFFFFF"></div>
+<div style="position:absolute;left:70px;top:1686px;width:700px;text-align:left;font:600 20px/1 'Plus Jakarta Sans',sans-serif;color:#FFFFFF;white-space:nowrap;">Snapbook by Tetra</div>
+<div style="position:absolute;left:500px;top:1686px;width:630px;text-align:right;font:600 20px/1 'Plus Jakarta Sans',sans-serif;color:#FFFFFF;white-space:nowrap;">No. 01 · Rp0</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_majalah_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background:#1D1D1B;overflow:hidden">
+<img src="foto/p2.jpg" style="position:absolute;left:0px;top:0px;width:900px;height:1200px;object-fit:cover;object-position:50% 28%"></img>
+<div style="position:absolute;left:0px;top:0px;width:900px;height:300px;background:linear-gradient(to bottom,rgba(10,8,6,.35),rgba(10,8,6,0))"></div>
+<div style="position:absolute;left:0px;top:760px;width:900px;height:440px;background:linear-gradient(to bottom,rgba(10,8,6,0),rgba(10,8,6,.62))"></div>
+<div style="position:absolute;left:0px;top:30px;width:900px;text-align:center;font: 600 194px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap;letter-spacing:-.045em;line-height:.9">Snapbook</div>
+<div style="position:absolute;left:50px;top:250px;width:500px;text-align:left;font:700 15px/1 'Plus Jakarta Sans',sans-serif;color:#FFFFFF;white-space:nowrap;letter-spacing:.24em">EDISI KHUSUS</div>
+<div style="position:absolute;left:450px;top:250px;width:400px;display:flex;justify-content:flex-end;font:700 15px/1 'Plus Jakarta Sans',sans-serif;color:#FFFFFF;white-space:nowrap"><span data-fit="right" style="flex-shrink:0;display:inline-block">{{ dateDot }}</span></div>
+<div style="position:absolute;left:50px;top:350px;width:340px;text-align:left;font:italic 500 46px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap;line-height:1;white-space:normal">Spill<br>momen<br>serumu</div>
+<div style="position:absolute;left:50px;top:912px;width:500px;text-align:left;font:700 15px/1 'Plus Jakarta Sans',sans-serif;color:#FFFFFF;white-space:nowrap;letter-spacing:.24em">COVER STORY</div>
+<div style="position:absolute;left:50px;top:940px;width:800px;display:flex;justify-content:flex-start;font: 500 74px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:50px;top:1040px;width:600px;display:flex;justify-content:flex-start;font: 500 28px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:50px;top:1100px;width:800px;height:3px;background:#FFFFFF"></div>
+<div style="position:absolute;left:50px;top:1118px;width:500px;text-align:left;font:600 15px/1 'Plus Jakarta Sans',sans-serif;color:#FFFFFF;white-space:nowrap;">Snapbook by Tetra</div>
+<div style="position:absolute;left:450px;top:1118px;width:400px;text-align:right;font:600 15px/1 'Plus Jakarta Sans',sans-serif;color:#FFFFFF;white-space:nowrap;">No. 01</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_zamrud_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background:#143D2E;overflow:hidden">
+<img src="foto/p1.jpg" style="position:absolute;left:100px;top:120px;width:400px;height:360px;object-fit:cover;object-position:50% 25%"></img>
+<div style="position:absolute;left:100px;top:120px;width:400px;height:201px;background:radial-gradient(circle at 50% 100%,transparent 200px,#143D2E 200.8px)"></div>
+<div style="position:absolute;left:86px;top:106px;width:428px;height:388px;border:3px solid #EFE6D2;border-bottom:0;border-radius:214px 214px 0 0;box-sizing:border-box"></div>
+<div style="position:absolute;left:86px;top:491px;width:428px;height:3px;background:#EFE6D2"></div>
+<img src="foto/p2.jpg" style="position:absolute;left:100px;top:530px;width:400px;height:360px;object-fit:cover;object-position:50% 30%"></img>
+<div style="position:absolute;left:100px;top:530px;width:400px;height:201px;background:radial-gradient(circle at 50% 100%,transparent 200px,#143D2E 200.8px)"></div>
+<div style="position:absolute;left:86px;top:516px;width:428px;height:388px;border:3px solid #EFE6D2;border-bottom:0;border-radius:214px 214px 0 0;box-sizing:border-box"></div>
+<div style="position:absolute;left:86px;top:901px;width:428px;height:3px;background:#EFE6D2"></div>
+<img src="foto/p5.jpg" style="position:absolute;left:100px;top:940px;width:400px;height:360px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:100px;top:940px;width:400px;height:201px;background:radial-gradient(circle at 50% 100%,transparent 200px,#143D2E 200.8px)"></div>
+<div style="position:absolute;left:86px;top:926px;width:428px;height:388px;border:3px solid #EFE6D2;border-bottom:0;border-radius:214px 214px 0 0;box-sizing:border-box"></div>
+<div style="position:absolute;left:86px;top:1311px;width:428px;height:3px;background:#EFE6D2"></div>
+<div style="position:absolute;left:30px;top:30px;width:540px;height:1740px;border:3px solid #EFE6D2;box-sizing:border-box"></div>
+<div style="position:absolute;left:0px;top:66px;width:600px;text-align:center;font: 500 16px/1 'Bodoni Moda',serif;color:#EFE6D2;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">MERAYAKAN BERSAMA</div>
+<div style="position:absolute;left:60px;top:1360px;width:480px;display:flex;justify-content:center;font:400 70px/1.1 'Pinyon Script',cursive;color:#EFE6D2;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:60px;top:1470px;width:480px;display:flex;justify-content:center;font: 500 26px/1 'Bodoni Moda',serif;color:#EFE6D2;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:293px;top:1538px;width:14px;height:14px;background:#EFE6D2;transform:rotate(45deg)"></div>
+<div style="position:absolute;left:0px;top:1690px;width:600px;text-align:center;font: 500 15px/1 'Bodoni Moda',serif;color:#EFE6D2;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK · BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_zamrud_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background:#143D2E;overflow:hidden">
+<img src="foto/p1.jpg" style="position:absolute;left:110px;top:170px;width:470px;height:1000px;object-fit:cover;object-position:50% 25%"></img>
+<div style="position:absolute;left:110px;top:170px;width:470px;height:236px;background:radial-gradient(circle at 50% 100%,transparent 235px,#143D2E 235.8px)"></div>
+<div style="position:absolute;left:96px;top:156px;width:498px;height:1028px;border:3px solid #EFE6D2;border-bottom:0;border-radius:249px 249px 0 0;box-sizing:border-box"></div>
+<div style="position:absolute;left:96px;top:1181px;width:498px;height:3px;background:#EFE6D2"></div>
+<img src="foto/p2.jpg" style="position:absolute;left:620px;top:170px;width:470px;height:1000px;object-fit:cover;object-position:50% 30%"></img>
+<div style="position:absolute;left:620px;top:170px;width:470px;height:236px;background:radial-gradient(circle at 50% 100%,transparent 235px,#143D2E 235.8px)"></div>
+<div style="position:absolute;left:606px;top:156px;width:498px;height:1028px;border:3px solid #EFE6D2;border-bottom:0;border-radius:249px 249px 0 0;box-sizing:border-box"></div>
+<div style="position:absolute;left:606px;top:1181px;width:498px;height:3px;background:#EFE6D2"></div>
+<div style="position:absolute;left:30px;top:30px;width:1140px;height:1740px;border:3px solid #EFE6D2;box-sizing:border-box"></div>
+<div style="position:absolute;left:0px;top:86px;width:1200px;text-align:center;font: 500 22px/1 'Bodoni Moda',serif;color:#EFE6D2;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">MERAYAKAN BERSAMA</div>
+<div style="position:absolute;left:100px;top:1260px;width:1000px;display:flex;justify-content:center;font:400 124px/1.1 'Pinyon Script',cursive;color:#EFE6D2;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:100px;top:1450px;width:1000px;display:flex;justify-content:center;font: 500 38px/1 'Bodoni Moda',serif;color:#EFE6D2;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:590px;top:1530px;width:20px;height:20px;background:#EFE6D2;transform:rotate(45deg)"></div>
+<div style="position:absolute;left:0px;top:1690px;width:1200px;text-align:center;font: 500 20px/1 'Bodoni Moda',serif;color:#EFE6D2;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK · BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_zamrud_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background:#143D2E;overflow:hidden">
+<img src="foto/p2.jpg" style="position:absolute;left:160px;top:100px;width:580px;height:770px;object-fit:cover;object-position:50% 30%"></img>
+<div style="position:absolute;left:160px;top:100px;width:580px;height:291px;background:radial-gradient(circle at 50% 100%,transparent 290px,#143D2E 290.8px)"></div>
+<div style="position:absolute;left:146px;top:86px;width:608px;height:798px;border:3px solid #EFE6D2;border-bottom:0;border-radius:304px 304px 0 0;box-sizing:border-box"></div>
+<div style="position:absolute;left:146px;top:881px;width:608px;height:3px;background:#EFE6D2"></div>
+<div style="position:absolute;left:30px;top:30px;width:840px;height:1140px;border:3px solid #EFE6D2;box-sizing:border-box"></div>
+<div style="position:absolute;left:80px;top:922px;width:740px;display:flex;justify-content:center;font:400 80px/1.1 'Pinyon Script',cursive;color:#EFE6D2;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:80px;top:1038px;width:740px;display:flex;justify-content:center;font: 500 28px/1 'Bodoni Moda',serif;color:#EFE6D2;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:0px;top:1108px;width:900px;text-align:center;font: 500 14px/1 'Bodoni Moda',serif;color:#EFE6D2;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK · BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_renda_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background-color:#8E2F45;background-image:radial-gradient(#9C3B52 3px,transparent 3.5px);background-size:22px 22px;overflow:hidden">
+<div style="position:absolute;left:64px;top:91px;width:472px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 12px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:64px;top:473px;width:472px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 12px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:51px;top:104px;width:26px;height:382px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 9px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:523px;top:104px;width:26px;height:382px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 9px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:64px;top:104px;width:472px;height:382px;background:repeating-linear-gradient(45deg,#FFFFFF 0 3px,transparent 3px 13px),repeating-linear-gradient(-45deg,#FFFFFF 0 3px,transparent 3px 13px);border-radius:10px"></div>
+<div style="position:absolute;left:64px;top:501px;width:472px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 12px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:64px;top:883px;width:472px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 12px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:51px;top:514px;width:26px;height:382px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 9px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:523px;top:514px;width:26px;height:382px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 9px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:64px;top:514px;width:472px;height:382px;background:repeating-linear-gradient(45deg,#FFFFFF 0 3px,transparent 3px 13px),repeating-linear-gradient(-45deg,#FFFFFF 0 3px,transparent 3px 13px);border-radius:10px"></div>
+<div style="position:absolute;left:64px;top:911px;width:472px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 12px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:64px;top:1293px;width:472px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 12px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:51px;top:924px;width:26px;height:382px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 9px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:523px;top:924px;width:26px;height:382px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 9px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:64px;top:924px;width:472px;height:382px;background:repeating-linear-gradient(45deg,#FFFFFF 0 3px,transparent 3px 13px),repeating-linear-gradient(-45deg,#FFFFFF 0 3px,transparent 3px 13px);border-radius:10px"></div>
+<img src="foto/p3.jpg" style="position:absolute;left:90px;top:130px;width:420px;height:330px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p2.jpg" style="position:absolute;left:90px;top:540px;width:420px;height:330px;object-fit:cover;object-position:50% 30%"></img>
+<img src="foto/p4.jpg" style="position:absolute;left:90px;top:950px;width:420px;height:330px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:82px;top:122px;width:436px;height:346px;border:8px solid #FFFFFF;border-radius:16px;box-sizing:border-box"></div>
+<div style="position:absolute;left:82px;top:532px;width:436px;height:346px;border:8px solid #FFFFFF;border-radius:16px;box-sizing:border-box"></div>
+<div style="position:absolute;left:82px;top:942px;width:436px;height:346px;border:8px solid #FFFFFF;border-radius:16px;box-sizing:border-box"></div>
+<div style="position:absolute;left:0px;top:58px;width:600px;text-align:center;font: 500 18px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK</div>
+<div style="position:absolute;left:60px;top:1390px;width:480px;display:flex;justify-content:center;font:400 68px/1.1 'Pinyon Script',cursive;color:#FFFFFF;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:60px;top:1500px;width:480px;display:flex;justify-content:center;font:italic 500 26px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:0px;top:1690px;width:600px;text-align:center;font: 500 15px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK · BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_renda_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background-color:#8E2F45;background-image:radial-gradient(#9C3B52 3px,transparent 3.5px);background-size:22px 22px;overflow:hidden">
+<div style="position:absolute;left:74px;top:111px;width:482px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 3px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:74px;top:683px;width:482px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 3px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:61px;top:124px;width:26px;height:572px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 6px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:543px;top:124px;width:26px;height:572px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 6px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:74px;top:124px;width:482px;height:572px;background:repeating-linear-gradient(45deg,#FFFFFF 0 3px,transparent 3px 13px),repeating-linear-gradient(-45deg,#FFFFFF 0 3px,transparent 3px 13px);border-radius:10px"></div>
+<div style="position:absolute;left:644px;top:111px;width:482px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 3px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:644px;top:683px;width:482px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 3px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:631px;top:124px;width:26px;height:572px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 6px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:1113px;top:124px;width:26px;height:572px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 6px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:644px;top:124px;width:482px;height:572px;background:repeating-linear-gradient(45deg,#FFFFFF 0 3px,transparent 3px 13px),repeating-linear-gradient(-45deg,#FFFFFF 0 3px,transparent 3px 13px);border-radius:10px"></div>
+<div style="position:absolute;left:74px;top:721px;width:482px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 3px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:74px;top:1293px;width:482px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 3px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:61px;top:734px;width:26px;height:572px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 6px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:543px;top:734px;width:26px;height:572px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 6px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:74px;top:734px;width:482px;height:572px;background:repeating-linear-gradient(45deg,#FFFFFF 0 3px,transparent 3px 13px),repeating-linear-gradient(-45deg,#FFFFFF 0 3px,transparent 3px 13px);border-radius:10px"></div>
+<div style="position:absolute;left:644px;top:721px;width:482px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 3px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:644px;top:1293px;width:482px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 3px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:631px;top:734px;width:26px;height:572px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 6px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:1113px;top:734px;width:26px;height:572px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 6px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:644px;top:734px;width:482px;height:572px;background:repeating-linear-gradient(45deg,#FFFFFF 0 3px,transparent 3px 13px),repeating-linear-gradient(-45deg,#FFFFFF 0 3px,transparent 3px 13px);border-radius:10px"></div>
+<img src="foto/p1.jpg" style="position:absolute;left:100px;top:150px;width:430px;height:520px;object-fit:cover;object-position:50% 25%"></img>
+<img src="foto/p2.jpg" style="position:absolute;left:670px;top:150px;width:430px;height:520px;object-fit:cover;object-position:50% 30%"></img>
+<img src="foto/p5.jpg" style="position:absolute;left:100px;top:760px;width:430px;height:520px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p3.jpg" style="position:absolute;left:670px;top:760px;width:430px;height:520px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:92px;top:142px;width:446px;height:536px;border:8px solid #FFFFFF;border-radius:16px;box-sizing:border-box"></div>
+<div style="position:absolute;left:662px;top:142px;width:446px;height:536px;border:8px solid #FFFFFF;border-radius:16px;box-sizing:border-box"></div>
+<div style="position:absolute;left:92px;top:752px;width:446px;height:536px;border:8px solid #FFFFFF;border-radius:16px;box-sizing:border-box"></div>
+<div style="position:absolute;left:662px;top:752px;width:446px;height:536px;border:8px solid #FFFFFF;border-radius:16px;box-sizing:border-box"></div>
+<div style="position:absolute;left:0px;top:74px;width:1200px;text-align:center;font: 500 24px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK</div>
+<div style="position:absolute;left:100px;top:1380px;width:1000px;display:flex;justify-content:center;font:400 112px/1.1 'Pinyon Script',cursive;color:#FFFFFF;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:100px;top:1540px;width:1000px;display:flex;justify-content:center;font:italic 500 38px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:0px;top:1696px;width:1200px;text-align:center;font: 500 20px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK · BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_renda_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background-color:#8E2F45;background-image:radial-gradient(#9C3B52 3px,transparent 3.5px);background-size:22px 22px;overflow:hidden">
+<div style="position:absolute;left:124px;top:81px;width:652px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 4px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:124px;top:773px;width:652px;height:26px;background:radial-gradient(circle at 14px 13px,#FFFFFF 13px,transparent 14px) 4px 0/28px 26px repeat-x"></div>
+<div style="position:absolute;left:111px;top:94px;width:26px;height:692px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 10px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:763px;top:94px;width:26px;height:692px;background:radial-gradient(circle at 13px 14px,#FFFFFF 13px,transparent 14px) 0 10px/26px 28px repeat-y"></div>
+<div style="position:absolute;left:124px;top:94px;width:652px;height:692px;background:repeating-linear-gradient(45deg,#FFFFFF 0 3px,transparent 3px 13px),repeating-linear-gradient(-45deg,#FFFFFF 0 3px,transparent 3px 13px);border-radius:10px"></div>
+<img src="foto/p1.jpg" style="position:absolute;left:150px;top:120px;width:600px;height:640px;object-fit:cover;object-position:50% 25%"></img>
+<div style="position:absolute;left:142px;top:112px;width:616px;height:656px;border:8px solid #FFFFFF;border-radius:16px;box-sizing:border-box"></div>
+<div style="position:absolute;left:0px;top:46px;width:900px;text-align:center;font: 500 16px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK</div>
+<div style="position:absolute;left:80px;top:850px;width:740px;display:flex;justify-content:center;font:400 80px/1.1 'Pinyon Script',cursive;color:#FFFFFF;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:80px;top:978px;width:740px;display:flex;justify-content:center;font:italic 500 28px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:0px;top:1104px;width:900px;text-align:center;font: 500 14px/1 'Bodoni Moda',serif;color:#FFFFFF;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK · BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_pita_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background:#F2EEE4;overflow:hidden">
+<img src="foto/p3.jpg" style="position:absolute;left:80px;top:150px;width:440px;height:330px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p2.jpg" style="position:absolute;left:80px;top:510px;width:440px;height:330px;object-fit:cover;object-position:50% 30%"></img>
+<img src="foto/p4.jpg" style="position:absolute;left:80px;top:870px;width:440px;height:330px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:40px;top:40px;width:520px;height:1720px;border:3px solid #7A1F2B;border-radius:36px;box-sizing:border-box"></div>
+<div style="position:absolute;left:52px;top:52px;width:496px;height:1696px;border:3px solid #7A1F2B;border-radius:28px;box-sizing:border-box"></div>
+<div style="position:absolute;left:56.56px;top:87.2px;width:52.08px;height:33.6px;border:5px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+<div style="position:absolute;left:115.36px;top:87.2px;width:52.08px;height:33.6px;border:5px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+<div style="position:absolute;left:109.48px;top:108.2px;width:5px;height:63px;background:#7A1F2B;border-radius:5px;transform:rotate(18deg);transform-origin:top center"></div>
+<div style="position:absolute;left:112.84px;top:108.2px;width:5px;height:58.8px;background:#7A1F2B;border-radius:5px;transform:rotate(-22deg);transform-origin:top center"></div>
+<div style="position:absolute;left:104.44px;top:96.44px;width:15.12px;height:15.12px;background:#7A1F2B;border-radius:40%"></div>
+<div style="position:absolute;left:432.56px;top:87.2px;width:52.08px;height:33.6px;border:5px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+<div style="position:absolute;left:491.36px;top:87.2px;width:52.08px;height:33.6px;border:5px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+<div style="position:absolute;left:485.48px;top:108.2px;width:5px;height:63px;background:#7A1F2B;border-radius:5px;transform:rotate(18deg);transform-origin:top center"></div>
+<div style="position:absolute;left:488.84px;top:108.2px;width:5px;height:58.8px;background:#7A1F2B;border-radius:5px;transform:rotate(-22deg);transform-origin:top center"></div>
+<div style="position:absolute;left:480.44px;top:96.44px;width:15.12px;height:15.12px;background:#7A1F2B;border-radius:40%"></div>
+<div style="position:absolute;left:253.8px;top:1258px;width:43.4px;height:28px;border:4px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+<div style="position:absolute;left:302.8px;top:1258px;width:43.4px;height:28px;border:4px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+<div style="position:absolute;left:297.9px;top:1275.5px;width:4px;height:52.5px;background:#7A1F2B;border-radius:4px;transform:rotate(18deg);transform-origin:top center"></div>
+<div style="position:absolute;left:300.7px;top:1275.5px;width:4px;height:49px;background:#7A1F2B;border-radius:4px;transform:rotate(-22deg);transform-origin:top center"></div>
+<div style="position:absolute;left:293.7px;top:1265.7px;width:12.6px;height:12.6px;background:#7A1F2B;border-radius:40%"></div>
+<div style="position:absolute;left:70px;top:1350px;width:460px;display:flex;justify-content:center;font:400 66px/1.1 'Pinyon Script',cursive;color:#7A1F2B;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:70px;top:1462px;width:460px;display:flex;justify-content:center;font: 500 26px/1 'Bodoni Moda',serif;color:#7A1F2B;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:0px;top:1688px;width:600px;text-align:center;font: 500 14px/1 'Bodoni Moda',serif;color:#7A1F2B;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK · BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_pita_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background:#F2EEE4;overflow:hidden">
+<img src="foto/p1.jpg" style="position:absolute;left:110px;top:150px;width:980px;height:620px;object-fit:cover;object-position:50% 25%"></img>
+<img src="foto/p2.jpg" style="position:absolute;left:110px;top:800px;width:480px;height:420px;object-fit:cover;object-position:50% 30%"></img>
+<img src="foto/p5.jpg" style="position:absolute;left:610px;top:800px;width:480px;height:420px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:44px;top:44px;width:1112px;height:1712px;border:3px solid #7A1F2B;border-radius:44px;box-sizing:border-box"></div>
+<div style="position:absolute;left:58px;top:58px;width:1084px;height:1684px;border:3px solid #7A1F2B;border-radius:34px;box-sizing:border-box"></div>
+<div style="position:absolute;left:70.8px;top:88px;width:74.4px;height:48px;border:7px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+<div style="position:absolute;left:154.8px;top:88px;width:74.4px;height:48px;border:7px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+<div style="position:absolute;left:146.4px;top:118px;width:7px;height:90px;background:#7A1F2B;border-radius:7px;transform:rotate(18deg);transform-origin:top center"></div>
+<div style="position:absolute;left:151.2px;top:118px;width:7px;height:84px;background:#7A1F2B;border-radius:7px;transform:rotate(-22deg);transform-origin:top center"></div>
+<div style="position:absolute;left:139.2px;top:101.2px;width:21.599999999999998px;height:21.599999999999998px;background:#7A1F2B;border-radius:40%"></div>
+<div style="position:absolute;left:970.8000000000001px;top:88px;width:74.4px;height:48px;border:7px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+<div style="position:absolute;left:1054.8px;top:88px;width:74.4px;height:48px;border:7px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+<div style="position:absolute;left:1046.4px;top:118px;width:7px;height:90px;background:#7A1F2B;border-radius:7px;transform:rotate(18deg);transform-origin:top center"></div>
+<div style="position:absolute;left:1051.2px;top:118px;width:7px;height:84px;background:#7A1F2B;border-radius:7px;transform:rotate(-22deg);transform-origin:top center"></div>
+<div style="position:absolute;left:1039.2px;top:101.2px;width:21.599999999999998px;height:21.599999999999998px;background:#7A1F2B;border-radius:40%"></div>
+<div style="position:absolute;left:536.64px;top:1280.8px;width:59.519999999999996px;height:38.400000000000006px;border:5px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+<div style="position:absolute;left:603.84px;top:1280.8px;width:59.519999999999996px;height:38.400000000000006px;border:5px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+<div style="position:absolute;left:597.12px;top:1304.8px;width:5px;height:72px;background:#7A1F2B;border-radius:5px;transform:rotate(18deg);transform-origin:top center"></div>
+<div style="position:absolute;left:600.96px;top:1304.8px;width:5px;height:67.19999999999999px;background:#7A1F2B;border-radius:5px;transform:rotate(-22deg);transform-origin:top center"></div>
+<div style="position:absolute;left:591.36px;top:1291.36px;width:17.28px;height:17.28px;background:#7A1F2B;border-radius:40%"></div>
+<div style="position:absolute;left:100px;top:1380px;width:1000px;display:flex;justify-content:center;font:400 116px/1.1 'Pinyon Script',cursive;color:#7A1F2B;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:100px;top:1544px;width:1000px;display:flex;justify-content:center;font: 500 38px/1 'Bodoni Moda',serif;color:#7A1F2B;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:0px;top:1694px;width:1200px;text-align:center;font: 500 20px/1 'Bodoni Moda',serif;color:#7A1F2B;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK · BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_pita_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background:#F2EEE4;overflow:hidden">
+<img src="foto/p2.jpg" style="position:absolute;left:120px;top:140px;width:660px;height:660px;object-fit:cover;object-position:50% 30%"></img>
+<div style="position:absolute;left:40px;top:40px;width:820px;height:1120px;border:3px solid #7A1F2B;border-radius:36px;box-sizing:border-box"></div>
+<div style="position:absolute;left:52px;top:52px;width:796px;height:1096px;border:3px solid #7A1F2B;border-radius:28px;box-sizing:border-box"></div>
+<div style="position:absolute;left:70.60000000000001px;top:86px;width:55.8px;height:36px;border:5px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+<div style="position:absolute;left:133.6px;top:86px;width:55.8px;height:36px;border:5px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+<div style="position:absolute;left:127.3px;top:108.5px;width:5px;height:67.5px;background:#7A1F2B;border-radius:5px;transform:rotate(18deg);transform-origin:top center"></div>
+<div style="position:absolute;left:130.9px;top:108.5px;width:5px;height:62.99999999999999px;background:#7A1F2B;border-radius:5px;transform:rotate(-22deg);transform-origin:top center"></div>
+<div style="position:absolute;left:121.9px;top:95.9px;width:16.2px;height:16.2px;background:#7A1F2B;border-radius:40%"></div>
+<div style="position:absolute;left:710.6px;top:86px;width:55.8px;height:36px;border:5px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+<div style="position:absolute;left:773.6px;top:86px;width:55.8px;height:36px;border:5px solid #7A1F2B;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+<div style="position:absolute;left:767.3px;top:108.5px;width:5px;height:67.5px;background:#7A1F2B;border-radius:5px;transform:rotate(18deg);transform-origin:top center"></div>
+<div style="position:absolute;left:770.9px;top:108.5px;width:5px;height:62.99999999999999px;background:#7A1F2B;border-radius:5px;transform:rotate(-22deg);transform-origin:top center"></div>
+<div style="position:absolute;left:761.9px;top:95.9px;width:16.2px;height:16.2px;background:#7A1F2B;border-radius:40%"></div>
+<div style="position:absolute;left:80px;top:846px;width:740px;display:flex;justify-content:center;font:400 80px/1.1 'Pinyon Script',cursive;color:#7A1F2B;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:80px;top:978px;width:740px;display:flex;justify-content:center;font: 500 28px/1 'Bodoni Moda',serif;color:#7A1F2B;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:0px;top:1104px;width:900px;text-align:center;font: 500 14px/1 'Bodoni Moda',serif;color:#7A1F2B;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK · BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_mono_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background:#121110;overflow:hidden">
+<img src="foto/p1.jpg" style="position:absolute;left:96px;top:70px;width:408px;height:470px;object-fit:cover;object-position:50% 25%"></img>
+<div style="position:absolute;left:96px;top:70px;width:408px;height:470px;border-radius:22px;box-shadow:0 0 0 22px #121110"></div>
+<img src="foto/p2.jpg" style="position:absolute;left:96px;top:610px;width:408px;height:470px;object-fit:cover;object-position:50% 30%"></img>
+<div style="position:absolute;left:96px;top:610px;width:408px;height:470px;border-radius:22px;box-shadow:0 0 0 22px #121110"></div>
+<img src="foto/p5.jpg" style="position:absolute;left:96px;top:1150px;width:408px;height:470px;object-fit:cover;object-position:50% 35%"></img>
+<div style="position:absolute;left:96px;top:1150px;width:408px;height:470px;border-radius:22px;box-shadow:0 0 0 22px #121110"></div>
+<div style="position:absolute;left:44px;top:110px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:120px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:130px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:140px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:46px;top:170px;width:0px;height:0px;border-left:13.2px solid transparent;border-right:13.2px solid transparent;border-bottom:22px solid #EDE6D6"></div>
+<div style="position:absolute;left:526px;top:380px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:526px;top:390px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:526px;top:400px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:700px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:710px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:720px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:730px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:740px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:750px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:526px;top:860px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:526px;top:870px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:526px;top:880px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:526px;top:890px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:530px;top:920px;width:0px;height:0px;border-left:13.2px solid transparent;border-right:13.2px solid transparent;border-bottom:22px solid #EDE6D6"></div>
+<div style="position:absolute;left:44px;top:1250px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:1260px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:1270px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:46px;top:1290px;width:0px;height:0px;border-left:13.2px solid transparent;border-right:13.2px solid transparent;border-bottom:22px solid #EDE6D6"></div>
+<div style="position:absolute;left:526px;top:1460px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:526px;top:1470px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:526px;top:1480px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:526px;top:1490px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:526px;top:1500px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:526px;top:1510px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:96px;top:556px;width:408px;display:flex;justify-content:center;font:500 24px/1 'DM Mono',monospace;color:#EDE6D6;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:96px;top:1100px;width:408px;display:flex;justify-content:center;font:500 24px/1 'DM Mono',monospace;color:#EDE6D6;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateDot }}</span></div>
+<div style="position:absolute;left:96px;top:1690px;width:408px;text-align:center;font:500 16px/1 'DM Mono',monospace;color:#EDE6D6;white-space:nowrap;letter-spacing:.2em">SNAPBOOK BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_mono_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background:#121110;overflow:hidden">
+<img src="foto/p1.jpg" style="position:absolute;left:96px;top:80px;width:480px;height:600px;object-fit:cover;object-position:50% 25%"></img>
+<div style="position:absolute;left:96px;top:80px;width:480px;height:600px;border-radius:26px;box-shadow:0 0 0 26px #121110"></div>
+<img src="foto/p2.jpg" style="position:absolute;left:624px;top:80px;width:480px;height:600px;object-fit:cover;object-position:50% 30%"></img>
+<div style="position:absolute;left:624px;top:80px;width:480px;height:600px;border-radius:26px;box-shadow:0 0 0 26px #121110"></div>
+<img src="foto/p5.jpg" style="position:absolute;left:96px;top:740px;width:480px;height:600px;object-fit:cover;object-position:50% 35%"></img>
+<div style="position:absolute;left:96px;top:740px;width:480px;height:600px;border-radius:26px;box-shadow:0 0 0 26px #121110"></div>
+<img src="foto/p3.jpg" style="position:absolute;left:624px;top:740px;width:480px;height:600px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:624px;top:740px;width:480px;height:600px;border-radius:26px;box-shadow:0 0 0 26px #121110"></div>
+<div style="position:absolute;left:44px;top:120px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:130px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:140px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:150px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:46px;top:180px;width:0px;height:0px;border-left:13.2px solid transparent;border-right:13.2px solid transparent;border-bottom:22px solid #EDE6D6"></div>
+<div style="position:absolute;left:1126px;top:400px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:1126px;top:410px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:1126px;top:420px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:820px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:830px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:840px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:850px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:860px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:870px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:1126px;top:900px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:1126px;top:910px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:1126px;top:920px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:1126px;top:930px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:1130px;top:960px;width:0px;height:0px;border-left:13.2px solid transparent;border-right:13.2px solid transparent;border-bottom:22px solid #EDE6D6"></div>
+<div style="position:absolute;left:588px;top:700px;width:24px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:588px;top:710px;width:24px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:96px;top:1430px;width:1008px;display:flex;justify-content:center;font:500 52px/1 'DM Mono',monospace;color:#EDE6D6;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:96px;top:1510px;width:1008px;display:flex;justify-content:center;font:400 36px/1 'DM Mono',monospace;color:#EDE6D6;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateDot }}</span></div>
+<div style="position:absolute;left:96px;top:1700px;width:1008px;text-align:center;font:500 20px/1 'DM Mono',monospace;color:#EDE6D6;white-space:nowrap;letter-spacing:.2em">SNAPBOOK BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_mono_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background:#121110;overflow:hidden">
+<img src="foto/p2.jpg" style="position:absolute;left:96px;top:70px;width:708px;height:830px;object-fit:cover;object-position:50% 30%"></img>
+<div style="position:absolute;left:96px;top:70px;width:708px;height:830px;border-radius:26px;box-shadow:0 0 0 26px #121110"></div>
+<div style="position:absolute;left:44px;top:110px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:120px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:130px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:44px;top:140px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:46px;top:170px;width:0px;height:0px;border-left:13.2px solid transparent;border-right:13.2px solid transparent;border-bottom:22px solid #EDE6D6"></div>
+<div style="position:absolute;left:826px;top:620px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:826px;top:630px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:826px;top:640px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:826px;top:650px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:826px;top:660px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:826px;top:670px;width:30px;height:4px;background:#EDE6D6"></div>
+<div style="position:absolute;left:830px;top:700px;width:0px;height:0px;border-left:13.2px solid transparent;border-right:13.2px solid transparent;border-bottom:22px solid #EDE6D6"></div>
+<div style="position:absolute;left:96px;top:950px;width:708px;display:flex;justify-content:center;font:500 38px/1 'DM Mono',monospace;color:#EDE6D6;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:96px;top:1014px;width:708px;display:flex;justify-content:center;font:400 28px/1 'DM Mono',monospace;color:#EDE6D6;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateDot }}</span></div>
+<div style="position:absolute;left:96px;top:1116px;width:708px;text-align:center;font:500 14px/1 'DM Mono',monospace;color:#EDE6D6;white-space:nowrap;letter-spacing:.2em">SNAPBOOK BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_photobox_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background:#FFFFFF;overflow:hidden">
+<img src="foto/p1.jpg" style="position:absolute;left:30px;top:30px;width:400px;height:330px;object-fit:cover;object-position:50% 25%"></img>
+<img src="foto/p2.jpg" style="position:absolute;left:30px;top:372px;width:400px;height:330px;object-fit:cover;object-position:50% 30%"></img>
+<img src="foto/p5.jpg" style="position:absolute;left:30px;top:714px;width:400px;height:330px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p3.jpg" style="position:absolute;left:30px;top:1056px;width:400px;height:330px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:440px;top:30px;width:130px;height:1356px;background:#F7F6F2"></div>
+<div style="position:absolute;left:440px;top:30px;width:1356px;height:130px;transform:rotate(90deg) translateY(-130px);transform-origin:0 0;display:flex;align-items:center;justify-content:space-between;padding:0 50px;box-sizing:border-box"><span style="font:800 52px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em;color:#1D1D1B">SNAP<span style="color:#E8836F">.</span>BOOK <span style="font:italic 500 41.6px/1 'Instrument Serif',serif;color:#E8836F;letter-spacing:0">classic</span></span><span style="font:500 16px/1.35 'Plus Jakarta Sans',sans-serif;color:#5F5E5A;white-space:pre">by Tetra Photobooth
+@tetraphotobooth</span></div>
+<div style="position:absolute;left:30px;top:1440px;width:540px;display:flex;justify-content:flex-start;font:800 34px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:30px;top:1494px;width:540px;display:flex;justify-content:flex-start;font:400 24px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateDot }}</span></div>
+<div style="position:absolute;left:30px;top:1560px;width:540px;height:3px;background:#1D1D1B"></div>
+<div style="position:absolute;left:30px;top:1690px;width:540px;text-align:left;font:500 14px/1 'DM Mono',monospace;color:#8A8883;white-space:nowrap;">FOTO SNAPBOOK · TIDAK BERLAKU UNTUK DOKUMEN RESMI</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_photobox_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background:#FFFFFF;overflow:hidden">
+<img src="foto/p1.jpg" style="position:absolute;left:40px;top:40px;width:460px;height:380px;object-fit:cover;object-position:50% 25%"></img>
+<img src="foto/p2.jpg" style="position:absolute;left:40px;top:432px;width:460px;height:380px;object-fit:cover;object-position:50% 30%"></img>
+<img src="foto/p5.jpg" style="position:absolute;left:40px;top:824px;width:460px;height:380px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p3.jpg" style="position:absolute;left:40px;top:1216px;width:460px;height:380px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p6.jpg" style="position:absolute;left:650px;top:40px;width:460px;height:380px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p4.jpg" style="position:absolute;left:650px;top:432px;width:460px;height:380px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p8.jpg" style="position:absolute;left:650px;top:824px;width:460px;height:380px;object-fit:cover;object-position:50% 40%"></img>
+<img src="foto/p7.jpg" style="position:absolute;left:650px;top:1216px;width:460px;height:380px;object-fit:cover;object-position:50% 40%"></img>
+<div style="position:absolute;left:510px;top:40px;width:130px;height:1556px;background:#F7F6F2"></div>
+<div style="position:absolute;left:510px;top:40px;width:1556px;height:130px;transform:rotate(90deg) translateY(-130px);transform-origin:0 0;display:flex;align-items:center;justify-content:space-between;padding:0 50px;box-sizing:border-box"><span style="font:800 52px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em;color:#1D1D1B">SNAP<span style="color:#E8836F">.</span>BOOK <span style="font:italic 500 41.6px/1 'Instrument Serif',serif;color:#E8836F;letter-spacing:0">classic</span></span><span style="font:500 16px/1.35 'Plus Jakarta Sans',sans-serif;color:#5F5E5A;white-space:pre">by Tetra Photobooth
+@tetraphotobooth</span></div>
+<div style="position:absolute;left:1120px;top:40px;width:40px;height:1556px;background:#F7F6F2"></div>
+<div style="position:absolute;left:1120px;top:40px;width:1556px;height:40px;transform:rotate(90deg) translateY(-40px);transform-origin:0 0;display:flex;align-items:center;justify-content:space-between;padding:0 50px;box-sizing:border-box"></div>
+<div style="position:absolute;left:40px;top:1640px;width:600px;display:flex;justify-content:flex-start;font:800 36px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:650px;top:1646px;width:510px;display:flex;justify-content:flex-end;font:400 28px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap"><span data-fit="right" style="flex-shrink:0;display:inline-block">{{ dateDot }}</span></div>
+<div style="position:absolute;left:40px;top:1712px;width:1120px;text-align:left;font:500 14px/1 'DM Mono',monospace;color:#8A8883;white-space:nowrap;">FOTO SNAPBOOK · GUNTING JADI DUA, BAGI KE TEMANMU · BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_photobox_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background:#FFFFFF;overflow:hidden">
+<img src="foto/p2.jpg" style="position:absolute;left:40px;top:40px;width:700px;height:860px;object-fit:cover;object-position:50% 30%"></img>
+<div style="position:absolute;left:750px;top:40px;width:110px;height:860px;background:#F7F6F2"></div>
+<div style="position:absolute;left:750px;top:40px;width:860px;height:110px;transform:rotate(90deg) translateY(-110px);transform-origin:0 0;display:flex;align-items:center;justify-content:space-between;padding:0 50px;box-sizing:border-box"><span style="font:800 40px/1 'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em;color:#1D1D1B">SNAP<span style="color:#E8836F">.</span>BOOK <span style="font:italic 500 32px/1 'Instrument Serif',serif;color:#E8836F;letter-spacing:0">classic</span></span><span style="font:500 13px/1.35 'Plus Jakarta Sans',sans-serif;color:#5F5E5A;white-space:pre">by Tetra Photobooth
+@tetraphotobooth</span></div>
+<div style="position:absolute;left:40px;top:950px;width:820px;display:flex;justify-content:flex-start;font:800 46px/1 'Plus Jakarta Sans',sans-serif;color:#1D1D1B;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:40px;top:1020px;width:500px;display:flex;justify-content:flex-start;font:400 28px/1 'DM Mono',monospace;color:#5F5E5A;white-space:nowrap"><span data-fit="left" style="flex-shrink:0;display:inline-block">{{ dateDot }}</span></div>
+<div style="position:absolute;left:40px;top:1080px;width:820px;height:3px;background:#1D1D1B"></div>
+<div style="position:absolute;left:40px;top:1110px;width:820px;text-align:left;font:500 13px/1 'DM Mono',monospace;color:#8A8883;white-space:nowrap;">FOTO SNAPBOOK · BY TETRA PHOTOBOOTH</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_doily_strip }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:600px;height:1800px;background:#1F3B2D;overflow:hidden">
+<div style="position:absolute;left:61px;top:90px;width:478px;height:12px;background:radial-gradient(circle at 11px 6px,#F1E8CF 6px,transparent 7px) 8px 0/22px 12px repeat-x"></div>
+<div style="position:absolute;left:61px;top:448px;width:478px;height:12px;background:radial-gradient(circle at 11px 6px,#F1E8CF 6px,transparent 7px) 8px 0/22px 12px repeat-x"></div>
+<div style="position:absolute;left:55px;top:96px;width:12px;height:358px;background:radial-gradient(circle at 6px 11px,#F1E8CF 6px,transparent 7px) 0 3px/12px 22px repeat-y"></div>
+<div style="position:absolute;left:533px;top:96px;width:12px;height:358px;background:radial-gradient(circle at 6px 11px,#F1E8CF 6px,transparent 7px) 0 3px/12px 22px repeat-y"></div>
+<div style="position:absolute;left:75px;top:96px;width:450px;height:28px;background:radial-gradient(circle at 16px 14px,#F1E8CF 14px,transparent 15px) 1px 0/32px 28px repeat-x"></div>
+<div style="position:absolute;left:75px;top:426px;width:450px;height:28px;background:radial-gradient(circle at 16px 14px,#F1E8CF 14px,transparent 15px) 1px 0/32px 28px repeat-x"></div>
+<div style="position:absolute;left:61px;top:110px;width:28px;height:330px;background:radial-gradient(circle at 14px 16px,#F1E8CF 14px,transparent 15px) 0 5px/28px 32px repeat-y"></div>
+<div style="position:absolute;left:511px;top:110px;width:28px;height:330px;background:radial-gradient(circle at 14px 16px,#F1E8CF 14px,transparent 15px) 0 5px/28px 32px repeat-y"></div>
+<div style="position:absolute;left:61px;top:470px;width:478px;height:12px;background:radial-gradient(circle at 11px 6px,#F1E8CF 6px,transparent 7px) 8px 0/22px 12px repeat-x"></div>
+<div style="position:absolute;left:61px;top:828px;width:478px;height:12px;background:radial-gradient(circle at 11px 6px,#F1E8CF 6px,transparent 7px) 8px 0/22px 12px repeat-x"></div>
+<div style="position:absolute;left:55px;top:476px;width:12px;height:358px;background:radial-gradient(circle at 6px 11px,#F1E8CF 6px,transparent 7px) 0 3px/12px 22px repeat-y"></div>
+<div style="position:absolute;left:533px;top:476px;width:12px;height:358px;background:radial-gradient(circle at 6px 11px,#F1E8CF 6px,transparent 7px) 0 3px/12px 22px repeat-y"></div>
+<div style="position:absolute;left:75px;top:476px;width:450px;height:28px;background:radial-gradient(circle at 16px 14px,#F1E8CF 14px,transparent 15px) 1px 0/32px 28px repeat-x"></div>
+<div style="position:absolute;left:75px;top:806px;width:450px;height:28px;background:radial-gradient(circle at 16px 14px,#F1E8CF 14px,transparent 15px) 1px 0/32px 28px repeat-x"></div>
+<div style="position:absolute;left:61px;top:490px;width:28px;height:330px;background:radial-gradient(circle at 14px 16px,#F1E8CF 14px,transparent 15px) 0 5px/28px 32px repeat-y"></div>
+<div style="position:absolute;left:511px;top:490px;width:28px;height:330px;background:radial-gradient(circle at 14px 16px,#F1E8CF 14px,transparent 15px) 0 5px/28px 32px repeat-y"></div>
+<div style="position:absolute;left:61px;top:850px;width:478px;height:12px;background:radial-gradient(circle at 11px 6px,#F1E8CF 6px,transparent 7px) 8px 0/22px 12px repeat-x"></div>
+<div style="position:absolute;left:61px;top:1208px;width:478px;height:12px;background:radial-gradient(circle at 11px 6px,#F1E8CF 6px,transparent 7px) 8px 0/22px 12px repeat-x"></div>
+<div style="position:absolute;left:55px;top:856px;width:12px;height:358px;background:radial-gradient(circle at 6px 11px,#F1E8CF 6px,transparent 7px) 0 3px/12px 22px repeat-y"></div>
+<div style="position:absolute;left:533px;top:856px;width:12px;height:358px;background:radial-gradient(circle at 6px 11px,#F1E8CF 6px,transparent 7px) 0 3px/12px 22px repeat-y"></div>
+<div style="position:absolute;left:75px;top:856px;width:450px;height:28px;background:radial-gradient(circle at 16px 14px,#F1E8CF 14px,transparent 15px) 1px 0/32px 28px repeat-x"></div>
+<div style="position:absolute;left:75px;top:1186px;width:450px;height:28px;background:radial-gradient(circle at 16px 14px,#F1E8CF 14px,transparent 15px) 1px 0/32px 28px repeat-x"></div>
+<div style="position:absolute;left:61px;top:870px;width:28px;height:330px;background:radial-gradient(circle at 14px 16px,#F1E8CF 14px,transparent 15px) 0 5px/28px 32px repeat-y"></div>
+<div style="position:absolute;left:511px;top:870px;width:28px;height:330px;background:radial-gradient(circle at 14px 16px,#F1E8CF 14px,transparent 15px) 0 5px/28px 32px repeat-y"></div>
+<img src="foto/p1.jpg" style="position:absolute;left:75px;top:110px;width:450px;height:330px;object-fit:cover;object-position:50% 25%"></img>
+<img src="foto/p2.jpg" style="position:absolute;left:75px;top:490px;width:450px;height:330px;object-fit:cover;object-position:50% 30%"></img>
+<img src="foto/p5.jpg" style="position:absolute;left:75px;top:870px;width:450px;height:330px;object-fit:cover;object-position:50% 40%"></img>
+
+
+
+<div style="position:absolute;left:61.68px;top:93.6px;width:32.24px;height:20.8px;border:4px solid #F1E8CF;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+<div style="position:absolute;left:98.08px;top:93.6px;width:32.24px;height:20.8px;border:4px solid #F1E8CF;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+<div style="position:absolute;left:94.44px;top:106.6px;width:4px;height:39px;background:#F1E8CF;border-radius:4px;transform:rotate(18deg);transform-origin:top center"></div>
+<div style="position:absolute;left:96.52px;top:106.6px;width:4px;height:36.4px;background:#F1E8CF;border-radius:4px;transform:rotate(-22deg);transform-origin:top center"></div>
+<div style="position:absolute;left:91.32px;top:99.32px;width:9.36px;height:9.36px;background:#F1E8CF;border-radius:40%"></div>
+<div style="position:absolute;left:469.68px;top:93.6px;width:32.24px;height:20.8px;border:4px solid #F1E8CF;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+<div style="position:absolute;left:506.08px;top:93.6px;width:32.24px;height:20.8px;border:4px solid #F1E8CF;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+<div style="position:absolute;left:502.44px;top:106.6px;width:4px;height:39px;background:#F1E8CF;border-radius:4px;transform:rotate(18deg);transform-origin:top center"></div>
+<div style="position:absolute;left:504.52px;top:106.6px;width:4px;height:36.4px;background:#F1E8CF;border-radius:4px;transform:rotate(-22deg);transform-origin:top center"></div>
+<div style="position:absolute;left:499.32px;top:99.32px;width:9.36px;height:9.36px;background:#F1E8CF;border-radius:40%"></div>
+<div style="position:absolute;left:0px;top:1290px;width:600px;text-align:center;font: 500 16px/1 'Bodoni Moda',serif;color:#F1E8CF;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">MERAYAKAN BERSAMA</div>
+<div style="position:absolute;left:60px;top:1326px;width:480px;display:flex;justify-content:center;font:400 70px/1.1 'Pinyon Script',cursive;color:#F1E8CF;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:60px;top:1446px;width:480px;display:flex;justify-content:center;font: 500 24px/1 'Bodoni Moda',serif;color:#F1E8CF;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:0px;top:1696px;width:600px;text-align:center;font: 500 14px/1 'Bodoni Moda',serif;color:#F1E8CF;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK · BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_doily_4r }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:1200px;height:1800px;background:#1F3B2D;overflow:hidden">
+<div style="position:absolute;left:126px;top:400px;width:948px;height:12px;background:radial-gradient(circle at 11px 6px,#F1E8CF 6px,transparent 7px) 1px 0/22px 12px repeat-x"></div>
+<div style="position:absolute;left:126px;top:1608px;width:948px;height:12px;background:radial-gradient(circle at 11px 6px,#F1E8CF 6px,transparent 7px) 1px 0/22px 12px repeat-x"></div>
+<div style="position:absolute;left:120px;top:406px;width:12px;height:1208px;background:radial-gradient(circle at 6px 11px,#F1E8CF 6px,transparent 7px) 0 10px/12px 22px repeat-y"></div>
+<div style="position:absolute;left:1068px;top:406px;width:12px;height:1208px;background:radial-gradient(circle at 6px 11px,#F1E8CF 6px,transparent 7px) 0 10px/12px 22px repeat-y"></div>
+<div style="position:absolute;left:140px;top:406px;width:920px;height:28px;background:radial-gradient(circle at 16px 14px,#F1E8CF 14px,transparent 15px) 12px 0/32px 28px repeat-x"></div>
+<div style="position:absolute;left:140px;top:1586px;width:920px;height:28px;background:radial-gradient(circle at 16px 14px,#F1E8CF 14px,transparent 15px) 12px 0/32px 28px repeat-x"></div>
+<div style="position:absolute;left:126px;top:420px;width:28px;height:1180px;background:radial-gradient(circle at 14px 16px,#F1E8CF 14px,transparent 15px) 0 14px/28px 32px repeat-y"></div>
+<div style="position:absolute;left:1046px;top:420px;width:28px;height:1180px;background:radial-gradient(circle at 14px 16px,#F1E8CF 14px,transparent 15px) 0 14px/28px 32px repeat-y"></div>
+<img src="foto/p1.jpg" style="position:absolute;left:140px;top:420px;width:920px;height:1180px;object-fit:cover;object-position:50% 25%"></img>
+
+<div style="position:absolute;left:100.60000000000001px;top:392px;width:55.8px;height:36px;border:5px solid #F1E8CF;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+<div style="position:absolute;left:163.6px;top:392px;width:55.8px;height:36px;border:5px solid #F1E8CF;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+<div style="position:absolute;left:157.3px;top:414.5px;width:5px;height:67.5px;background:#F1E8CF;border-radius:5px;transform:rotate(18deg);transform-origin:top center"></div>
+<div style="position:absolute;left:160.9px;top:414.5px;width:5px;height:62.99999999999999px;background:#F1E8CF;border-radius:5px;transform:rotate(-22deg);transform-origin:top center"></div>
+<div style="position:absolute;left:151.9px;top:401.9px;width:16.2px;height:16.2px;background:#F1E8CF;border-radius:40%"></div>
+<div style="position:absolute;left:980.6px;top:392px;width:55.8px;height:36px;border:5px solid #F1E8CF;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+<div style="position:absolute;left:1043.6px;top:392px;width:55.8px;height:36px;border:5px solid #F1E8CF;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+<div style="position:absolute;left:1037.3px;top:414.5px;width:5px;height:67.5px;background:#F1E8CF;border-radius:5px;transform:rotate(18deg);transform-origin:top center"></div>
+<div style="position:absolute;left:1040.9px;top:414.5px;width:5px;height:62.99999999999999px;background:#F1E8CF;border-radius:5px;transform:rotate(-22deg);transform-origin:top center"></div>
+<div style="position:absolute;left:1031.9px;top:401.9px;width:16.2px;height:16.2px;background:#F1E8CF;border-radius:40%"></div>
+<div style="position:absolute;left:0px;top:96px;width:1200px;text-align:center;font: 500 22px/1 'Bodoni Moda',serif;color:#F1E8CF;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">MERAYAKAN BERSAMA</div>
+<div style="position:absolute;left:100px;top:138px;width:1000px;display:flex;justify-content:center;font:400 112px/1.1 'Pinyon Script',cursive;color:#F1E8CF;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:100px;top:300px;width:1000px;display:flex;justify-content:center;font: 500 34px/1 'Bodoni Moda',serif;color:#F1E8CF;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:0px;top:1696px;width:1200px;text-align:center;font: 500 20px/1 'Bodoni Moda',serif;color:#F1E8CF;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK · BY TETRA</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ is_doily_polaroid }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;width:900px;height:1200px;background:#1F3B2D;overflow:hidden">
+<div style="position:absolute;left:106px;top:280px;width:688px;height:12px;background:radial-gradient(circle at 11px 6px,#F1E8CF 6px,transparent 7px) 3px 0/22px 12px repeat-x"></div>
+<div style="position:absolute;left:106px;top:1068px;width:688px;height:12px;background:radial-gradient(circle at 11px 6px,#F1E8CF 6px,transparent 7px) 3px 0/22px 12px repeat-x"></div>
+<div style="position:absolute;left:100px;top:286px;width:12px;height:788px;background:radial-gradient(circle at 6px 11px,#F1E8CF 6px,transparent 7px) 0 9px/12px 22px repeat-y"></div>
+<div style="position:absolute;left:788px;top:286px;width:12px;height:788px;background:radial-gradient(circle at 6px 11px,#F1E8CF 6px,transparent 7px) 0 9px/12px 22px repeat-y"></div>
+<div style="position:absolute;left:120px;top:286px;width:660px;height:28px;background:radial-gradient(circle at 16px 14px,#F1E8CF 14px,transparent 15px) 10px 0/32px 28px repeat-x"></div>
+<div style="position:absolute;left:120px;top:1046px;width:660px;height:28px;background:radial-gradient(circle at 16px 14px,#F1E8CF 14px,transparent 15px) 10px 0/32px 28px repeat-x"></div>
+<div style="position:absolute;left:106px;top:300px;width:28px;height:760px;background:radial-gradient(circle at 14px 16px,#F1E8CF 14px,transparent 15px) 0 12px/28px 32px repeat-y"></div>
+<div style="position:absolute;left:766px;top:300px;width:28px;height:760px;background:radial-gradient(circle at 14px 16px,#F1E8CF 14px,transparent 15px) 0 12px/28px 32px repeat-y"></div>
+<img src="foto/p2.jpg" style="position:absolute;left:120px;top:300px;width:660px;height:760px;object-fit:cover;object-position:50% 30%"></img>
+
+<div style="position:absolute;left:95.75999999999999px;top:279.2px;width:39.68px;height:25.6px;border:4px solid #F1E8CF;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+<div style="position:absolute;left:140.56px;top:279.2px;width:39.68px;height:25.6px;border:4px solid #F1E8CF;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+<div style="position:absolute;left:136.08px;top:295.2px;width:4px;height:48px;background:#F1E8CF;border-radius:4px;transform:rotate(18deg);transform-origin:top center"></div>
+<div style="position:absolute;left:138.64px;top:295.2px;width:4px;height:44.8px;background:#F1E8CF;border-radius:4px;transform:rotate(-22deg);transform-origin:top center"></div>
+<div style="position:absolute;left:132.24px;top:286.24px;width:11.52px;height:11.52px;background:#F1E8CF;border-radius:40%"></div>
+<div style="position:absolute;left:719.7600000000001px;top:279.2px;width:39.68px;height:25.6px;border:4px solid #F1E8CF;border-radius:50%;box-sizing:border-box;transform:rotate(-14deg);transform-origin:right center"></div>
+<div style="position:absolute;left:764.56px;top:279.2px;width:39.68px;height:25.6px;border:4px solid #F1E8CF;border-radius:50%;box-sizing:border-box;transform:rotate(14deg);transform-origin:left center"></div>
+<div style="position:absolute;left:760.08px;top:295.2px;width:4px;height:48px;background:#F1E8CF;border-radius:4px;transform:rotate(18deg);transform-origin:top center"></div>
+<div style="position:absolute;left:762.64px;top:295.2px;width:4px;height:44.8px;background:#F1E8CF;border-radius:4px;transform:rotate(-22deg);transform-origin:top center"></div>
+<div style="position:absolute;left:756.24px;top:286.24px;width:11.52px;height:11.52px;background:#F1E8CF;border-radius:40%"></div>
+<div style="position:absolute;left:0px;top:66px;width:900px;text-align:center;font: 500 15px/1 'Bodoni Moda',serif;color:#F1E8CF;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">MERAYAKAN BERSAMA</div>
+<div style="position:absolute;left:80px;top:96px;width:740px;display:flex;justify-content:center;font:400 76px/1.1 'Pinyon Script',cursive;color:#F1E8CF;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ eventName }}</span></div>
+<div style="position:absolute;left:80px;top:214px;width:740px;display:flex;justify-content:center;font: 500 24px/1 'Bodoni Moda',serif;color:#F1E8CF;white-space:nowrap"><span data-fit="center" style="flex-shrink:0;display:inline-block">{{ dateLong }}</span></div>
+<div style="position:absolute;left:0px;top:1112px;width:900px;text-align:center;font: 500 13px/1 'Bodoni Moda',serif;color:#F1E8CF;white-space:nowrap;letter-spacing:.3em;padding-left:.3em">SNAPBOOK · BY TETRA</div>
+</div>
+</sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:320,&quot;height&quot;:480},&quot;frame&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;klasik-strip&quot;,&quot;klasik-4r&quot;,&quot;klasik-polaroid&quot;,&quot;film-strip&quot;,&quot;film-4r&quot;,&quot;film-polaroid&quot;,&quot;zine-strip&quot;,&quot;zine-4r&quot;,&quot;zine-polaroid&quot;,&quot;bold-strip&quot;,&quot;bold-4r&quot;,&quot;bold-polaroid&quot;],&quot;default&quot;:&quot;bold-4r&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;height&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:450,&quot;tsType&quot;:&quot;number&quot;},&quot;eventName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Wedding Rafi &amp; Dinda&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  rootRef = React.createRef();
+  fit = () => {
+    const root = this.rootRef.current; if (!root) return;
+    root.querySelectorAll('[data-fit]').forEach(el => {
+      el.style.transform = '';
+      const w = el.parentElement.clientWidth, sw = el.scrollWidth;
+      const o = el.dataset.fit === 'center' ? 'center' : el.dataset.fit === 'right' ? 'right' : 'left';
+      el.style.transformOrigin = o + ' top';
+      if (sw > w) el.style.transform = `scaleX(${w / sw})`;
+    });
+  };
+  componentDidMount() { this.fit(); document.fonts && document.fonts.ready.then(this.fit); setTimeout(this.fit, 600); }
+  componentDidUpdate() { this.fit(); }
+  renderVals() {
+    const frame = this.props.frame ?? 'film-strip';
+    const size = frame.split('-')[1];
+    const dims = { strip: [600, 1800], '4r': [1200, 1800], polaroid: [900, 1200] }[size] || [600, 1800];
+    const scale = this.props.height ? this.props.height / dims[1] : (this.props.scale ?? 0.25);
+    const v = {
+      rootRef: this.rootRef, scale,
+      boxW: Math.round(dims[0] * scale), boxH: Math.round(dims[1] * scale),
+      eventName: this.props.eventName ?? 'Wedding Rafi & Dinda',
+      dateIso: '2026-10-10', dateLong: '10 Oktober 2026', dateDot: '10.10.26'
+    };
+    ['film','zine','bold','teater','pass','musik','koran','struk','majalah','zamrud','renda','pita','mono','photobox','doily'].forEach(s => ['strip','4r','polaroid'].forEach(z => { v[`is_${s}_${z}`] = frame === `${s}-${z}`; }));
+    return v;
+  }
+}
+</script>
+</body>
+</html>

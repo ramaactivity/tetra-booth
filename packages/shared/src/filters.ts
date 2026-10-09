@@ -87,6 +87,25 @@ const step = (fn: string, v: number): Matrix | null => {
       return [v, 0, 0, 0.5 - 0.5 * v, 0, v, 0, 0.5 - 0.5 * v, 0, 0, v, 0.5 - 0.5 * v];
     case "brightness":
       return [v, 0, 0, 0, 0, v, 0, 0, 0, 0, v, 0];
+    case "hue-rotate": {
+      const r = (v * Math.PI) / 180;
+      const c = Math.cos(r);
+      const n = Math.sin(r);
+      return [
+        0.213 + c * 0.787 - n * 0.213,
+        0.715 - c * 0.715 - n * 0.715,
+        0.072 - c * 0.072 + n * 0.928,
+        0,
+        0.213 - c * 0.213 + n * 0.143,
+        0.715 + c * 0.285 + n * 0.14,
+        0.072 - c * 0.072 - n * 0.283,
+        0,
+        0.213 - c * 0.213 - n * 0.787,
+        0.715 - c * 0.715 + n * 0.715,
+        0.072 + c * 0.928 + n * 0.072,
+        0,
+      ];
+    }
     default:
       return null;
   }
@@ -97,7 +116,7 @@ const IDENTITY: Matrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0];
 /** String CSS filter → satu matriks gabungan (urutan sama dengan CSS: fungsi pertama diterapkan dulu). */
 export const filterMatrix = (css: string): Matrix => {
   let m = IDENTITY;
-  for (const [, fn = "", v] of css.matchAll(/(\w+)\(([\d.]+)\)/g)) {
+  for (const [, fn = "", v] of css.matchAll(/([\w-]+)\((-?[\d.]+)(?:deg)?\)/g)) {
     const s = step(fn, Number(v));
     if (s) m = mul(s, m);
   }

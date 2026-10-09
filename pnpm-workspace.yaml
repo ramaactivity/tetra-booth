@@ -9,6 +9,7 @@ allowBuilds:
   '@embedded-postgres/linux-x64': true
   '@embedded-postgres/windows-x64': true
   '@sentry-internal/node-cpu-profiler': false
+  core-js: false
   electron: true
   electron-winstaller: false
   esbuild: true

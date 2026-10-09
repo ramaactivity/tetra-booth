@@ -4,9 +4,13 @@ namespace TetraCamera.Canon;
 
 /// <summary>
 /// Kamera Canon palsu (`--canon fake`): jepret & live view memakai JPEG contoh 1200×800, untuk dev/e2e di Mac
-/// dan unit test. <see cref="Plugged"/> = false mensimulasikan kamera dicabut.
+/// dan unit test. <see cref="Plugged"/> = false mensimulasikan kamera dicabut. Merek lain (Lumix palsu) memberi model
+/// dan setelannya sendiri.
 /// </summary>
-public sealed class FakeCanonDriver : ICanonDriver
+public sealed class FakeCanonDriver(
+    string model = "Canon EOS Simulasi",
+    Dictionary<uint, uint>? props = null,
+    Dictionary<uint, uint[]>? options = null) : ICanonDriver
 {
     public static readonly byte[] Jpeg = Load();
     private static byte[] Load()
@@ -18,6 +22,10 @@ public sealed class FakeCanonDriver : ICanonDriver
     }
 
     public volatile bool Plugged = true;
+    /// <summary>
+    /// Kamera dimatikan tanpa event shutdown (lapangan 9 Okt): sesi SDK masih "terbuka" tapi setiap panggilan gagal.
+    /// </summary>
+    public volatile bool Silent;
     /// <summary>Jepret tertahan selama ini (ms): meniru panggilan EDSDK yang tidak kembali.</summary>
     public volatile int HangMs;
     public bool LiveView { get; private set; }
@@ -37,9 +45,9 @@ public sealed class FakeCanonDriver : ICanonDriver
 
     public (string Model, string Serial)? Open()
     {
-        if (!Plugged) return null;
+        if (!Plugged || Silent) return null;
         _open = true;
-        return ("Canon EOS Simulasi", "fake-usb");
+        return (model, "fake-usb");
     }
 
     public void Close() => _open = false;
@@ -50,8 +58,8 @@ public sealed class FakeCanonDriver : ICanonDriver
         if (HangMs > 0) Thread.Sleep(HangMs);
         if (!IsOpen) throw new CameraFailure("camera_disconnected", "kamera terputus saat jepret");
         Captures++;
-        IsoAtCapture.Add(Props[0x402]);
-        ShutterAtCapture.Add(Props[0x406]);
+        IsoAtCapture.Add(Props.GetValueOrDefault(0x402u));
+        ShutterAtCapture.Add(Props.GetValueOrDefault(0x406u));
         return Jpeg;
     }
 
@@ -65,17 +73,19 @@ public sealed class FakeCanonDriver : ICanonDriver
     }
 
     public void SetLiveView(bool on) => LiveView = on;
-    public byte[]? LiveViewFrame() => LiveView && IsOpen ? Jpeg : null;
+    public byte[]? LiveViewFrame() =>
+        Silent ? throw new CameraFailure("canon_error", "EDSDK unduh frame live view gagal: 0x00000081")
+        : LiveView && IsOpen ? Jpeg : null;
     public void Focus(string step) => FocusSteps.Add(step);
     public void FocusAt(double x, double y) => FocusSteps.Add($"at {x:0.00},{y:0.00}");
 
     /// <summary>Setelan kamera palsu: ISO 100, 1/125, f/5.6, Auto; beberapa pilihan per setelan.</summary>
-    public Dictionary<uint, uint> Props { get; } =
+    public Dictionary<uint, uint> Props { get; } = props ??
         new() { [0x402] = 0x48, [0x406] = 0x70, [0x405] = 0x30, [0x106] = 0, [0x100] = 0x0013FF0F, [Edsdk.PropBatteryLevel] = 80 };
     /// <summary>ISO yang terpasang tepat saat tiap jepret (uji ISO jepret #113).</summary>
     public List<uint> IsoAtCapture { get; } = [];
     public List<uint> ShutterAtCapture { get; } = [];
-    private static readonly Dictionary<uint, uint[]> Options = new()
+    private readonly Dictionary<uint, uint[]> _options = options ?? new()
     {
         [0x402] = [0x48, 0x50, 0x58, 0x60, 0x68],
         [0x406] = [0x60, 0x68, 0x70, 0x78, 0x80],
@@ -83,8 +93,9 @@ public sealed class FakeCanonDriver : ICanonDriver
         [0x106] = [0, 1, 2, 3, 8],
         [0x100] = [0x0013FF0F, 0x0113FF0F, 0x0213FF0F, 0x0E13FF0F],
     };
-    public uint GetProp(uint propId) => Props[propId];
-    public uint[] PropOptions(uint propId) => Options[propId];
+    public uint GetProp(uint propId) =>
+        Silent ? throw new CameraFailure("canon_error", "EDSDK baca setelan gagal: 0x000000C0") : Props[propId];
+    public uint[] PropOptions(uint propId) => _options[propId];
     /// <summary>true = ubah setelan selalu ditolak DEVICE_BUSY (700D saat jepret, 2026-10-07).</summary>
     public volatile bool RejectSet;
     public void SetProp(uint propId, uint value)

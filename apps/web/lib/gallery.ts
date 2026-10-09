@@ -1,5 +1,6 @@
 import "server-only";
 import { SESSION_ID_PATTERN } from "@tetra/shared";
+import { guestPhotosVisible } from "@/lib/events";
 import { presignDownload, presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -9,12 +10,13 @@ import { createServiceClient } from "@/lib/supabase/service";
  */
 export type GalleryPhoto = {
   id: string;
-  kind: "strip" | "original" | "animation";
+  /** `audio` = ucapan suara Guest Cam (#197). */
+  kind: "strip" | "original" | "animation" | "audio";
   sessionId: string;
   hour: number;
-  /** Photo Stage (#180): foto fotografer pelaminan, dikelompokkan per rombongan. */
-  source: "booth" | "stage";
-  /** Nama rombongan (stage): nama grup, atau "Tamu · 19.42". */
+  /** Photo Stage (#180): foto fotografer pelaminan, dikelompokkan per rombongan; guest = Guest Cam (#197). */
+  source: "booth" | "stage" | "guest";
+  /** Nama rombongan (stage): nama grup, atau "Tamu · 19.42"; Guest Cam: nama tamu. */
   group: string | null;
   /** Jam mulai sesi "19.42" (WIB). */
   time: string;
@@ -62,8 +64,6 @@ const clockWib = (ts: string) =>
 export const LINK = /^[\w-]{1,80}$/;
 export const byLink = (col: "client_token" | "live_token", v: string) =>
   `${col}.eq.${v},slug.eq.${v}`;
-/** Link Guest Cam `/c/<slug>` (#197): sama dengan galeri/live, kolom aktif `guest_token`. */
-export const byLinkGuest = (v: string) => `guest_token.eq.${v},slug.eq.${v}`;
 
 /** Event dari link klien (slug atau token); kedaluwarsa/purge/link dicabut → gone. */
 export async function eventByClientToken(token: string) {
@@ -71,7 +71,7 @@ export async function eventByClientToken(token: string) {
   const { data } = await createServiceClient()
     .from("events")
     .select(
-      "id, organization_id, name, event_date, location, branding, client_expires_at, purged_at, public_gallery",
+      "id, organization_id, name, event_date, location, branding, client_expires_at, purged_at, public_gallery, settings, run, guest_revealed_at",
     )
     .or(byLink("client_token", token))
     .not("client_token", "is", null)
@@ -99,7 +99,7 @@ export async function loadPublicGallery(sessionId: string): Promise<Gallery> {
   const { data: s } = await createServiceClient()
     .from("sessions")
     .select(
-      "hidden_at, deleted_at, events!inner(id, organization_id, name, event_date, location, branding, client_expires_at, guest_expires_at, purged_at, public_gallery)",
+      "hidden_at, deleted_at, events!inner(id, organization_id, name, event_date, location, branding, client_expires_at, guest_expires_at, purged_at, public_gallery, settings, run, guest_revealed_at)",
     )
     .eq("id", sessionId)
     .maybeSingle();
@@ -117,7 +117,7 @@ export async function loadPublicGalleryByLive(token: string): Promise<Gallery> {
   const { data: ev } = await createServiceClient()
     .from("events")
     .select(
-      "id, organization_id, name, event_date, location, branding, client_expires_at, guest_expires_at, purged_at, public_gallery",
+      "id, organization_id, name, event_date, location, branding, client_expires_at, guest_expires_at, purged_at, public_gallery, settings, run, guest_revealed_at",
     )
     .or(byLink("live_token", token))
     .not("live_token", "is", null)
@@ -139,6 +139,8 @@ async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gall
     .eq("is_test", false)
     .is("hidden_at", null)
     .is("deleted_at", null)
+    // Guest Cam (#197): mode "setelah acara" tertutup sampai acara selesai / dibuka owner.
+    .in("source", guestPhotosVisible(ev) ? ["booth", "stage", "guest"] : ["booth", "stage"])
     .order("started_at")
     .limit(10000);
   const started = new Map((sessions ?? []).map((s) => [s.id, s.started_at]));
@@ -152,8 +154,10 @@ async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gall
       .select("id, session_id, kind, idx, r2_key")
       .eq("organization_id", ev.organization_id)
       .in("session_id", ids.slice(i, i + 200))
-      .in("kind", ["strip_web", "thumb_strip", "original", "thumb_original", "animation"])
-      .is("hidden_at", null);
+      .in("kind", ["strip_web", "thumb_strip", "original", "thumb_original", "animation", "audio"])
+      .is("hidden_at", null)
+      // Moderasi Guest Cam: hanya yang disetujui (booth/stage selalu null).
+      .is("review_status", null);
     assets.push(...(data ?? []));
   }
   const { data: favs } = withFavorites
@@ -161,8 +165,15 @@ async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gall
     : { data: [] };
   const fav = new Set((favs ?? []).map((f) => f.asset_id));
   const byKey = new Map(assets.map((a) => [`${a.session_id}:${a.kind}:${a.idx}`, a]));
-  const KIND = { strip_web: "strip", original: "original", animation: "animation" } as const;
+  const KIND = {
+    strip_web: "strip",
+    original: "original",
+    animation: "animation",
+    audio: "audio",
+  } as const;
   const THUMB: Record<string, string> = { strip_web: "thumb_strip", original: "thumb_original" };
+  const EXT: Record<string, string> = { animation: "gif", strip_web: "jpg", original: "jpg" };
+  const SOURCE: Record<string, GalleryPhoto["source"]> = { stage: "stage", guest: "guest" };
   const photos = await Promise.all(
     assets
       .filter((a): a is typeof a & { kind: keyof typeof KIND } => a.kind in KIND)
@@ -173,18 +184,18 @@ async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gall
           kind: KIND[a.kind],
           sessionId: a.session_id,
           hour: hourWib(started.get(a.session_id) ?? ev.event_date),
-          source: meta.get(a.session_id)?.source === "stage" ? "stage" : "booth",
+          source: SOURCE[meta.get(a.session_id)?.source ?? ""] ?? "booth",
           group:
-            meta.get(a.session_id)?.source === "stage"
-              ? (meta.get(a.session_id)?.group_name ??
-                `Tamu · ${clockWib(started.get(a.session_id) ?? ev.event_date)}`)
-              : null,
+            meta.get(a.session_id)?.source === "booth"
+              ? null
+              : (meta.get(a.session_id)?.group_name ??
+                `Tamu · ${clockWib(started.get(a.session_id) ?? ev.event_date)}`),
           time: clockWib(started.get(a.session_id) ?? ev.event_date),
           thumb: await presignGet(key(thumb.r2_key), 6 * 3600),
           full: await presignGet(key(a.r2_key), 6 * 3600),
           download: await presignDownload(
             key(a.r2_key),
-            `tetra-${a.session_id}-${KIND[a.kind]}-${a.idx}.${a.kind === "animation" ? "gif" : "jpg"}`,
+            `tetra-${a.session_id}-${KIND[a.kind]}-${a.idx}.${EXT[a.kind] ?? a.r2_key.split(".").pop()}`,
             6 * 3600,
           ),
           favorite: fav.has(a.id),

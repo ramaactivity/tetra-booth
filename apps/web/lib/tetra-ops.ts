@@ -1,5 +1,5 @@
 import "server-only";
-import type { LayoutPaper } from "@tetra/shared";
+import { InstagramSchema, type LayoutPaper } from "@tetra/shared";
 import { z } from "zod";
 import { ymdWib } from "./events";
 import { type DriftEvent, type OpsDrift, opsDrift } from "./ops-sync";
@@ -29,6 +29,13 @@ export const OpsBooking = z.object({
   package_duration_hours: z.number().positive().max(48).nullable(),
   // Usulan Booth #182 (aditif): daftar grup Photo Stage dari portal klien/WO.
   stage_groups: z.array(z.string().max(120)).max(300).nullable().optional(),
+  // Kontrak v0.7 (usulan Booth #215): IG klien untuk kartu promosi halaman tamu, tanpa "@".
+  client_instagram: z.array(z.string().max(60)).max(6).nullable().optional(),
+  // Kontrak v0.9 (#226): modul paket + Guest Cam (tier, cetak, desain kartu QR). Dibaca lewat `opsGuestCam`.
+  modules: z.array(z.string().max(40)).max(20).nullable().optional(),
+  guest_cam_max_guests: z.number().int().nullable().optional(),
+  guest_cam_print: z.boolean().nullable().optional(),
+  guest_card_design: z.string().max(20).nullable().optional(),
   // Kontrak v0.5 §2.2 (aditif): desain frame dari modul desain Ops.
   design: z
     .looseObject({
@@ -139,3 +146,45 @@ export const opsDriftOf = (
   ev: DriftEvent,
   now: { booking: OpsBooking | undefined } | null,
 ): OpsDrift | null => (now ? opsDrift(ev, now.booking) : null);
+
+/** IG klien dari booking Ops (#215), dibersihkan; isian rusak dilewati satu per satu. */
+export const opsInstagram = (raw: unknown): string[] =>
+  Array.isArray(raw)
+    ? [
+        ...new Set(
+          raw.flatMap((h) => {
+            const r = InstagramSchema.safeParse(h);
+            return r.success ? [r.data] : [];
+          }),
+        ),
+      ].slice(0, 6)
+    : [];
+
+const OpsGuestCam = z.object({
+  modules: z.array(z.string()).nullish(),
+  guest_cam_max_guests: z
+    .union([z.literal(100), z.literal(200), z.literal(300), z.literal(500)])
+    .nullish(),
+  guest_cam_print: z.boolean().nullish(),
+  guest_card_design: z.string().max(20).nullish(),
+});
+
+/**
+ * Pengaturan Guest Cam dari paket booking Ops (#226, kontrak v0.9). Tier & cetak hanya kalau `modules` memuat
+ * `guest_cam` (batas null = tak terbatas); desain kartu QR selalu kalau dikenal. Kosong = tidak ada yang diubah.
+ * Ukuran cetak Ops (`guest_cam_print_size`) hanya info: Booth mengikuti kertas desain event.
+ */
+export function opsGuestCam(raw: unknown, cards: readonly string[]) {
+  const b = OpsGuestCam.safeParse(raw).data;
+  if (!b) return {};
+  const on = b.modules?.includes("guest_cam");
+  return {
+    ...(on && {
+      enabled: true,
+      maxGuests: b.guest_cam_max_guests ?? null,
+      print: !!b.guest_cam_print,
+    }),
+    ...(b.guest_card_design &&
+      cards.includes(b.guest_card_design) && { cardDesign: b.guest_card_design }),
+  };
+}

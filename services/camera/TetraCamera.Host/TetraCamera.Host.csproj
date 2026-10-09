@@ -8,6 +8,8 @@
     <ProjectReference Include="../TetraCamera.Print.Windows/TetraCamera.Print.Windows.csproj" />
     <ProjectReference Include="../TetraCamera.Canon/TetraCamera.Canon.csproj" />
     <ProjectReference Include="../TetraCamera.Sony/TetraCamera.Sony.csproj" />
+    <ProjectReference Include="../TetraCamera.Lumix/TetraCamera.Lumix.csproj" />
+    <ProjectReference Include="../TetraCamera.Nikon/TetraCamera.Nikon.csproj" />
     <ProjectReference Include="../TetraCamera.HotFolder/TetraCamera.HotFolder.csproj" />
   </ItemGroup>
 </Project>

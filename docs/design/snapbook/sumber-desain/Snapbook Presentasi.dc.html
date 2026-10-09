@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Geist+Mono:wght@400;500&display=swap">
+<style>body{margin:0;background:#EFEDE8;color:#1D1D1B;font-family:'Plus Jakarta Sans',sans-serif}a{color:#1D1D1B}a:hover{color:#5F5E5A}</style>
+</helmet>
+<div style="padding:72px 80px 120px;display:flex;flex-direction:column;gap:88px;width:1640px">
+
+<header style="display:grid;grid-template-columns:1fr 520px;gap:48px;align-items:end;border-bottom:1.5px solid #1D1D1B;padding-bottom:40px">
+  <div>
+    <div style="font:500 14px/1 'Geist Mono',monospace;color:#5F5E5A;margin-bottom:20px">TETRA PHOTOBOOTH · SNAPBOOK · DESAIN ULANG · 9 OKT 2026</div>
+    <h1 style="margin:0;font-weight:800;font-size:72px;line-height:.95;letter-spacing:-.05em">Snapbook: frame foto<br>&amp; kartu QR meja</h1>
+  </div>
+  <p style="margin:0;font-size:15px;line-height:1.55;color:#3A3936;text-wrap:pretty">Lima belas gaya frame dalam tiga ukuran cetak (45 frame), tujuh di antaranya khusus nikahan, satu layar pemilih frame di HP, dan lima konsep kartu QR. Semua frame dirender dari koordinat yang sama dengan JSON layout di bawah tiap gaya. Teks nama acara dan tanggal di sini adalah teks dinamis, bukan bagian gambar.</p>
+</header>
+
+<section data-screen-label="A Frame foto" style="display:flex;flex-direction:column;gap:56px">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <h2 style="margin:0;font-size:34px;font-weight:800;letter-spacing:-.035em">A · Frame foto</h2>
+    <div style="font:500 13px/1 'Geist Mono',monospace;color:#5F5E5A">STRIP 2R 600×1800 · 4R 1200×1800 · POLAROID 900×1200 · 300 DPI</div>
+  </div>
+
+  <sc-for list="{{ styles }}" as="st" hint-placeholder-count="4">
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:48px;padding-top:32px;border-top:1.5px dashed #8A8883">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font:500 13px/1 'Geist Mono',monospace;color:#5F5E5A">{{ st.code }}</div>
+        <h3 style="margin:0;font-size:28px;font-weight:800;letter-spacing:-.03em">{{ st.name }}</h3>
+        <div style="font-size:14px;font-weight:700">Referensi: {{ st.ref }}</div>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#3A3936;text-wrap:pretty">{{ st.why }}</p>
+        <div style="font:400 12px/1.6 'Geist Mono',monospace;color:#5F5E5A;white-space:pre-line">{{ st.fonts }}</div>
+      </div>
+      <div style="display:flex;gap:40px;align-items:flex-end">
+        <sc-for list="{{ st.frames }}" as="f" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="box-shadow:0 1px 0 #D6D3CC, 0 18px 30px -18px rgba(29,29,27,.35)">
+              <dc-import name="SnapFrame" frame="{{ f.id }}" height="{{ frameH }}" event-name="{{ eventName }}" hint-size="150px,460px"></dc-import>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:16px;font:500 12px/1 'Geist Mono',monospace;color:#5F5E5A"><span style="color:#1D1D1B;font-weight:500">{{ f.label }}</span><span>{{ f.slots }}</span></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+</section>
+
+<section data-screen-label="A Pemilih frame HP" style="display:grid;grid-template-columns:340px 390px 1fr;gap:48px;padding-top:32px;border-top:1.5px solid #1D1D1B">
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:500 13px/1 'Geist Mono',monospace;color:#5F5E5A">A·HP · 390×844</div>
+    <h3 style="margin:0;font-size:28px;font-weight:800;letter-spacing:-.03em">Pemilih frame di HP</h3>
+    <p style="margin:0;font-size:14px;line-height:1.55;color:#3A3936;text-wrap:pretty">Tamu pilih ukuran dulu (karena menentukan jumlah foto), lalu geser antar gaya. Pratinjau besar langsung memakai foto yang sudah dipilih tamu, jadi yang dilihat sama dengan yang dicetak. Ketuk ukuran dan gaya di layar ini untuk mencoba.</p>
+    <p style="margin:0;font-size:14px;line-height:1.55;color:#3A3936;text-wrap:pretty">Frame khusus acara buatan klien muncul sebagai gaya pertama di baris yang sama.</p>
+  </div>
+
+  <div style="width:390px;height:844px;background:#F8F7F4;border:1.5px solid #1D1D1B;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;position:relative">
+    <div style="height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font:600 14px/1 'Plus Jakarta Sans',sans-serif"><span>9:41</span><span style="font:500 12px/1 'Geist Mono',monospace">5G ▮▮▮</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px 14px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border:1.5px solid #1D1D1B;border-radius:12px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700">‹</div>
+        <div>
+          <div style="font-size:18px;font-weight:800;letter-spacing:-.02em">Bikin frame</div>
+          <div style="font:400 12px/1.4 'Geist Mono',monospace;color:#5F5E5A">{{ pickInfo }}</div>
+        </div>
+      </div>
+      <div style="font:500 12px/1 'Geist Mono',monospace;padding:7px 10px;border:1.5px solid #1D1D1B;border-radius:999px;background:#D6F1EA">7 foto</div>
+    </div>
+    <div style="margin:0 20px;display:grid;grid-template-columns:repeat(3,1fr);border:1.5px solid #1D1D1B;border-radius:14px;overflow:hidden;background:#FFFFFF">
+      <sc-for list="{{ sizes }}" as="sz" hint-placeholder-count="3">
+        <div onClick="{{ sz.pick }}" style="padding:9px 4px 8px;text-align:center;cursor:pointer;background:{{ sz.bg }};border-left:{{ sz.bl }}">
+          <div style="font-size:14px;font-weight:800">{{ sz.label }}</div>
+          <div style="font:400 11px/1.3 'Geist Mono',monospace;color:#3A3936">{{ sz.sub }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:16px 0 8px">
+      <div style="position:relative">
+        <div style="position:absolute;left:8px;top:8px;right:-8px;bottom:-8px;border:1.5px solid #1D1D1B;border-radius:4px;background:#FFFFFF"></div>
+        <div style="position:relative;border:1.5px solid #1D1D1B;border-radius:4px;overflow:hidden;line-height:0">
+          <dc-import name="SnapFrame" frame="{{ pickFrame }}" height="{{ pickH }}" event-name="{{ eventName }}" hint-size="140px,410px"></dc-import>
+        </div>
+      </div>
+    </div>
+    <div style="padding:6px 20px 0;display:flex;justify-content:space-between;align-items:baseline">
+      <div style="font-size:15px;font-weight:800;letter-spacing:-.02em">{{ pickStyleName }}</div>
+      <div style="font:400 12px/1 'Geist Mono',monospace;color:#5F5E5A">{{ pickPos }}</div>
+    </div>
+    <div style="display:flex;gap:10px;padding:10px 20px 14px;overflow-x:auto">
+      <sc-for list="{{ thumbs }}" as="t" hint-placeholder-count="4">
+        <div onClick="{{ t.pick }}" style="flex:0 0 68px;height:96px;border:{{ t.border }};border-radius:12px;background:{{ t.bg }};display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:{{ t.shadow }}">
+          <div style="line-height:0;border:1px solid #D6D3CC">
+            <dc-import name="SnapFrame" frame="{{ t.id }}" height="78" event-name="{{ eventName }}" hint-size="26px,78px"></dc-import>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="border-top:1.5px dashed #1D1D1B;padding:14px 20px 26px;display:flex;flex-direction:column;gap:8px">
+      <div style="position:relative;height:56px">
+        <div style="position:absolute;left:5px;top:5px;right:-5px;bottom:-5px;border:1.5px solid #1D1D1B;border-radius:14px;background:#F8F7F4"></div>
+        <div style="position:relative;height:56px;border:1.5px solid #1D1D1B;border-radius:14px;background:#F8D98B;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;box-sizing:border-box">Pakai frame ini</div>
+      </div>
+      <div style="text-align:center;font-size:12px;color:#5F5E5A">Bisa langsung dicetak di booth</div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px;padding-top:28px">
+    <div style="font:500 13px/1 'Geist Mono',monospace;color:#5F5E5A">CATATAN UNTUK DEVELOPER</div>
+    <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.7;color:#3A3936">
+      <li>Segmented control mengikuti pola tab Strip/Original/Animasi di halaman tamu (lavender = aktif).</li>
+      <li>Thumbnail gaya: terpilih = border tinta 2px + isian mint-soft + lapisan 4px.</li>
+      <li>Kalau jumlah foto tamu lebih sedikit dari slot, slot kosong tampil bergaris (placeholder) dan CTA berubah "Pilih 1 foto lagi".</li>
+      <li>Geser kiri/kanan di pratinjau = ganti gaya.</li>
+    </ul>
+  </div>
+</section>
+
+<section data-screen-label="B Kartu QR" style="display:flex;flex-direction:column;gap:56px;padding-top:32px;border-top:1.5px solid #1D1D1B">
+  <div style="display:flex;justify-content:space-between;align-items:baseline">
+    <h2 style="margin:0;font-size:34px;font-weight:800;letter-spacing:-.035em">B · Sepuluh kartu QR</h2>
+    <div style="font:500 13px/1 'Geist Mono',monospace;color:#5F5E5A">A5 148×210 MM (A6 = SKALA SAMA) · KARTU NAMA 90×55 MM + BLEED 3 MM</div>
+  </div>
+  <sc-for list="{{ concepts }}" as="c" hint-placeholder-count="5">
+    <div style="display:grid;grid-template-columns:340px auto 1fr;gap:48px;padding-top:32px;border-top:1.5px dashed #8A8883">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font:500 13px/1 'Geist Mono',monospace;color:#5F5E5A">{{ c.code }}</div>
+        <h3 style="margin:0;font-size:28px;font-weight:800;letter-spacing:-.03em">{{ c.name }}</h3>
+        <div style="align-self:flex-start;font:600 12px/1 'Plus Jakarta Sans',sans-serif;padding:6px 10px;border:1.5px solid #1D1D1B;border-radius:999px;background:{{ c.toneBg }}">{{ c.tone }}</div>
+        <div style="font-size:14px;font-weight:700">Referensi: {{ c.ref }}</div>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#3A3936;text-wrap:pretty">{{ c.why }}</p>
+        <div style="font:400 12px/1.6 'Geist Mono',monospace;color:#5F5E5A;white-space:pre-line">{{ c.fonts }}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="box-shadow:0 18px 30px -18px rgba(29,29,27,.35)">
+          <dc-import name="SnapCard" concept="{{ c.id }}" face="a5" width="420" event-name="{{ eventName }}" voice="{{ voice }}" frame="{{ frameOn }}" hint-size="420px,596px"></dc-import>
+        </div>
+        <div style="font:500 12px/1 'Geist Mono',monospace;color:#5F5E5A">Kartu meja A5</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:28px">
+        <div style="display:flex;gap:20px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="box-shadow:0 12px 20px -14px rgba(29,29,27,.4)"><dc-import name="SnapCard" concept="{{ c.id }}" face="front" width="{{ cardW }}" event-name="{{ eventName }}" voice="{{ voice }}" frame="{{ frameOn }}" guides="{{ guides }}" hint-size="300px,183px"></dc-import></div>
+            <div style="font:500 12px/1 'Geist Mono',monospace;color:#5F5E5A">Kartu nama · depan</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="box-shadow:0 12px 20px -14px rgba(29,29,27,.4)"><dc-import name="SnapCard" concept="{{ c.id }}" face="back" width="{{ cardW }}" event-name="{{ eventName }}" voice="{{ voice }}" frame="{{ frameOn }}" guides="{{ guides }}" hint-size="300px,183px"></dc-import></div>
+            <div style="font:500 12px/1 'Geist Mono',monospace;color:#5F5E5A">Kartu nama · belakang</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="position:relative;width:640px;height:360px;background:{{ c.table }};overflow:hidden;border-radius:4px">
+            <div style="position:absolute;left:70px;bottom:44px;width:250px;height:22px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.9);box-shadow:0 14px 18px -8px rgba(0,0,0,.35)"></div>
+            <div style="position:absolute;left:82px;bottom:58px;width:226px;height:300px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.85);box-shadow:inset 0 0 0 5px rgba(255,255,255,.25), 18px 10px 26px -10px rgba(0,0,0,.3);transform:perspective(900px) rotateX(4deg) rotateY(-8deg);transform-origin:bottom center;display:flex;align-items:flex-start;justify-content:center;padding-top:8px;box-sizing:border-box">
+              <dc-import name="SnapCard" concept="{{ c.id }}" face="a5" width="200" event-name="{{ eventName }}" voice="{{ voice }}" frame="{{ frameOn }}" hint-size="200px,284px"></dc-import>
+            </div>
+            <div style="position:absolute;left:372px;top:170px;transform:perspective(700px) rotateX(50deg) rotateZ(-14deg);box-shadow:0 18px 16px -10px rgba(0,0,0,.35)">
+              <dc-import name="SnapCard" concept="{{ c.id }}" face="front" width="190" event-name="{{ eventName }}" voice="{{ voice }}" frame="{{ frameOn }}" hint-size="190px,116px"></dc-import>
+            </div>
+            <div style="position:absolute;left:430px;top:40px;width:150px;height:150px;border-radius:50%;background:#FFFFFF;box-shadow:inset 0 0 0 14px #F4F1EA, 0 10px 18px -8px rgba(0,0,0,.25)"></div>
+          </div>
+          <div style="font:500 12px/1 'Geist Mono',monospace;color:#5F5E5A">Situasi meja (sketsa). Untuk penilaian akhir, ganti dengan foto asli di venue.</div>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+</section>
+
+<section data-screen-label="Catatan teknis" style="display:grid;grid-template-columns:340px 1fr;gap:48px;padding-top:32px;border-top:1.5px solid #1D1D1B">
+  <h2 style="margin:0;font-size:28px;font-weight:800;letter-spacing:-.03em">Catatan &amp; usulan</h2>
+  <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.7;color:#3A3936;max-width:880px">
+    <li>Strip 2R hanya punya lebar teks ±40 mm. Nama 40 karakter akan dipadatkan ke sekitar 50–60% lebar huruf. Usulan: placeholder opsional <b>{event_short}</b> (mis. "Nadhira 17") khusus strip.</li>
+    <li>Placeholder tanggal baru: <b>{date_long}</b> = "10 Oktober 2026" (semua gaya wedding) dan <b>{date_dot}</b> = "10.10.26" (Film Monokrom, Photobox Klasik, Cover Majalah, kartu QR). Gaya lain memakai {date} apa adanya.</li>
+    <li>Selotip semi-transparan di Scrapbook menimpa sedikit sudut foto; ini disengaja dan tetap valid karena overlay boleh menutup tepi slot.</li>
+    <li>Kartu nama ditampilkan setelah dipotong (90×55). Aktifkan "guides" di Tweaks untuk melihat file 96×61 dengan garis potong (magenta) dan zona aman 4 mm (biru).</li>
+    <li>File siap pakai (overlay.png, background.png, JSON per frame, SVG kartu dalam mm) dibuat setelah owner memilih arah, supaya revisi tidak perlu diekspor ulang 45 kali.</li>
+  </ul>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;longName&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Contoh data&quot;},&quot;voice&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Fitur aktif&quot;},&quot;frameFeature&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Fitur aktif&quot;},&quot;guides&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Kartu nama&quot;}}">
+class Component extends DCLogic {
+  state = { size: 'strip', style: 'renda' };
+  renderVals() {
+    const long = this.props.longName ?? false;
+    const eventName = long ? 'Ulang Tahun ke-17 Nadhira Putri Ramadhani' : 'Wedding Rafi & Dinda';
+    const SZ = [
+      { id: 'strip', label: 'Strip 2R', slots: {film: '4 foto',zine: '3 foto',bold: '3 foto',teater: '4 foto',pass: '3 foto',musik: '3 foto',koran: '3 foto',struk: '3 foto',majalah: '3 foto',zamrud: '3 foto',renda: '3 foto',pita: '3 foto',mono: '3 foto',photobox: '4 foto',doily: '3 foto'} },
+      { id: '4r', label: '4R', slots: {film: '4 foto · contact sheet',zine: '3 foto',bold: '4 foto',teater: '4 foto',pass: '4 foto',musik: '1 besar + 2',koran: '4 foto',struk: '4 foto',majalah: '1 foto sampul',zamrud: '2 foto lengkung',renda: '4 foto',pita: '1 besar + 2',mono: '4 foto',photobox: '2 strip · 8 foto',doily: '1 foto besar'} },
+      { id: 'polaroid', label: 'Polaroid', slots: {film: '1 foto',zine: '1 foto',bold: '1 foto',teater: '1 foto',pass: '1 foto',musik: '1 foto',koran: '1 foto',struk: '1 foto',majalah: '1 foto',zamrud: '1 foto',renda: '1 foto',pita: '1 foto',mono: '1 foto',photobox: '1 foto',doily: '1 foto'} }
+    ];
+    const ST = [
+      { id: 'renda', code: 'GAYA 01 · WEDDING', name: "Renda Marun", ref: "frame renda putih di atas kain marun", why: "Setiap foto dibingkai renda putih bertepi bulat dengan anyaman kisi, di atas latar marun bertekstur titik. Nama acara ditulis huruf sambung, tanggal ditulis lengkap miring. Cocok untuk resepsi adat dan tema merah-emas.", fonts: "nama  lib-pinyon-script-400-normal\ntgl   lib-bodoni-moda-500-normal  {date_long}" },
+      { id: 'pita', code: 'GAYA 02 · WEDDING', name: "Pita Krem", ref: "undangan krem dengan pita garis marun", why: "Kertas krem, garis bingkai ganda membulat, dan tiga pita marun di sudut dan di atas nama. Nama acara ditulis huruf sambung marun. Lembut, romantis, dan sedang ramai dipakai untuk nikahan.", fonts: "nama  lib-pinyon-script-400-normal\ntgl   lib-bodoni-moda-500-normal  {date_long}" },
+      { id: 'zamrud', code: 'GAYA 03 · WEDDING', name: "Lengkung Zamrud", ref: "jendela lengkung & undangan hijau tua", why: "Foto dibentuk lengkung seperti jendela masjid atau gedung resepsi, dengan garis krem tipis di sekelilingnya. Latar hijau zamrud, nama acara berhuruf sambung krem. Aman untuk akad dan resepsi hotel.", fonts: "nama  lib-pinyon-script-400-normal\ntgl   lib-bodoni-moda-500-normal  {date_long}" },
+      { id: 'doily', code: 'GAYA 04 · WEDDING', name: "Renda Hijau", ref: "kertas doily bertepi renda", why: "Satu foto besar (4R/polaroid) atau tiga foto (strip) dengan tepi renda krem dua lapis dan pita kecil di sudut. Teks di atas foto: \"Merayakan bersama\", nama acara, tanggal. Paling dekat dengan frame undangan cetak.", fonts: "nama  lib-pinyon-script-400-normal\ntgl   lib-bodoni-moda-500-normal  {date_long}" },
+      { id: 'mono', code: 'GAYA 05 · WEDDING', name: "Film Monokrom", ref: "strip film hitam dengan foto bersudut bulat", why: "Latar hitam pekat, foto bersudut membulat seperti bingkai kamera lama, dan tanda tepi krem (garis dan segitiga) seperti kode film. Nama acara dan tanggal ditulis kecil di sela foto, jadi fotonya tetap jadi pusat. Paling cantik kalau foto tamu hitam putih, dan aman untuk resepsi malam.", fonts: "nama  lib-dm-mono-400-normal\ntgl   lib-dm-mono-400-normal  {date_dot}" },
+      { id: 'photobox', code: 'GAYA 06 · NETRAL', name: "Photobox Klasik", ref: "strip mesin photobox lama (kertas putih, pita merek di samping)", why: "Empat foto rapat di kertas putih dengan pita merek vertikal di samping, persis strip mesin photobox lama di mal. Tulisan kecil di bawah ikut ditiru sebagai lelucon. Bersih dan netral, jadi cocok untuk nikahan maupun acara kantor. 4R berisi dua strip sekaligus, siap dipotong dan dibagi.", fonts: "nama  lib-plus-jakarta-sans-800-normal\ntgl   lib-dm-mono-400-normal  {date_dot}" },
+      { id: 'teater', code: 'GAYA 07 · WEDDING', name: "Tiket Pertunjukan", ref: "tiket teater bertepi bergerigi", why: "Kertas krem bertepi bergerigi di latar marun, judul \"Snapbook Show\", kolom Kursi dan Show, lalu pita \"Spill momen serumu\". Satu set dengan kartu QR Tiket Pertunjukan.", fonts: "nama  lib-bodoni-moda-500-normal\ntgl   lib-bodoni-moda-500-normal  {date_long}" },
+      { id: 'film', code: 'GAYA 08 · ANALOG', name: "Roll Film", ref: "negatif 35mm & contact sheet", why: "Perforasi, nomor frame, dan kode \"SNAPBOOK 400\" di tepi. 4R meniru contact sheet dengan lingkaran spidol merah di frame favorit. Tanggal oranye seperti cap tanggal kamera saku.", fonts: "nama  lib-plus-jakarta-sans-800-normal\ntgl   lib-dm-mono-400-normal  {date}" },
+      { id: 'koran', code: 'GAYA 09 · PLAYFUL', name: "Harian Snapbook", ref: "frame \"breaking news\"", why: "Masthead koran, nama acara sebagai judul utama, foto dengan keterangan, dan kolom teks. Satu set dengan kartu QR Harian Snapbook.", fonts: "nama  lib-dm-serif-display-400-normal\ntgl   lib-dm-serif-display-400-normal  {date_long}" },
+      { id: 'majalah', code: 'GAYA 10 · PLAYFUL', name: "Cover Majalah", ref: "sampul majalah mode", why: 'Sampul majalah gaya mode: masthead "Snapbook" serif Didone raksasa di atas foto, judul miring "Spill momen serumu" di kiri, dan "Cover story" berisi nama acara dengan serif besar di bawah. Lapisan gelap tipis di atas dan bawah foto dipanggang ke overlay supaya teks putih tetap terbaca.', fonts: "nama  lib-bodoni-moda-500-normal\ntgl   lib-bodoni-moda-500-normal  {date_long}" },
+      { id: 'musik', code: 'GAYA 11 · PLAYFUL', name: "Sedang Diputar", ref: "layar pemutar musik", why: "Foto bersudut bulat seperti sampul album, nama acara sebagai judul lagu, bar progres, dan tombol putar. Tanpa logo layanan musik.", fonts: "nama  lib-plus-jakarta-sans-800-normal\ntgl   lib-plus-jakarta-sans-500-normal  {date}" },
+      { id: 'pass', code: 'GAYA 12 · NETRAL', name: "Boarding Pass", ref: "boarding pass maskapai", why: "Rute \"MJA → ALB\" paling besar, kolom PENERBANGAN berisi nama acara, garis sobek, dan barcode. Satu set dengan kartu QR Boarding Pass.", fonts: "nama  lib-plus-jakarta-sans-800-normal\ntgl   lib-dm-mono-400-normal  {date}" },
+      { id: 'struk', code: 'GAYA 13 · PLAYFUL', name: "Struk Kasir", ref: "struk thermal bertepi zigzag", why: "Kertas struk dengan foto sebagai belanjaan, \"TOTAL Rp0\", barcode, dan \"makasih udah dateng\". Cocok untuk ulang tahun dan acara kampus.", fonts: "nama  lib-dm-mono-400-normal\ntgl   lib-dm-mono-400-normal  {date}" },
+      { id: 'zine', code: 'GAYA 14 · PLAYFUL', name: "Scrapbook Zine", ref: "buku tempel & label Dymo", why: "Foto miring di kertas bertitik, selotip warna, nama spidol, tanggal di label timbul, dan stiker \"snap & spill!\".", fonts: "nama  lib-reenie-beanie-400-normal\ntgl   lib-dm-mono-400-normal  {date}" },
+      { id: 'bold', code: 'GAYA 15 · NETRAL', name: "Bold Grafis", ref: "identitas Tetra", why: "Kartu bergaris tinta tebal dengan lapisan pastel, nama acara di blok butter. Netral untuk acara kantor.", fonts: "nama  lib-plus-jakarta-sans-800-normal\ntgl   lib-dm-mono-400-normal  {date}" }
+    ];
+    const styles = ST.map(s => ({ ...s, frames: SZ.map(z => ({ id: `${s.id}-${z.id}`, label: z.label, slots: z.slots[s.id] })) }));
+    const { size, style } = this.state;
+    const zi = SZ.findIndex(z => z.id === size), si = ST.findIndex(s => s.id === style);
+    const sizes = SZ.map((z, i) => ({
+      label: z.label, sub: { strip: '3–4 foto', '4r': '1–4 foto', polaroid: '1 foto' }[z.id],
+      bg: z.id === size ? '#CEC8F6' : '#FFFFFF', bl: i ? '1.5px solid #1D1D1B' : '0',
+      pick: () => this.setState({ size: z.id })
+    }));
+    const thumbs = ST.map(s => {
+      const on = s.id === style;
+      return { id: `${s.id}-${size}`, pick: () => this.setState({ style: s.id }),
+        border: on ? '2px solid #1D1D1B' : '1.5px solid #D6D3CC', bg: on ? '#D6F1EA' : '#FFFFFF',
+        shadow: on ? '4px 4px 0 #1D1D1B' : 'none' };
+    });
+    const concepts0 = [
+      { id: 'zamrud', code: 'KARTU', name: 'Lengkung Zamrud', tone: 'Wedding · formal', toneBg: '#FCE3C6', ref: 'undangan hijau tua dengan jendela lengkung', table: '#E7E1D5', why: 'Satu set dengan frame Lengkung Zamrud. QR duduk di dalam lengkung bersama judul "Snapbook" berhuruf sambung, jadi kartu terlihat seperti bagian dari undangan. Bagian depan kartu nama dibuat krem dengan lengkung hijau supaya tidak retak di potongan.', fonts: 'Pinyon Script 400\nBodoni Moda 500, italic' },
+      { id: 'renda', code: 'KARTU', name: 'Renda Marun', tone: 'Wedding · adat', toneBg: '#FCE3C6', ref: 'bingkai renda putih di kain marun', table: '#E3DED3', why: 'Satu set dengan frame Renda Marun. QR dan langkah ada di dalam "foto" berbingkai renda, judul "Tinggalkan jejakmu" berhuruf sambung. Cocok untuk resepsi adat bertema merah-emas.', fonts: 'Pinyon Script 400\nBodoni Moda 500, italic' },
+      { id: 'pita', code: 'KARTU', name: 'Pita Krem', tone: 'Wedding · romantis', toneBg: '#FCE3C6', ref: 'undangan krem dengan pita garis', table: '#E4E2DD', why: 'Satu set dengan frame Pita Krem. Bingkai ganda membulat, dua pita marun, dan langkah ditulis dalam satu kalimat bernomor Romawi. Paling lembut dari semua kartu dan aman untuk akad.', fonts: 'Pinyon Script 400\nBodoni Moda 500, italic' },
+      { id: 'teater', code: 'KARTU', name: 'Tiket Pertunjukan', tone: 'Formal · nikahan gedung/hotel', toneBg: '#FCE3C6', ref: 'tiket teater/bioskop lama bertepi bergerigi', table: '#E7E1D5',
+        why: 'Tamu diperlakukan sebagai penonton "Snapbook Show". Merah marun dan krem adalah palet yang sering dipakai resepsi Jawa dan Sunda, jadi kartu ini menyatu dengan dekor tanpa terasa main-main. Kolom tiket (Kursi: Bebas, Foto: 15, Tiket gratis) menjawab kuota dan harga dalam satu lirikan. QR selalu di atas kotak putih dengan garis tipis.',
+        fonts: 'Pinyon Script 400 (judul)\nBodoni Moda 500/600, italic' },
+      { id: 'koran', code: 'KARTU', name: 'Harian Snapbook', tone: 'Formal · hitam putih', toneBg: '#FCE3C6', ref: 'halaman depan koran (masthead blackletter)', table: '#E4E2DD',
+        why: 'Halaman depan koran hitam putih: masthead "Harian Snapbook", judul besar "Tamu Kini Isi Buku Tamu Pakai HP", dan berita singkat yang menjelaskan cara kerjanya. Om-tante langsung paham formatnya, dan Gen Z mengenalnya dari tren frame "breaking news". Hitam putih aman di meja resepsi warna apa pun. Paragraf voice note dan frame bisa dihapus tanpa merusak kolom.',
+        fonts: 'UnifrakturMaguntia (masthead)\nNewsreader 400–800, italic' },
+      { id: 'musik', code: 'KARTU', name: 'Sedang Diputar', tone: 'Playful · ultah & acara anak muda', toneBg: '#CEC8F6', ref: 'layar pemutar musik di HP (tren frame "now playing")', table: '#DCD7CC',
+        why: 'Kartu dibuat seperti layar pemutar musik dengan QR sebagai sampul album. Langkah-langkah ditulis sebagai daftar lagu "Berikutnya", dan kuota tampil sebagai "Vol. 15" serta durasi. Gen Z langsung mengenali formatnya, dan cocok dengan fitur voice note. Garis tinta tebal dan lapisan bergeser membuatnya tetap satu keluarga dengan Kamera Sekali Pakai dan Boarding Pass.',
+        fonts: 'Plus Jakarta Sans 600–800\nBricolage Grotesque 800 · DM Mono 500' },
+      { id: 'kamera', code: 'KARTU', name: 'Kamera Sekali Pakai', tone: 'Playful · Gen Z', toneBg: '#CEC8F6', ref: 'kemasan kamera disposable (angka EXP besar)', table: '#E1DBCF',
+        why: 'Angka eksposur di kemasan kamera sekali pakai diganti {shots}: "15 EXP" langsung menjelaskan kuota. Kalimat "Kamera sekali pakai, versi HP-mu sendiri" menjawab apa ini dalam satu baris. Warna butter, garis tinta tebal, dan lapisan bergeser membuat kartu ini paling dekat dengan identitas Tetra, jadi mudah dikenali di meja yang ramai.',
+        fonts: 'Bricolage Grotesque 800\nPlus Jakarta Sans 700 · DM Mono 500' },
+      { id: 'tiket', code: 'KARTU', name: 'Boarding Pass', tone: 'Netral · nikahan santai & kantor', toneBg: '#D6F1EA', ref: 'boarding pass maskapai', table: '#E3DED3',
+        why: 'Rute "MJA → ALB" (meja tamu ke album acara) jadi elemen terbesar, dan kolom tiket menjelaskan sisanya: penumpang kamu, bagasi {shots} foto, tarif gratis. Bagian sobekan berisi QR dan check-in tiga langkah. Konsep ini cukup rapi untuk nikahan semi-formal dan acara kantor, dan tetap lucu untuk anak muda.',
+        fonts: 'Plus Jakarta Sans 600/700/800\nDM Mono 500' },
+      { id: 'majalah', code: 'KARTU', name: 'Cover Majalah', tone: 'Playful · Gen Z', toneBg: '#CEC8F6', ref: 'sampul majalah', table: '#DCD7CC', why: 'Satu set dengan frame Cover Majalah. Masthead SNAPBOOK serif Didone, foto sampul, judul miring "Spill momen serumu!", dan "Cover story" berisi nama acara. QR di kotak putih terpisah dari foto, sesuai aturan cetak.', fonts: 'Bodoni Moda 500/600, italic\nPlus Jakarta Sans 700 · DM Mono' },
+      { id: 'kartupos', code: 'KARTU', name: 'Kartu Pos', tone: 'Netral · hangat', toneBg: '#D6F1EA', ref: 'kartu pos airmail + perangko', table: '#E1DBCF', why: 'Kartu pos bergaris airmail dengan pesan tulisan tangan dari tuan rumah, perangko "15 foto", cap pos berisi tanggal, dan kolom "Kepada: album acara". P.S. dan P.P.S. adalah baris voice note dan frame, jadi bisa dihapus tanpa merusak susunan.', fonts: 'Reenie Beanie 400\nPlus Jakarta Sans 700/800 · DM Mono' }
+    ];
+    const concepts = concepts0.map((c, i) => ({ ...c, code: 'KARTU ' + String(i + 1).padStart(2, '0') }));
+    return {
+      concepts, voice: this.props.voice ?? true, frameOn: this.props.frameFeature ?? true, guides: this.props.guides ?? false, cardW: 300,
+      eventName, styles, frameH: 460, sizes, thumbs,
+      pickFrame: `${style}-${size}`, pickH: size === 'strip' ? 360 : 330,
+      pickStyleName: ST[si].name, pickPos: `${si + 1}/${ST.length} · ${SZ[zi].slots[style]}`,
+      pickInfo: '3 dari 7 fotomu dipakai'
+    };
+  }
+}
+</script>
+</body>
+</html>

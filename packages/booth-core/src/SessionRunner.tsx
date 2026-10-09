@@ -1,6 +1,6 @@
 import { filterCss, newSessionId, printPaper } from "@tetra/shared";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { composeStrip, designPreview, renderWebPiece } from "./compose";
+import { composeStrip, designPreview, renderWebPiece, shotsPerSession } from "./compose";
 import { copy } from "./copy";
 import { CountdownRecorder, recorderMime } from "./countdownVideo";
 import { errText } from "./errors";
@@ -63,7 +63,7 @@ const startEvent = (
 ): SessionEvent => ({
   type: "START",
   sessionId: newSessionId(),
-  slots: (design?.layout ?? event.layout).slots.length,
+  slots: shotsPerSession(design?.layout ?? event.layout, event.settings),
   retakeMax: event.settings.retakeMax,
   ...(design && { layoutId: design.id }),
   filters: event.settings.filters.length > 0,
@@ -208,7 +208,7 @@ export function SessionRunner({
           ? after(PAID_SEC * 1000, {
               type: "START",
               sessionId: s.draftId,
-              slots: ev.layout.slots.length,
+              slots: shotsPerSession(ev.layout, cfg),
               retakeMax: cfg.retakeMax,
               filters: cfg.filters.length > 0,
               deadline: Date.now() + PAID_SEC * 1000 + cfg.sessionSec * 1000,
@@ -420,7 +420,7 @@ export function SessionRunner({
     <div className="relative h-full w-full overflow-hidden bg-paper">
       {shooting && (
         <LiveView
-          guide={slotAspect(ev.layout.slots[s.index])}
+          guide={slotAspect(ev.layout.slots[s.index % ev.layout.slots.length])}
           onFrame={(f) => {
             recorder.current?.draw(f.source, f.width, f.height);
             setLive(true);
@@ -598,7 +598,9 @@ export function SessionRunner({
           <Review
             photos={s.photos}
             blurry={s.photos.map((x) => isBlurry(x?.sharp, sharpNotes.reference(ev.id)))}
-            aspects={ev.layout.slots.map(slotAspect)}
+            aspects={s.photos.map((_, i) =>
+              slotAspect(ev.layout.slots[i % ev.layout.slots.length]),
+            )}
             retakesUsed={s.retakesUsed}
             retakeMax={s.retakeMax}
             onRetake={(index) => dispatch({ type: "RETAKE", index })}

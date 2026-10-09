@@ -6,25 +6,28 @@ import { join } from "node:path";
 import { EDSDK_FILES, type EdsdkResponse } from "@tetra/shared";
 
 /**
- * Pastikan DLL Canon EDSDK ada di `dir` sebelum Camera Service jalan (DECISIONS #112). Belum ada → unduh dari
- * cloud (hanya booth yang dipasangkan), cocokkan ukuran + sha256, tulis lewat file sementara. Offline / belum
- * dipasangkan / belum ada di cloud = false (booth tetap jalan tanpa Canon; dicoba lagi saat dibuka berikutnya).
+ * Pastikan DLL SDK kamera ada di `dir` sebelum Camera Service jalan (DECISIONS #112; Lumix #214 lewat `files` &
+ * `brand`). Belum ada → unduh dari cloud (hanya booth yang dipasangkan), cocokkan ukuran + sha256, tulis lewat file
+ * sementara. Offline / belum dipasangkan / belum ada di cloud = false (booth tetap jalan tanpa kamera itu; dicoba
+ * lagi saat dibuka berikutnya).
  */
 export async function ensureEdsdk(
   dir: string,
   manifest: () => Promise<EdsdkResponse | null>,
   log: (m: string) => void,
+  files: readonly string[] = EDSDK_FILES,
+  brand = "Canon",
 ): Promise<boolean> {
-  if (EDSDK_FILES.every((f) => existsSync(join(dir, f)))) return true;
+  if (files.every((f) => existsSync(join(dir, f)))) return true;
   let m: EdsdkResponse | null;
   try {
     m = await manifest();
   } catch (e) {
-    log(`[edsdk] tidak bisa mengambil DLL Canon: ${e instanceof Error ? e.message : String(e)}`);
+    log(`[edsdk] tidak bisa mengambil DLL ${brand}: ${e instanceof Error ? e.message : String(e)}`);
     return false;
   }
-  if (!m) {
-    log("[edsdk] DLL Canon belum ada di cloud");
+  if (!m || !files.every((f) => m.files.some((x) => x.name === f))) {
+    log(`[edsdk] DLL ${brand} belum ada di cloud`);
     return false;
   }
   try {
@@ -39,10 +42,10 @@ export async function ensureEdsdk(
       await writeFile(tmp, b);
       await rename(tmp, join(dir, f.name));
     }
-    log(`[edsdk] DLL Canon ${m.version} diunduh ke ${dir}`);
+    log(`[edsdk] DLL ${brand} ${m.version} diunduh ke ${dir}`);
     return true;
   } catch (e) {
-    log(`[edsdk] unduh DLL Canon gagal: ${e instanceof Error ? e.message : String(e)}`);
+    log(`[edsdk] unduh DLL ${brand} gagal: ${e instanceof Error ? e.message : String(e)}`);
     return false;
   }
 }

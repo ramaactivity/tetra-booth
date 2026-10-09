@@ -311,11 +311,13 @@ export type Database = {
           bundle: Json | null
           bundle_version: number
           client_expires_at: string | null
+          client_instagram: string[]
           client_token: string | null
           created_at: string
           created_by: string | null
           event_date: string
           guest_expires_at: string | null
+          guest_link: string | null
           guest_revealed_at: string | null
           guest_token: string | null
           id: string
@@ -334,6 +336,7 @@ export type Database = {
           orientation: string
           package_hours: number | null
           package_name: string | null
+          promo_off: boolean
           public_gallery: boolean
           purge_at: string | null
           purged_at: string | null
@@ -351,11 +354,13 @@ export type Database = {
           bundle?: Json | null
           bundle_version?: number
           client_expires_at?: string | null
+          client_instagram?: string[]
           client_token?: string | null
           created_at?: string
           created_by?: string | null
           event_date: string
           guest_expires_at?: string | null
+          guest_link?: string | null
           guest_revealed_at?: string | null
           guest_token?: string | null
           id?: string
@@ -374,6 +379,7 @@ export type Database = {
           orientation?: string
           package_hours?: number | null
           package_name?: string | null
+          promo_off?: boolean
           public_gallery?: boolean
           purge_at?: string | null
           purged_at?: string | null
@@ -391,11 +397,13 @@ export type Database = {
           bundle?: Json | null
           bundle_version?: number
           client_expires_at?: string | null
+          client_instagram?: string[]
           client_token?: string | null
           created_at?: string
           created_by?: string | null
           event_date?: string
           guest_expires_at?: string | null
+          guest_link?: string | null
           guest_revealed_at?: string | null
           guest_token?: string | null
           id?: string
@@ -414,6 +422,7 @@ export type Database = {
           orientation?: string
           package_hours?: number | null
           package_name?: string | null
+          promo_off?: boolean
           public_gallery?: boolean
           purge_at?: string | null
           purged_at?: string | null
@@ -474,6 +483,89 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_prints: {
+        Row: {
+          claimed_at: string | null
+          created_at: string
+          device_id: string | null
+          error: string | null
+          event_id: string
+          guest_name: string | null
+          id: string
+          layout: NonNullable<Json>
+          number: number
+          organization_id: string
+          paper: string
+          printed_at: string | null
+          r2_key: string
+          session_id: string
+          status: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          created_at?: string
+          device_id?: string | null
+          error?: string | null
+          event_id: string
+          guest_name?: string | null
+          id?: string
+          layout: NonNullable<Json>
+          number: number
+          organization_id: string
+          paper: string
+          printed_at?: string | null
+          r2_key: string
+          session_id: string
+          status?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          created_at?: string
+          device_id?: string | null
+          error?: string | null
+          event_id?: string
+          guest_name?: string | null
+          id?: string
+          layout?: NonNullable<Json>
+          number?: number
+          organization_id?: string
+          paper?: string
+          printed_at?: string | null
+          r2_key?: string
+          session_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_prints_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_prints_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_prints_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_prints_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -609,31 +701,67 @@ export type Database = {
         Row: {
           consent_at: string
           consent_version: string
+          contact_status: string
+          contacted_at: string | null
           created_at: string
           data: NonNullable<Json>
           event_id: string
           id: string
+          kind: string
           organization_id: string
+          promo: Json | null
+          promo_code: string | null
+          promo_expires_at: string | null
+          promo_rejected_at: string | null
+          proof_check: Json | null
+          proof_key: string | null
+          proof_kind: string | null
+          redeemed_at: string | null
+          redeemed_project_id: string | null
           session_id: string | null
         }
         Insert: {
           consent_at: string
           consent_version: string
+          contact_status?: string
+          contacted_at?: string | null
           created_at?: string
           data: NonNullable<Json>
           event_id: string
           id?: string
+          kind?: string
           organization_id: string
+          promo?: Json | null
+          promo_code?: string | null
+          promo_expires_at?: string | null
+          promo_rejected_at?: string | null
+          proof_check?: Json | null
+          proof_key?: string | null
+          proof_kind?: string | null
+          redeemed_at?: string | null
+          redeemed_project_id?: string | null
           session_id?: string | null
         }
         Update: {
           consent_at?: string
           consent_version?: string
+          contact_status?: string
+          contacted_at?: string | null
           created_at?: string
           data?: NonNullable<Json>
           event_id?: string
           id?: string
+          kind?: string
           organization_id?: string
+          promo?: Json | null
+          promo_code?: string | null
+          promo_expires_at?: string | null
+          promo_rejected_at?: string | null
+          proof_check?: Json | null
+          proof_key?: string | null
+          proof_kind?: string | null
+          redeemed_at?: string | null
+          redeemed_project_id?: string | null
           session_id?: string | null
         }
         Relationships: [
@@ -741,18 +869,21 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          promo: NonNullable<Json>
           slug: string
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          promo?: NonNullable<Json>
           slug: string
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          promo?: NonNullable<Json>
           slug?: string
         }
         Relationships: []
@@ -995,6 +1126,32 @@ export type Database = {
       }
     }
     Functions: {
+      claim_guest_prints: {
+        Args: { p_device: string; p_event: string; p_paper: string }
+        Returns: {
+          claimed_at: string | null
+          created_at: string
+          device_id: string | null
+          error: string | null
+          event_id: string
+          guest_name: string | null
+          id: string
+          layout: NonNullable<Json>
+          number: number
+          organization_id: string
+          paper: string
+          printed_at: string | null
+          r2_key: string
+          session_id: string
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "guest_prints"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       event_cloud_storage: {
         Args: { ev: string; org: string }
         Returns: {

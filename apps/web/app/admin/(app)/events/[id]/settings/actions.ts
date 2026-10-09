@@ -2,6 +2,8 @@
 import { createHash } from "node:crypto";
 import {
   EVENT_PRESETS,
+  GuestCamSettingsSchema,
+  InstagramSchema,
   LAYOUT_PRESETS,
   type LayoutPaper,
   PHOTO_FILTERS,
@@ -24,6 +26,7 @@ import {
   storeBundleFile,
   storeOverlay,
 } from "@/lib/event-bundle";
+import { CARD_DESIGNS, type CardDesignId } from "@/lib/guest-card-art";
 import { copyLayout, StoredLayout } from "@/lib/layouts";
 import { consentVersion, LEAD_FIELDS } from "@/lib/leads";
 import type { PhotoboxLayoutSetting, PhotoboxSettings } from "@/lib/payments";
@@ -67,6 +70,15 @@ const Form = z.object({
   location: z.string().trim().max(120),
   tagline: z.string().trim().max(40),
   client_name: z.string().trim().max(120),
+  /** IG klien untuk kartu promosi tamu (#215), dipisah spasi/koma; maks. 6. Tidak dikirim = tidak diubah. */
+  client_instagram: z
+    .string()
+    .max(400)
+    .transform((v) => [...new Set(v.split(/[\s,]+/).filter(Boolean))])
+    .pipe(z.array(InstagramSchema).max(6))
+    .optional(),
+  /** Kartu promosi di halaman tamu (#215): hidden "off" + checkbox "on". Tidak dikirim = tidak diubah. */
+  promo_card: z.enum(["on", "off"]).optional(),
   /** Paket (#150). Tidak dikirim = tidak diubah; kosong = dihapus. */
   package_name: z.string().trim().max(80).optional(),
   /** Tautan booking Tetra Ops (#193), mis. PRJ-20261004-9023; kosong = tidak ditautkan. Tidak dikirim = tidak diubah. */
@@ -98,6 +110,17 @@ const Form = z.object({
   // Wizard Buat event tidak mengirim setelan Photo Stage (#192): pakai bawaan.
   stageGapSec: int(15, 180).default(45),
   stageTvSec: int(10, 120).default(30),
+  // Guest Cam (#197); wizard tidak mengirimnya → bawaan.
+  gc_shots: int(1, 50).default(15),
+  /** Batas tamu tier Guest Cam (#221); "" = tak terbatas. */
+  gc_max_guests: z.enum(["", "100", "200", "300", "500"]).default(""),
+  /** Desain kartu QR kartu nama (#225). */
+  gc_card: z
+    .enum(CARD_DESIGNS.map((c) => c.id) as [CardDesignId, ...CardDesignId[]])
+    .default("zamrud"),
+  gc_reveal: z.enum(["live", "after"]).default("after"),
+  gc_approval: z.enum(["auto", "manual"]).default("auto"),
+  gc_consent: z.string().trim().max(600).default(""),
   mode: z.enum(["event", "photobox"]),
   lead_mode: z.enum(["gate", "optional"]),
   consent_text: z.string().trim().max(600),
@@ -274,6 +297,7 @@ export async function applySettings(
     countdownSound: form.get("countdownSound") === "on",
     bumper: form.get("bumper") === "on",
     countdownVideo: form.get("countdownVideo") === "on",
+    pairDifferent: form.get("pairDifferent") === "on",
     // Filter pilihan tamu (#116): tanpa centang = langkah filter dilewati.
     filters: PHOTO_FILTERS.filter(
       (x) => x.id !== "normal" && form.get(`filter_${x.id}`) === "on",
@@ -281,6 +305,22 @@ export async function applySettings(
     promptsBefore: lines(form.get("prompts_before")),
     promptsAfter: lines(form.get("prompts_after")),
     stageGroups: groupLines(form.get("stage_groups")),
+    guestCam: GuestCamSettingsSchema.parse(
+      form.has("gc_present")
+        ? {
+            enabled: form.get("gc_enabled") === "on",
+            shots: f.gc_shots,
+            maxGuests: f.gc_max_guests ? Number(f.gc_max_guests) : null,
+            cardDesign: f.gc_card,
+            reveal: f.gc_reveal,
+            approval: f.gc_approval,
+            voice: form.get("gc_voice") === "on",
+            strip: form.get("gc_strip") === "on",
+            print: form.get("gc_print") === "on",
+            ...(f.gc_consent && { consentText: f.gc_consent }),
+          }
+        : {},
+    ),
   };
   /** Versi terbaru template editor (dikunci ke event saat simpan). */
   const latest = async (layoutId: string) => {
@@ -419,6 +459,8 @@ export async function applySettings(
       location: f.location || null,
       ...(f.package_name !== undefined && { package_name: f.package_name || null }),
       ...(f.ops_project_id !== undefined && { ops_project_id: f.ops_project_id || null }),
+      ...(f.client_instagram !== undefined && { client_instagram: f.client_instagram }),
+      ...(f.promo_card !== undefined && { promo_off: f.promo_card === "off" }),
       ...(f.package_hours !== undefined && {
         package_hours: f.package_hours === "" ? null : f.package_hours,
       }),

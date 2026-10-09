@@ -5,6 +5,7 @@ import type {
   EventInfo,
   EventRun,
   EventSettings,
+  GuestPrintJob,
   LayoutSpec,
   Paper,
   PaymentCreateRequest,
@@ -86,6 +87,8 @@ export type CrewStatus = {
   paper: { remaining: number; capacity: number };
   printer: { status: string; message?: string | undefined };
   cameraService: boolean;
+  /** Kamera benar-benar tersambung (kamera SDK: dari Camera Service; lainnya = service hidup). Kosong = versi lama. */
+  camera?: boolean | undefined;
   /** Booth di cloud (Fase 2), null = belum dipasangkan. */
   device: CloudDevice | null;
 };
@@ -118,7 +121,7 @@ export type EventSize = {
 };
 /** Kamera & printer dari mode crew (DECISIONS #85). */
 export type DeviceSettings = {
-  camera?: "webcam" | "simulated" | "hotfolder" | "canon" | "sony";
+  camera?: "webcam" | "simulated" | "hotfolder" | "canon" | "sony" | "lumix" | "nikon";
   webcamId?: string;
   /** Live view seperti cermin (bawaan nyala, FSD §1.7). */
   mirrorLiveView?: boolean;
@@ -130,7 +133,7 @@ export type DeviceSettings = {
   hotFolderTrigger?: string;
   printer?: string;
   /** Peran laptop (#178): `stage` = Photo Stage; bawaan booth. */
-  role?: "booth" | "stage";
+  role?: "booth" | "stage" | "print";
 };
 /** `locked` = flag yang dipaksa baris perintah (tidak bisa diubah dari mode crew). */
 export type DeviceInfo = { now: DeviceSettings; locked: string[]; printers: string[] };
@@ -151,6 +154,8 @@ export type UpdateCheck = {
   latest: string | null;
   available: boolean;
   ready?: boolean;
+  /** true = tidak bisa cek (offline / belum dipasangkan); `current` tetap terisi. */
+  offline?: boolean;
 };
 /** Hasil update terakhir, dibaca sekali setelah booth terbuka lagi. */
 export type UpdateResult = { ok: boolean; from: string; to: string; now: string } | null;
@@ -285,6 +290,10 @@ export interface BoothPayments {
 
 /** Jepretan fotografer yang sudah tersimpan di laptop (Photo Stage #178). */
 export type StageShotEvent = { path: string; width: number; height: number };
+/** HP helper crew lewat WiFi (#206): ganti nama rombongan, atau pasang nama dari daftar ke rombongan aktif. */
+export type StageRemote =
+  | { kind: "rename"; id: string; name: string }
+  | { kind: "pick"; name: string };
 /** Status bar laptop stage (#186). `camera` null = Camera Service tidak menjawab. */
 export type StageStatus = {
   online: boolean;
@@ -293,12 +302,18 @@ export type StageStatus = {
   pendingGroups: number;
   /** Dari id yang ditanyakan: yang masih antre. */
   pending: string[];
+  /** Layar di device kedua lewat WiFi (#205): http://<IP>:<port>; kosong = tidak aktif. */
+  lanUrls?: string[];
+  /** Kode 4 digit HP helper (#206), dipasang di alamat `#helper=<kode>`. */
+  helperKey?: string;
 };
 /** Photo Stage (#178): ada hanya di laptop berperan `stage`. */
 export interface BoothStage {
   /** Mulai/berhenti menerima jepretan rana fotografer (Canon, atau folder pantau aplikasi tether). */
   listen(on: boolean): Promise<void>;
   onShot(cb: (s: StageShotEvent) => void): Unsubscribe;
+  /** Perintah dari HP helper (#206); tidak ada = platform tanpa layar WiFi. */
+  onRemote?(cb: (m: StageRemote) => void): Unsubscribe;
   /** Ganti nama grup rombongan; tersinkron ke cloud walau fotonya sudah terunggah. */
   rename(sessionId: string, name: string | null): Promise<void>;
   status(ids: string[]): Promise<StageStatus>;
@@ -318,6 +333,9 @@ export interface BoothStage {
   };
 }
 
+/** Job cetak tamu Guest Cam (#223) + gambar frame yang sudah diunduh proses utama. */
+export type LocalGuestPrint = GuestPrintJob & { bytes: Uint8Array<ArrayBuffer> };
+
 export interface BoothPlatform {
   camera: BoothCamera;
   /** Gagal = reject. Sesi tetap selesai walau print gagal (FSD §1.10). */
@@ -325,6 +343,13 @@ export interface BoothPlatform {
     submit(job: PrintJob): Promise<void>;
     /** Cetak lagi dari galeri lewat antrean & tabel print_jobs yang sama (#145). */
     reprint(req: ReprintRequest): Promise<ReprintResult>;
+  };
+  /** Laptop ini Print Station (#224): hanya mencetak foto tamu Guest Cam, tanpa sesi foto. */
+  printStation?: boolean;
+  /** Cetak tamu Guest Cam (#223). Tidak ada = platform tanpa cloud (uji/browser). Offline = daftar kosong. */
+  guestPrints?: {
+    claim(eventId: string, paper: string): Promise<LocalGuestPrint[]>;
+    report(id: string, status: "printed" | "failed", error?: string): Promise<void>;
   };
   storage: BoothStorage;
   db: BoothDb;

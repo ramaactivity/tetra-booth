@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { loadPublicGallery } from "@/lib/gallery";
+import { loadPromo } from "@/lib/promo";
 import { PublicGallery } from "./PublicGallery";
 
 export const metadata: Metadata = {
@@ -15,5 +16,7 @@ export default async function PublicGalleryPage({
   params: Promise<{ sessionId: string }>;
 }) {
   const { sessionId } = await params;
-  return <PublicGallery g={await loadPublicGallery(sessionId)} back={`/s/${sessionId}`} />;
+  const g = await loadPublicGallery(sessionId);
+  const promo = g.state === "ok" ? await loadPromo(g.eventId) : null;
+  return <PublicGallery g={g} back={`/s/${sessionId}`} promo={promo} />;
 }

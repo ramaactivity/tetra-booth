@@ -103,8 +103,12 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
   const camera =
     cfg.camera === "simulated"
       ? createSimulatedCamera(storage)
-      : cfg.camera === "hotfolder" || cfg.camera === "canon" || cfg.camera === "sony"
-        ? serviceCamera(bridge, !!cfg.liveView, cfg.camera === "canon" || cfg.camera === "sony")
+      : cfg.camera === "hotfolder" ||
+          cfg.camera === "canon" ||
+          cfg.camera === "sony" ||
+          cfg.camera === "lumix" ||
+          cfg.camera === "nikon"
+        ? serviceCamera(bridge, !!cfg.liveView, cfg.camera !== "hotfolder")
         : createWebcamCamera(storage, cfg.webcamId);
   return {
     camera: cfg.mirrorPhoto ? withMirroredPhotos(camera, storage) : camera,
@@ -187,11 +191,18 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
     },
     health: () => bridge.health(),
     phaseChanged: (phase) => bridge.phaseChanged(phase),
+    printStation: cfg.role === "print",
+    // Cetak tamu Guest Cam (#223): booth & laptop stage (cetak 4R) sama-sama bisa mencetak.
+    guestPrints: {
+      claim: (id, paper) => bridge.guestPrintsClaim(id, paper),
+      report: (id, status, error) => bridge.guestPrintsReport(id, status, error),
+    },
     ...(cfg.role === "stage"
       ? {
           stage: {
             listen: (on: boolean) => bridge.stageListen(on),
             onShot: (cb: Parameters<TetraBridge["onStageShot"]>[0]) => bridge.onStageShot(cb),
+            onRemote: (cb: Parameters<TetraBridge["onStageRemote"]>[0]) => bridge.onStageRemote(cb),
             rename: (id: string, name: string | null) => bridge.stageRename(id, name),
             status: (ids: string[]) => bridge.stageStatus(ids),
             hide: (id: string, idx: number[]) => bridge.stageHide(id, idx),

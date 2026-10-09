@@ -1,5 +1,8 @@
 import { type LayoutSpec, STAGE_MAX_SHOTS } from "@tetra/shared";
 
+/** Mosaik TV dipakai juga layar galeri web `/stage/{link}` (#204), jadi tinggal di `@tetra/shared`. */
+export { tvMosaic } from "@tetra/shared";
+
 /**
  * Photo Stage (#178, docs/PLAN-PHOTO-STAGE.md): pengelompokan jepretan fotografer menjadi rombongan (= satu sesi).
  * Reducer murni: rombongan baru lewat tombol (Enter), jeda otomatis (bisa dimatikan), atau batas foto. Saat Jeda,
@@ -219,8 +222,12 @@ export type StageTvState = {
   previous: { id: string; no: number; label: string }[];
   /** Foto terbaru acara untuk galeri berjalan saat idle (satu per rombongan). */
   recent: { path: string; label: string; time: string }[];
+  /** "Cari fotomu" di TV sentuh (#200): rombongan terbaru dulu (maks. 60), foto yang tampil saja. */
+  groups?: { id: string; no: string; label: string; time: string; shots: string[] }[];
   /** Lama tampilan aktif setelah jepretan terakhir (detik). */
   activeSec: number;
+  /** Nama berikutnya dari daftar klien (#206): pilihan cepat di HP helper. */
+  next?: string[];
   /** Layar uji dari wizard persiapan (#188). */
   test?: boolean;
   /** LUT `.cube` aktif (#184): kunci localStorage + waktu simpan; jendela TV membacanya sendiri. */
@@ -230,9 +237,14 @@ export type StageTvState = {
 /** Ringkasan untuk TV dari keadaan rombongan. */
 export function tvState(
   s: StageState,
-  base: Omit<StageTvState, "active" | "previous" | "recent">,
+  base: Omit<StageTvState, "active" | "previous" | "recent" | "groups">,
 ): StageTvState {
-  const withShots = s.groups.filter((g) => g.shots.length);
+  // Rombongan yang digabung & foto yang disembunyikan (#195) tidak tampil di TV.
+  const shown = (g: StageGroup) => g.shots.filter((_, i) => !g.hidden?.includes(i + 1));
+  const withShots = s.groups
+    .filter((g) => !g.merged)
+    .map((g) => ({ ...g, shots: shown(g) }))
+    .filter((g) => g.shots.length);
   const a = withShots.at(-1);
   return {
     ...base,
@@ -253,6 +265,16 @@ export function tvState(
     recent: withShots
       .slice(-12)
       .map((g) => ({ path: g.shots[0]?.path ?? "", label: groupLabel(g), time: hm(g.startedAt) })),
+    groups: withShots
+      .slice(-60)
+      .reverse()
+      .map((g) => ({
+        id: g.id,
+        no: groupNo(g),
+        label: groupLabel(g),
+        time: hm(g.startedAt),
+        shots: g.shots.map((x) => x.path),
+      })),
   };
 }
 
@@ -336,75 +358,5 @@ export function stagePrintLayout(
     background: { color: "#ffffff" },
     slots: [{ id: "photo", x: 0, y: 0, w: 1200, h: 1800, fit: "cover", z: "below_overlay" }],
     texts: [],
-  };
-}
-
-type Box = { x: number; y: number; w: number; h: number };
-/**
- * Mosaik 1–5 foto 3:2 di area W×H (desain B4): 1 tunggal, 2 berdampingan, 3 = 1 besar + 2 bertumpuk, 4 = 2×2,
- * 5 = 1 besar + 2×2. `f` = bingkai (padding 14 + border 3, dua sisi).
- */
-export function tvMosaic(
-  n: number,
-  W: number,
-  H: number,
-  g: number,
-): { w: number; h: number; boxes: Box[] } {
-  const f = 34;
-  const small = (u: number) => ({ cw: u + f, ch: u / 1.5 + f });
-  let boxes: Box[];
-  if (n <= 2) {
-    const u = Math.min((W - (n - 1) * g) / n - f, (H - f) * 1.5);
-    boxes = Array.from({ length: n }, (_, i) => ({
-      x: i * (small(u).cw + g),
-      y: 0,
-      w: u,
-      h: u / 1.5,
-    }));
-  } else if (n === 4) {
-    const u = Math.min((W - g) / 2 - f, ((H - g) / 2 - f) * 1.5);
-    const { cw, ch } = small(u);
-    boxes = Array.from({ length: 4 }, (_, i) => ({
-      x: (i % 2) * (cw + g),
-      y: Math.floor(i / 2) * (ch + g),
-      w: u,
-      h: u / 1.5,
-    }));
-  } else {
-    const cols = n === 3 ? 1 : 2;
-    const dims = (u: number) => {
-      const { cw, ch } = small(u);
-      const bh = 2 * ch + g;
-      const bw = (bh - f) * 1.5 + f;
-      return { W: bw + g + cols * cw + (cols - 1) * g, H: bh, bw, bh, cw, ch };
-    };
-    let u = 1400;
-    while (u > 40) {
-      const d = dims(u);
-      if (d.W <= W && d.H <= H) break;
-      u -= 2;
-    }
-    const d = dims(u);
-    boxes = [{ x: 0, y: 0, w: d.bw - f, h: d.bh - f }];
-    for (let i = 1; i < n; i++) {
-      const k = i - 1;
-      boxes.push({
-        x: d.bw + g + (k % cols) * (d.cw + g),
-        y: Math.floor(k / cols) * (d.ch + g),
-        w: u,
-        h: u / 1.5,
-      });
-    }
-  }
-  const r = boxes.map((b) => ({
-    x: Math.round(b.x),
-    y: Math.round(b.y),
-    w: Math.round(b.w),
-    h: Math.round(b.h),
-  }));
-  return {
-    w: Math.max(...r.map((b) => b.x + b.w + f)),
-    h: Math.max(...r.map((b) => b.y + b.h + f)),
-    boxes: r,
   };
 }

@@ -38,6 +38,9 @@ const bridge: TetraBridge = {
   crewRecap: (id) => ipcRenderer.invoke("crewRecap", id),
   crewOpenEventFolder: (id) => ipcRenderer.invoke("crewOpenEventFolder", id),
   crewGalleryLink: (id) => ipcRenderer.invoke("crewGalleryLink", id),
+  guestPrintsClaim: (id, paper) => ipcRenderer.invoke("guestPrintsClaim", id, paper),
+  guestPrintsReport: (id, status, error) =>
+    ipcRenderer.invoke("guestPrintsReport", id, status, error),
   crewEventSize: (id) => ipcRenderer.invoke("crewEventSize", id),
   crewOldSessions: () => ipcRenderer.invoke("crewOldSessions"),
   crewReupload: (id, a) => ipcRenderer.invoke("crewReupload", id, a),
@@ -85,6 +88,11 @@ const bridge: TetraBridge = {
     const h = (_e: IpcRendererEvent, on: boolean) => cb(on);
     ipcRenderer.on("stageTvStatus", h);
     return () => ipcRenderer.off("stageTvStatus", h);
+  },
+  onStageRemote: (cb) => {
+    const h = (_e: IpcRendererEvent, m: Parameters<typeof cb>[0]) => cb(m);
+    ipcRenderer.on("stageRemote", h);
+    return () => ipcRenderer.off("stageRemote", h);
   },
   onStageShot: (cb) => {
     const h = (_e: IpcRendererEvent, s: Parameters<typeof cb>[0]) => cb(s);

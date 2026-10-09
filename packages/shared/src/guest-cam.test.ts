@@ -6,18 +6,30 @@ describe("GuestJoinRequest", () => {
   it("menormalkan WhatsApp dan Instagram", () => {
     const r = GuestJoinRequest.parse({
       name: " Sari ",
-      whatsapp: "0812-3456-7890",
+      whatsapp: "0812-7788-3021",
       instagram: "https://instagram.com/Sari.Andi/",
       consent: true,
     });
-    expect(r).toEqual({ name: "Sari", whatsapp: "6281234567890", instagram: "sari.andi" });
+    expect(r).toEqual({ name: "Sari", whatsapp: "6281277883021", instagram: "sari.andi" });
   });
-  it("cukup salah satu kontak", () => {
-    expect(GuestJoinRequest.parse({ name: "Andi", instagram: "@andi_", consent: true })).toEqual({
-      name: "Andi",
-      whatsapp: undefined,
-      instagram: "andi_",
-    });
+  it("WA wajib dan harus nomor HP yang masuk akal (#232)", () => {
+    const ok = (whatsapp: string) =>
+      GuestJoinRequest.safeParse({ name: "Andi", whatsapp, consent: true }).success;
+    expect(
+      GuestJoinRequest.safeParse({ name: "Andi", instagram: "@andi_", consent: true }).success,
+    ).toBe(false);
+    expect(ok("+62 857-1122-9034")).toBe(true);
+    for (const fake of [
+      "0812-3456-7890",
+      "0811111111111",
+      "08123456789",
+      "0219876543",
+      "0898765432",
+    ])
+      expect(ok(fake)).toBe(false);
+    expect(
+      GuestJoinRequest.safeParse({ name: "..", whatsapp: "085711229034", consent: true }).success,
+    ).toBe(false);
   });
   it("menolak tanpa kontak, kontak rusak, atau tanpa persetujuan", () => {
     expect(GuestJoinRequest.safeParse({ name: "Andi", consent: true }).success).toBe(false);
