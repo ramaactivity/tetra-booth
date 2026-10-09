@@ -587,6 +587,7 @@ export const copy = {
     shotInfo: (w: number, h: number, sec: string) => `${w}×${h} · ${sec} detik`,
     shooting: "Memotret…",
     shotNo: (n: number) => `Tes #${n}`,
+    backToLive: "kembali ke live view (ketuk untuk langsung)",
     shotHint: "Klik foto untuk memperbesar, membandingkan, dan memakai setelannya.",
     compare: "Bandingkan",
     guides: "Garis bantu",

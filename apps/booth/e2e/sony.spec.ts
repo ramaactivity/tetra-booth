@@ -141,6 +141,10 @@ for (const b of BODIES) {
         .last()
         .click();
       await expect(w.getByTestId("last-shot").locator("img")).toBeVisible({ timeout: 20_000 });
+      // Hasil tes tampil besar di area live view ±5 s, lalu live view kembali sendiri.
+      await expect(w.getByTestId("shot-flash")).toBeVisible();
+      await w.screenshot({ path: `test-results/sony-${b.fake}-tes-jepret-preview.png` });
+      await expect(w.getByTestId("shot-flash")).toBeHidden({ timeout: 8_000 });
       await w.getByRole("button", { name: "60 Hz" }).click();
       await expect.poll(() => logs.join("")).toMatch(/\[camera\] shutterspeed = 1\/60/);
       await w.getByRole("button", { name: "50 Hz" }).click();
