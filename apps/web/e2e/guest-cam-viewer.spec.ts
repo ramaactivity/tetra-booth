@@ -42,6 +42,7 @@ test("album Guest Cam: preview besar dengan pindah kiri-kanan", async ({ page })
       ),
     );
     await page.goto(`/c/${token}`);
+    await page.getByRole("button", { name: "Lihat menu dulu" }).click();
     await page.locator("button", { hasText: /album/i }).first().click();
     const shots = page.getByRole("button", { name: "Lihat foto" });
     await expect(shots).toHaveCount(3);

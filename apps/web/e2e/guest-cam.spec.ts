@@ -198,6 +198,11 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await page.getByRole("button", { name: "Masuk", exact: true }).click();
       // Menu utama (#212): kamera, ucapan, photo frame, album.
       await expect(page.getByText("Hai, Sari")).toBeVisible();
+      // Panduan pertama kali (#247): sekali per HP, "Lihat menu dulu" menutupnya.
+      await expect(page.getByRole("dialog", { name: "Cara pakai Snapbook" })).toBeVisible();
+      await page.waitForTimeout(400);
+      await shot("H0-intro");
+      await page.getByRole("button", { name: "Lihat menu dulu" }).click();
       await page.waitForTimeout(700);
       await shot("H1");
       await page.getByRole("button", { name: "Mulai jepret" }).click();
@@ -321,10 +326,8 @@ test.describe("halaman tamu /c (kamera palsu Chromium)", () => {
       await page.getByLabel("Nomor WhatsApp").fill("0812 7788 3021");
       await page.getByRole("checkbox").click();
       await page.getByRole("button", { name: "Masuk", exact: true }).click();
-      await expect(page.getByText("Kebuka setelah acara")).toBeVisible();
-      if (process.env.GC_SHOTS)
-        await page.screenshot({ path: `${process.env.GC_SHOTS}/after-H1.png` });
-      await page.getByRole("button", { name: "Mulai jepret" }).click();
+      // "Oke, mulai jepret" di panduan langsung membuka kamera.
+      await page.getByRole("button", { name: "Oke, mulai jepret" }).click();
       const open = page.getByRole("button", { name: "Buka kamera" });
       if (await open.isVisible().catch(() => false)) await open.click();
       const shutter = page.getByRole("button", { name: "Jepret" });

@@ -1,13 +1,13 @@
 "use client";
 import type { GuestMe, GuestPrintInfo } from "@tetra/shared";
-import { ChevronLeft, Printer } from "lucide-react";
+import { ChevronLeft, Download, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { GuestPromo, PROMO_SAVED } from "@/components/GuestPromo";
 import { PhotoViewer } from "@/components/PhotoViewer";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
 import type { GuestPromo as Promo } from "@/lib/promo";
-import { firstName, H1, Lead, Primary } from "./ui";
+import { firstName, H1, Lead } from "./ui";
 
 const t = copy.guestCam;
 type Item = {
@@ -17,6 +17,7 @@ type Item = {
   strip?: boolean;
   by?: string;
   waiting?: boolean;
+  booth?: boolean;
 };
 
 async function saveFiles(urls: string[]) {
@@ -58,19 +59,30 @@ export function Mine({
   print?: GuestPrintInfo | "error" | undefined;
   onBack: () => void;
 }) {
-  const [tab, setTab] = useState<"mine" | "album">("mine");
+  // Album dipisah per sumber (#247): Snapbook = foto HP tamu; Photobooth hanya kalau galeri publik dibuka klien.
+  const [tab, setTab] = useState<"mine" | "album" | "booth">("mine");
   const [album, setAlbum] = useState<Item[] | null>(null);
   // Penampil besar (revisi 9 Okt): indeks foto di daftar tab aktif; geser kiri/kanan lewat PhotoViewer.
   const [view, setView] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const used = me.usedIdx.length + pending;
 
+  // Dimuat sekali sejak layar dibuka (dulu baru saat tab diketuk = album terasa lambat).
   useEffect(() => {
-    if (tab !== "album" || album) return;
+    if (!me.revealed || album) return;
     void fetch(`/api/c/${encodeURIComponent(token)}/album`)
       .then((r) => (r.ok ? r.json() : { items: [] }))
       .then(
-        (d: { items: { id: string; url: string; thumb: string; strip: boolean; by: string }[] }) =>
+        (d: {
+          items: {
+            id: string;
+            url: string;
+            thumb: string;
+            strip: boolean;
+            by: string;
+            source: "snapbook" | "booth";
+          }[];
+        }) =>
           setAlbum(
             d.items.map((i) => ({
               key: i.id,
@@ -78,11 +90,12 @@ export function Mine({
               thumb: i.thumb,
               strip: i.strip,
               by: i.by,
+              booth: i.source === "booth",
             })),
           ),
       )
       .catch(() => setAlbum([]));
-  }, [tab, album, token]);
+  }, [me.revealed, album, token]);
 
   const mine: Item[] = [
     ...me.strips.map((p) => ({
@@ -99,7 +112,10 @@ export function Mine({
       waiting: p.waiting,
     })),
   ];
-  const list = tab === "mine" ? mine : (album ?? []);
+  const boothItems = (album ?? []).filter((p) => p.booth);
+  const tabs = ["mine", "album", ...(boothItems.length ? (["booth"] as const) : [])] as const;
+  const list =
+    tab === "mine" ? mine : tab === "booth" ? boothItems : (album ?? []).filter((p) => !p.booth);
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-black text-paper">
@@ -113,15 +129,30 @@ export function Mine({
           >
             <ChevronLeft size={22} />
           </button>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="truncate text-[17px] font-extrabold">{info.name}</div>
             <div className="font-mono text-[11px] text-muted">
               {t.mineSub(firstName(me.name), used, info.shots)}
             </div>
           </div>
+          {/* Save semua di header (dulu tombol besar di bawah grid menghalangi foto & kartu promo). */}
+          {tab === "mine" && me.revealed && mine.length > 0 && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                await saveFiles(mine.map((p) => p.url)).finally(() => setBusy(false));
+              }}
+              className="flex h-10 flex-none items-center gap-1.5 rounded-full bg-butter px-3.5 text-[13px] font-extrabold text-ink transition active:scale-95 disabled:opacity-60"
+            >
+              <Download size={16} />
+              {busy ? t.savingAll : t.saveAllShort}
+            </button>
+          )}
         </div>
         <div className="mt-3 flex h-11 rounded-full bg-white/10 p-1">
-          {(["mine", "album"] as const).map((k) => (
+          {tabs.map((k) => (
             <button
               key={k}
               type="button"
@@ -129,7 +160,7 @@ export function Mine({
               onClick={() => setTab(k)}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-full text-sm font-bold ${tab === k ? "bg-paper text-ink" : "text-paper/70"}`}
             >
-              {k === "mine" ? t.tabMine : t.tabAlbum}
+              {k === "mine" ? t.tabMine : k === "booth" ? t.tabBooth : t.tabAlbum}
               {k === "mine" && me.revealed && (
                 <span className="font-mono text-xs">{mine.length}</span>
               )}
@@ -224,25 +255,16 @@ export function Mine({
                 </li>
               ))}
             </ul>
+          ) : tab !== "mine" && !album ? (
+            <ul className="grid grid-cols-3 gap-[3px] px-[3px]" aria-hidden>
+              {Array.from({ length: 9 }, (_, n) => n).map((i) => (
+                <li key={i} className="aspect-[3/4] animate-pulse bg-white/10" />
+              ))}
+            </ul>
           ) : (
-            <p className="px-5 pt-10 text-center text-sm text-muted">
-              {tab === "album" && !album ? "…" : t.empty}
-            </p>
+            <p className="px-5 pt-10 text-center text-sm text-muted">{t.empty}</p>
           )}
-          <div className="flex-1" />
-          <div className="flex flex-col gap-3 px-4 pt-5 pb-[max(20px,env(safe-area-inset-bottom))]">
-            {tab === "mine" && mine.length > 0 && (
-              <Primary
-                disabled={busy}
-                onClick={async () => {
-                  setBusy(true);
-                  await saveFiles(mine.map((p) => p.url)).finally(() => setBusy(false));
-                }}
-              >
-                {busy ? t.savingAll : t.saveAll}
-              </Primary>
-            )}
-          </div>
+          <div className="h-6 flex-1" />
         </>
       )}
 

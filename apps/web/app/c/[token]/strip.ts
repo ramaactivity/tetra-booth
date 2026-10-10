@@ -2,6 +2,26 @@ import type { LayoutSpec } from "@tetra/shared";
 import { browserContext, cpuCanvas, type ImageLike, renderPiece } from "@tetra/template-engine";
 
 const FONT = "Geist Variable";
+/** Atur foto di slot (#247): zoom ≥ 1 (1 = penuh menutup slot), geser x/y −1…1 dari tengah. */
+export type Crop = { z: number; x: number; y: number };
+
+/**
+ * Potong foto ke rasio slot sesuai `crop`, supaya template engine (fit cover) memakai potongan itu apa adanya.
+ * Tanpa crop = foto asli (perilaku lama).
+ */
+export function cropFor(img: ImageBitmap, slotW: number, slotH: number, crop?: Crop): ImageLike {
+  if (!crop) return img as unknown as ImageLike;
+  const a = slotW / slotH;
+  const { width: W, height: H } = img;
+  const cw = Math.min(W, H * a) / crop.z;
+  const ch = cw / a;
+  const cx = W / 2 + (crop.x * (W - cw)) / 2;
+  const cy = H / 2 + (crop.y * (H - ch)) / 2;
+  const c = cpuCanvas(Math.max(1, Math.round(cw)), Math.max(1, Math.round(ch)));
+  c.getContext("2d")?.drawImage(img, cx - cw / 2, cy - ch / 2, cw, ch, 0, 0, c.width, c.height);
+  return c as unknown as ImageLike;
+}
+
 export type GuestDesign = {
   layout: LayoutSpec;
   assets: Record<string, string>;
@@ -9,17 +29,31 @@ export type GuestDesign = {
 };
 
 const bitmaps = new Map<string, Promise<ImageBitmap | null>>();
-/** Gambar dari URL, di-cache per URL (pratinjau strip dirender ulang tiap pilihan berubah). */
+/**
+ * Gambar dari URL, di-cache per URL (pratinjau dirender ulang tiap pilihan berubah). Gagal (sinyal venue, memori
+ * iPhone) TIDAK di-cache, supaya render berikutnya mencoba lagi; dulu gagal sekali = slot kosong selamanya (#247).
+ */
 const bitmap = (url: string) => {
   let p = bitmaps.get(url);
   if (!p) {
     p = fetch(url)
       .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
       .then(createImageBitmap)
-      .catch(() => null);
+      .catch(() => {
+        bitmaps.delete(url);
+        return null;
+      });
     bitmaps.set(url, p);
   }
   return p;
+};
+/** Kandidat pertama yang berhasil dimuat (mis. foto penuh lalu thumbnail sebagai cadangan). */
+const first = async (urls: string | readonly string[] | null | undefined) => {
+  for (const u of typeof urls === "string" ? [urls] : (urls ?? [])) {
+    const b = (await bitmap(u)) ?? (await bitmap(u));
+    if (b) return b;
+  }
+  return null;
 };
 const fonts = new Map<string, Promise<string | null>>();
 const font = (id: string, url: string) => {
@@ -63,10 +97,12 @@ const blank = (w: number, h: number) => {
  */
 export async function renderStrip(
   d: GuestDesign,
-  photoUrls: (string | null)[],
+  /** Per slot: URL atau daftar kandidat (dicoba berurutan); kosong = slot belum terisi. */
+  photoUrls: (string | readonly string[] | null)[],
   vars: { event_name: string; date: string },
   qrUrl: string,
   scale = 1,
+  crops: (Crop | undefined)[] = [],
 ) {
   const assets: Record<string, ImageLike> = {};
   for (const [id, u] of Object.entries(d.assets)) {
@@ -81,8 +117,8 @@ export async function renderStrip(
   await document.fonts.load(`40px "${FONT}"`).catch(() => {});
   const photos = await Promise.all(
     d.layout.slots.map(async (s, i) => {
-      const u = photoUrls[i];
-      return (u && (await bitmap(u))) || blank(s.w, s.h);
+      const b = await first(photoUrls[i]);
+      return b ? cropFor(b, s.w, s.h, crops[i]) : blank(s.w, s.h);
     }),
   );
   const piece = renderPiece(

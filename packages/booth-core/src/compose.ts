@@ -1,4 +1,4 @@
-import type { LayoutSpec } from "@tetra/shared";
+import { type LayoutSpec, withDefaultQr } from "@tetra/shared";
 import { browserContext, cpuCanvas, renderPiece, toSheet } from "@tetra/template-engine";
 import type { BoothEvent } from "./event";
 import type { BoothStorage } from "./platform";
@@ -35,6 +35,8 @@ export async function renderEvent(
   /** Dua sisi lembar beda foto (#207): layar menampilkan lembar utuh, bukan satu potong. */
   pair: boolean;
 }> {
+  // QR first (#247): desain tanpa elemen QR tetap tercetak dengan QR halaman tamu.
+  event = { ...event, layout: withDefaultQr(event.layout) };
   const fonts = event.render?.fonts ?? {};
   if (event.layout.texts.some((t) => !fonts[t.fontAssetId]))
     await document.fonts.load(`40px "${FONT}"`);

@@ -316,7 +316,25 @@ export const copy = {
     // A7 Album
     mineSub: (name: string, used: number, shots: number) => `${name} · ${used}/${shots} foto`,
     tabMine: "Fotoku",
-    tabAlbum: "Album acara",
+    tabAlbum: "Snapbook",
+    tabBooth: "Photobooth",
+    // Panduan pertama kali (#247)
+    introTitle: "Cara pakai Snapbook",
+    introCamera: (n: number) =>
+      `Jepret pakai kamera film. Kamu punya ${n} jepretan, pilih kameranya dulu.`,
+    introFrame: "Pilih foto terbaikmu, masukin ke frame, lalu save atau print.",
+    introVoice: "Titip voice note buat yang punya acara, maks. 30 detik.",
+    introAlbum: "Semua fotomu ada di Album. Bisa disimpan ke HP kapan aja.",
+    introGo: "Oke, mulai jepret",
+    introLater: "Lihat menu dulu",
+    // Atur foto di slot frame (#247)
+    cropTitle: "Atur foto",
+    cancel: "Batal",
+    cropHint: "Geser buat atur posisi, cubit atau pakai slider buat zoom",
+    cropDone: "Pakai posisi ini",
+    cropSlot: (n: number) => `Atur foto ke-${n}`,
+    pickDoneCrop: "Sip! Tap foto di frame buat geser/zoom",
+    saveAllShort: "Save semua",
     reviewNote:
       "Panitia ngecek foto dulu sebelum tampil di album & TV. Kamu tetap bisa lihat dan save.",
     reviewing: "Dicek",

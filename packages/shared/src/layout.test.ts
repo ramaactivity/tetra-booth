@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LayoutSpecSchema } from "./layout";
+import { LayoutSpecSchema, withDefaultQr } from "./layout";
 import { LAYOUT_PRESETS } from "./presets";
 
 const base = {
@@ -35,5 +35,36 @@ describe("preset layout admin", () => {
   it("semua preset lolos LayoutSpecSchema", () => {
     for (const p of Object.values(LAYOUT_PRESETS))
       expect(LayoutSpecSchema.safeParse({ id: "x", version: 1, ...p.layout }).success).toBe(true);
+  });
+});
+
+describe("withDefaultQr (#247)", () => {
+  const strip = {
+    id: "l",
+    version: 1,
+    paper: "2x6x2" as const,
+    canvas: { width: 600, height: 1800, dpi: 300 as const },
+    slots: [0, 1, 2].map((i) => ({
+      id: `s${i}`,
+      x: 30,
+      y: 30 + i * 390,
+      w: 540,
+      h: 360,
+      fit: "cover" as const,
+      z: "below_overlay" as const,
+    })),
+    texts: [],
+  };
+  it("strip PNG tanpa QR dapat QR di kanan-bawah, tidak menutupi slot", () => {
+    const qr = withDefaultQr(strip).qr;
+    expect(qr).toEqual({ x: 600 - 24 - 132, y: 1800 - 24 - 132, size: 132 });
+  });
+  it("QR yang sudah ada tidak diubah", () => {
+    const l = { ...strip, qr: { x: 1, y: 2, size: 100 } };
+    expect(withDefaultQr(l)).toBe(l);
+  });
+  it("slot menutup seluruh kanvas = tanpa QR", () => {
+    const full = { ...strip, slots: [{ ...strip.slots[0], x: 0, y: 0, w: 600, h: 1800 }] };
+    expect(withDefaultQr(full as typeof strip).qr).toBeUndefined();
   });
 });

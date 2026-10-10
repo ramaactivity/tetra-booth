@@ -36,6 +36,8 @@ export async function GET(_req: Request, ctx: Ctx) {
     (data ?? []).map(async (a) => ({
       id: a.id,
       strip: a.kind === "thumb_strip",
+      /** Tab terpisah di album tamu (#247): Snapbook (HP tamu) vs Photobooth (booth/Photo Stage). */
+      source: a.sessions.source === "guest" ? "snapbook" : "booth",
       by: a.sessions.source === "guest" ? (a.sessions.group_name ?? "Tamu") : "Photobooth",
       thumb: await presignGet(key(a.r2_key), 6 * 3600),
       url: await presignGet(

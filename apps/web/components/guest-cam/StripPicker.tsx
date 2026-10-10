@@ -2,10 +2,11 @@
 import type { GuestMe, LayoutPaper } from "@tetra/shared";
 import { ChevronLeft, Download, Printer, RotateCcw, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { renderStrip } from "@/app/c/[token]/strip";
+import { type Crop, renderStrip } from "@/app/c/[token]/strip";
 import { PROMO_SAVED } from "@/components/GuestPromo";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
+import { NO_CROP, SlotCrop } from "./SlotCrop";
 import { longDateId, Primary, Secondary, TopBar } from "./ui";
 
 const t = copy.guestCam;
@@ -72,10 +73,25 @@ export function StripPicker({
   const x0 = useRef(0);
   const vars = { event_name: info.name, date: longDateId(info.date) };
   const qr = typeof location === "undefined" ? "" : location.origin + info.link;
-  const urls = (d: Design, ids = picked) =>
-    d.layout.slots.map((_, i) => me.photos.find((p) => p.idx === ids[i])?.url ?? null);
-  const preview = useRender(`${design?.id}|${picked.join()}|${!!made}`, async () =>
-    design && !made ? (await renderStrip(design, urls(design), vars, qr, 0.6)).main : null,
+  // Pratinjau & thumbnail pakai foto kecil (hemat memori/sinyal iPhone); hasil akhir foto penuh, cadangan thumbnail.
+  const urls = (d: Design, ids = picked, full = false) =>
+    d.layout.slots.map((_, i) => {
+      const p = me.photos.find((x) => x.idx === ids[i]);
+      if (!p) return null;
+      const small = p.thumbUrl ?? p.url;
+      return full ? [p.url, small] : [small, p.url];
+    });
+  // Atur foto per slot (#247), kunci = desain:slot:foto supaya ganti foto = mulai dari tengah lagi.
+  const [crops, setCrops] = useState<Record<string, Crop>>({});
+  const [editing, setEditing] = useState<number | null>(null);
+  const cropKey = (d: Design, i: number) => `${d.id}:${i}:${picked[i]}`;
+  const cropsOf = (d: Design) => d.layout.slots.map((_, i) => crops[cropKey(d, i)]);
+  const preview = useRender(
+    `${design?.id}|${picked.join()}|${!!made}|${JSON.stringify(design ? cropsOf(design) : [])}`,
+    async () =>
+      design && !made
+        ? (await renderStrip(design, urls(design), vars, qr, 0.6, cropsOf(design))).main
+        : null,
   );
 
   const choose = (d: Design) => {
@@ -93,7 +109,7 @@ export function StripPicker({
     if (!design) return;
     setBusy(true);
     try {
-      const r = await renderStrip(design, urls(design), vars, qr);
+      const r = await renderStrip(design, urls(design, picked, true), vars, qr, 1, cropsOf(design));
       setMade({ ...r, url: URL.createObjectURL(r.main) });
     } finally {
       setBusy(false);
@@ -253,12 +269,40 @@ export function StripPicker({
               className="max-h-full max-w-full self-start rounded-[3px] shadow-[0_18px_40px_rgba(0,0,0,.6)] motion-safe:animate-[strip-out_1.4s_cubic-bezier(.2,.7,.2,1)_both]"
             />
           ) : preview ? (
-            // biome-ignore lint/performance/noImgElement: object URL hasil render lokal
-            <img
-              src={preview}
-              alt={t.previewAlt}
-              className="max-h-full max-w-full rounded-[3px] shadow-[0_18px_40px_rgba(0,0,0,.6)]"
-            />
+            // Area tiap slot bisa diketuk untuk atur foto (geser / zoom), #247.
+            <div className="flex size-full items-center justify-center [container-type:size]">
+              <div
+                className="relative"
+                style={{
+                  width: `min(100cqw, ${(design.layout.canvas.width / design.layout.canvas.height) * 100}cqh)`,
+                  aspectRatio: ratio,
+                }}
+              >
+                {/* biome-ignore lint/performance/noImgElement: object URL hasil render lokal */}
+                <img
+                  src={preview}
+                  alt={t.previewAlt}
+                  className="size-full rounded-[3px] shadow-[0_18px_40px_rgba(0,0,0,.6)]"
+                />
+                {design.layout.slots.map((s, i) =>
+                  picked[i] === undefined ? null : (
+                    <button
+                      key={s.id}
+                      type="button"
+                      aria-label={t.cropSlot(i + 1)}
+                      onClick={() => setEditing(i)}
+                      className="absolute rounded-[2px] transition active:bg-white/20"
+                      style={{
+                        left: `${(s.x / design.layout.canvas.width) * 100}%`,
+                        top: `${(s.y / design.layout.canvas.height) * 100}%`,
+                        width: `${(s.w / design.layout.canvas.width) * 100}%`,
+                        height: `${(s.h / design.layout.canvas.height) * 100}%`,
+                      }}
+                    />
+                  ),
+                )}
+              </div>
+            </div>
           ) : (
             <div
               className="h-full max-h-full max-w-full animate-pulse rounded-[3px] bg-white/10"
@@ -318,7 +362,7 @@ export function StripPicker({
           <>
             <div className="flex h-8 items-center justify-between">
               <span className="text-sm font-bold">
-                {full ? t.pickDone : t.pickLeft(n - picked.length)}
+                {full ? t.pickDoneCrop : t.pickLeft(n - picked.length)}
               </span>
               {picked.length > 0 && (
                 <button
@@ -370,6 +414,24 @@ export function StripPicker({
           </>
         )}
       </div>
+      {editing !== null &&
+        (() => {
+          const s = design.layout.slots[editing];
+          const p = me.photos.find((x) => x.idx === picked[editing]);
+          if (!s || !p) return null;
+          return (
+            <SlotCrop
+              src={p.thumbUrl ?? p.url}
+              ratio={s.w / s.h}
+              value={crops[cropKey(design, editing)] ?? NO_CROP}
+              onClose={() => setEditing(null)}
+              onDone={(c) => {
+                setCrops((m) => ({ ...m, [cropKey(design, editing)]: c }));
+                setEditing(null);
+              }}
+            />
+          );
+        })()}
     </main>
   );
 }
@@ -385,7 +447,7 @@ function Thumbs({
 }: {
   group: Design[];
   on: string;
-  urls: (d: Design) => (string | null)[];
+  urls: (d: Design) => (readonly string[] | null)[];
   vars: { event_name: string; date: string };
   qr: string;
   onPick: (d: Design) => void;

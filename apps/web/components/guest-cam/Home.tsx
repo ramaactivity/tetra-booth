@@ -1,10 +1,11 @@
 "use client";
 import type { GuestMe } from "@tetra/shared";
-import { ArrowUpRight, Check, Lock } from "lucide-react";
+import { ArrowUpRight, Camera, Check, Frame, Images, Lock, Mic } from "lucide-react";
+import { useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
 import type { GuestInfo } from "@/lib/guest-cam";
 import { CameraArt } from "./CameraArt";
-import { dotDate, firstName, TetraMark } from "./ui";
+import { dotDate, firstName, Primary, TetraMark } from "./ui";
 
 const t = copy.guestCam;
 export type FrameState = "on" | "locked" | "wait" | "full" | "off";
@@ -67,6 +68,27 @@ export function Home({
   onAlbum: () => void;
 }) {
   const out = left <= 0;
+  // Panduan singkat sekali per acara per HP (#247): tamu Rafi & Dinda bingung saat pertama masuk.
+  const introKey = `gc-intro-${info.link}`;
+  const [intro, setIntro] = useState(false);
+  useEffect(() => {
+    try {
+      setIntro(!out && !localStorage.getItem(introKey));
+    } catch {}
+  }, [introKey, out]);
+  const closeIntro = (go?: boolean) => {
+    try {
+      localStorage.setItem(introKey, "1");
+    } catch {}
+    setIntro(false);
+    if (go) onCamera();
+  };
+  const steps = [
+    { icon: <Camera size={20} />, text: t.introCamera(left) },
+    ...(frame !== "off" ? [{ icon: <Frame size={20} />, text: t.introFrame }] : []),
+    ...(voice !== "off" ? [{ icon: <Mic size={20} />, text: t.introVoice }] : []),
+    { icon: <Images size={20} />, text: t.introAlbum },
+  ];
   const thumbs = me.revealed ? me.photos.slice(-4).reverse() : [];
   const d = (ms: number) => ({ animationDelay: `${ms}ms` });
 
@@ -215,6 +237,43 @@ export function Home({
         </span>
         <ArrowUpRight size={20} className="flex-none text-paper/60" />
       </button>
+
+      {intro && (
+        <div
+          className="fixed inset-0 z-30 mx-auto flex max-w-[480px] items-end bg-black/60"
+          role="dialog"
+          aria-label={t.introTitle}
+        >
+          <div className="w-full rounded-t-[30px] bg-[#151514] px-5 pt-5 pb-[max(20px,env(safe-area-inset-bottom))] motion-safe:animate-[enter_.25s_ease-out]">
+            <h2 className="text-[22px] leading-tight font-extrabold tracking-[-0.02em]">
+              {t.introTitle}
+            </h2>
+            <ol className="mt-4 flex flex-col gap-3">
+              {steps.map((s, i) => (
+                <li key={s.text} className="flex items-center gap-3.5">
+                  <span className="flex size-11 flex-none items-center justify-center rounded-2xl bg-butter text-ink">
+                    {s.icon}
+                  </span>
+                  <span className="text-[15px] leading-snug">
+                    <b className="font-mono text-paper/50">{i + 1}. </b>
+                    {s.text}
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <Primary className="mt-5" onClick={() => closeIntro(true)}>
+              {t.introGo}
+            </Primary>
+            <button
+              type="button"
+              onClick={() => closeIntro()}
+              className="mt-2 min-h-11 w-full text-sm font-bold text-paper/70"
+            >
+              {t.introLater}
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

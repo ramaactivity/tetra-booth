@@ -105,3 +105,32 @@ export type AssetId = (typeof ASSET_IDS)[number];
  * Untuk 2x6 berlaku per strip (garis potong di tengah lembar).
  */
 export const SAFE_MARGIN_PX = 36;
+
+/**
+ * "QR first" (#247): cetakan booth wajib punya QR halaman tamu. Layout tanpa QR (mis. desain PNG impor dari Tetra
+ * Ops, #161) diberi QR otomatis di pojok kosong pertama (kanan-bawah, kiri-bawah, kanan-atas, kiri-atas) yang tidak
+ * menutupi slot foto; kalau tidak ada ruang, ukuran dikecilkan bertahap. Tetap tidak muat = layout apa adanya.
+ */
+export function withDefaultQr(layout: LayoutSpec): LayoutSpec {
+  if (layout.qr) return layout;
+  const { width: W, height: H } = layout.canvas;
+  const m = Math.round(Math.min(W, H) * 0.04);
+  const hits = (x: number, y: number, s: number) =>
+    layout.slots.some(
+      (o) =>
+        x < o.x + o.w + m / 2 &&
+        x + s > o.x - m / 2 &&
+        y < o.y + o.h + m / 2 &&
+        y + s > o.y - m / 2,
+    );
+  for (let s = Math.min(240, Math.round(Math.min(W, H) * 0.22)); s >= 90; s = Math.round(s * 0.8)) {
+    for (const [x, y] of [
+      [W - m - s, H - m - s],
+      [m, H - m - s],
+      [W - m - s, m],
+      [m, m],
+    ] as const)
+      if (!hits(x, y, s)) return { ...layout, qr: { x, y, size: s } };
+  }
+  return layout;
+}
