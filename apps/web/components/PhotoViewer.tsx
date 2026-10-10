@@ -1,4 +1,5 @@
 "use client";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { type PointerEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
 
@@ -83,6 +84,10 @@ export function PhotoViewer({
   const img = useRef<HTMLImageElement>(null);
   const drag = useRef<{ x: number; id: number } | null>(null);
   const [dx, setDx] = useState(0);
+  // Crossfade (revisi 10 Okt): foto lama (`base`) tetap tampil sampai foto baru termuat, lalu memudar 200 ms.
+  // Dulu seluruh rel foto bergeser dan hanya ±1 tetangga yang dirender → lompat jauh berkedip (slide kosong).
+  const [base, setBase] = useState(index);
+  const [ready, setReady] = useState(true);
   const [hint, setHint] = useState(false);
   // Gestur zoom — semua di ref agar gerakan tidak me-render ulang React.
   const z = useRef<Zoom>(NO_ZOOM);
@@ -162,6 +167,22 @@ export function PhotoViewer({
       prev?.focus();
     };
   }, []);
+
+  // Foto baru: tunggu termuat (cache = langsung), preload tetangga supaya geser berikutnya instan.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: hanya saat foto aktif berganti
+  useEffect(() => {
+    if (index === base) return;
+    setReady(!!img.current?.complete);
+    for (const i of [index - 1, index + 1]) {
+      const it = items[i];
+      if (it) new Image().src = it.src;
+    }
+  }, [index]);
+  useEffect(() => {
+    if (!ready || index === base) return;
+    const t = setTimeout(() => setBase(index), 220);
+    return () => clearTimeout(t);
+  }, [ready, index, base]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: gulir ulang tiap foto aktif berganti
   useEffect(() => {
@@ -268,7 +289,10 @@ export function PhotoViewer({
     setDx(0);
   };
   const arrow =
-    "pressable flex size-12 flex-none items-center justify-center rounded-full border-[1.5px] border-ink bg-white text-2xl leading-none disabled:opacity-30";
+    "absolute top-1/2 z-10 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink shadow-[0_2px_10px_rgba(0,0,0,.25)] transition-[opacity,transform] duration-200 hover:bg-white active:scale-90 disabled:pointer-events-none disabled:opacity-0 sm:size-14";
+  const fade = "transition-opacity duration-200 ease-out motion-reduce:transition-none";
+  const cur = items[index];
+  const old = base !== index ? items[base] : undefined;
 
   return (
     <div
@@ -290,44 +314,72 @@ export function PhotoViewer({
           type="button"
           aria-label={t.viewerClose}
           onClick={() => history.back()}
-          className="pressable flex size-11 items-center justify-center rounded-full border-[1.5px] border-ink bg-white text-xl leading-none text-ink"
+          className="flex size-11 items-center justify-center rounded-full bg-white text-ink transition active:scale-90"
         >
-          ✕
+          <X size={22} strokeWidth={2.5} />
         </button>
       </div>
 
-      <div
-        ref={area}
-        className="relative min-h-0 flex-1 touch-none overflow-hidden select-none"
-        onPointerDown={down}
-        onPointerMove={move}
-        onPointerUp={end}
-        onPointerCancel={end}
-      >
+      <div className="relative min-h-0 flex-1">
         <div
-          className={`flex h-full ${dx ? "" : "transition-transform duration-300 ease-out motion-reduce:transition-none"}`}
-          style={{ transform: `translateX(calc(${-index * 100}% + ${dx}px))` }}
+          ref={area}
+          className="absolute inset-0 touch-none overflow-hidden select-none"
+          onPointerDown={down}
+          onPointerMove={move}
+          onPointerUp={end}
+          onPointerCancel={end}
         >
-          {items.map((it, i) => (
-            <div
-              // biome-ignore lint/suspicious/noArrayIndexKey: daftar statis; URL dua foto bisa sama
-              key={i}
-              className="relative flex h-full w-full flex-none items-center justify-center px-4"
-              aria-hidden={i !== index}
-            >
-              {/* Hanya foto aktif + tetangganya yang dimuat (preload untuk geser). */}
-              {Math.abs(i - index) <= 1 && (
-                <img
-                  ref={i === index ? img : undefined}
-                  src={it.src}
-                  alt={t.photoOf(i + 1, n)}
-                  draggable={false}
-                  className="max-h-full max-w-full origin-top-left rounded-lg object-contain"
-                />
-              )}
-            </div>
-          ))}
+          <div
+            className={`relative flex h-full w-full items-center justify-center px-4 sm:px-20 ${dx ? "" : "transition-transform duration-300 ease-out motion-reduce:transition-none"}`}
+            style={{ transform: dx ? `translateX(${dx}px)` : undefined }}
+          >
+            {old && (
+              // biome-ignore lint/performance/noImgElement: URL R2 bertanda tangan
+              <img
+                src={old.src}
+                alt=""
+                aria-hidden
+                draggable={false}
+                className={`absolute inset-0 m-auto max-h-full max-w-[calc(100%-2rem)] rounded-lg object-contain sm:max-w-[calc(100%-10rem)] ${fade} ${ready ? "opacity-0" : "opacity-100"}`}
+              />
+            )}
+            {cur && (
+              // biome-ignore lint/performance/noImgElement: URL R2 bertanda tangan
+              <img
+                key={index}
+                ref={img}
+                src={cur.src}
+                alt={t.photoOf(index + 1, n)}
+                draggable={false}
+                onLoad={() => setReady(true)}
+                onError={() => setReady(true)}
+                className={`relative max-h-full max-w-full origin-top-left rounded-lg object-contain ${fade} ${ready || !old ? "opacity-100" : "opacity-0"}`}
+              />
+            )}
+          </div>
         </div>
+        {n > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label={t.viewerPrev}
+              disabled={index === 0}
+              onClick={() => go(index - 1)}
+              className={`${arrow} left-3 sm:left-6`}
+            >
+              <ChevronLeft size={26} strokeWidth={2.5} className="-ml-0.5" />
+            </button>
+            <button
+              type="button"
+              aria-label={t.viewerNext}
+              disabled={index === n - 1}
+              onClick={() => go(index + 1)}
+              className={`${arrow} right-3 sm:right-6`}
+            >
+              <ChevronRight size={26} strokeWidth={2.5} className="-mr-0.5" />
+            </button>
+          </>
+        )}
       </div>
 
       {n > 1 && (
@@ -351,31 +403,9 @@ export function PhotoViewer({
         </div>
       )}
 
-      <div className="flex items-center gap-3 px-4 pt-4">
-        {n > 1 && (
-          <button
-            type="button"
-            aria-label={t.viewerPrev}
-            disabled={index === 0}
-            onClick={() => go(index - 1)}
-            className={`${arrow} text-ink`}
-          >
-            ‹
-          </button>
-        )}
-        <div className="flex min-w-0 flex-1 flex-col text-ink">{children}</div>
-        {n > 1 && (
-          <button
-            type="button"
-            aria-label={t.viewerNext}
-            disabled={index === n - 1}
-            onClick={() => go(index + 1)}
-            className={`${arrow} text-ink`}
-          >
-            ›
-          </button>
-        )}
-      </div>
+      {children && (
+        <div className="mx-auto flex w-full max-w-xl flex-col px-4 pt-4 text-ink">{children}</div>
+      )}
     </div>
   );
 }

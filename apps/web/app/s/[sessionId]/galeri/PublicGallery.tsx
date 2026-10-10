@@ -40,7 +40,7 @@ export function PublicGallery({
               {longDate(g.date)} · {g.photos.length.toLocaleString("id-ID")} foto
             </p>
           </header>
-          <GalleryView token="" photos={g.photos} readOnly />
+          <GalleryView token="" photos={g.photos} stripRatio={g.stripRatio} readOnly />
           {promo && (
             <div className="mx-auto w-full max-w-[480px]">
               <GuestPromo promo={promo} />

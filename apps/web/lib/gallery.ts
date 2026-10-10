@@ -38,6 +38,8 @@ export type Gallery =
       expiresAt: string | null;
       daysTotal: number | null;
       publicGallery: boolean;
+      /** Lebar ÷ tinggi gambar strip (desain utama event; dua sisi = lembar 2:3). Kotak galeri mengikuti ini. */
+      stripRatio: number;
       photos: GalleryPhoto[];
     };
 
@@ -209,6 +211,19 @@ async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gall
   );
   const branding = (ev.branding ?? {}) as { tagline?: string };
   const start = new Date(`${ev.event_date}T00:00:00+07:00`).getTime();
+  // Kotak strip di galeri mengikuti bentuk desain (polaroid 3:4, strip 1:3), bukan selalu strip panjang.
+  const { data: lay } = await db
+    .from("events")
+    .select("canvas:bundle->config->layout->canvas")
+    .eq("id", ev.id)
+    .maybeSingle();
+  const canvas = (lay as { canvas?: { width?: number; height?: number } } | null)?.canvas;
+  const pair = !!(ev.settings as { pairDifferent?: boolean } | null)?.pairDifferent;
+  const stripRatio = pair
+    ? 2 / 3
+    : canvas?.width && canvas.height
+      ? canvas.width / canvas.height
+      : 1 / 3;
   return {
     state: "ok",
     eventId: ev.id,
@@ -221,6 +236,7 @@ async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gall
       ? Math.round((new Date(ev.client_expires_at).getTime() - start) / 86_400_000)
       : null,
     publicGallery: ev.public_gallery,
+    stripRatio,
     photos,
   };
 }

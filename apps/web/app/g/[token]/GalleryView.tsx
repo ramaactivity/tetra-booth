@@ -64,11 +64,16 @@ export function GalleryView({
   token,
   photos: initial,
   readOnly = false,
+  stripRatio = 1 / 3,
 }: {
   token: string;
   photos: GalleryPhoto[];
   readOnly?: boolean;
+  /** Lebar ÷ tinggi desain strip event (polaroid 3:4, strip 1:3); kotak menyesuaikan sebelum gambar termuat. */
+  stripRatio?: number;
 }) {
+  // Rasio asli tiap gambar setelah termuat (sesi beda desain / foto potret-lanskap), menggantikan perkiraan.
+  const [ratio, setRatio] = useState<Record<string, number>>({});
   const [photos, setPhotos] = useState(initial);
   const hasStage = initial.some((p) => p.source === "stage");
   const hasBooth = initial.some((p) => p.source === "booth");
@@ -141,7 +146,8 @@ export function GalleryView({
             : (k === "strip" && !hasStage) ||
               photos.some((p) => p.source === "booth" && p.kind === k),
   );
-  const grid = filter === "strip" ? GRID.strip : GRID.photo;
+  // Strip panjang (≤ 1:2) muat banyak kolom; polaroid/4R lebih lebar → kolom foto.
+  const grid = filter === "strip" && stripRatio <= 0.5 ? GRID.strip : GRID.photo;
   // Slideshow (C1 "Putar Slideshow"): viewer maju sendiri tiap 4 dtk, berulang.
   useEffect(() => {
     if (!playing || open === null || !shown.length) return;
@@ -272,6 +278,8 @@ export function GalleryView({
           const p = shown[i];
           if (!p) return null;
           const w = p.kind === "original" || p.kind === "strip" ? W[p.kind] : null;
+          // Kotak = bentuk asli gambar (dulu dipaksa 1:3 untuk semua strip, polaroid jadi kecil di kotak abu).
+          const ar = ratio[p.id] ?? (p.kind === "strip" ? stripRatio : 3 / 2);
           return (
             <button
               key={p.id}
@@ -279,17 +287,31 @@ export function GalleryView({
               data-testid="gallery-photo"
               aria-label={`Foto ${i + 1} dari ${shown.length}`}
               onClick={() => setOpen(i)}
-              className={`relative block overflow-hidden rounded-xl border-[1.5px] border-ink bg-neutral p-1 transition-transform hover:-translate-y-0.5 motion-reduce:transition-none ${p.kind === "strip" ? "aspect-[1/3]" : "aspect-[3/2]"}`}
+              className="group relative flex flex-col overflow-hidden rounded-xl border-[1.5px] border-ink bg-white p-1.5 text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-[2.5px] focus-visible:outline-offset-2 focus-visible:outline-mint motion-reduce:transition-none"
             >
-              <img
-                src={w ? p.thumb : p.full}
-                srcSet={w ? `${p.thumb} ${w[0]}w, ${p.full} ${w[1]}w` : undefined}
-                sizes={w ? grid.sizes : undefined}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="size-full rounded-lg object-contain"
-              />
+              <span
+                className="block w-full overflow-hidden rounded-lg bg-neutral"
+                style={{ aspectRatio: String(ar) }}
+              >
+                <img
+                  src={w ? p.thumb : p.full}
+                  srcSet={w ? `${p.thumb} ${w[0]}w, ${p.full} ${w[1]}w` : undefined}
+                  sizes={w ? grid.sizes : undefined}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  onLoad={(e) => {
+                    const { naturalWidth: nw, naturalHeight: nh } = e.currentTarget;
+                    if (nw && nh && Math.abs(nw / nh - ar) > 0.02)
+                      setRatio((r) => ({ ...r, [p.id]: nw / nh }));
+                  }}
+                  className="size-full object-contain"
+                />
+              </span>
+              <span className="mt-1.5 flex items-center justify-between px-0.5 font-mono text-[11px] text-text-2">
+                <span>{p.time}</span>
+                <span className="text-text-3">#{i + 1}</span>
+              </span>
               {p.favorite && (
                 <span className="absolute top-1.5 right-1.5 rounded-full border-[1.5px] border-ink bg-coral px-1.5 text-xs">
                   ♥
