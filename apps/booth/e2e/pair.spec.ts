@@ -1,4 +1,11 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -84,6 +91,15 @@ test("polaroid dua sisi berbeda: 2 foto, 2 potong, GIF ada", async () => {
       join(out, "strip.jpg"),
     );
     expect([size.width, size.height]).toEqual([1200, 1800]);
+    // #250: versi web (halaman tamu/galeri) = lembar utuh berisi kedua sisi, bukan potong pertama saja.
+    await expect.poll(() => existsSync(join(out, "piece@2x.jpg")), { timeout: 30_000 }).toBe(true);
+    // Akhiran "@2x" dibaca Electron sebagai skala 2 (ukuran dilaporkan setengah): ukur salinannya.
+    copyFileSync(join(out, "piece@2x.jpg"), join(out, "web-check.jpg"));
+    const web = await app.evaluate(
+      ({ nativeImage }, f) => nativeImage.createFromPath(f).getSize(),
+      join(out, "web-check.jpg"),
+    );
+    expect([web.width, web.height]).toEqual([1200, 1800]);
   } finally {
     await app.close();
   }

@@ -57,7 +57,13 @@ export async function renderEvent(
     ? renderPiece(event.layout, { ...inputs, photos: photos.slice(n, 2 * n) as typeof photos }, ctx)
     : undefined;
   const sheet = toSheet(event.layout, piece, ctx, second);
-  const web = webScale === 1 ? piece : renderPiece(event.layout, first, ctx, webScale);
+  // Dua sisi beda (#207): halaman tamu/galeri dulu hanya menampilkan potong pertama; kini lembar utuh berisi kedua
+  // sisi, sama dengan cetakan (#250).
+  const web = pair
+    ? sheet
+    : webScale === 1
+      ? piece
+      : renderPiece(event.layout, first, ctx, webScale);
   return {
     piece: piece as unknown as OffscreenCanvas,
     sheet: sheet as unknown as OffscreenCanvas,
