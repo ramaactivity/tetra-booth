@@ -52,11 +52,35 @@ public class PaperSelectorTests
         Assert.Equal(PrintErrors.PaperNotSupported, FailCode(() => PaperSelector.Select(PrintToPdf, "4R", NoConfig)));
     }
 
+    // Daftar persis driver DNP DS-RX1 di laptop hp-dd (10 Okt).
+    private static readonly PaperOption[] DsRx1 =
+    [
+        new("PR (3.5x5)", 363, 516), new("PR (4x6)", 413, 615), new("PR (4x6) x 2", 413, 615),
+        new("(5x3.5)", 516, 363), new("(6x4)", 615, 413), new("(5x7)", 516, 713), new("(6x8)", 615, 812),
+        new("(6x4) x 2", 615, 413), new("(5x5)", 516, 513), new("(6x6)", 615, 612),
+    ];
+
     [Fact]
-    public void _2x6x2_tanpa_config_gagal_walau_ada_4x6()
+    public void _2x6x2_tanpa_config_memilih_ukuran_4x6()
     {
         PaperOption[] driver = [new("(4x6)", 400, 600)];
-        Assert.Equal(PrintErrors.PaperNotSupported, FailCode(() => PaperSelector.Select(driver, "2x6x2", NoConfig)));
+        Assert.Equal("(4x6)", PaperSelector.Select(driver, "2x6x2", NoConfig).Name);
+    }
+
+    [Fact]
+    public void _2x6x2_tanpa_config_di_DNP_memilih_6x4_bukan_2up()
+    {
+        Assert.Equal("(6x4)", PaperSelector.Select(DsRx1, "2x6x2", NoConfig).Name);
+        // 4R tidak berubah: kertas 4x6 pertama di daftar driver.
+        Assert.Equal("PR (4x6)", PaperSelector.Select(DsRx1, "4R", NoConfig).Name);
+    }
+
+    [Fact]
+    public void _2x6x2_hanya_ada_2up_atau_tanpa_4x6_gagal()
+    {
+        PaperOption[] twoUp = [new("(6x4) x 2", 615, 413)];
+        Assert.Equal(PrintErrors.PaperNotSupported, FailCode(() => PaperSelector.Select(twoUp, "2x6x2", NoConfig)));
+        Assert.Equal(PrintErrors.PaperNotSupported, FailCode(() => PaperSelector.Select(PrintToPdf, "2x6x2", NoConfig)));
     }
 
     [Fact]

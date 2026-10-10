@@ -48,7 +48,9 @@ public static class PaperSelector
     public const int PrintableOverTolerance = 25;
 
     /// <summary>
-    /// Urutan: nama persis dari config → khusus 4R: ukuran 4×6 di orientasi mana pun (−2…+17, overscan) → gagal <c>paper_not_supported</c>.
+    /// Urutan: nama persis dari config → 4R: ukuran 4×6 di orientasi mana pun (−2…+17, overscan) → 2x6x2: ukuran 4×6
+    /// bukan 2-up, utamakan melebar (DNP "(6x4)", potong 2 inci diatur driver; DECISIONS #246 menyimpang dari #27 yang
+    /// mewajibkan config) → gagal <c>paper_not_supported</c>.
     /// </summary>
     public static PaperOption Select(IReadOnlyList<PaperOption> available, string preset, PaperConfig config)
     {
@@ -62,18 +64,19 @@ public static class PaperSelector
             if (byName is not null) return byName;
         }
 
-        if (preset == Presets.FourR)
-        {
-            var bySize = available.FirstOrDefault(IsFourBySix);
-            if (bySize is not null) return bySize;
-        }
+        var bySize = preset == Presets.FourR
+            ? available.FirstOrDefault(IsFourBySix)
+            // Laptop tanpa booth-flags.txt (hp-dd, 10 Okt): "(6x4)" terbukti di B02, bukan media 2-up "(6x4) x 2".
+            : available.Where(p => IsFourBySix(p) && !IsTwoUp(p)).OrderBy(p => p.Width >= p.Height ? 0 : 1).FirstOrDefault();
+        if (bySize is not null) return bySize;
 
-        var why = preset == Presets.TwoBySixByTwo
-            ? "2x6x2 butuh nama kertas dari config (--paper-2x6x2)"
-            : "tidak ada kertas 4x6 di driver";
+        const string why = "tidak ada kertas 4x6 di driver";
         var named = string.IsNullOrEmpty(configured) ? "" : $"; '{configured}' tidak ada di driver";
         throw new PrintFailure(PrintErrors.PaperNotSupported, $"{why}{named}");
     }
+
+    /// <summary>Media 2-up DNP ("(6x4) x 2", "PR (4x6) x 2"): lembar 6×8 dipotong dua, bukan strip 2 inci.</summary>
+    public static bool IsTwoUp(PaperOption p) => p.Name.TrimEnd().EndsWith(" x 2", StringComparison.OrdinalIgnoreCase);
 
     public static bool IsFourBySix(PaperOption p)
     {
