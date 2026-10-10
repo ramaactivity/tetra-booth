@@ -69,10 +69,14 @@ const startEvent = (
   filters: event.settings.filters.length > 0,
 });
 
+/** Pesan Camera Service saat kamera terputus / belum tersambung lagi. */
+const RECONNECTING = /belum tersambung|terputus|menyambung|not connected|disconnected/i;
+
 /**
  * Menjalankan satu sesi: reducer murni + efek (timer, kamera, compose, cetak) per fase.
  * `demo`: sesi berjalan sendiri tanpa sentuhan (uji otomatis & stress test M8).
  */
+
 export function SessionRunner({
   event,
   guestBaseUrl,
@@ -264,8 +268,11 @@ export function SessionRunner({
         urls.current.push(url);
         if (live) dispatch({ type: "CAPTURED", photo: { ...r, url, sharp } });
       })
-      .catch((e: unknown) => {
+      .catch(async (e: unknown) => {
         console.warn(`[session] capture gagal: ${errText(e)}`);
+        // Kamera sedang menyambung ulang (60D putus ±4,5 s di Rafi & Dinda, #251): beri jeda sebelum percobaan
+        // berikutnya, supaya dua percobaan mencakup waktu sambung ulang dan tamu tidak melihat layar error.
+        if (RECONNECTING.test(errText(e))) await new Promise((r) => setTimeout(r, 2500));
         if (!live) return;
         setAfHint(afSuspect(e));
         dispatch({ type: "CAPTURE_FAILED" });

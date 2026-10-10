@@ -106,6 +106,9 @@ export function createCloud(
 ) {
   // Token ditolak server (401, booth dicabut/dihapus di admin): ditampilkan di mode crew, bukan "Online" (W-Win 7 Okt).
   let revoked = false;
+  // 401 sekali (2 s setelah boot, sinyal venue labil) sempat dicap "dicabut" padahal upload sesudahnya lancar
+  // (audit B04 Rafi & Dinda, #251): baru dianggap dicabut setelah 2 heartbeat 401 berturut-turut.
+  let rejected = 0;
   const device = (): CloudDevice | null => {
     const v = db.kv.get("cloud_device");
     return v ? { ...(JSON.parse(v) as CloudDevice), ...(revoked && { revoked: true }) } : null;
@@ -131,8 +134,10 @@ export function createCloud(
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
-      revoked = res.status === 401;
+      rejected = res.status === 401 ? rejected + 1 : 0;
+      revoked = rejected >= 2;
       if (revoked) log("[cloud] token ditolak server (dicabut?), pasangkan ulang dari mode crew");
+      else if (rejected) log("[cloud] heartbeat 401, dicoba lagi sebelum dianggap dicabut");
       else if (!res.ok) log(`[cloud] heartbeat gagal ${res.status}`);
     } catch {
       // offline: diam, coba lagi di putaran berikutnya

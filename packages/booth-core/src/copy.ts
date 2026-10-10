@@ -802,6 +802,8 @@ export const copy = {
     failedPrints: "Cetak gagal",
     none: "Belum ada",
     reprint: "Cetak ulang",
+    reprintConfig:
+      "Pengaturan kertas/printer belum cocok, cetak ulang akan gagal lagi. Cek Kamera & Printer, lalu Tes Cetak.",
     clearFailed: "Bersihkan daftar",
     clearFailedAsk: (n: number) => `Hapus ${n} cetak gagal dari daftar? Tidak dicetak ulang.`,
     clearFailedYes: "Ya, hapus semua",

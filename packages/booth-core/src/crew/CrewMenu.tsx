@@ -195,6 +195,9 @@ function Glance({
   );
 }
 
+/** Cetak gagal karena pengaturan (kertas/printer), bukan gangguan sesaat: cetak ulang pasti gagal lagi. */
+const CONFIG_ERROR = /^(paper_not_supported|bad_paper|printer_not_found)/;
+
 /**
  * Mode crew (perombakan UI, Okt 2026): menu samping berstatus (Ringkasan · Kamera · Printer · Event & Desain · Sistem).
  * Ringkasan = alur kerja crew dari awal sampai rekap; tiap perangkat punya satu halaman berisi pilih, cek, dan setelannya.
@@ -532,10 +535,15 @@ export function CrewMenu({
                   {f.error?.startsWith("print_uncertain") && (
                     <strong className="mt-1 block font-bold text-ink">{c.uncertain}</strong>
                   )}
+                  {CONFIG_ERROR.test(f.error ?? "") && (
+                    <strong className="mt-1 block font-bold text-ink">{c.reprintConfig}</strong>
+                  )}
                 </>
               }
             >
+              {/* Error konfigurasi (kertas/printer) pasti gagal lagi: crew menekan ±20× di Rafi & Dinda (#251). */}
               <Button
+                disabled={CONFIG_ERROR.test(f.error ?? "")}
                 variant="secondary"
                 className="h-14 rounded-2xl px-5 text-xl"
                 onClick={act(async () => setWatching(await p.crew.reprint(f.id)), c.sent)}

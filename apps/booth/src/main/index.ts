@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { init as sentryInit } from "@sentry/electron/main";
 import { SDK_FILES, type SdkKit } from "@tetra/shared";
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import { createAlerts } from "./alerts";
 import { startCameraService, watchPrintEvents } from "./camera-service";
 import { createCloud } from "./cloud";
@@ -175,7 +175,11 @@ const onPaired = () => {
   });
 };
 registerIpc(db, alerts, cloud, (p) => gpu.phase(p), onPaired);
-app.on("will-quit", () => db.close());
+app.on("will-quit", () => {
+  // Renderer masih mem-poll crewStatus saat quit → "database is not open" di log tiap tutup (audit B04, #251).
+  ipcMain.removeHandler("crewStatus");
+  db.close();
+});
 app.whenReady().then(async () => {
   const log = (m: string) => console.info(m);
   // Canon EDSDK (#112), Lumix (#214), Nikon (#216): DLL diunduh sendiri dari cloud kalau belum ada.
