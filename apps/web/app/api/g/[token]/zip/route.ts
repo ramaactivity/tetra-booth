@@ -52,7 +52,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   );
   async function* files() {
     for (const [n, a] of rows.entries()) {
-      const input = await getStream(a.r2_key.split("#")[0] ?? a.r2_key);
+      // Satu objek hilang (belum terunggah / dibersihkan) dulu memutus seluruh ZIP di tengah unduhan
+      // ("failed to pipe response: NoSuchKey"); sekarang dilewati, sisanya tetap terunduh (#253).
+      const input = await getStream(a.r2_key.split("#")[0] ?? a.r2_key).catch(() => null);
       if (!input) continue;
       yield {
         name:
