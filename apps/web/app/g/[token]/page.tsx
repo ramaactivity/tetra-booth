@@ -122,11 +122,7 @@ export default async function GalleryPage({ params }: { params: Promise<{ token:
         </div>
       </section>
       <GalleryView token={token} photos={g.photos} stripRatio={g.stripRatio} />
-      {promo && (
-        <div className="mx-auto mt-4 w-full max-w-[480px]">
-          <GuestPromo promo={promo} client />
-        </div>
-      )}
+      {promo && <GuestPromo promo={promo} client />}
     </main>
   );
 }

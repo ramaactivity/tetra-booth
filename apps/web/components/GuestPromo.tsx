@@ -58,10 +58,18 @@ export function GuestPromo({
   /** Galeri klien (/g): klien sudah pelanggan → minta ulasan + tag, tanpa nomor WA & kode promo. */
   client?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
   const tags = [...promo.clients, ...(promo.instagram ? [promo.instagram] : [])].map(
     (h) => `@${h}`,
   );
+  return client ? (
+    <ClientReview promo={promo} tags={tags} />
+  ) : (
+    <GuestCard promo={promo} tags={tags} />
+  );
+}
+
+function GuestCard({ promo, tags }: { promo: Promo; tags: string[] }) {
+  const [open, setOpen] = useState(false);
   useEffect(() => {
     const onSaved = () => {
       try {
@@ -72,10 +80,9 @@ export function GuestPromo({
       }
       setTimeout(() => setOpen(true), 1200);
     };
-    if (client) return;
     window.addEventListener(PROMO_SAVED, onSaved);
     return () => window.removeEventListener(PROMO_SAVED, onSaved);
-  }, [client]);
+  }, []);
 
   const links = [
     promo.instagram && {
@@ -88,12 +95,11 @@ export function GuestPromo({
       label: t.tiktok,
       icon: <TikTokIcon />,
     },
-    !client &&
-      promo.reviewUrl && {
-        href: promo.reviewUrl,
-        label: t.review,
-        icon: <Star size={17} strokeWidth={2.5} />,
-      },
+    promo.reviewUrl && {
+      href: promo.reviewUrl,
+      label: t.review,
+      icon: <Star size={17} strokeWidth={2.5} />,
+    },
     promo.website && {
       href: promo.website,
       label: t.website,
@@ -108,22 +114,11 @@ export function GuestPromo({
     >
       <div className="flex flex-col gap-4 p-5">
         <div>
-          <p className="text-xs font-bold text-text-2">{client ? t.clientTitle : t.title}</p>
+          <p className="text-xs font-bold text-text-2">{t.title}</p>
           <h2 className="mt-1 text-[22px] leading-[1.1] font-extrabold tracking-[-0.03em] text-balance">
-            {client ? t.clientHeadline(promo.org) : t.headline}
+            {t.headline}
           </h2>
         </div>
-        {client && promo.reviewUrl && (
-          <a
-            href={promo.reviewUrl}
-            target="_blank"
-            rel="noopener"
-            className={`${main} flex items-center justify-center gap-2 no-underline`}
-          >
-            <Star size={18} strokeWidth={2.5} />
-            {t.clientReview}
-          </a>
-        )}
         {tags.length > 0 && <TagRow tags={tags} />}
         {links.length > 0 && (
           <div className="grid grid-cols-2 gap-2">
@@ -144,7 +139,7 @@ export function GuestPromo({
           </div>
         )}
       </div>
-      {!client && promo.whatsapp && (
+      {promo.whatsapp && (
         <div className="flex flex-col gap-3.5 rounded-b-[20px] border-t-[1.5px] border-dashed border-ink bg-mint-soft p-5">
           <div className="flex items-start gap-3">
             <span className="flex size-10 flex-none items-center justify-center rounded-xl border-[1.5px] border-ink bg-butter">
@@ -170,6 +165,168 @@ export function GuestPromo({
         </div>
       )}
       {open && promo.whatsapp && <Sheet promo={promo} tags={tags} onClose={() => setOpen(false)} />}
+    </section>
+  );
+}
+
+/** Popup ulasan galeri klien: sekali per event per browser, dicatat begitu tampil. */
+const ASKED = "tetra-review-asked";
+/** Lama klien melihat galeri sebelum popup ulasan muncul (kalau belum menyimpan foto). */
+const ASK_AFTER_MS = 60_000;
+
+/**
+ * Galeri klien (#260): banner ulasan selebar galeri (teks kiri, tombol kanan; bertumpuk di HP), plus popup ulasan
+ * SEKALI saja setelah klien benar-benar memakai galeri: menyimpan/mengunduh foto, atau ±60 dtk melihat-lihat.
+ * Tidak muncul lagi setelah ditutup atau setelah menulis ulasan.
+ */
+function ClientReview({ promo, tags }: { promo: Promo; tags: string[] }) {
+  const [ask, setAsk] = useState(false);
+  const key = `${ASKED}:${promo.eventId}`;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: dipasang sekali per halaman
+  useEffect(() => {
+    if (!promo.reviewUrl) return;
+    try {
+      if (localStorage.getItem(key)) return;
+    } catch {
+      return;
+    }
+    const show = () => {
+      try {
+        if (localStorage.getItem(key)) return;
+        localStorage.setItem(key, "1");
+      } catch {
+        return;
+      }
+      setAsk(true);
+    };
+    const onSaved = () => setTimeout(show, 1500);
+    const t = setTimeout(show, ASK_AFTER_MS);
+    window.addEventListener(PROMO_SAVED, onSaved);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener(PROMO_SAVED, onSaved);
+    };
+  }, []);
+  useEffect(() => {
+    if (!ask) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setAsk(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [ask]);
+
+  const social = [
+    promo.instagram && {
+      href: `https://instagram.com/${promo.instagram}`,
+      label: t.instagram,
+      icon: <IgIcon />,
+    },
+    promo.tiktok && {
+      href: `https://www.tiktok.com/@${promo.tiktok}`,
+      label: t.tiktok,
+      icon: <TikTokIcon />,
+    },
+    promo.website && {
+      href: promo.website,
+      label: t.website,
+      icon: <ArrowUpRight size={17} strokeWidth={2.5} />,
+    },
+  ].filter((l) => !!l);
+
+  return (
+    <section
+      data-testid="guest-promo"
+      className="layered mt-6 mb-10 flex flex-col gap-5 rounded-[22px] border-[1.5px] border-ink bg-white p-5 [--lb:1.5px] [--lx:6px] [--under:var(--lavender)] md:flex-row md:items-center md:gap-8 md:p-7"
+    >
+      <div className="flex items-start gap-4 md:flex-1">
+        <span className="flex size-12 flex-none items-center justify-center rounded-2xl border-[1.5px] border-ink bg-butter">
+          <Star size={22} strokeWidth={2.5} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-text-2">{t.clientTitle}</p>
+          <h2 className="mt-1 text-[22px] leading-[1.1] font-extrabold tracking-[-0.03em] text-balance">
+            {t.clientHeadline(promo.org)}
+          </h2>
+          {tags.length > 0 && (
+            <div className="mt-3">
+              <TagRow tags={tags} />
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col gap-2 md:w-[340px] md:flex-none">
+        {promo.reviewUrl && (
+          <a
+            href={promo.reviewUrl}
+            target="_blank"
+            rel="noopener"
+            onClick={() => {
+              try {
+                localStorage.setItem(`${ASKED}:${promo.eventId}`, "1");
+              } catch {}
+            }}
+            className={`${main} flex items-center justify-center gap-2 no-underline`}
+          >
+            <Star size={18} strokeWidth={2.5} />
+            {t.clientReview}
+          </a>
+        )}
+        {social.length > 0 && (
+          <div className={`grid gap-2 ${social.length > 1 ? "grid-cols-2" : ""}`}>
+            {social.map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                target="_blank"
+                rel="noopener"
+                className={`pressable flex h-11 items-center justify-center gap-2 rounded-xl border-[1.5px] border-ink bg-white px-3 text-[13px] font-bold no-underline ${social.length % 2 && social.length > 1 && l === social.at(-1) ? "col-span-2" : ""}`}
+              >
+                <span aria-hidden className="flex flex-none">
+                  {l.icon}
+                </span>
+                {l.label}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {ask && promo.reviewUrl && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t.askTitle}
+          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/45 p-4 sm:items-center"
+          onClick={(e) => e.target === e.currentTarget && setAsk(false)}
+          onKeyDown={() => {}}
+        >
+          <div className="layered w-full max-w-sm animate-[rise_.35s_ease-out_both] rounded-[24px] border-[1.5px] border-ink bg-white p-6 text-center [--lb:1.5px] [--lx:6px] [--under:var(--butter)]">
+            <span className="mx-auto flex size-14 items-center justify-center rounded-full border-[1.5px] border-ink bg-butter">
+              <Star size={26} strokeWidth={2.5} />
+            </span>
+            <h2 className="mt-4 text-[22px] leading-tight font-extrabold tracking-[-0.02em]">
+              {t.askTitle}
+            </h2>
+            <p className="mt-2 text-sm leading-snug text-text-2">{t.askBody(promo.org)}</p>
+            <a
+              href={promo.reviewUrl}
+              target="_blank"
+              rel="noopener"
+              onClick={() => setAsk(false)}
+              className={`${main} mt-5 flex items-center justify-center gap-2 no-underline`}
+            >
+              <Star size={18} strokeWidth={2.5} />
+              {t.clientReview}
+            </a>
+            <button
+              type="button"
+              onClick={() => setAsk(false)}
+              className="mt-2 min-h-11 w-full text-sm font-bold text-text-2"
+            >
+              {t.askLater}
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

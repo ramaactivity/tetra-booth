@@ -117,6 +117,10 @@ export const copy = {
     clientTitle: "Puas sama hasilnya?",
     clientHeadline: (org: string) => `Ceritakan pengalamanmu bareng ${org}`,
     clientReview: "Tulis ulasan Google",
+    askTitle: "Suka sama hasil fotonya?",
+    askBody: (org: string) =>
+      `Ulasan singkat di Google bantu ${org} banget. Cuma butuh 1 menit, makasih ya!`,
+    askLater: "Nanti saja",
     copyTags: "Salin tag",
     copied: "Tersalin",
     instagram: "Instagram",
