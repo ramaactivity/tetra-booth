@@ -189,7 +189,6 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
         : { ...s, phase: "printing", prints: 1, paying: null };
     case "TIME_UP":
       switch (s.phase) {
-        case "mirror":
         case "countdown":
         case "capture":
         case "preview":

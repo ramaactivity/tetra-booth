@@ -44,7 +44,6 @@ const RECONNECT_SLOW_MS = 10_000;
 const PAID_SEC = 3;
 /** Fase yang dibatasi timer sesi photobox. */
 const TIMED = new Set([
-  "mirror",
   "countdown",
   "capture",
   "preview",
@@ -161,8 +160,8 @@ export function SessionRunner({
   // Frame live view sudah tampil di layar jepret ini; countdown menunggunya (EVF DSLR dingin, lihat Countdown).
   const [live, setLive] = useState(false);
   const shooting = s.phase === "mirror" || s.phase === "countdown" || s.phase === "capture";
-  // Live view tetap jalan (di bawah layar cek foto) antar foto: dulu dimatikan tiap preview sehingga EVF DSLR
-  // dinyalakan ulang dan hitung mundur menunggu ±1,6–2,5 s "Menyiapkan kamera" di setiap foto (#254).
+  // Live view tetap jalan (di bawah layar cek foto) antar foto, supaya kamera tidak berhenti-mulai tiap foto (#254).
+  // Data 60D Rafi & Dinda: foto 2–3 tidak tertahan; jeda +1,4 s hanya di ±10 foto pertama setelah layar awal.
   const liveOn = shooting || s.phase === "preview";
   useEffect(() => {
     if (!liveOn) setLive(false);
@@ -225,7 +224,7 @@ export function SessionRunner({
               slots: shotsPerSession(ev.layout, cfg),
               retakeMax: cfg.retakeMax,
               filters: cfg.filters.length > 0,
-              mirror: cfg.mirrorSec > 0,
+              // Photobox: waktu sesi dibayar, layar "Lunas" sudah memberi jeda; tanpa ngaca (#256).
               deadline: Date.now() + PAID_SEC * 1000 + cfg.sessionSec * 1000,
             })
           : undefined;
@@ -464,7 +463,8 @@ export function SessionRunner({
       >
         {screen()}
       </div>
-      {(s.phase === "countdown" || s.phase === "preview") && !demo && (
+      {/* Photobox: jeda tidak ditawarkan karena memotong waktu sesi yang dibayar (#256). */}
+      {(s.phase === "countdown" || s.phase === "preview") && !demo && s.deadline === null && (
         <PauseControl
           paused={s.paused}
           onPause={send({ type: "PAUSE" })}
