@@ -155,6 +155,20 @@ test("pairing → heartbeat → kode hangus → dicabut 401", async ({ request }
       (await request.post("/api/booth/sessions", { headers: auth, data: session })).status(),
     ).toBe(200);
     expect(await listed()).toEqual([]);
+    // #259: penugasan dipindah ke booth lain sebelum sesi terkirim → sesi tetap diterima (foto tidak tertahan).
+    await db.from("events").update({ all_devices: false }).eq("id", eventId);
+    await db.from("event_devices").delete().eq("event_id", eventId);
+    expect(
+      (
+        await request.post("/api/booth/sessions", {
+          headers: auth,
+          data: { ...session, id: `${session.id.slice(0, -1)}z` },
+        })
+      ).status(),
+    ).toBe(200);
+    await db
+      .from("event_devices")
+      .insert({ organization_id: org?.id ?? "", event_id: eventId, device_id: deviceId });
     await db.from("events").update({ status: "draft" }).eq("id", eventId);
     expect(
       (

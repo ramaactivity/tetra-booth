@@ -1,16 +1,23 @@
 import { SessionUpsert } from "@tetra/shared";
-import { apiError, authDevice, deviceMayUseEvent, parseBody } from "@/lib/booth";
+import { apiError, authDevice, parseBody } from "@/lib/booth";
 import { createServiceClient } from "@/lib/supabase/service";
 
-/** Upsert metadata sesi (TSD §4.2 langkah 3). Idempotent; hanya untuk event yang ditugaskan ke / pernah dipotret device ini. */
+/** Upsert metadata sesi (TSD §4.2 langkah 3). Idempotent; event mana pun di organisasi device ini. */
 export async function POST(req: Request) {
   const device = await authDevice(req);
   if (!device) return apiError("unauthorized", 401);
   const s = await parseBody(req, SessionUpsert);
   if (!s) return apiError("bad_request", 400);
   const db = createServiceClient();
-  // Booth yang sudah memotret event ini tetap boleh mengirim sesi walau penugasannya dipindah (#170).
-  if (!(await deviceMayUseEvent(device, s.eventId))) return apiError("not_found", 404);
+  // Offline-first (#259): foto yang sudah dipotret harus sampai ke cloud walau penugasan event dipindah ke booth lain
+  // sebelum booth ini sempat mengunggah (B03 "Rama & Shinta": 50 sesi tertahan 404). Cukup event satu organisasi.
+  const { data: ev } = await db
+    .from("events")
+    .select("id")
+    .eq("id", s.eventId)
+    .eq("organization_id", device.organizationId)
+    .maybeSingle();
+  if (!ev) return apiError("not_found", 404);
   // ID sesi dibuat booth: ID yang sudah dipakai device/organisasi lain ditolak, bukan ditimpa.
   const { data: other } = await db
     .from("sessions")
