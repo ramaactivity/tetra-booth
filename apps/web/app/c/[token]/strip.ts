@@ -1,5 +1,11 @@
 import type { LayoutSpec } from "@tetra/shared";
-import { browserContext, cpuCanvas, type ImageLike, renderPiece } from "@tetra/template-engine";
+import {
+  browserContext,
+  cpuCanvas,
+  type ImageLike,
+  renderPiece,
+  withQr,
+} from "@tetra/template-engine";
 
 const FONT = "Geist Variable";
 /** Atur foto di slot (#247): zoom ≥ 1 (1 = penuh menutup slot), geser x/y −1…1 dari tengah. */
@@ -121,8 +127,11 @@ export async function renderStrip(
       return b ? cropFor(b, s.w, s.h, crops[i]) : blank(s.w, s.h);
     }),
   );
+  // Desain booth dengan QR contoh di PNG → QR Snapbook acara di posisi itu (#247); frame tanpa QR tetap tanpa QR.
+  const ovId = d.layout.overlay?.assetId;
+  const layout = withQr(d.layout, ovId ? assets[ovId] : undefined, browserContext(), false);
   const piece = renderPiece(
-    d.layout,
+    layout,
     { photos, assets, vars, qrUrl },
     { ...browserContext(FONT), fontFamily: (id) => family[id] ?? FONT },
     scale,

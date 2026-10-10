@@ -1,12 +1,6 @@
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
-import {
-  LayoutPaperSchema,
-  LayoutSpecSchema,
-  PAPER_CANVAS,
-  SlotSchema,
-  withDefaultQr,
-} from "@tetra/shared";
+import { LayoutPaperSchema, LayoutSpecSchema, PAPER_CANVAS, SlotSchema } from "@tetra/shared";
 import { z } from "zod";
 import { insertLayout, type TemplateMode } from "@/lib/layouts";
 import { putObject } from "@/lib/r2";
@@ -78,8 +72,8 @@ export async function layoutFromUpload(
   if (!s || s.w !== width || s.h !== height)
     return { error: `Desain harus PNG ${width}×${height} px` };
   const id = randomUUID();
-  // QR first (#247): desain PNG belum punya QR → QR otomatis di pojok kosong, bisa digeser di editor.
-  const layout = LayoutSpecSchema.transform(withDefaultQr).safeParse({
+  // QR tidak dibuat di sini: booth menaruh QR halaman tamu di atas QR contoh di PNG, atau di pojok kosong (#247).
+  const layout = LayoutSpecSchema.safeParse({
     id,
     version: 1,
     paper: u.data.paper,
