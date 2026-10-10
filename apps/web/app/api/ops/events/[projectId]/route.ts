@@ -87,7 +87,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ projectId: stri
   const { data: events, error } = await db
     .from("events")
     .select(
-      "id, slug, name, event_date, status, run, client_token, client_expires_at, purge_at, purged_at",
+      "id, slug, name, event_date, status, run, client_token, client_expires_at, purge_at, purged_at, public_gallery, live_token, guest_expires_at",
     )
     .eq("organization_id", org)
     .eq("ops_project_id", projectId)
@@ -116,6 +116,15 @@ export async function GET(req: Request, ctx: { params: Promise<{ projectId: stri
       phase: PHASE[eventPhase(e.event_date, runState(parseRun(e.run)), today)],
       gallery_url: e.client_token && !e.purged_at ? `${origin}/g/${e.slug}` : null,
       client_expires_at: e.client_expires_at,
+      // Galeri publik tamu (#248, untuk bot CS lewat Ops): null kalau dimatikan, link live kosong, atau kedaluwarsa.
+      guest_gallery_url:
+        e.public_gallery &&
+        e.live_token &&
+        !e.purged_at &&
+        (!e.guest_expires_at || Date.parse(e.guest_expires_at) > Date.now())
+          ? `${origin}/l/${e.slug}`
+          : null,
+      guest_expires_at: e.guest_expires_at,
       purge_at: e.purge_at,
       session_count: Number(byId.get(e.id)?.sessions ?? 0),
       photo_count: Number(byId.get(e.id)?.photos ?? 0),

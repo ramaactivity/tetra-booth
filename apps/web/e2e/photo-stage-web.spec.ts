@@ -169,6 +169,9 @@ test("Photo Stage di galeri klien, halaman tamu, dan live", async ({ browser, re
     expect(ops?.thumbs.map((x) => x.kind)).toEqual(["original", "original", "strip"]);
     expect(ops?.thumbs[0]?.url).toMatch(/thumb_original_1\.jpg\?.*X-Amz-Expires=86400/);
     expect(ops?.cover_url).toMatch(/original_1\.jpg\?/);
+    // #248: link galeri tamu untuk bot CS; null selama galeri publik event ini tidak aktif.
+    expect(ops).toHaveProperty("guest_gallery_url");
+    expect(ops).toHaveProperty("guest_expires_at");
   } finally {
     await db.from("events").delete().eq("id", eventId);
   }
