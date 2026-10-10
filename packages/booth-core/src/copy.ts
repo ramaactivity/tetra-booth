@@ -789,6 +789,8 @@ export const copy = {
     on: "Nyala",
     off: "Mati",
     noPrinter: "Tidak ada printer terdeteksi. Pasang driver printer di Windows dulu.",
+    printerOffline: "Tidak tersambung",
+    printerPort: (port: string) => `Port ${port}`,
     hotFolder: "Folder hot folder",
     hotFolderTrigger: "Alamat pemicu shutter",
     noExposure:

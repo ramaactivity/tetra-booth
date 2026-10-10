@@ -135,8 +135,18 @@ export type DeviceSettings = {
   /** Peran laptop (#178): `stage` = Photo Stage; bawaan booth. */
   role?: "booth" | "stage" | "print";
 };
-/** `locked` = flag yang dipaksa baris perintah (tidak bisa diubah dari mode crew). */
-export type DeviceInfo = { now: DeviceSettings; locked: string[]; printers: string[] };
+/** Antrean printer Windows: `offline` = port tidak tersambung (WorkOffline), `port` mis. "USB003". */
+export type PrinterQueue = { offline: boolean; port: string };
+/**
+ * `locked` = flag yang dipaksa baris perintah (tidak bisa diubah dari mode crew). `printerQueues` = status antrean
+ * per nama printer (hanya Windows; kosong/tidak ada di OS lain).
+ */
+export type DeviceInfo = {
+  now: DeviceSettings;
+  locked: string[];
+  printers: string[];
+  printerQueues?: Record<string, PrinterQueue>;
+};
 /** Field pengaturan event yang boleh diubah crew di booth (DECISIONS #100). */
 export type EventOverride = Partial<
   Pick<EventSettings, "countdownSec" | "retakeMax" | "maxPrints" | "qrScreenSec" | "sessionSec">

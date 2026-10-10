@@ -251,16 +251,24 @@ export function PrinterChoice({
         </p>
       ) : (
         <div className="flex flex-col gap-3">
-          {printers.map((name) => (
-            <Choice
-              key={name}
-              testId="printer-choice"
-              title={name}
-              selected={dev.draft.printer === name}
-              disabled={locked}
-              onClick={() => dev.set({ printer: name })}
-            />
-          ))}
+          {printers.map((name) => {
+            // Antrean offline ditandai, port fisik ditampilkan (audit B04: "DS-RX1" vs "DS-RX1 (Copy 2)").
+            // Port virtual ("nul:", "PORTPROMPT:") tidak ditampilkan.
+            const q = dev.info?.printerQueues?.[name];
+            const port = q?.port && !q.port.endsWith(":") ? q.port : undefined;
+            return (
+              <Choice
+                key={name}
+                testId="printer-choice"
+                title={name}
+                detail={port ? copy.crew.printerPort(port) : undefined}
+                tag={q?.offline ? copy.crew.printerOffline : undefined}
+                selected={dev.draft.printer === name}
+                disabled={locked}
+                onClick={() => dev.set({ printer: name })}
+              />
+            );
+          })}
         </div>
       )}
       <Row label={d.cutTitle} hint={paper === "2x6x2" ? copy.crew.cutOn : copy.crew.cutOff}>

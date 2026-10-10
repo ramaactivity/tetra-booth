@@ -53,6 +53,7 @@ import {
   storeOverride,
 } from "./event-override";
 import { allowQuit, autoStart, setAutoStart, setKioskOn } from "./kiosk";
+import { orderPrinters, queryPrinterQueues } from "./printers";
 import { onPhase } from "./shots";
 import { stageInbox, stageListen } from "./stage";
 import { stageHelperKey, stageLanUrls } from "./stage-lan";
@@ -609,11 +610,21 @@ export function registerIpc(
   // Kamera & printer dari mode crew (DECISIONS #85). Simpan = tulis device.json lalu booth dibuka ulang.
   ipcMain.handle("crewDevice", async (e) => {
     crewOnly();
-    const printers = (await e.sender.getPrintersAsync()).map((p) => p.name);
+    // Antrean offline ditandai & printer virtual disembunyikan (audit B04 Rafi & Dinda, #257): crew sempat memilih
+    // "DS-RX1 (Copy 2)" yang port USB-nya tidak tersambung.
+    const [all, printerQueues] = await Promise.all([
+      e.sender.getPrintersAsync(),
+      queryPrinterQueues(),
+    ]);
+    const printers = orderPrinters(
+      all.map((p) => p.name),
+      printerQueues,
+      deviceNow.printer,
+    );
     const locked = ["camera", "printer", "hot-folder", "hot-folder-trigger", "role"].filter(
       lockedByArgv,
     );
-    return { now: deviceNow, locked, printers };
+    return { now: deviceNow, locked, printers, printerQueues };
   });
   ipcMain.handle("crewSaveDevice", async (_e, s: unknown) => {
     crewOnly();

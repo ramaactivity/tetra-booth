@@ -90,3 +90,18 @@ Kamera & printer diatur dari mode crew → **Kamera & Printer** (DECISIONS #85).
 3. Tutup booth lewat mode crew, buka lagi. Log booth (`%APPDATA%\TetraBooth\logs`) mencatat `[config] flag dari …`.
 
 Baris yang diawali `#` diabaikan. Nilai yang berisi spasi ditulis dalam tanda kutip. `--print-offset` = hasil kalibrasi DNP di laptop ini; laptop lain perlu kalibrasi sendiri (docs/WINDOWS.md).
+
+Sejak 0.6.23 (#246) `--paper-2x6x2` boleh kosong: booth memilih kertas 4×6 driver yang bukan 2-up (DNP = "(6x4)").
+
+## F. Sekali per laptop Windows: setelan sistem (audit B04, Rafi & Dinda 10 Okt)
+
+1. **Matikan USB selective suspend** (kabel kamera putus-sambung saat hemat daya; 60D putus 3× di event): PowerShell admin
+   ```
+   powercfg /setacvalueindex SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0
+   powercfg /setdcvalueindex SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0
+   powercfg /setactive SCHEME_CURRENT
+   ```
+2. **Tutup LumaBooth / dslrBooth / EOS Utility** sebelum membuka Tetra Booth: aplikasi lain yang memegang Canon membuat EDSDK gagal membuka sesi (0x000000C0).
+3. **Windows Update → Jam aktif** menutup jam event (mis. 07.00–01.00) supaya laptop tidak restart sendiri.
+4. **Colok DNP di port USB yang sama** dengan antrean yang dipilih di mode crew. Sejak 0.6.28 daftar printer menandai antrean "Tidak tersambung" + port-nya (mis. "DS-RX1 (Copy 2)" = sisa colokan port lain).
+5. Kamera: kualitas JPEG **M/S** sudah cukup untuk strip 2R/4R dan mempercepat unduh foto lewat USB (JPEG L 60D ±2 s per foto).
