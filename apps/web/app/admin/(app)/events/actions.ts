@@ -1,5 +1,5 @@
 "use server";
-import { DEFAULT_SETTINGS, LAYOUT_PRESETS, SOUND_CUES } from "@tetra/shared";
+import { DEFAULT_SETTINGS, LAYOUT_PRESETS, newAccessToken, SOUND_CUES } from "@tetra/shared";
 import { z } from "zod";
 import { DEFAULT_TEMPLATE } from "@/lib/event-bundle";
 import { CARD_IDS } from "@/lib/guest-card-art";
@@ -103,6 +103,11 @@ export async function createEventWizard(
       ops_project_id: p.data.ops_project_id ?? null,
       ops_frame_size: p.data.ops_frame_size ?? null,
       settings: { template: DEFAULT_TEMPLATE },
+      // Galeri klien, live, dan galeri publik tamu langsung aktif sejak event dibuat (#249, permintaan Rama 10 Okt):
+      // tamu yang cetakannya tanpa QR tetap bisa diberi link, owner tidak perlu mengaktifkan manual. Bisa dicabut.
+      client_token: newAccessToken(),
+      live_token: newAccessToken(),
+      public_gallery: true,
     })
     .select("id")
     .single();
