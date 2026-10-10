@@ -126,9 +126,11 @@ export async function composeStrip(
     // Koreksi warna printer (#208) hanya untuk lembar cetak; potong web tetap warna layar.
     const printSheet = toneForPrint(sheet);
     const sheetBlob = await write(printSheet, "strip.jpg");
+    // Dua sisi beda (#207): galeri crew, thumbnail & strip_web memakai lembar utuh, bukan potong pertama (#250).
+    const web = pair ? sheet : piece;
     // 4R portrait: potong = lembar, tidak perlu file kedua (kecuali lembar cetak dikoreksi warnanya).
-    const same = piece === sheet && printSheet === sheet;
-    const pieceBlob = same ? sheetBlob : await write(piece, "piece.jpg");
+    const same = web === sheet && printSheet === sheet;
+    const pieceBlob = same ? sheetBlob : await write(web, "piece.jpg");
     return {
       path: `${dir}/strip.jpg`,
       piecePath: `${dir}/${same ? "strip" : "piece"}.jpg`,

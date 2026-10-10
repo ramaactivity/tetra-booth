@@ -103,6 +103,8 @@ const Form = z.object({
   attract_cta: z.string().trim().max(30),
   attract_brand: z.string().trim().max(40),
   countdownSec: int(1, 10),
+  // Ngaca dulu (#254); wizard Buat event tidak mengirimnya → bawaan.
+  mirrorSec: int(0, 60).default(20),
   retakeMax: int(0, 5),
   maxPrints: int(1, 10),
   reviewTimeoutSec: int(5, 120),
@@ -288,6 +290,7 @@ export async function applySettings(
   const settings = {
     sessionSec: f.sessionSec,
     countdownSec: f.countdownSec,
+    mirrorSec: f.mirrorSec,
     retakeMax: f.retakeMax,
     maxPrints: f.maxPrints,
     reviewTimeoutSec: f.reviewTimeoutSec,

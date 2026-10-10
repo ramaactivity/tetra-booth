@@ -146,9 +146,8 @@ test("galeri tamu: lihat foto, scan QR, cetak lagi sampai batas", async () => {
     };
     await reprint("test-results/gallery-printing.png");
     await expect(w.getByText("Sudah dicetak 2 lembar")).toBeVisible();
-    await reprint();
 
-    // maxPrints = 2 lembar dari galeri: batas tercapai.
+    // maxPrints = 2 lembar TOTAL per sesi (#255): 1 di sesi + 1 dari galeri → batas tercapai.
     await expect(w.getByText(/Batas cetak ulang tercapai/)).toBeVisible();
     await w.getByRole("button", { name: /Cetak lagi/ }).click();
     await expect(w.getByRole("status")).toContainText("Batas cetak ulang tercapai");
@@ -158,7 +157,7 @@ test("galeri tamu: lihat foto, scan QR, cetak lagi sampai batas", async () => {
     // Geser ke sesi lain: masih bisa dicetak.
     await w.getByRole("button", { name: "Kembali", exact: true }).click();
     await w.getByRole("button", { name: "Foto berikutnya" }).click();
-    await expect(w.getByText("Masih bisa 2 lembar")).toBeVisible();
+    await expect(w.getByText("Masih bisa 1 lembar")).toBeVisible();
 
     // Kembali ke awal, lalu kartu di kolom layar awal membuka galeri di sesi itu.
     await w.getByRole("complementary").getByRole("button", { name: "Kembali ke awal" }).click();
@@ -175,7 +174,7 @@ test("galeri tamu: lihat foto, scan QR, cetak lagi sampai batas", async () => {
       .map((f) => readFileSync(join(data, "logs", f), "utf8"))
       .join("\n");
     const jobs = log.match(new RegExp(`\\[gallery\\] cetak lagi ${id}-g\\w+: 1 lembar`, "g"));
-    expect(jobs).toHaveLength(2);
+    expect(jobs).toHaveLength(1);
     expect(log).toMatch(new RegExp(`\\[print\\] tertunda ${id}-g`));
   } finally {
     await app.close();

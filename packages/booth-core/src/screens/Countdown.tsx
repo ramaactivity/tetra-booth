@@ -70,6 +70,7 @@ export function Countdown({
   cue = "foto-1",
   live = true,
   belowTimer = false,
+  paused = false,
 }: {
   seconds: number;
   index: number;
@@ -85,6 +86,8 @@ export function Countdown({
   live?: boolean;
   /** Pil sisa waktu photobox ada di pojok kanan atas: angka turun ke bawahnya. */
   belowTimer?: boolean;
+  /** "Tunggu dulu" (#254): angka berhenti; Lanjut = komponen di-key ulang, hitungan mulai dari awal. */
+  paused?: boolean;
 }) {
   const { camera } = usePlatform();
   const [waited, setWaited] = useState(() => !waitsForLive(camera));
@@ -118,7 +121,7 @@ export function Countdown({
   const done = useRef(onDone);
   done.current = onDone;
   useEffect(() => {
-    if (!go || !ready) return;
+    if (!go || !ready || paused) return;
     if (sound) {
       const kind = left > 0 ? "tick" : "shutter";
       const voice: Cue = left > 0 && left <= 3 ? (String(left) as Cue) : "jepret";
@@ -131,7 +134,7 @@ export function Countdown({
     }
     const t = setTimeout(() => setLeft((n) => n - 1), 1000);
     return () => clearTimeout(t);
-  }, [left, go, ready, sound]);
+  }, [left, go, ready, sound, paused]);
 
   return (
     <div className="absolute inset-0">
@@ -149,7 +152,7 @@ export function Countdown({
         </p>
       )}
       {/* Pojok kanan atas, semi-transparan: tidak menutupi wajah tamu di live view (masukan crew DSO). */}
-      {go && ready && left > 0 && (
+      {go && ready && !paused && left > 0 && (
         <div
           data-testid="countdown-number"
           className={`absolute right-10 flex size-[190px] ${belowTimer ? "top-[150px]" : "top-10"} items-center justify-center rounded-full border-[3px] border-ink/80 bg-white/70`}

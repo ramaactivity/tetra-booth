@@ -1,6 +1,6 @@
 import { DEFAULT_SETTINGS, type EventBundle } from "@tetra/shared";
 import { describe, expect, it } from "vitest";
-import { applyOverride, diffOverride, parseOverride } from "./event-override";
+import { applyOverride, diffOverride, parseOverride, storeOverride } from "./event-override";
 
 const bundle = { id: "e1", settings: { ...DEFAULT_SETTINGS, countdownSec: 3 } } as EventBundle;
 
@@ -28,5 +28,19 @@ describe("override pengaturan event di booth (#100)", () => {
     expect(parseOverride("{bukan json")).toEqual({});
     expect(parseOverride('{"countdownSec":99}')).toEqual({});
     expect(parseOverride('{"countdownSec":4,"shotDelaySec":9}')).toEqual({ countdownSec: 4 });
+  });
+});
+
+describe("override vs perubahan admin (#255)", () => {
+  const cloud = { ...DEFAULT_SETTINGS, countdownSec: 3, maxPrints: 2 };
+  it("admin mengubah nilai sesudah override disimpan → nilai admin berlaku", () => {
+    const raw = storeOverride(cloud, { countdownSec: 5, maxPrints: 5 });
+    expect(parseOverride(raw, cloud)).toEqual({ countdownSec: 5, maxPrints: 5 });
+    expect(parseOverride(raw, { ...cloud, countdownSec: 4 })).toEqual({ maxPrints: 5 });
+  });
+  it("override lama tanpa base tetap berlaku", () => {
+    expect(parseOverride('{"countdownSec":5}', { ...cloud, countdownSec: 4 })).toEqual({
+      countdownSec: 5,
+    });
   });
 });

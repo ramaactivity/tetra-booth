@@ -27,6 +27,7 @@ import { Gallery } from "./screens/Gallery";
 import { LayoutSelect } from "./screens/LayoutSelect";
 import { LiveView, slotAspect } from "./screens/LiveView";
 import { CameraError, Message } from "./screens/Message";
+import { Mirror, PauseControl } from "./screens/Mirror";
 import { Paid, Payment } from "./screens/Payment";
 import { PhotoPreview } from "./screens/PhotoPreview";
 import { PrintSelect } from "./screens/PrintSelect";
@@ -43,6 +44,7 @@ const RECONNECT_SLOW_MS = 10_000;
 const PAID_SEC = 3;
 /** Fase yang dibatasi timer sesi photobox. */
 const TIMED = new Set([
+  "mirror",
   "countdown",
   "capture",
   "preview",
@@ -67,16 +69,19 @@ const startEvent = (
   retakeMax: event.settings.retakeMax,
   ...(design && { layoutId: design.id }),
   filters: event.settings.filters.length > 0,
+  mirror: event.settings.mirrorSec > 0,
 });
+/** Jeda "Tunggu dulu" lanjut sendiri setelah ini, supaya booth tidak tertahan kalau tamu pergi (#254). */
+const PAUSE_MAX_MS = 30_000;
 
 /** Pesan Camera Service saat kamera terputus / belum tersambung lagi. */
 const RECONNECTING = /belum tersambung|terputus|menyambung|not connected|disconnected/i;
+const RECONNECT_WAIT_MS = 5000;
 
 /**
  * Menjalankan satu sesi: reducer murni + efek (timer, kamera, compose, cetak) per fase.
  * `demo`: sesi berjalan sendiri tanpa sentuhan (uji otomatis & stress test M8).
  */
-
 export function SessionRunner({
   event,
   guestBaseUrl,
@@ -155,10 +160,13 @@ export function SessionRunner({
 
   // Frame live view sudah tampil di layar jepret ini; countdown menunggunya (EVF DSLR dingin, lihat Countdown).
   const [live, setLive] = useState(false);
-  const shooting = s.phase === "countdown" || s.phase === "capture";
+  const shooting = s.phase === "mirror" || s.phase === "countdown" || s.phase === "capture";
+  // Live view tetap jalan (di bawah layar cek foto) antar foto: dulu dimatikan tiap preview sehingga EVF DSLR
+  // dinyalakan ulang dan hitung mundur menunggu ±1,6–2,5 s "Menyiapkan kamera" di setiap foto (#254).
+  const liveOn = shooting || s.phase === "preview";
   useEffect(() => {
-    if (!shooting) setLive(false);
-  }, [shooting]);
+    if (!liveOn) setLive(false);
+  }, [liveOn]);
 
   // Foto 1 (W-034): EVF DSLR dinyalakan saat tamu memilih desain / selesai bayar, bukan baru saat hitung mundur.
   useEffect(() => {
@@ -217,11 +225,14 @@ export function SessionRunner({
               slots: shotsPerSession(ev.layout, cfg),
               retakeMax: cfg.retakeMax,
               filters: cfg.filters.length > 0,
+              mirror: cfg.mirrorSec > 0,
               deadline: Date.now() + PAID_SEC * 1000 + cfg.sessionSec * 1000,
             })
           : undefined;
+      case "mirror":
+        return after(demo ? tapMs : cfg.mirrorSec * 1000, { type: "MIRROR_DONE" });
       case "preview":
-        return after(cfg.shotDelaySec * 1000, { type: "PREVIEW_DONE" });
+        return s.paused ? undefined : after(cfg.shotDelaySec * 1000, { type: "PREVIEW_DONE" });
       case "review":
         return after(demo ? tapMs : cfg.reviewTimeoutSec * 1000, { type: "CONTINUE" });
       case "filter":
@@ -236,7 +247,14 @@ export function SessionRunner({
       default:
         return undefined;
     }
-  }, [s.phase, s.draftId, demo, fast, cfg, event, ev, gallery]);
+  }, [s.phase, s.draftId, s.paused, s.resumes, demo, fast, cfg, event, ev, gallery]);
+
+  // "Tunggu dulu" (#254): lanjut sendiri setelah PAUSE_MAX_MS.
+  useEffect(() => {
+    if (!s.paused) return;
+    const t = setTimeout(() => dispatch({ type: "RESUME" }), PAUSE_MAX_MS);
+    return () => clearTimeout(t);
+  }, [s.paused]);
 
   // Timer sesi photobox (FSD §1.5): habis → slot kosong diisi, lanjut compose / cetak 1 lembar.
   useEffect(() => {
@@ -270,9 +288,10 @@ export function SessionRunner({
       })
       .catch(async (e: unknown) => {
         console.warn(`[session] capture gagal: ${errText(e)}`);
-        // Kamera sedang menyambung ulang (60D putus ±4,5 s di Rafi & Dinda, #251): beri jeda sebelum percobaan
-        // berikutnya, supaya dua percobaan mencakup waktu sambung ulang dan tamu tidak melihat layar error.
-        if (RECONNECTING.test(errText(e))) await new Promise((r) => setTimeout(r, 2500));
+        // Kamera sedang menyambung ulang (60D putus ±4,5 s di Rafi & Dinda, #251): jeda 5 s sebelum percobaan
+        // berikutnya, jadi walau percobaan 1 gagal tepat setelah putus, percobaan 2 jatuh setelah sambung ulang.
+        if (RECONNECTING.test(errText(e)))
+          await new Promise((r) => setTimeout(r, RECONNECT_WAIT_MS));
         if (!live) return;
         setAfHint(afSuspect(e));
         dispatch({ type: "CAPTURE_FAILED" });
@@ -429,7 +448,7 @@ export function SessionRunner({
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-paper">
-      {shooting && (
+      {liveOn && (
         <LiveView
           guide={slotAspect(ev.layout.slots[s.index % ev.layout.slots.length])}
           onFrame={(f) => {
@@ -445,6 +464,13 @@ export function SessionRunner({
       >
         {screen()}
       </div>
+      {(s.phase === "countdown" || s.phase === "preview") && !demo && (
+        <PauseControl
+          paused={s.paused}
+          onPause={send({ type: "PAUSE" })}
+          onResume={send({ type: "RESUME" })}
+        />
+      )}
       {s.deadline !== null && TIMED.has(s.phase) && (
         <span
           data-testid="time-left"
@@ -572,11 +598,16 @@ export function SessionRunner({
       }
       case "paid":
         return <Paid amount={paidAmount} name={chosen?.name ?? ""} seconds={PAID_SEC} />;
+      case "mirror":
+        return (
+          <Mirror seconds={cfg.mirrorSec} live={live} onStart={send({ type: "MIRROR_DONE" })} />
+        );
       case "countdown":
         return (
           <Countdown
-            key={`${s.index}-${s.retakesUsed[s.index]}`}
+            key={`${s.index}-${s.retakesUsed[s.index]}-${s.resumes}`}
             seconds={cfg.countdownSec}
+            paused={s.paused}
             index={s.index}
             photos={s.photos}
             onDone={send({ type: "COUNTDOWN_DONE" })}

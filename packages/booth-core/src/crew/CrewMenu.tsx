@@ -196,7 +196,8 @@ function Glance({
 }
 
 /** Cetak gagal karena pengaturan (kertas/printer), bukan gangguan sesaat: cetak ulang pasti gagal lagi. */
-const CONFIG_ERROR = /^(paper_not_supported|bad_paper|printer_not_found)/;
+const CONFIG_ERROR =
+  /^(paper_not_supported|paper_mismatch|bad_paper|no_printer|output_file_required)/;
 
 /**
  * Mode crew (perombakan UI, Okt 2026): menu samping berstatus (Ringkasan · Kamera · Printer · Event & Desain · Sistem).

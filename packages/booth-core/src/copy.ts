@@ -80,6 +80,16 @@ export const copy = {
     ],
     after: ["Mantap!", "Keren banget!", "Cakep!", "Wih, kalcer abis!"],
   },
+  // Ngaca dulu & jeda antar gaya (#254)
+  mirror: {
+    title: "Ngaca dulu, rapihin gaya!",
+    start: "Siap, mulai!",
+    auto: (n: number) => `Mulai sendiri dalam ${n} detik`,
+    pause: "Tunggu dulu",
+    paused: "Oke, kami tunggu",
+    pausedSub: "Siapin gaya berikutnya, lalu tekan Lanjut",
+    resume: "Lanjut",
+  },
   countdown: {
     ready: "Siap? Senyum!",
     lookAtCamera: "Lihat ke kamera",

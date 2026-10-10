@@ -271,3 +271,26 @@ describe("sessionReducer", () => {
     });
   });
 });
+
+describe("ngaca dulu & jeda (#254)", () => {
+  it("START dengan mirror → layar ngaca, Mulai → hitung mundur", () => {
+    const s = run([{ ...start, mirror: true }]);
+    expect(s.phase).toBe("mirror");
+    expect(run([{ type: "MIRROR_DONE" }], s).phase).toBe("countdown");
+  });
+  it("jeda menahan hitung mundur & cek foto sampai Lanjut", () => {
+    const counting = run([start, { type: "PAUSE" }]);
+    expect(counting.paused).toBe(true);
+    expect(run([{ type: "COUNTDOWN_DONE" }], counting).phase).toBe("countdown");
+    const resumed = run([{ type: "RESUME" }], counting);
+    expect(resumed).toMatchObject({ paused: false, resumes: 1 });
+    expect(run([{ type: "COUNTDOWN_DONE" }], resumed).phase).toBe("capture");
+
+    const preview = run([start, ...shoot(1), { type: "PAUSE" }, { type: "PREVIEW_DONE" }]);
+    expect(preview.phase).toBe("preview");
+    expect(run([{ type: "RESUME" }, { type: "PREVIEW_DONE" }], preview).phase).toBe("countdown");
+  });
+  it("jeda tidak berlaku di layar lain", () => {
+    expect(run([start, ...shootAll, { type: "PAUSE" }]).paused).toBe(false);
+  });
+});

@@ -122,7 +122,10 @@ export function BoothApp({
   const runEvent = useMemo(
     () =>
       fast
-        ? { ...event, settings: { ...event.settings, countdownSec: 1, shotDelaySec: 0.2 } }
+        ? {
+            ...event,
+            settings: { ...event.settings, countdownSec: 1, shotDelaySec: 0.2, mirrorSec: 0 },
+          }
         : event,
     [event, fast],
   );

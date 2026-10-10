@@ -19,6 +19,7 @@ export type Phase =
   | "layout_select"
   | "payment"
   | "paid"
+  | "mirror"
   | "countdown"
   | "capture"
   | "preview"
@@ -61,6 +62,10 @@ export type SessionState = {
   filterStep: boolean;
   /** Filter pilihan tamu (id PHOTO_FILTERS); null = normal. */
   filter: string | null;
+  /** Tamu menekan "Tunggu dulu" di hitung mundur / cek foto (#254): timer berhenti sampai Lanjut. */
+  paused: boolean;
+  /** Bertambah tiap Lanjut: hitung mundur dimulai ulang dari awal. */
+  resumes: number;
 };
 
 export type SessionEvent =
@@ -74,7 +79,12 @@ export type SessionEvent =
       layoutId?: string;
       /** Event menawarkan filter foto (#116). */
       filters?: boolean;
+      /** Layar "ngaca dulu" sebelum foto pertama (#254). */
+      mirror?: boolean;
     }
+  | { type: "MIRROR_DONE" }
+  | { type: "PAUSE" }
+  | { type: "RESUME" }
   | { type: "FILTER_CHOSEN"; filter: string }
   | { type: "PHOTOBOX_START"; draftId: string }
   /** Mode event dengan beberapa desain (DECISIONS #99): tamu memilih desain dulu, tanpa bayar. */
@@ -119,6 +129,8 @@ export const initialSession: SessionState = {
   deadline: null,
   filterStep: false,
   filter: null,
+  paused: false,
+  resumes: 0,
 };
 
 /** Waktu habis: slot kosong diisi foto terakhir yang ada (FSD §1.5). */
@@ -141,7 +153,7 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
         ...(e.layoutId && { layoutId: e.layoutId }),
         filterStep: !!e.filters,
         filter: null,
-        phase: "countdown",
+        phase: e.mirror ? "mirror" : "countdown",
         sessionId: e.sessionId,
         slots: e.slots,
         retakeMax: e.retakeMax,
@@ -177,13 +189,20 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
         : { ...s, phase: "printing", prints: 1, paying: null };
     case "TIME_UP":
       switch (s.phase) {
+        case "mirror":
         case "countdown":
         case "capture":
         case "preview":
         case "camera_error":
         case "review":
         case "filter":
-          return { ...s, phase: "compose", photos: fillPhotos(s.photos), retaking: false };
+          return {
+            ...s,
+            phase: "compose",
+            photos: fillPhotos(s.photos),
+            retaking: false,
+            paused: false,
+          };
         case "print_select":
           // Photobox (satu-satunya pemakai timer): lembar paket sudah dibayar → tetap dicetak 1 (DECISIONS #84).
           return { ...s, phase: "printing", prints: 1 };
@@ -191,8 +210,14 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
           // Pembayaran tambahan yang sedang berjalan tidak dipotong timer.
           return s;
       }
+    case "MIRROR_DONE":
+      return s.phase === "mirror" ? { ...s, phase: "countdown" } : s;
+    case "PAUSE":
+      return s.phase === "countdown" || s.phase === "preview" ? { ...s, paused: true } : s;
+    case "RESUME":
+      return s.paused ? { ...s, paused: false, resumes: s.resumes + 1 } : s;
     case "COUNTDOWN_DONE":
-      return s.phase === "countdown" ? { ...s, phase: "capture", attempt: 1 } : s;
+      return s.phase === "countdown" && !s.paused ? { ...s, phase: "capture", attempt: 1 } : s;
     case "CAPTURED": {
       if (s.phase !== "capture") return s;
       const photos = s.photos.with(s.index, e.photo);
@@ -213,7 +238,7 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
       // Lanjut dari foto yang gagal (FSD §1.7).
       return s.phase === "camera_error" ? { ...s, phase: "countdown" } : s;
     case "PREVIEW_DONE": {
-      if (s.phase !== "preview") return s;
+      if (s.phase !== "preview" || s.paused) return s;
       const next = s.index + 1;
       return next < s.slots ? { ...s, phase: "countdown", index: next } : { ...s, phase: "review" };
     }

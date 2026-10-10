@@ -25,16 +25,39 @@ export type EventOverride = z.infer<typeof EventOverride>;
 
 export const overrideKey = (eventId: string) => `event_override:${eventId}`;
 
-/** Isi kv → override; rusak/kosong = tanpa override (bundle cloud apa adanya). */
-export const parseOverride = (raw: string | null): EventOverride => {
+/**
+ * Isi kv → override; rusak/kosong = tanpa override (bundle cloud apa adanya). Override menyimpan nilai cloud saat
+ * disimpan (`base`); kalau admin mengubah nilai itu sesudahnya, nilai admin yang berlaku (#255). Override lama tanpa
+ * `base` tetap berlaku.
+ */
+export const parseOverride = (
+  raw: string | null,
+  cloud?: EventBundle["settings"],
+): EventOverride => {
   if (!raw) return {};
   try {
-    const r = EventOverride.safeParse(JSON.parse(raw));
-    return r.success ? r.data : {};
+    const j = JSON.parse(raw) as { base?: Record<string, unknown> };
+    const r = EventOverride.safeParse(j);
+    if (!r.success) return {};
+    if (!cloud || !j.base) return r.data;
+    const base = j.base;
+    return Object.fromEntries(
+      Object.entries(r.data).filter(([k]) => !(k in base) || base[k] === cloud[k as OverrideKey]),
+    ) as EventOverride;
   } catch {
     return {};
   }
 };
+type OverrideKey = (typeof OVERRIDE_KEYS)[number];
+
+/** Override untuk disimpan di kv, beserta nilai cloud saat itu (`base`). */
+export const storeOverride = (cloud: EventBundle["settings"], o: EventOverride): string =>
+  Object.keys(o).length
+    ? JSON.stringify({
+        ...o,
+        base: Object.fromEntries(Object.keys(o).map((k) => [k, cloud[k as OverrideKey]])),
+      })
+    : "";
 
 /** Hanya field yang berbeda dari cloud yang disimpan; sama dengan cloud = bukan override. */
 export const diffOverride = (cloud: EventBundle["settings"], next: EventOverride): EventOverride =>

@@ -50,6 +50,7 @@ import {
   EventOverride,
   overrideKey,
   parseOverride,
+  storeOverride,
 } from "./event-override";
 import { allowQuit, autoStart, setAutoStart, setKioskOn } from "./kiosk";
 import { onPhase } from "./shots";
@@ -233,7 +234,8 @@ export function registerIpc(
     const j = PrintJob.parse(job);
     await sendPrint({ ...j, sessionId: j.jobId, path: inSessions(j.path) });
   });
-  // Galeri tamu (#145): cetak lagi lembar cetak sesi selesai, maks. `max` lembar per sesi dari galeri.
+  // Galeri tamu (#145): cetak lagi lembar cetak sesi selesai. Batas `max` = TOTAL lembar per sesi (cetak di sesi
+  // + galeri, #255): galeri di layar awal bisa dibuka tamu, dulu satu sesi bisa dapat 2× batas (B04: 6 & 10 lembar).
   const Reprint = z.object({
     sessionId: SessionId,
     copies: z.number().int().min(1).max(10),
@@ -244,7 +246,7 @@ export function registerIpc(
     const r = Reprint.parse(req);
     const used = db.reprinted(r.sessionId);
     if (used === undefined) throw new Error("sesi belum selesai");
-    if (used + r.copies > r.max) return { jobId: null, reprinted: used };
+    if (db.printCount(r.sessionId) + r.copies > r.max) return { jobId: null, reprinted: used };
     const path = join(sessionsRoot(), r.sessionId, "out", "strip.jpg");
     if (!existsSync(path)) throw new Error("lembar cetak sesi tidak ada");
     const jobId = `${r.sessionId}-g${Date.now().toString(36)}`;
@@ -739,7 +741,10 @@ export function registerIpc(
   ipcMain.handle("printerAlert", () => alerts.get());
 
   // Event lokal dari bundle (M6); Fase 2 mengisi folder yang sama lewat sync.
-  const overrideOf = (id: string) => parseOverride(db.kv.get(overrideKey(id)));
+  const overrideOf = (b: {
+    id: string;
+    settings: Parameters<typeof applyOverride>[0]["settings"];
+  }) => parseOverride(db.kv.get(overrideKey(b.id)), b.settings);
   // Font pustaka editor ada di aset renderer (`public/fonts` → `out/renderer/fonts`, di dalam asar saat terpasang).
   const libFontPath = (name: string) =>
     [
@@ -750,7 +755,7 @@ export function registerIpc(
   const localDir = (id: string) => join(eventsDir(), id, "local");
   ipcMain.handle("eventsList", () =>
     reloadBundles().map(({ dir: _dir, ...b }) =>
-      applyDesignOverride(applyOverride(b, overrideOf(b.id)), designOf(b.id)),
+      applyDesignOverride(applyOverride(b, overrideOf(b)), designOf(b.id)),
     ),
   );
   // Layar awal (#143): hasil desain sesi selesai event ini; thumb (960 px) dulu, lalu potongan web/cetak.
@@ -844,14 +849,14 @@ export function registerIpc(
     crewOnly();
     const b = bundles.find((x) => x.id === z.string().parse(id));
     if (!b) throw new Error("event tidak ditemukan");
-    return { cloud: b.settings, override: overrideOf(b.id) };
+    return { cloud: b.settings, override: overrideOf(b) };
   });
   ipcMain.handle("crewSetEventSettings", (_e, id: unknown, next: unknown) => {
     crewOnly();
     const b = bundles.find((x) => x.id === z.string().parse(id));
     if (!b) throw new Error("event tidak ditemukan");
     const o = next === null ? {} : diffOverride(b.settings, EventOverride.parse(next));
-    db.kv.set(overrideKey(b.id), Object.keys(o).length ? JSON.stringify(o) : "");
+    db.kv.set(overrideKey(b.id), storeOverride(b.settings, o));
     console.info(`[event] pengaturan ${b.id} di booth: ${JSON.stringify(o)}`);
     return { cloud: b.settings, override: o };
   });

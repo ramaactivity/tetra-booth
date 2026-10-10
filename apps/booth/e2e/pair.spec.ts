@@ -100,6 +100,12 @@ test("polaroid dua sisi berbeda: 2 foto, 2 potong, GIF ada", async () => {
       join(out, "web-check.jpg"),
     );
     expect([web.width, web.height]).toEqual([1200, 1800]);
+    // Galeri crew & thumbnail juga lembar utuh (piece.jpg = sumber cadangan galeri, #250).
+    const crew = await app.evaluate(
+      ({ nativeImage }, f) => nativeImage.createFromPath(f).getSize(),
+      join(out, "piece.jpg"),
+    );
+    expect([crew.width, crew.height]).toEqual([1200, 1800]);
   } finally {
     await app.close();
   }

@@ -81,6 +81,7 @@ export type SettingsValues = {
   guestColor: string;
   hasLogo: boolean;
   countdownSec: number;
+  mirrorSec: number;
   retakeMax: number;
   maxPrints: number;
   reviewTimeoutSec: number;
@@ -1130,16 +1131,25 @@ export function SettingsForm({
               label="Hitung mundur"
               unit="detik"
               hint="Jeda sebelum tiap jepretan."
-              def="3 detik"
+              def="5 detik"
             >
               {num("countdownSec", 1, 10)}
+            </Field>
+            <Field
+              id="mirrorSec"
+              label="Ngaca dulu"
+              unit="detik"
+              hint="Layar cermin sebelum foto pertama; tamu tekan Mulai, atau mulai sendiri setelah waktu ini. 0 = langsung hitung mundur."
+              def="20 detik"
+            >
+              {num("mirrorSec", 0, 60)}
             </Field>
             <Field
               id="retakeMax"
               label="Retake per foto"
               unit="kali"
-              hint="Berapa kali tamu boleh mengulang satu foto. 0 = tanpa tombol Ulangi."
-              def="1 kali"
+              hint="Berapa kali tamu boleh mengulang setiap foto (dihitung per foto). 0 = tanpa tombol Ulangi."
+              def="2 kali"
             >
               {num("retakeMax", 0, 5)}
             </Field>

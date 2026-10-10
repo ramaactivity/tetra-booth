@@ -104,6 +104,7 @@ export async function assignToEvent(
   on("attract_samples", raw.attract?.samples ?? true);
   for (const k of [
     "countdownSec",
+    "mirrorSec",
     "retakeMax",
     "maxPrints",
     "reviewTimeoutSec",

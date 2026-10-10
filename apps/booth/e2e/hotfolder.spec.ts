@@ -33,6 +33,7 @@ test("hot folder: 3 JPEG yang masuk folder jadi 3 foto sesi", async () => {
   await w.evaluate(() => localStorage.setItem("tb.sharp.base.local", "100"));
   await w.waitForTimeout(1000); // tombol mulai aktif setelah START_GUARD_MS
   await start.click();
+  await w.getByRole("button", { name: "Siap, mulai!" }).click();
 
   // JPEG asli dibuat lewat nativeImage Electron (tanpa dependensi encoder tambahan).
   const jpeg = async (n: number) =>

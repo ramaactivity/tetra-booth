@@ -401,7 +401,8 @@ function Detail({
   const [print, setPrint] = useState<PrintState | null>(null);
   const [sending, setSending] = useState(false);
   const max = event.settings.maxPrints;
-  const left = reprintLeft(max, piece.reprinted);
+  // Total per sesi (#255): lembar yang sudah dicetak di sesi ikut dihitung.
+  const left = reprintLeft(max, piece.printCount);
 
   // Ganti sesi: panel kembali ke menu, gambar penuh dimuat ulang (object URL lama dilepas).
   useEffect(() => {

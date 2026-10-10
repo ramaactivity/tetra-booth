@@ -617,6 +617,16 @@ export function openDb(file: string) {
           .get(sessionId) as { n: number } | undefined
       )?.n;
     },
+    /** Total lembar sesi (cetak di sesi + cetak lagi dari galeri). */
+    printCount(sessionId: string): number {
+      return (
+        (
+          db.prepare("select print_count n from sessions where id = ?").get(sessionId) as
+            | { n: number }
+            | undefined
+        )?.n ?? 0
+      );
+    },
     /** Cetak ulang dari galeri menambah print_count sesi (#145). */
     addPrints(sessionId: string, copies: number) {
       db.prepare("update sessions set print_count = print_count + ? where id = ?").run(

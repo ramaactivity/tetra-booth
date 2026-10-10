@@ -42,6 +42,10 @@ test("canon (EDSDK palsu): live view dari Camera Service, 3 jepretan sampai laya
     await expect(start).toBeVisible();
     await w.waitForTimeout(1500); // Camera Service siap + kamera palsu tersambung
     await start.click();
+    // Ngaca dulu (#254): live view penuh sebelum foto pertama, tamu tekan Mulai.
+    await expect(w.getByText("Ngaca dulu, rapihin gaya!")).toBeVisible();
+    await w.screenshot({ path: "test-results/canon-mirror.png" });
+    await w.getByRole("button", { name: "Siap, mulai!" }).click();
     await expect(w.getByText("Foto 1 dari 3")).toBeVisible();
     // Frame live view sampai: petunjuk "Lihat ke kamera" (tanpa live view) tidak tampil.
     await expect(w.getByText("Lihat ke kamera")).toBeHidden({ timeout: 5000 });

@@ -158,6 +158,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           background: tpl.background,
           hasOverlay: bundle.success && bundle.data.files.some((f) => f.file === "overlay.png"),
           countdownSec: s.countdownSec,
+          mirrorSec: s.mirrorSec,
           retakeMax: s.retakeMax,
           maxPrints: s.maxPrints,
           reviewTimeoutSec: s.reviewTimeoutSec,

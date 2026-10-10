@@ -205,6 +205,7 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     await cards.filter({ hasText: "Bingkai Emas" }).click();
     await w.screenshot({ path: "test-results/designs-pick.png" });
     await w.getByRole("button", { name: /Mulai Foto/ }).click();
+    await w.getByRole("button", { name: "Siap, mulai!" }).click();
     // Kalimat sebelum foto (#103): foto 1 dari 2, lalu foto terakhir. Suara ON tanpa file → tetap jalan.
     await expect(w.getByText("Siap-siap, gaya pertama!")).toBeVisible();
     await w.waitForTimeout(1500);
