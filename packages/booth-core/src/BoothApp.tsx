@@ -13,6 +13,7 @@ import { loadPrintTone, savePrintTone } from "./printTone";
 import { SessionRunner } from "./SessionRunner";
 import { StageRunner } from "./StageRunner";
 import { PrintStation } from "./screens/PrintStation";
+import { StageDisplay } from "./screens/StageDisplay";
 import { StartScreen } from "./screens/StartScreen";
 import { Stage } from "./ui";
 
@@ -152,6 +153,8 @@ export function BoothApp({
       .then(() => activate(id, bundles))
       .catch((e: unknown) => console.error(`[event] gagal memilih ${id}: ${errText(e)}`));
 
+  // Layar galeri (#281): tanpa layar awal, sesi, maupun cetak; hanya galeri laptop Photo Stage.
+  if (p.display && !crewOpen) return <StageDisplay onCrew={() => setCrewOpen(true)} />;
   if (start && !crewOpen) {
     return (
       <Stage>
@@ -196,7 +199,7 @@ export function BoothApp({
             setCrewOpen(false);
           }}
         />
-        <GuestPrinter event={event} />
+        {!p.display && <GuestPrinter event={event} />}
         {notice}
       </Stage>
     );

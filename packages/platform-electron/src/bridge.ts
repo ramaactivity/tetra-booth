@@ -1,6 +1,7 @@
 import type {
   BoothCrew,
   BoothDb,
+  BoothDisplay,
   BoothEvents,
   BoothPayments,
   BoothPlatform,
@@ -35,7 +36,7 @@ export type BoothConfig = {
   /** Opsi crew: hasil foto ikut dibalik (bawaan mati). */
   mirrorPhoto?: boolean;
   /** Peran laptop (#178): `stage` = Photo Stage (fotografer pelaminan); bawaan booth. */
-  role?: "booth" | "stage" | "print";
+  role?: "booth" | "stage" | "print" | "display";
 };
 
 /**
@@ -132,6 +133,11 @@ export type TetraBridge = {
   stageTvStatus(): Promise<boolean>;
   stageDisplayMode(mode: StageDisplayMode): Promise<"switched" | "settings">;
   onStageTvStatus(cb: (on: boolean) => void): () => void;
+  /** Layar galeri (#281). */
+  displayCheck: BoothDisplay["check"];
+  displayFind: BoothDisplay["find"];
+  displayConnect: BoothDisplay["connect"];
+  displayForget: BoothDisplay["forget"];
 };
 
 declare global {

@@ -1,7 +1,8 @@
-import { randomInt } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import { hostname } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { init as sentryInit } from "@sentry/electron/main";
 import { SDK_FILES, type SdkKit } from "@tetra/shared";
 import { app, BrowserWindow, ipcMain } from "electron";
@@ -14,7 +15,10 @@ import {
   cameraServiceFlags,
   canon,
   config,
+  type DeviceSettings,
   device,
+  deviceFile,
+  deviceNow,
   flagWarnings,
   kioskFlag,
   lumix,
@@ -36,7 +40,7 @@ import { APP_ID, allowQuit, applyKiosk } from "./kiosk";
 import { setupLogging } from "./log";
 import { startMetrics } from "./metrics";
 import { checkHub, findHubs, setupPrintShare } from "./print-share";
-import { startStageLan } from "./stage-lan";
+import { findStages, pingStage, startStageLan } from "./stage-lan";
 import { startStageTv } from "./stage-tv";
 
 // Sentry hanya di build terpasang (dev & e2e tidak mengirim). Event antre di disk saat offline, tidak pernah menunggu jaringan.
@@ -225,6 +229,62 @@ const Tone = z
   })
   .nullable();
 ipcMain.handle("printShareTone", (_e, local: unknown) => share.tone(Tone.parse(local)));
+// Layar galeri (#281): laptop ini menampilkan galeri tamu laptop Photo Stage lewat WiFi (tanpa kamera & printer).
+if (config.role === "display") {
+  type Target = NonNullable<DeviceSettings["stageTarget"]>;
+  const save = async (t: Target | null) => {
+    if (t) device.stageTarget = deviceNow.stageTarget = t;
+    else {
+      delete device.stageTarget;
+      delete deviceNow.stageTarget;
+    }
+    await mkdir(dirname(deviceFile), { recursive: true });
+    await writeFile(deviceFile, JSON.stringify(device, null, 2));
+  };
+  /** Laptop stage masih menjawab dengan id yang sama? Kalau tidak, cari ulang lewat id (IP bisa berubah). */
+  const check = async (t: Target) => {
+    const ok = (r: Awaited<ReturnType<typeof pingStage>>) =>
+      r === "badkey" ? r : r?.id === t.id ? r : null;
+    const r = ok(await pingStage(t.url, t.key));
+    if (r !== null) return r;
+    const f = (await findStages()).find((x) => x.id === t.id);
+    if (!f || f.url === t.url) return null;
+    const again = ok(await pingStage(f.url, t.key));
+    // Kode salah di alamat baru tetap laptop yang sama: alamat disimpan, halaman Hubungkan tinggal minta kode.
+    if (again !== null) {
+      console.info(`[display] ${t.name} pindah alamat: ${t.url} → ${f.url}`);
+      await save({ ...t, url: f.url });
+    }
+    return again;
+  };
+  ipcMain.handle("displayFind", () => findStages());
+  ipcMain.handle("displayConnect", async (_e, url: unknown, key: unknown) => {
+    const u = z.url().max(200).parse(url);
+    const k = z
+      .string()
+      .regex(/^\d{4}$/)
+      .parse(key);
+    const r = await pingStage(u, k);
+    if (r && r !== "badkey") {
+      await save({ id: r.id, name: r.name, key: k, url: u });
+      console.info(`[display] terhubung ke ${r.name} (${u})`);
+    }
+    return r === "badkey" || r === null ? r : { id: r.id, name: r.name, key: k, url: u };
+  });
+  ipcMain.handle("displayCheck", async () => {
+    const t = device.stageTarget;
+    if (!t) return null;
+    const r = await check(t);
+    return {
+      target: device.stageTarget ?? t,
+      state: r === "badkey" ? "badkey" : r ? "ok" : "unreachable",
+    };
+  });
+  ipcMain.handle("displayForget", async () => {
+    crewOnly();
+    await save(null);
+  });
+}
 app.on("will-quit", () => {
   // Renderer masih mem-poll crewStatus saat quit → "database is not open" di log tiap tutup (audit B04, #251).
   ipcMain.removeHandler("crewStatus");
@@ -232,11 +292,14 @@ app.on("will-quit", () => {
 });
 app.whenReady().then(async () => {
   const log = (m: string) => console.info(m);
-  // Canon EDSDK (#112), Lumix (#214), Nikon (#216): DLL diunduh sendiri dari cloud kalau belum ada.
-  if (canon && canon !== "fake") await releaseCameraForEdsdk(log);
-  await ensureSdks(sdks, log);
-  if (cameraServiceFlags.spawn) await startCameraService(log, db, alerts);
-  else app.on("will-quit", watchPrintEvents(log, db, alerts));
+  // Layar galeri (#281) tidak memotret & tidak mencetak: tanpa DLL kamera & Camera Service.
+  if (config.role !== "display") {
+    // Canon EDSDK (#112), Lumix (#214), Nikon (#216): DLL diunduh sendiri dari cloud kalau belum ada.
+    if (canon && canon !== "fake") await releaseCameraForEdsdk(log);
+    await ensureSdks(sdks, log);
+    if (cameraServiceFlags.spawn) await startCameraService(log, db, alerts);
+    else app.on("will-quit", watchPrintEvents(log, db, alerts));
+  }
   createWindow();
   if (config.role === "stage") {
     const tv = startStageTv({
@@ -245,7 +308,12 @@ app.whenReady().then(async () => {
       log,
     });
     // Layar di device kedua lewat WiFi tanpa internet (#205).
+    // Id tetap per laptop: layar galeri (#281) mencari laptop ini lagi lewat id kalau IP berubah.
+    const id = db.kv.get("stage_lan_id") || randomUUID().slice(0, 8);
+    db.kv.set("stage_lan_id", id);
     startStageLan({
+      id,
+      name: boothName,
       rendererDir: join(__dirname, "../renderer"),
       sessionsRoot: () => join(app.getPath("userData"), "sessions"),
       state: tv.last,

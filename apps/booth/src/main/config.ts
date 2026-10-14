@@ -85,14 +85,26 @@ export const DeviceSettings = z.object({
   hotFolder: z.string().min(1).max(260).optional(),
   hotFolderTrigger: z.url().max(512).optional(),
   printer: z.string().min(1).max(256).optional(),
-  /** Peran laptop (#178): `stage` = Photo Stage, `print` = Print Station (#224). Bawaan booth. */
-  role: z.enum(["booth", "stage", "print"]).optional(),
+  /**
+   * Peran laptop (#178): `stage` = Photo Stage, `print` = Print Station (#224), `display` = Layar galeri (#281,
+   * menampilkan galeri tamu laptop stage `stageTarget`). Bawaan booth.
+   */
+  role: z.enum(["booth", "stage", "print", "display"]).optional(),
   /**
    * Printer bersama lewat WiFi (#261): `local` = printer di laptop ini (bawaan), `hub` = laptop printer yang juga
    * menerima cetakan booth lain, `remote` = kirim cetakan ke laptop printer `printHub`.
    */
   printShare: z.enum(["local", "hub", "remote"]).optional(),
   printHub: z
+    .object({
+      id: z.string().min(1).max(64),
+      name: z.string().min(1).max(80),
+      key: z.string().regex(/^\d{4}$/),
+      url: z.url().max(200),
+    })
+    .optional(),
+  /** Layar galeri (#281): laptop Photo Stage yang ditampilkan; `url` = alamat terakhir (dicari ulang lewat `id`). */
+  stageTarget: z
     .object({
       id: z.string().min(1).max(64),
       name: z.string().min(1).max(80),
@@ -240,6 +252,7 @@ export const config: BoothConfig = {
   mirrorPhoto: device.mirrorPhoto ?? true,
   ...(flags.value("role") === "stage" ? { role: "stage" as const } : {}),
   ...(flags.value("role") === "print" ? { role: "print" as const } : {}),
+  ...(flags.value("role") === "display" ? { role: "display" as const } : {}),
 };
 
 const size = /^(\d+)x(\d+)$/.exec(flags.value("size") ?? "");
@@ -305,6 +318,7 @@ export const deviceNow: DeviceSettings = {
   role: config.role ?? "booth",
   ...(device.printShare ? { printShare: device.printShare } : {}),
   ...(device.printHub ? { printHub: device.printHub } : {}),
+  ...(device.stageTarget ? { stageTarget: device.stageTarget } : {}),
 };
 
 /** Printer bersama (#261); `remote` tanpa tujuan = printer lokal. */

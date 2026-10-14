@@ -1,3 +1,4 @@
+import { createSocket } from "node:dgram";
 import { readFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { networkInterfaces } from "node:os";
@@ -5,6 +6,7 @@ import { extname, join, normalize, sep } from "node:path";
 import { SESSION_ID_PATTERN } from "@tetra/shared";
 import { nativeImage } from "electron";
 import { z } from "zod";
+import { type FoundHub, findLan } from "./print-share";
 
 /**
  * Layar Photo Stage di device kedua lewat WiFi/hotspot tanpa internet (#205, opsi B dari #204): laptop stage
@@ -13,6 +15,9 @@ import { z } from "zod";
  * Windows menanyakan izin firewall sekali (pilih jaringan Private).
  */
 const PORTS = [47870, 47871, 47872];
+/** Layar galeri (#281): laptop "Layar galeri" mencari laptop stage lewat siaran UDP, seperti printer bersama (#261). */
+export const STAGE_FIND_PORT = 47873;
+const HELLO = "tetra-stage?";
 const Helper = z.union([
   z.object({
     key: z.string(),
@@ -62,6 +67,10 @@ export const stageLanUrls = () =>
   livePort ? lanAddresses().map((a) => `http://${a}:${livePort}`) : [];
 
 export function startStageLan(o: {
+  /** Tetap per laptop: layar galeri mencari ulang laptop ini lewat id kalau IP berubah. */
+  id: string;
+  name: () => string;
+  findPort?: number;
   rendererDir: string;
   sessionsRoot: () => string;
   state: () => unknown;
@@ -94,6 +103,15 @@ export function startStageLan(o: {
       o.remote(cmd);
       return { status: 200, type: "application/json", body: '{"ok":true}' };
     }
+    // Layar galeri (#281): cek kode sebelum menyambung & tiap 5 dtk (laptop stage masih hidup?).
+    if (url.pathname === "/api/ping")
+      return url.searchParams.get("key") === stageHelperKey()
+        ? {
+            status: 200,
+            type: "application/json",
+            body: JSON.stringify({ id: o.id, name: o.name() }),
+          }
+        : { status: 403, type: "application/json", body: '{"error":"kode salah"}' };
     if (url.pathname === "/api/tv")
       return { status: 200, type: "application/json", body: JSON.stringify(o.state() ?? null) };
     if (url.pathname === "/api/file") {
@@ -162,8 +180,40 @@ export function startStageLan(o: {
     });
   };
   listen(0);
+  const udp = createSocket({ type: "udp4", reuseAddr: true });
+  udp.on("message", (m, r) => {
+    if (m.toString() !== HELLO || !port) return;
+    udp.send(
+      JSON.stringify({ t: "tetra-stage", id: o.id, name: o.name(), port }),
+      r.port,
+      r.address,
+    );
+  });
+  udp.on("error", (e) => o.log(`[stage-lan] pencarian layar galeri tidak aktif: ${e.message}`));
+  udp.bind(o.findPort ?? STAGE_FIND_PORT);
   return {
     port: () => port,
-    close: () => server?.close(),
+    close: () => {
+      server?.close();
+      udp.close();
+    },
   };
+}
+
+/** Laptop Photo Stage di WiFi yang sama (untuk laptop Layar galeri). */
+export const findStages = (ms = 1500, targets?: string[], findPort = STAGE_FIND_PORT) =>
+  findLan(HELLO, "tetra-stage", findPort, ms, targets);
+
+const Pong = z.object({ id: z.string().max(64), name: z.string().max(80) });
+/** Cek laptop stage dengan kode: `{id,name}`, "badkey" = kode salah, null = tidak terjangkau. */
+export async function pingStage(url: string, key: string): Promise<FoundHub | "badkey" | null> {
+  try {
+    const r = await fetch(`${url}/api/ping?key=${encodeURIComponent(key)}`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (r.status === 403) return "badkey";
+    return r.ok ? { ...Pong.parse(await r.json()), url } : null;
+  } catch {
+    return null;
+  }
 }

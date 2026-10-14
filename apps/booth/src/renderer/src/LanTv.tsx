@@ -6,6 +6,7 @@ import {
   type StageTvState,
 } from "@tetra/booth-core";
 import { FullscreenButton } from "@tetra/ui";
+import { useEffect } from "react";
 
 /**
  * Layar TV Photo Stage di browser device kedua (#205): renderer yang sama disajikan laptop stage lewat WiFi.
@@ -39,6 +40,17 @@ const platform = {
 } as unknown as BoothPlatform;
 
 export function LanTv() {
+  // Layar galeri (#281, `#display=<kode>`) memuat halaman ini di iframe: Ctrl+Shift+M diteruskan ke aplikasinya.
+  useEffect(() => {
+    if (!location.hash.startsWith("#display=") || window.parent === window) return;
+    const on = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || !e.shiftKey || e.key.toLowerCase() !== "m") return;
+      e.preventDefault();
+      window.parent.postMessage("tetra-crew", "*");
+    };
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, []);
   // HP helper crew (#206): `#helper=<kode>` dari QR "HP crew" di laptop.
   const key = /^#helper=(\d{4})$/.exec(location.hash)?.[1];
   if (key) return <StageHelper helperKey={key} />;

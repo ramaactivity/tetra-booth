@@ -152,11 +152,13 @@ export type DeviceSettings = {
   hotFolder?: string;
   hotFolderTrigger?: string;
   printer?: string;
-  /** Peran laptop (#178): `stage` = Photo Stage; bawaan booth. */
-  role?: "booth" | "stage" | "print";
+  /** Peran laptop (#178): `stage` = Photo Stage, `display` = Layar galeri (#281); bawaan booth. */
+  role?: "booth" | "stage" | "print" | "display";
   /** Printer bersama lewat WiFi (#261): printer di laptop ini / laptop printer (pusat) / kirim ke laptop printer. */
   printShare?: "local" | "hub" | "remote";
   printHub?: PrintHub;
+  /** Layar galeri (#281): laptop Photo Stage yang ditampilkan. */
+  stageTarget?: PrintHub;
 };
 /** Laptop printer tujuan (#261): `id` tetap per laptop, `url` = alamat terakhir (dicari ulang kalau berubah). */
 export type PrintHub = { id: string; name: string; key: string; url: string };
@@ -468,4 +470,20 @@ export interface BoothPlatform {
   mirrorLiveView?: boolean;
   /** Laptop Photo Stage (#178); tidak ada = booth biasa. */
   stage?: BoothStage;
+  /** Laptop Layar galeri (#281); tidak ada = peran lain. */
+  display?: BoothDisplay;
 }
+
+/** Laptop Photo Stage yang ditampilkan Layar galeri (#281): `url` = alamat terakhir, dicari ulang lewat `id`. */
+export type StageTarget = { id: string; name: string; key: string; url: string };
+/**
+ * Layar galeri (#281): laptop yang hanya menampilkan galeri tamu laptop Photo Stage lewat WiFi. `check()` = null kalau
+ * belum ada laptop tujuan; "badkey" = kode laptop stage berubah; "unreachable" = sedang dicari ulang.
+ */
+export type BoothDisplay = {
+  check(): Promise<{ target: StageTarget; state: "ok" | "badkey" | "unreachable" } | null>;
+  find(): Promise<FoundHub[]>;
+  connect(url: string, key: string): Promise<StageTarget | "badkey" | null>;
+  /** Lupakan laptop tujuan (mode crew) → halaman Hubungkan tampil lagi. */
+  forget(): Promise<void>;
+};

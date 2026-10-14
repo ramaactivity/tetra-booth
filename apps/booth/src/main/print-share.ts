@@ -38,7 +38,7 @@ export const HubStatus = z.object({
 });
 export type HubStatus = z.infer<typeof HubStatus>;
 const Found = z.object({
-  t: z.literal("tetra-print"),
+  t: z.string(),
   id: z.string().max(64),
   name: z.string().max(80),
   port: z.number().int(),
@@ -186,10 +186,16 @@ export function broadcastAddresses(): string[] {
 }
 
 /** Cari laptop printer di jaringan yang sama: kirim siaran, kumpulkan jawaban selama `ms`. */
-export function findHubs(
+export const findHubs = (ms = 1500, targets = broadcastAddresses(), findPort = FIND_PORT) =>
+  findLan(HELLO, "tetra-print", findPort, ms, targets);
+
+/** Siaran UDP `hello`, kumpulkan jawaban `{t, id, name, port}` (printer bersama, layar galeri Photo Stage). */
+export function findLan(
+  hello: string,
+  t: string,
+  findPort: number,
   ms = 1500,
   targets = broadcastAddresses(),
-  findPort = FIND_PORT,
 ): Promise<FoundHub[]> {
   return new Promise((resolve) => {
     const out = new Map<string, FoundHub>();
@@ -197,13 +203,14 @@ export function findHubs(
     s.on("message", (m, r) => {
       try {
         const x = Found.parse(JSON.parse(m.toString()));
-        out.set(x.id, { id: x.id, name: x.name, url: `http://${r.address}:${x.port}` });
+        if (x.t === t)
+          out.set(x.id, { id: x.id, name: x.name, url: `http://${r.address}:${x.port}` });
       } catch {}
     });
     s.on("error", () => {});
     s.bind(0, () => {
       s.setBroadcast(true);
-      for (const t of targets) s.send(HELLO, findPort, t, () => {});
+      for (const a of targets) s.send(hello, findPort, a, () => {});
     });
     setTimeout(() => {
       s.close();

@@ -1297,6 +1297,7 @@ export function StageRunner({
           onShoot={canShoot ? () => void shoot() : undefined}
           shooting={shooting}
           lanUrls={status?.lanUrls ?? []}
+          lanKey={status?.helperKey}
           displayMode={stage?.tv.displayMode}
           print={{
             choice: printChoice,

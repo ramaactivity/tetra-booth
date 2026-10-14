@@ -215,6 +215,16 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       claim: (id, paper) => bridge.guestPrintsClaim(id, paper),
       report: (id, status, error) => bridge.guestPrintsReport(id, status, error),
     },
+    ...(cfg.role === "display"
+      ? {
+          display: {
+            check: () => bridge.displayCheck(),
+            find: () => bridge.displayFind(),
+            connect: (url: string, key: string) => bridge.displayConnect(url, key),
+            forget: () => bridge.displayForget(),
+          },
+        }
+      : {}),
     ...(cfg.role === "stage"
       ? {
           stage: {

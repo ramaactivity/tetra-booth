@@ -21,6 +21,30 @@ export const copy = {
     noLink: "Link Guest Cam belum dibuat di admin",
     scan: "Scan untuk ikut Guest Cam",
   },
+  /** Layar galeri (#281): laptop yang hanya menampilkan galeri tamu laptop Photo Stage lewat WiFi. */
+  display: {
+    title: "Layar galeri",
+    sub: "Laptop ini menampilkan galeri tamu dari laptop Photo Stage lewat WiFi yang sama. Tidak butuh internet.",
+    find: "Cari laptop Photo Stage",
+    finding: "Mencari…",
+    pick: "Pilih laptop Photo Stage",
+    none: "Tidak ketemu. Pastikan laptop Photo Stage menyala di layar Photo Stage, kedua laptop di WiFi yang sama, dan di laptop stage Tetra Booth diizinkan di Windows Firewall (pilih Private).",
+    code: "Kode layar galeri",
+    codeHint: "4 angka di laptop Photo Stage: persiapan → langkah TV, di bawah alamat layar WiFi.",
+    connect: "Hubungkan",
+    connecting: "Menghubungkan…",
+    badKey: "Kode salah. Cek lagi kode di laptop Photo Stage.",
+    keyChanged: (name: string) => `Kode ${name} berubah. Ketik kode yang baru.`,
+    unreachable: (name: string) => `${name} tidak menjawab. Cek WiFi kedua laptop, lalu coba lagi.`,
+    reconnect: (name: string) => `Menghubungkan ke ${name}…`,
+    reconnectHint:
+      "Galeri tampil lagi sendiri begitu laptop Photo Stage terjangkau. Cek laptop stage masih menyala dan tersambung ke WiFi yang sama.",
+    crewHint: "Mode Crew: ketuk pojok kanan atas 5× atau Ctrl+Shift+M.",
+    crewTarget: (name: string) => `Menampilkan galeri ${name}`,
+    crewNone: "Belum terhubung ke laptop Photo Stage.",
+    change: "Ganti laptop stage",
+    forgotten: "Laptop stage dilupakan. Tutup mode crew untuk menghubungkan lagi.",
+  },
   attract: {
     cta: "Sentuh untuk Mulai",
     // Hanya tampil sebelum PIN crew dibuat (setup pertama), supaya tamu tidak melihatnya saat event.
@@ -355,6 +379,7 @@ export const copy = {
       lanBody: "Laptop/tablet/HP di WiFi atau hotspot yang sama buka alamat ini di browser:",
       lanNone: "Sambungkan laptop ke WiFi/hotspot dulu supaya alamatnya muncul.",
       lanFirewall: "Kalau Windows bertanya, izinkan Tetra Booth di jaringan Private.",
+      lanKey: "Kode layar galeri",
       tvTestScreen: "Uji tampilan TV",
       tvTestScreenSub:
         "Kalau tulisan ini terbaca dari jalur turun dan QR terbaca HP dari 2 m, TV siap.",
@@ -757,7 +782,12 @@ export const copy = {
     eventSettingsSaved: "Pengaturan event disimpan di booth",
     eventSettingsReset: "Pengaturan event kembali ke cloud",
     deviceRole: "Peran laptop",
-    roles: { booth: "Photobooth", stage: "Photo Stage", print: "Print Station" },
+    roles: {
+      booth: "Photobooth",
+      stage: "Photo Stage",
+      print: "Print Station",
+      display: "Layar galeri",
+    },
     /** Hapus isinya (jadikan "") setelah W-038…W-041 lulus dengan kamera Sony asli (#171). */
     sonyUntested: "Belum diuji dengan kamera asli" as string,
     sonyTips: [
@@ -853,6 +883,7 @@ export const copy = {
         booth: "Tamu berfoto sendiri di booth ini",
         stage: "Foto dari kamera fotografer di pelaminan",
         print: "Hanya mencetak foto tamu Guest Cam (tanpa photobooth)",
+        display: "Menampilkan galeri tamu laptop Photo Stage lewat WiFi",
       },
       saveTitle: "Perubahan perangkat belum disimpan",
       saveHint: "Booth ditutup lalu terbuka lagi sendiri (±10 detik).",

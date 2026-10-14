@@ -10,6 +10,7 @@ import type {
   FoundHub,
   PrintQueueJob,
   PrintShareInfo,
+  StageTarget,
 } from "../platform";
 import { btn, Choice, Panel, Pill, Row, ToggleRow, type Tone } from "./parts";
 
@@ -299,8 +300,8 @@ export function RoleChoice({ dev }: { dev: Device }) {
   const role = dev.draft.role ?? "booth";
   return (
     <Panel title={copy.crew.deviceRole} hint={lockedHint(locked) ?? d.roleHint}>
-      <div className="grid grid-cols-3 gap-4">
-        {(["booth", "stage", "print"] as const).map((r) => (
+      <div className="grid grid-cols-2 gap-4">
+        {(["booth", "stage", "print", "display"] as const).map((r) => (
           <Choice
             key={r}
             testId={`role-${r}`}
@@ -312,6 +313,42 @@ export function RoleChoice({ dev }: { dev: Device }) {
           />
         ))}
       </div>
+    </Panel>
+  );
+}
+
+/** Layar galeri (#281): laptop stage yang ditampilkan. Ganti = lupakan; halaman Hubungkan tampil saat crew ditutup. */
+export function DisplayTarget({ onNote }: { onNote: (m: string) => void }) {
+  const p = usePlatform();
+  const x = copy.display;
+  const [target, setTarget] = useState<StageTarget | null>();
+  useEffect(() => {
+    p.display?.check().then(
+      (s) => setTarget(s?.target ?? null),
+      () => {},
+    );
+  }, [p]);
+  if (!p.display || target === undefined) return null;
+  const forget = () =>
+    p.display?.forget().then(
+      () => {
+        setTarget(null);
+        onNote(x.forgotten);
+      },
+      (e: unknown) => onNote(crewText(e)),
+    );
+  return (
+    <Panel title={x.title} testId="display-target">
+      <Row
+        label={target ? x.crewTarget(target.name) : x.crewNone}
+        hint={target?.url.replace(/^http:\/\//, "")}
+      >
+        {target && (
+          <Button variant="secondary" className={btn} onClick={() => void forget()}>
+            {x.change}
+          </Button>
+        )}
+      </Row>
     </Panel>
   );
 }

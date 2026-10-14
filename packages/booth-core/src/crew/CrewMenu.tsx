@@ -50,6 +50,7 @@ import { CameraProps } from "./CameraProps";
 import {
   CameraChoice,
   CameraView,
+  DisplayTarget,
   PrinterChoice,
   PrintSharePanel,
   RoleChoice,
@@ -1084,6 +1085,7 @@ export function CrewMenu({
           </Panel>
           <UploadStatus activeId={event.id} />
           <RoleChoice dev={dev} />
+          <DisplayTarget onNote={setNote} />
           <Panel title={c.sharpen.title} hint={c.sharpen.body}>
             {sharpen && (
               <p data-testid="sharpen-status" className="text-2xl font-bold">

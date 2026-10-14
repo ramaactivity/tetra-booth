@@ -64,6 +64,7 @@ export function StageSetup({
   onShoot,
   shooting = false,
   lanUrls = [],
+  lanKey,
   displayMode,
   print,
 }: {
@@ -85,6 +86,8 @@ export function StageSetup({
   shooting?: boolean;
   /** Layar WiFi (#205): alamat untuk device kedua. */
   lanUrls?: string[];
+  /** Kode untuk laptop Layar galeri (#281). */
+  lanKey?: string | undefined;
   /** Mode layar laptop + TV (#274); tidak ada = platform tanpa jendela TV. */
   displayMode?: ((m: StageDisplayMode) => Promise<"switched" | "settings">) | undefined;
   /** Langkah Cetak (#274): desain cetak + status printer/pusat + tes cetak foto tes. */
@@ -389,6 +392,14 @@ export function StageSetup({
                     {u}
                   </span>
                 ))}
+                {!!lanUrls.length && lanKey && (
+                  <span className="text-lg font-semibold">
+                    {t.lanKey}:{" "}
+                    <span data-testid="stage-lan-key" className="font-mono text-[26px] font-bold">
+                      {lanKey}
+                    </span>
+                  </span>
+                )}
                 {!!lanUrls.length && <span className="text-base text-text-3">{t.lanFirewall}</span>}
               </div>
               <span className="text-2xl font-extrabold">{t.tvHowTitle}</span>

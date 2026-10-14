@@ -119,6 +119,10 @@ const bridge: TetraBridge = {
   eventAsset: (e, a) => ipcRenderer.invoke("eventAsset", e, a),
   paymentCreate: (req) => ipcRenderer.invoke("paymentCreate", req),
   paymentStatus: (id) => ipcRenderer.invoke("paymentStatus", id),
+  displayCheck: () => ipcRenderer.invoke("displayCheck"),
+  displayFind: () => ipcRenderer.invoke("displayFind"),
+  displayConnect: (url, key) => ipcRenderer.invoke("displayConnect", url, key),
+  displayForget: () => ipcRenderer.invoke("displayForget"),
 };
 
 contextBridge.exposeInMainWorld("tetra", bridge);
