@@ -13,6 +13,8 @@ export type BoothEvent = {
   publicGallery?: boolean | undefined;
   /** Link Guest Cam `/c/{token}` (QR di layar Print Station, #224). */
   guestCam?: string | undefined;
+  /** Nomor unit di acara multi-unit (#266); tidak ada = acara satu unit. */
+  unit?: number | undefined;
   /** Tanggal tampil di strip, mis. "12 Oktober 2026". */
   date: string;
   layout: LayoutSpec;
@@ -82,6 +84,7 @@ export async function loadEvent(bundle: EventBundle, events: BoothEvents): Promi
     slug: bundle.info?.slug,
     publicGallery: bundle.info?.publicGallery,
     guestCam: bundle.info?.guestCam,
+    unit: bundle.info?.unit,
     date: bundle.date,
     layout: bundle.layout,
     settings: bundle.settings,

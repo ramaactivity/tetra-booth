@@ -14,6 +14,14 @@ export const UNIT_SIZES: readonly UnitSize[] = ["2R", "4R", "polaroid"];
 /** Preset bawaan per ukuran frame (#262); admin bisa ganti desainnya nanti di Pengaturan / Pasang desain Ops. */
 const PRESET = { "2R": "strip-3", "4R": "4r-grid", polaroid: "polaroid-1" } as const;
 const PAPER = { "2R": "2x6x2", "4R": "4R", polaroid: "3x4x2" } as const;
+const SIZE_NAME = { "2R": "2R", "4R": "4R", polaroid: "Polaroid" } as const;
+
+/**
+ * Paket unit dengan ukuran berbeda (#266): nama paket Tetra diawali ukuran ("4R Unlimited 3 Jam"), jadi ukurannya
+ * ditukar ke ukuran unit ini; nama tanpa awalan ukuran dibiarkan.
+ */
+export const sizedPackage = (name: string | null, size: UnitSize) =>
+  name?.replace(/^(2R|4R|polaroid)\b/i, SIZE_NAME[size]) ?? null;
 
 /**
  * Acara multi-unit (#262, kontrak Ops §2.2: satu event Booth per unit karena satu event = satu kertas): buat event
@@ -79,7 +87,7 @@ export async function createUnit(
       ops_project_id: src.ops_project_id,
       ops_frame_size: size,
       ops_sync: { spot } satisfies OpsSync,
-      package_name: packageName ?? src.package_name,
+      package_name: packageName ?? sizedPackage(src.package_name, size),
       package_hours: packageHours ?? src.package_hours,
       scheduled_start: src.scheduled_start,
       scheduled_end: src.scheduled_end,
@@ -134,7 +142,7 @@ export async function createUnit(
 export async function resizeUnit(db: Db, orgId: string, eventId: string, size: UnitSize) {
   const { data: ev } = await db
     .from("events")
-    .select("id, name")
+    .select("id, name, package_name")
     .eq("id", eventId)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -145,7 +153,7 @@ export async function resizeUnit(db: Db, orgId: string, eventId: string, size: U
   if (!r.ok) return { ok: false as const, message: r.message };
   await db
     .from("events")
-    .update({ ops_frame_size: size })
+    .update({ ops_frame_size: size, package_name: sizedPackage(ev.package_name, size) })
     .eq("id", ev.id)
     .eq("organization_id", orgId);
   return { ok: true as const };

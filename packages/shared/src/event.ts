@@ -125,6 +125,8 @@ export const EventInfoSchema = z.object({
     .string()
     .regex(/^\/c\/[\w-]{1,80}$/)
     .optional(),
+  /** Nomor unit di acara multi-unit (#266): nama event sama antar unit, booth menampilkan "Unit N". */
+  unit: z.number().int().min(1).max(20).optional(),
 });
 export type EventInfo = z.infer<typeof EventInfoSchema>;
 

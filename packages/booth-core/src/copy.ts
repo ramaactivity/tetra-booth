@@ -223,6 +223,7 @@ export const copy = {
     designs: (n: number) => (n > 1 ? `${n} desain` : "1 desain"),
     noDesign: "Belum ada desain",
     defaultDesign: "Desain bawaan",
+    unit: (n: number) => `Unit ${n}`,
     active: "Sedang dipakai",
     today: "hari ini",
     sortLabel: "Urutkan",

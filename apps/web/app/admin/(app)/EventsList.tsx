@@ -13,6 +13,7 @@ import Link from "next/link";
 import { eventPhase, ymdWib } from "@/lib/events";
 import type { PhotoboxSettings } from "@/lib/payments";
 import { requireMember } from "@/lib/supabase/server";
+import { unitLabels } from "@/lib/tetra-ops";
 import { EventFilters } from "./EventFilters";
 
 const TABS = [
@@ -118,7 +119,7 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
       db
         .from("events")
         .select(
-          "id, slug, name, event_date, purge_at, all_devices, location, branding, settings, package_name, package_hours, scheduled_start, scheduled_end, run, local_bytes, event_devices(device_id, devices(name))",
+          "id, slug, name, event_date, purge_at, all_devices, location, branding, settings, package_name, package_hours, scheduled_start, scheduled_end, run, local_bytes, ops_project_id, ops_sync, paper:bundle->config->layout->paper, event_devices(device_id, devices(name))",
         )
         .eq("organization_id", orgId)
         .eq("mode", mode)
@@ -132,6 +133,7 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
   const count = new Map((stats ?? []).map((s) => [s.event_id, s]));
   const paid = new Map((pays ?? []).map((p) => [p.event_id, p]));
   const pm = (period ?? []).find((p) => p.mode === mode);
+  const units = unitLabels(data ?? []);
 
   const rows = (data ?? []).map((e) => {
     const run = parseRun(e.run);
@@ -144,6 +146,7 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
     const hi = Math.max(...prices);
     return {
       ...e,
+      unit: units.get(e.id),
       phase,
       client: (e.branding as { clientName?: string } | null)?.clientName ?? "",
       runState: rs,
@@ -376,7 +379,17 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
                   </span>
                 </time>
                 <span className="min-w-0">
-                  <span className="block truncate font-bold">{e.name}</span>
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate font-bold">{e.name}</span>
+                    {e.unit && (
+                      <span
+                        data-testid="event-unit"
+                        className="flex-none rounded-full border-[1.5px] border-ink bg-lavender px-2 py-px text-[11px] font-extrabold whitespace-nowrap"
+                      >
+                        {e.unit}
+                      </span>
+                    )}
+                  </span>
                   <span className="block truncate text-xs text-text-2">
                     {sub || "Lokasi belum diisi"}
                   </span>

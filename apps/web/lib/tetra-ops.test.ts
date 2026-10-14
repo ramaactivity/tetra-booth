@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-const { approvedDesign, OpsBooking, opsGuestCam, opsInstagram, spotOf } = await import(
+const { approvedDesign, OpsBooking, opsGuestCam, opsInstagram, spotOf, unitLabels } = await import(
   "./tetra-ops"
 );
 
@@ -97,4 +97,20 @@ it("opsGuestCam: tier & cetak hanya dengan modul guest_cam; null = tak terbatas;
     ),
   ).toEqual({});
   expect(opsGuestCam({ modules: ["guest_cam"], guest_cam_max_guests: 250 }, cards)).toEqual({});
+});
+
+it("unitLabels: label Unit N · ukuran hanya untuk acara multi-unit (#266)", () => {
+  const labels = unitLabels([
+    { id: "a", name: "CIMB", ops_project_id: "P1", paper: "4R" },
+    { id: "b", name: "CIMB", ops_project_id: "P1", ops_sync: { spot: 2 }, paper: "2x6x2" },
+    { id: "c", name: "Rina", ops_project_id: "P2", paper: "4R" },
+    { id: "d", name: "Lokal", ops_sync: { spot: 1 }, paper: "3x4x2" },
+    { id: "e", name: "Aisha", paper: "4R" },
+    { id: "f", name: "Aisha", paper: "4R" },
+  ]);
+  expect(Object.fromEntries(labels)).toEqual({
+    a: "Unit 1 · 4R",
+    b: "Unit 2 · 2R",
+    d: "Unit 1 · Polaroid",
+  });
 });

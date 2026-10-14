@@ -5,12 +5,11 @@ import { boothsOfEvent, CAMERA_KIND, PAPER_LOW, problems } from "@/lib/booth-hea
 import { ymdWib } from "@/lib/events";
 import { ago, isOnline } from "@/lib/format";
 import { requireMember } from "@/lib/supabase/server";
-import { spotOf } from "@/lib/tetra-ops";
+import { unitLabels } from "@/lib/tetra-ops";
 import { AutoRefresh } from "../devices/PairPanel";
 
 export const dynamic = "force-dynamic";
 const REFRESH_S = 15;
-const SIZE_OF: Record<string, string> = { "2x6x2": "2R", "4R": "4R", "3x4x2": "Polaroid" };
 
 type Dev = {
   id: string;
@@ -34,7 +33,7 @@ export default async function AssistantPage() {
     db
       .from("events")
       .select(
-        "id, slug, name, ops_sync, all_devices, paper:bundle->config->layout->paper, event_devices(device_id)",
+        "id, slug, name, ops_project_id, ops_sync, all_devices, paper:bundle->config->layout->paper, event_devices(device_id)",
       )
       .eq("organization_id", orgId)
       .eq("event_date", today)
@@ -72,8 +71,7 @@ export default async function AssistantPage() {
   const devsOf = (e: (typeof evs)[number]) => boothsOfEvent(e, devs);
   const shown = new Set(evs.flatMap((e) => devsOf(e).map((d) => d.id)));
   const others = devs.filter((d) => !shown.has(d.id) && isOnline(d.last_seen_at, now));
-  const multi = new Map<string, number>();
-  for (const e of evs) multi.set(e.name, (multi.get(e.name) ?? 0) + 1);
+  const units = unitLabels(evs);
 
   return (
     <main className="mx-auto w-full max-w-[720px] px-4 pt-6 pb-16 md:px-8">
@@ -99,17 +97,12 @@ export default async function AssistantPage() {
       {evs.map((e) => {
         const ds = devsOf(e);
         const total = stat(e.id);
-        const paper = (e as { paper?: unknown }).paper;
-        const size = typeof paper === "string" ? SIZE_OF[paper] : undefined;
-        const unit = (multi.get(e.name) ?? 0) > 1 ? `Unit ${spotOf(e)}` : null;
         return (
           <section key={e.id} data-testid="assistant-event" className="mt-6">
             <div className="flex items-baseline justify-between gap-3">
               <Link href={`/admin/events/${e.slug}`} className="min-w-0 no-underline">
                 <h2 className="truncate text-lg font-extrabold">{e.name}</h2>
-                <p className="text-xs font-bold text-text-2">
-                  {[unit, size].filter(Boolean).join(" · ") || "Booth"}
-                </p>
+                <p className="text-xs font-bold text-text-2">{units.get(e.id) ?? "Booth"}</p>
               </Link>
               <p className="flex-none font-mono text-xs text-text-2">
                 {total.sessions} sesi · {total.prints} lembar

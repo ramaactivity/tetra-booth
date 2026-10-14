@@ -60,6 +60,7 @@ test("acara 2 unit: buat event Unit 2 dari dashboard unit 1", async ({ page }) =
       event_date: "2026-10-16",
       ops_project_id: project,
       ops_frame_size: "4R",
+      package_name: "4R Unlimited 3 Jam",
       settings: { guestCam: { enabled: true } },
     })
     .select("id, slug")
@@ -89,7 +90,9 @@ test("acara 2 unit: buat event Unit 2 dari dashboard unit 1", async ({ page }) =
 
     const { data: all } = await db
       .from("events")
-      .select("id, name, ops_sync, ops_frame_size, settings, all_devices, event_devices(device_id)")
+      .select(
+        "id, name, ops_sync, ops_frame_size, package_name, settings, all_devices, event_devices(device_id)",
+      )
       .eq("ops_project_id", project)
       .order("created_at");
     expect(all).toHaveLength(2);
@@ -98,6 +101,8 @@ test("acara 2 unit: buat event Unit 2 dari dashboard unit 1", async ({ page }) =
     expect(two?.ops_sync).toMatchObject({ spot: 2 });
     expect(one?.ops_sync).toMatchObject({ spot: 1 });
     expect(two?.ops_frame_size).toBe("2R");
+    // #266: paket ikut ukuran unit, bukan salinan mentah paket 4R unit 1.
+    expect(two?.package_name).toBe("2R Unlimited 3 Jam");
     expect(
       (two?.settings as { guestCam?: { enabled?: boolean } } | undefined)?.guestCam?.enabled,
     ).toBe(false);
@@ -117,6 +122,16 @@ test("acara 2 unit: buat event Unit 2 dari dashboard unit 1", async ({ page }) =
       )?.paper;
     expect(await paperOf()).toBe("2x6x2");
 
+    // #266: nama sama di daftar event, unit dibedakan dengan label "Unit N · ukuran".
+    await page.goto("/admin");
+    const chips = page.getByRole("link").filter({ hasText: name }).getByTestId("event-unit");
+    await expect(chips).toHaveCount(2);
+    // Unit 1 di tes ini belum punya bundle (ukuran dari layout), jadi tanpa ukuran.
+    await expect(chips.filter({ hasText: "Unit 1" })).toHaveText("Unit 1");
+    await expect(chips.filter({ hasText: "Unit 2" })).toHaveText("Unit 2 · 2R");
+    await page.screenshot({ path: "test-results/ops-units-list.png" });
+    await page.goto(`/admin/events/${ev?.slug}`);
+
     // #265: ukuran unit yang sudah dibuat bisa diganti dari kartu (Ops salah catat ukuran).
     const unit2 = card.getByRole("listitem").filter({ hasText: "Unit 2" });
     await unit2.getByRole("button", { name: "Polaroid" }).click();
@@ -126,6 +141,12 @@ test("acara 2 unit: buat event Unit 2 dari dashboard unit 1", async ({ page }) =
       { timeout: 30_000 },
     );
     expect(await paperOf()).toBe("3x4x2");
+    const { data: after } = await db
+      .from("events")
+      .select("package_name")
+      .eq("id", two?.id ?? "")
+      .single();
+    expect(after?.package_name).toBe("Polaroid Unlimited 3 Jam");
   } finally {
     server.close();
     await db.from("events").delete().eq("ops_project_id", project);

@@ -98,6 +98,39 @@ export const spotOf = (ev: { name: string; ops_sync?: unknown }) => {
   return typeof s === "number" && s >= 1 ? s : Number(/Spot (\d+)/i.exec(ev.name)?.[1] ?? 1);
 };
 
+const PAPER_SIZE: Record<string, string> = { "2x6x2": "2R", "4R": "4R", "3x4x2": "Polaroid" };
+type UnitEv = {
+  id: string;
+  name: string;
+  ops_project_id?: string | null;
+  ops_sync?: unknown;
+  paper?: unknown;
+};
+/**
+ * Label "Unit 2 · 2R" untuk event acara multi-unit (#266): nama event tetap sama (dicetak di frame & galeri),
+ * jadi admin/crew membedakan unit dari label ini. Multi-unit = ada event lain dengan `ops_project_id` sama, atau
+ * unit ≥ 2, atau `ops_sync.spot` diisi tombol "Buat event Unit N" (event non-Ops). Event tunggal tanpa label.
+ */
+export const unitNo = (e: Omit<UnitEv, "id">, siblings: number): number | null =>
+  siblings > 1 ||
+  spotOf(e) > 1 ||
+  typeof (e.ops_sync as { spot?: unknown } | null)?.spot === "number"
+    ? spotOf(e)
+    : null;
+export function unitLabels(evs: UnitEv[]): Map<string, string> {
+  const n = new Map<string, number>();
+  for (const e of evs)
+    if (e.ops_project_id) n.set(e.ops_project_id, (n.get(e.ops_project_id) ?? 0) + 1);
+  const out = new Map<string, string>();
+  for (const e of evs) {
+    const no = unitNo(e, e.ops_project_id ? (n.get(e.ops_project_id) ?? 1) : 1);
+    if (!no) continue;
+    const size = typeof e.paper === "string" ? PAPER_SIZE[e.paper] : undefined;
+    out.set(e.id, [`Unit ${no}`, size].filter(Boolean).join(" · "));
+  }
+  return out;
+}
+
 /**
  * Ukuran frame unit ini menurut Ops: `units[]` (isian booking per unit, #263), lalu desain (unit 1 = level atas,
  * unit ≥ 2 = `design.spots`), lalu `frame_size` booking untuk unit 1.

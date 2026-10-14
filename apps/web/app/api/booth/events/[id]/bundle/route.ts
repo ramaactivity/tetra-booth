@@ -11,6 +11,7 @@ import { longDate } from "@/lib/guest";
 import { guestPath } from "@/lib/guest-link";
 import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
+import { unitNo } from "@/lib/tetra-ops";
 
 /** Manifest bundle event (config + file + hash + URL) untuk device yang ditugaskan (TSD §4.1). */
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -21,10 +22,11 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const found = await deviceEvents(device, { eventId: id }).catch(() => null);
   if (!found) return apiError("server_error", 500);
   if (!found[0]) return apiError("not_found", 404);
-  const { data: ev, error } = await createServiceClient()
+  const db = createServiceClient();
+  const { data: ev, error } = await db
     .from("events")
     .select(
-      "id, name, event_date, bundle_version, bundle, slug, scheduled_start, scheduled_end, package_name, package_hours, public_gallery, live_token, guest_token, guest_link, settings",
+      "id, name, event_date, bundle_version, bundle, slug, scheduled_start, scheduled_end, package_name, package_hours, public_gallery, live_token, guest_token, guest_link, settings, ops_project_id, ops_sync",
     )
     .eq("id", id)
     .eq("organization_id", device.organizationId)
@@ -35,6 +37,15 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   // Info rekap booth (#154): dibaca saat bundle diunduh; jadwal & paket diubah lewat Simpan Pengaturan (versi naik).
   const start = hhmm(ev.scheduled_start);
   const end = hhmm(ev.scheduled_end);
+  const { count: siblings } = ev.ops_project_id
+    ? await db
+        .from("events")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", device.organizationId)
+        .eq("ops_project_id", ev.ops_project_id)
+        .neq("status", "archived")
+    : { count: 1 };
+  const unit = unitNo(ev, siblings ?? 1);
   const info: EventInfo = {
     ...(start && { scheduledStart: start }),
     ...(end && { scheduledEnd: end }),
@@ -46,6 +57,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       EventSettingsSchema.safeParse(ev.settings ?? {}).data?.guestCam.enabled && {
         guestCam: guestPath(ev),
       }),
+    ...(unit && { unit }),
   };
   // URL GET bertanda tangan 15 menit (TSD §4.1); r2.dev diblokir ISP Indonesia (DECISIONS #63).
   return Response.json({

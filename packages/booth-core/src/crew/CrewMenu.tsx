@@ -793,7 +793,13 @@ export function CrewMenu({
                 title={c.setup.event}
                 detail={
                   hasEvent
-                    ? `${event.name} · ${paperLabel(event.layout.paper, event.layout.canvas)}`
+                    ? [
+                        event.name,
+                        event.unit && copy.start.unit(event.unit),
+                        paperLabel(event.layout.paper, event.layout.canvas),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")
                     : c.setup.eventTodo
                 }
                 action={hasEvent ? c.setup.eventChange : c.setup.eventAction}

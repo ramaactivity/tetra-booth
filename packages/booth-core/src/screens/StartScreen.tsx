@@ -19,7 +19,7 @@ import { Logo } from "../ui";
 import { DesignThumb } from "./DesignThumb";
 
 type Mode = "event" | "photobox";
-type Row = Pick<EventBundle, "id" | "name" | "date" | "layout" | "designs" | "photobox">;
+type Row = Pick<EventBundle, "id" | "name" | "date" | "layout" | "designs" | "photobox" | "info">;
 const t = copy.start;
 
 type Sort = "newest" | "soonest" | "name";
@@ -277,6 +277,14 @@ export function StartScreen({
                           </span>
                         )}
                         <span className="mt-auto flex flex-wrap gap-2">
+                          {b.info?.unit && (
+                            <span
+                              data-testid={`unit-${b.id}`}
+                              className="rounded-full border-2 border-ink bg-butter px-3 py-1 text-base font-extrabold"
+                            >
+                              {t.unit(b.info.unit)}
+                            </span>
+                          )}
                           <span className="rounded-full border-2 border-ink bg-white px-3 py-1 text-base font-bold">
                             {paperLabel(b.layout.paper, b.layout.canvas)}
                           </span>
