@@ -146,4 +146,21 @@ describe("buildBundle designs (DECISIONS #99)", () => {
     }) as { config: object };
     expect(pb.config).not.toHaveProperty("designs");
   });
+  it("voucher photobox: flag ikut bundle hanya kalau dinyalakan (bawaan mati, bundle lama tidak berubah)", () => {
+    const pb = (voucher?: boolean) =>
+      (
+        buildBundle({
+          ...base,
+          mode: "photobox",
+          photobox: {
+            layouts: [{ preset: "strip-3", price: 25000 }],
+            extraPrintPrice: 0,
+            ...(voucher !== undefined && { voucher }),
+          },
+        }) as { config: { photobox: object } }
+      ).config.photobox;
+    expect(pb()).not.toHaveProperty("voucher");
+    expect(pb(false)).not.toHaveProperty("voucher");
+    expect(pb(true)).toHaveProperty("voucher", true);
+  });
 });

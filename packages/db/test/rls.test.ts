@@ -233,4 +233,90 @@ describe("migrasi & RLS", () => {
       ),
     ).rejects.toThrow(/review_status/);
   });
+  it("voucher photobox: RLS, kuota atomik, idempotent per sesi, kedaluwarsa & event", async () => {
+    await c.query("reset role");
+    const ev = (
+      await c.query(
+        "insert into events(organization_id, name, mode, event_date) values ($1,'Voucher','photobox','2026-10-14') returning id",
+        [org],
+      )
+    ).rows[0].id as string;
+    const dev = (
+      await c.query(
+        "insert into devices(organization_id, name, short_code) values ($1,'b','V1') returning id",
+        [org],
+      )
+    ).rows[0].id as string;
+    // Kolom tambahan opsional: mk("KODE", "ends_at", "now() - interval '1 day'").
+    const mk = async (code: string, col = "", val = "") =>
+      (
+        await c.query(
+          `insert into vouchers(organization_id, code, kind, value, max_uses${col && `, ${col}`})
+           values ($1,$2,'amount',10000,1${val && `, ${val}`}) returning id`,
+          [org, code],
+        )
+      ).rows[0].id as string;
+    const one = await mk("SEKALI");
+    const redeem = (voucher: string, session: string, amount = 15000, event = ev) =>
+      c.query(
+        `select * from redeem_voucher($1,$2,'amount',10000,$3,$4,$5,'strip-3',$6,$7,'fake', now() + interval '5 minutes')`,
+        [org, voucher, event, dev, session, amount, 25000 - amount],
+      );
+    const a = (await redeem(one, "sesi00001")).rows[0];
+    expect([a.status, a.amount_idr, a.discount_idr]).toEqual(["pending", 15000, 10000]);
+    // Idempotent: sesi yang sama dapat payment yang sama; sesi lain ditolak (kuota 1 terpakai tagihan hidup).
+    expect((await redeem(one, "sesi00001")).rows[0].id).toBe(a.id);
+    await expect(redeem(one, "sesi00002")).rejects.toThrow(/voucher_used_up/);
+    // QR ditinggal sampai kedaluwarsa → kuota kembali.
+    await c.query("update payments set expires_at = now() - interval '2 minutes' where id = $1", [
+      a.id,
+    ]);
+    const b = (await redeem(one, "sesi00002", 0)).rows[0];
+    expect([b.status, b.amount_idr, b.provider]).toEqual(["paid", 0, "fake"]);
+    expect(b.paid_at).not.toBeNull();
+    await expect(redeem(one, "sesi00003")).rejects.toThrow(/voucher_used_up/);
+    // Dua booth menukar sisa kuota terakhir bersamaan: tepat satu berhasil (baris voucher dikunci).
+    const race = await mk("REBUTAN");
+    const c2 = pg.getPgClient();
+    await c2.connect();
+    const sql = `select id from redeem_voucher($1,$2,'amount',10000,$3,$4,$5,'strip-3',0,25000,'voucher',now())`;
+    const results = await Promise.allSettled([
+      c.query(sql, [org, race, ev, dev, "rebut0001"]),
+      c2.query(sql, [org, race, ev, dev, "rebut0002"]),
+    ]);
+    await c2.end();
+    expect(results.map((r) => r.status).sort()).toEqual(["fulfilled", "rejected"]);
+    // Nilai voucher diubah admin di tengah jalan / nonaktif / event lain / di luar tanggal → ditolak.
+    await expect(
+      c.query(
+        `select redeem_voucher($1,$2,'percent',10000,$3,$4,'sesi00009','strip-3',0,0,'fake',now())`,
+        [org, b.voucher_id, ev, dev],
+      ),
+    ).rejects.toThrow(/voucher_invalid/);
+    const ev2 = (
+      await c.query(
+        "insert into events(organization_id, name, mode, event_date) values ($1,'Lain','photobox','2026-10-14') returning id",
+        [org],
+      )
+    ).rows[0].id as string;
+    const onlyEv2 = await mk("KHUSUS", "event_id", `'${ev2}'`);
+    await expect(redeem(onlyEv2, "sesi00004")).rejects.toThrow(/voucher_invalid/);
+    expect((await redeem(onlyEv2, "sesi00004", 15000, ev2)).rows[0].event_id).toBe(ev2);
+    const late = await mk("TELAT", "ends_at", "now() - interval '1 day'");
+    await expect(redeem(late, "sesi00005")).rejects.toThrow(/voucher_expired/);
+    const off = await mk("MATI", "active", "false");
+    await expect(redeem(off, "sesi00006")).rejects.toThrow(/voucher_invalid/);
+    // Kode hanya huruf besar & angka, unik per organisasi.
+    await expect(mk("sekali")).rejects.toThrow(/vouchers_code_check/);
+    await expect(mk("SEKALI")).rejects.toThrow(/vouchers_organization_id_code_key/);
+    // RLS: crew (other) baca saja; anon tidak lihat & tidak bisa memanggil fungsi.
+    await as(other);
+    expect(await count("vouchers")).toBeGreaterThan(0);
+    expect((await c.query("update vouchers set value = 1")).rowCount).toBe(0);
+    await c.query("select set_config('request.jwt.claim.sub', '', false)");
+    await as(null);
+    expect(await count("vouchers")).toBe(0);
+    await expect(redeem(one, "sesi00007")).rejects.toThrow(/permission denied/);
+    await c.query("reset role");
+  });
 });

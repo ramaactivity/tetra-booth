@@ -293,6 +293,11 @@ export const PaymentCreateRequest = z.object({
   sessionId: z.string().regex(SESSION_ID_PATTERN),
   layoutId: z.string().regex(/^[\w-]{1,40}$/),
   extraPrints: z.number().int().min(1).max(9).optional(),
+  /** Voucher photobox (paket saja): server menghitung potongan; sisa dibayar QRIS, sisa 0 = langsung lunas. */
+  voucherCode: z
+    .string()
+    .regex(/^[A-Z0-9]{3,20}$/)
+    .optional(),
 });
 export type PaymentCreateRequest = z.infer<typeof PaymentCreateRequest>;
 
@@ -301,11 +306,24 @@ export type PaymentStatus = z.infer<typeof PaymentStatus>;
 
 export const PaymentCreateResponse = z.object({
   paymentId: z.uuid(),
-  qrString: z.string().min(1),
+  /** Kosong hanya saat voucher menutup seluruh harga (`amount` 0, langsung lunas). */
+  qrString: z.string(),
   amount: z.number().int(),
   expiresAt: z.iso.datetime({ offset: true }),
+  /** Potongan voucher (Rupiah); `amount` = sisa yang dibayar. */
+  discount: z.number().int().optional(),
 });
 export type PaymentCreateResponse = z.infer<typeof PaymentCreateResponse>;
+
+/** Voucher ditolak: kode tidak dikenal / tidak berlaku di event ini, di luar masa berlaku, kuota habis. */
+export const VoucherError = z.enum(["invalid", "expired", "used_up"]);
+export type VoucherError = z.infer<typeof VoucherError>;
+/** Balasan POST /api/booth/payments: tagihan, atau penolakan voucher (hanya kalau `voucherCode` dikirim). */
+export const PaymentCreateResult = z.union([
+  PaymentCreateResponse,
+  z.object({ voucherError: VoucherError }),
+]);
+export type PaymentCreateResult = z.infer<typeof PaymentCreateResult>;
 
 /** GET /api/booth/payments/{id} */
 export const PaymentStatusResponse = z.object({ status: PaymentStatus });

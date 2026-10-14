@@ -91,6 +91,8 @@ export type SettingsValues = {
   mode: "event" | "photobox";
   sessionSec: number;
   extraPrintPrice: number;
+  /** Photobox menerima voucher (menu Voucher). */
+  voucher: boolean;
   /** Harga per preset yang dijual di photobox (tidak ada = tidak dijual). */
   /** Kunci: id preset atau `tpl-<layoutId>` (#108). */
   prices: Record<string, number>;
@@ -1547,6 +1549,14 @@ export function SettingsForm({
             >
               {num("extraPrintPrice", 0, 1_000_000)}
             </Field>
+            <input type="hidden" name="pb_voucher" value="off" />
+            <ToggleRow
+              name="pb_voucher"
+              value="on"
+              defaultChecked={v.voucher}
+              title="Terima voucher"
+              hint="Tamu bisa memasukkan kode voucher di layar bayar; sisa harga dibayar QRIS. Kode dibuat di menu Voucher."
+            />
             <Field
               id="sessionSec"
               label="Timer sesi setelah bayar"

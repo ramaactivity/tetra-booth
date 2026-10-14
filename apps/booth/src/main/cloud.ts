@@ -14,7 +14,7 @@ import {
   type LocalStorage,
   PairResponse,
   type PaymentCreateRequest,
-  PaymentCreateResponse,
+  PaymentCreateResult,
   PaymentStatusResponse,
   type RunAction,
   type SdkKit,
@@ -335,7 +335,7 @@ export function createCloud(
     },
     /** Tagihan QRIS photobox (TSD §8). Gagal apa pun (offline, belum dipasangkan, server) = Error. */
     async createPayment(req: PaymentCreateRequest) {
-      return PaymentCreateResponse.parse(await api("/api/booth/payments", req));
+      return PaymentCreateResult.parse(await api("/api/booth/payments", req));
     },
     async paymentStatus(id: string) {
       const t = token();

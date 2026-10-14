@@ -1,6 +1,6 @@
-import type { PaymentCreateResponse } from "@tetra/shared";
+import type { PaymentCreateRequest, PaymentCreateResponse } from "@tetra/shared";
 import { Button } from "@tetra/ui";
-import { Check } from "lucide-react";
+import { Check, Delete } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { errText } from "../errors";
@@ -22,16 +22,19 @@ type State =
 /**
  * Bayar QRIS (A3/A4b, FSD §1.12): buat tagihan → QR + total + hitung mundur → cek status tiap 2 dtk.
  * Kedaluwarsa → buat ulang; tanpa internet → "hubungi crew", tidak ada jalur bypass.
+ * `voucher`: event menerima voucher → baris "Punya kode voucher?"; server menghitung sisa, sisa 0 = langsung lunas.
  */
 export function Payment({
   request,
   lines,
+  voucher = false,
   onPaid,
   onCancel,
 }: {
   request: { eventId: string; sessionId: string; layoutId: string; extraPrints?: number };
   /** Rincian di atas total (A3): paket + "1 lembar cetak Termasuk", atau tambahan lembar. */
   lines: Line[];
+  voucher?: boolean;
   onPaid: (paymentId: string, amount: number) => void;
   onCancel: () => void;
 }) {
@@ -48,13 +51,23 @@ export function Payment({
   const req = useRef(request);
   const paid = useRef(onPaid);
   paid.current = onPaid;
+  // Voucher yang sudah diterima server: ikut saat QR dibuat ulang (kedaluwarsa / Coba lagi).
+  const applied = useRef<string | null>(null);
+  const [entry, setEntry] = useState<VoucherEntry | null>(null);
 
   const create = useCallback(() => {
     setSt({ s: "creating" });
-    p.payments.create(req.current).then(
-      (bill) => {
-        console.info(`[payment] ${bill.paymentId} dibuat Rp${bill.amount}`);
-        setSt({ s: "waiting", bill });
+    const code = applied.current;
+    p.payments.create({ ...req.current, ...(code && { voucherCode: code }) }).then(
+      (res) => {
+        if ("voucherError" in res) {
+          // Voucher habis/berakhir saat QR dibuat ulang: lanjut tanpa voucher (harga penuh terlihat di total).
+          applied.current = null;
+          return create();
+        }
+        console.info(`[payment] ${res.paymentId} dibuat Rp${res.amount}`);
+        if (res.amount === 0) return paid.current(res.paymentId, 0);
+        setSt({ s: "waiting", bill: res });
       },
       (e: unknown) => {
         console.warn(`[payment] gagal membuat QRIS: ${errText(e)}`);
@@ -90,6 +103,34 @@ export function Payment({
 
   const left = bill ? new Date(bill.expiresAt).getTime() - now : 0;
   const total = bill?.amount;
+
+  const applyVoucher = (code: string) => {
+    setEntry({ code, busy: true, err: null });
+    const r: PaymentCreateRequest = { ...req.current, voucherCode: code };
+    p.payments.create(r).then(
+      (res) => {
+        if ("voucherError" in res) {
+          console.info(`[payment] voucher ${code} ditolak: ${res.voucherError}`);
+          return setEntry({ code, busy: false, err: t.voucherErrors[res.voucherError] });
+        }
+        console.info(`[payment] voucher ${code}: ${res.paymentId} sisa Rp${res.amount}`);
+        applied.current = code;
+        setEntry(null);
+        if (res.amount === 0) paid.current(res.paymentId, 0);
+        else setSt({ s: "waiting", bill: res });
+      },
+      (e: unknown) => {
+        console.warn(`[payment] voucher gagal: ${errText(e)}`);
+        setEntry({ code, busy: false, err: t.voucherOffline });
+      },
+    );
+  };
+  const shown: Line[] = bill?.discount
+    ? [
+        ...lines,
+        { label: t.voucherLine(applied.current ?? ""), value: `−${rupiah(bill.discount)}` },
+      ]
+    : lines;
 
   if (st.s === "expired" || st.s === "error") {
     const expired = st.s === "expired";
@@ -143,60 +184,82 @@ export function Payment({
           </p>
         </div>
       </section>
-      <section className="flex flex-col justify-center gap-8 px-[110px] portrait:px-16">
-        <PhotoboxSteps current={request.extraPrints ? 3 : 1} />
-        <div className="overflow-hidden rounded-[28px] border-[2.5px] border-ink bg-white text-[30px]">
-          {lines.map((l, i) => (
-            <div
-              key={l.label}
-              className={`flex justify-between px-8 py-6 ${i ? "border-t-2 border-dashed border-ink text-text-2" : "font-semibold"}`}
-            >
-              <span>{l.label}</span>
-              <span>{l.value}</span>
-            </div>
-          ))}
-          <div className="flex justify-between border-t-[2.5px] border-ink bg-peach px-8 py-7 text-[40px] font-extrabold">
-            <span>{t.total}</span>
-            <span data-testid="payment-total">{total === undefined ? "…" : rupiah(total)}</span>
-          </div>
-        </div>
-        <ol className="flex flex-col gap-5 text-[32px] font-medium">
-          {t.steps.map((step, i) => (
-            <li key={step} className="flex items-center gap-6">
-              <span
-                className={`flex size-[64px] items-center justify-center rounded-2xl border-2 border-dashed border-ink text-[28px] font-bold ${["bg-peach", "bg-sky", "bg-mint-soft"][i]}`}
+      {entry ? (
+        <VoucherPad
+          entry={entry}
+          onChange={(code) => setEntry({ code, busy: false, err: null })}
+          onApply={() => applyVoucher(entry.code)}
+          onBack={() => setEntry(null)}
+        />
+      ) : (
+        <section className="flex flex-col justify-center gap-8 px-[110px] portrait:px-16">
+          <PhotoboxSteps current={request.extraPrints ? 3 : 1} />
+          <div className="overflow-hidden rounded-[28px] border-[2.5px] border-ink bg-white text-[30px]">
+            {shown.map((l, i) => (
+              <div
+                key={l.label}
+                className={`flex justify-between px-8 py-6 ${i ? "border-t-2 border-dashed border-ink text-text-2" : "font-semibold"}`}
               >
-                {i + 1}
+                <span>{l.label}</span>
+                <span className="tabular-nums">{l.value}</span>
+              </div>
+            ))}
+            {voucher && bill && !applied.current && (
+              <button
+                type="button"
+                data-testid="voucher-open"
+                onClick={() => setEntry({ code: "", busy: false, err: null })}
+                className="flex w-full justify-between border-t-2 border-dashed border-ink bg-butter px-8 py-5 text-left font-bold"
+              >
+                <span>{t.voucherAsk}</span>
+                <span className="underline">{t.voucherEnter}</span>
+              </button>
+            )}
+            <div className="flex justify-between border-t-[2.5px] border-ink bg-peach px-8 py-7 text-[40px] font-extrabold">
+              <span>{t.total}</span>
+              <span data-testid="payment-total" className="tabular-nums">
+                {total === undefined ? "…" : rupiah(total)}
               </span>
-              {step}
-            </li>
-          ))}
-        </ol>
-        <div className="flex items-center gap-8">
-          <div className="flex flex-1 items-center gap-5 text-[30px] font-bold" role="status">
-            <span className="flex gap-2">
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  style={{ animationDelay: `${i * 200}ms` }}
-                  className="size-4 animate-pulse rounded-full bg-ink"
-                />
-              ))}
-            </span>
-            {t.waiting}
+            </div>
           </div>
-          <Button
-            variant={confirmCancel ? "destructive" : "secondary"}
-            className="h-[104px] rounded-[26px] px-12 text-[30px]"
-            onClick={() => (confirmCancel ? onCancel() : setConfirmCancel(true))}
-          >
-            {confirmCancel ? t.cancelSure : t.cancel}
-          </Button>
-        </div>
-        <p className="rounded-[20px] border-2 border-dashed border-ink bg-sky px-7 py-5 text-[24px] font-semibold">
-          {confirmCancel ? t.cancelWarn : t.paidHelp}
-        </p>
-      </section>
+          <ol className="flex flex-col gap-5 text-[32px] font-medium">
+            {t.steps.map((step, i) => (
+              <li key={step} className="flex items-center gap-6">
+                <span
+                  className={`flex size-[64px] items-center justify-center rounded-2xl border-2 border-dashed border-ink text-[28px] font-bold ${["bg-peach", "bg-sky", "bg-mint-soft"][i]}`}
+                >
+                  {i + 1}
+                </span>
+                {step}
+              </li>
+            ))}
+          </ol>
+          <div className="flex items-center gap-8">
+            <div className="flex flex-1 items-center gap-5 text-[30px] font-bold" role="status">
+              <span className="flex gap-2">
+                {[0, 1, 2].map((i) => (
+                  <span
+                    key={i}
+                    style={{ animationDelay: `${i * 200}ms` }}
+                    className="size-4 animate-pulse rounded-full bg-ink"
+                  />
+                ))}
+              </span>
+              {t.waiting}
+            </div>
+            <Button
+              variant={confirmCancel ? "destructive" : "secondary"}
+              className="h-[104px] rounded-[26px] px-12 text-[30px]"
+              onClick={() => (confirmCancel ? onCancel() : setConfirmCancel(true))}
+            >
+              {confirmCancel ? t.cancelSure : t.cancel}
+            </Button>
+          </div>
+          <p className="rounded-[20px] border-2 border-dashed border-ink bg-sky px-7 py-5 text-[24px] font-semibold">
+            {confirmCancel ? t.cancelWarn : t.paidHelp}
+          </p>
+        </section>
+      )}
     </main>
   );
 }
@@ -219,7 +282,7 @@ export function Paid({ amount, name, seconds }: { amount: number; name: string; 
           {t.success}
         </h1>
         <p className="text-[36px] text-text-2">
-          {rupiah(amount)} · {name}
+          {amount ? rupiah(amount) : t.voucherPaid} · {name}
         </p>
         <p className="flex w-full items-center justify-center gap-4 border-t-2 border-dashed border-ink pt-8 text-[32px] font-bold">
           {t.startsIn}
@@ -229,5 +292,100 @@ export function Paid({ amount, name, seconds }: { amount: number; name: string; 
         </p>
       </div>
     </main>
+  );
+}
+
+type VoucherEntry = { code: string; busy: boolean; err: string | null };
+const KEYS = ["1234567890", "QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+
+/** Ketik kode voucher (huruf & angka, keypad layar + keyboard laptop); QR di kiri tetap aktif. */
+function VoucherPad({
+  entry,
+  onChange,
+  onApply,
+  onBack,
+}: {
+  entry: VoucherEntry;
+  onChange: (code: string) => void;
+  onApply: () => void;
+  onBack: () => void;
+}) {
+  const { code, busy, err } = entry;
+  const ready = code.length >= 3 && !busy;
+  const add = (k: string) => !busy && code.length < 20 && onChange(code + k);
+  const del = () => !busy && onChange(code.slice(0, -1));
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (/^[a-z0-9]$/i.test(e.key)) add(e.key.toUpperCase());
+      else if (e.key === "Backspace") del();
+      else if (e.key === "Enter") ready && onApply();
+      else if (e.key === "Escape") onBack();
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+  const key =
+    "pressable flex h-[76px] flex-1 items-center justify-center rounded-[18px] border-[2.5px] border-ink bg-white text-[30px] font-bold disabled:opacity-40 portrait:h-[60px]";
+  return (
+    <section
+      data-testid="voucher-pad"
+      className="flex flex-col justify-center gap-6 px-[90px] portrait:gap-4 portrait:px-12"
+    >
+      <h2 className="text-[48px] leading-none font-extrabold tracking-[-0.03em]">
+        {t.voucherTitle}
+      </h2>
+      <div
+        data-testid="voucher-code"
+        className="flex h-[100px] items-center rounded-[24px] border-[2.5px] border-ink bg-white px-8 font-mono text-[48px] font-bold tracking-[0.12em]"
+      >
+        {code || <span className="text-text-2">______</span>}
+      </div>
+      <p
+        role="alert"
+        className={`min-h-[44px] text-[26px] font-semibold ${err ? "rounded-[16px] border-2 border-dashed border-ink bg-peach px-5 py-2" : ""}`}
+      >
+        {err ?? " "}
+      </p>
+      <div className="flex flex-col gap-3">
+        {KEYS.map((row, i) => (
+          <div key={row} className="flex gap-3">
+            {[...row].map((k) => (
+              <button key={k} type="button" disabled={busy} onClick={() => add(k)} className={key}>
+                {k}
+              </button>
+            ))}
+            {i === KEYS.length - 1 && (
+              <button
+                type="button"
+                aria-label={t.voucherDelete}
+                disabled={busy}
+                onClick={del}
+                className={`${key} flex-[3] bg-sky`}
+              >
+                <Delete size={36} />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-6">
+        <Button
+          variant="secondary"
+          className="h-[96px] flex-1 rounded-[26px] text-[30px]"
+          onClick={onBack}
+        >
+          {t.voucherBack}
+        </Button>
+        <Button
+          className="h-[96px] flex-[2] rounded-[26px] text-[30px]"
+          disabled={!ready}
+          onClick={onApply}
+        >
+          {busy ? t.voucherChecking : t.voucherApply}
+        </Button>
+      </div>
+    </section>
   );
 }

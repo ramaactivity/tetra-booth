@@ -643,6 +643,7 @@ export function SessionRunner({
                     { label: copy.payment.oneSheet, value: copy.payment.included },
                   ]
             }
+            voucher={!extra && event.photobox.voucher === true}
             onPaid={(paymentId, amount) => {
               setPaidAmount(amount);
               dispatch({ type: "PAID", paymentId });

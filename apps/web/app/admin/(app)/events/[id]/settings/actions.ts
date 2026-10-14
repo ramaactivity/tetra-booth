@@ -82,6 +82,8 @@ const Form = z.object({
     .optional(),
   /** Kartu promosi di halaman tamu (#215): hidden "off" + checkbox "on". Tidak dikirim = tidak diubah. */
   promo_card: z.enum(["on", "off"]).optional(),
+  /** Terima voucher photobox; tidak dikirim (wizard, ganti template) = nilai lama. */
+  pb_voucher: z.enum(["on", "off"]).optional(),
   /** Paket (#150). Tidak dikirim = tidak diubah; kosong = dihapus. */
   package_name: z.string().trim().max(80).optional(),
   /** Tautan booking Tetra Ops (#193), mis. PRJ-20261004-9023; kosong = tidak ditautkan. Tidak dikirim = tidak diubah. */
@@ -175,7 +177,7 @@ export async function applySettings(
   const f = p.data;
   const { data: ev } = await db
     .from("events")
-    .select("id, bundle, bundle_version, branding")
+    .select("id, bundle, bundle_version, branding, settings")
     .eq("id", eventId)
     .eq("organization_id", orgId)
     .single();
@@ -272,7 +274,15 @@ export async function applySettings(
     return { ok: false, message: `Harga layout minimal Rp ${MIN_PRICE.toLocaleString("id-ID")}` };
   if (f.mode === "photobox" && !layouts.length)
     return { ok: false, message: "Mode photobox: centang minimal satu layout yang dijual" };
-  const photobox: PhotoboxSettings = { layouts, extraPrintPrice: f.extraPrintPrice };
+  const voucher =
+    f.pb_voucher !== undefined
+      ? f.pb_voucher === "on"
+      : (ev.settings as { photobox?: PhotoboxSettings } | null)?.photobox?.voucher === true;
+  const photobox: PhotoboxSettings = {
+    layouts,
+    extraPrintPrice: f.extraPrintPrice,
+    ...(voucher && { voucher }),
+  };
 
   // Lead capture (FSD §2, DECISIONS #71): versi persetujuan = hash teks, berubah otomatis saat teks diubah.
   const leadOn = form.get("lead_enabled") === "on";

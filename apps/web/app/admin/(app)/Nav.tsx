@@ -8,6 +8,7 @@ import {
   Megaphone,
   ReceiptText,
   Store,
+  TicketPercent,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -54,6 +55,13 @@ const items = [
     t: copy.admin.nav.promo,
     I: Megaphone,
     match: (p: string) => p.startsWith("/admin/promo"),
+    roles: ["owner", "admin"],
+  },
+  {
+    href: "/admin/vouchers",
+    t: copy.admin.nav.vouchers,
+    I: TicketPercent,
+    match: (p: string) => p.startsWith("/admin/vouchers"),
     roles: ["owner", "admin"],
   },
   {

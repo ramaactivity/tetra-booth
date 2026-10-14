@@ -105,6 +105,8 @@ export type PhotoboxLayout = z.infer<typeof PhotoboxLayoutSchema>;
 export const PhotoboxSchema = z.object({
   layouts: z.array(PhotoboxLayoutSchema).min(1).max(8),
   extraPrintPrice: z.number().int().min(0).max(1_000_000),
+  /** Event menerima voucher (pengaturan event, bawaan mati): tombol "Punya voucher?" di layar bayar. */
+  voucher: z.boolean().optional(),
 });
 export type Photobox = z.infer<typeof PhotoboxSchema>;
 

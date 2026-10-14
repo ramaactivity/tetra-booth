@@ -893,6 +893,7 @@ export type Database = {
           amount_idr: number
           created_at: string
           device_id: string
+          discount_idr: number
           event_id: string
           event_layout_id: string | null
           expires_at: string
@@ -908,11 +909,13 @@ export type Database = {
           raw: Json | null
           session_id: string | null
           status: string
+          voucher_id: string | null
         }
         Insert: {
           amount_idr: number
           created_at?: string
           device_id: string
+          discount_idr?: number
           event_id: string
           event_layout_id?: string | null
           expires_at: string
@@ -928,11 +931,13 @@ export type Database = {
           raw?: Json | null
           session_id?: string | null
           status: string
+          voucher_id?: string | null
         }
         Update: {
           amount_idr?: number
           created_at?: string
           device_id?: string
+          discount_idr?: number
           event_id?: string
           event_layout_id?: string | null
           expires_at?: string
@@ -948,6 +953,7 @@ export type Database = {
           raw?: Json | null
           session_id?: string | null
           status?: string
+          voucher_id?: string | null
         }
         Relationships: [
           {
@@ -976,6 +982,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
             referencedColumns: ["id"]
           },
         ]
@@ -1103,6 +1116,66 @@ export type Database = {
           },
         ]
       }
+      vouchers: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          ends_at: string | null
+          event_id: string | null
+          id: string
+          kind: string
+          max_uses: number | null
+          note: string | null
+          organization_id: string
+          starts_at: string | null
+          value: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          ends_at?: string | null
+          event_id?: string | null
+          id?: string
+          kind: string
+          max_uses?: number | null
+          note?: string | null
+          organization_id: string
+          starts_at?: string | null
+          value: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          ends_at?: string | null
+          event_id?: string | null
+          id?: string
+          kind?: string
+          max_uses?: number | null
+          note?: string | null
+          organization_id?: string
+          starts_at?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vouchers_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vouchers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       layout_usage: {
@@ -1199,6 +1272,29 @@ export type Database = {
       rate_hit: {
         Args: { k: string; max_hits: number; window_s: number }
         Returns: boolean
+      }
+      redeem_voucher: {
+        Args: {
+          p_amount: number
+          p_device: string
+          p_discount: number
+          p_event: string
+          p_expires: string
+          p_kind: string
+          p_layout: string
+          p_org: string
+          p_provider: string
+          p_session: string
+          p_value: number
+          p_voucher: string
+        }
+        Returns: Database["public"]["Tables"]["payments"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {

@@ -170,6 +170,7 @@ export function buildBundle(e: {
     ? {
         layouts: pbItems.map((x) => x.entry),
         extraPrintPrice: e.photobox?.extraPrintPrice ?? 0,
+        ...(e.photobox?.voucher && { voucher: true }),
       }
     : undefined;
   const layout = e.custom ? customLayout(e.custom) : layoutOf(e.template.preset);

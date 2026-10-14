@@ -9,7 +9,7 @@ import type {
   LayoutSpec,
   Paper,
   PaymentCreateRequest,
-  PaymentCreateResponse,
+  PaymentCreateResult,
   PaymentStatus,
   RunAction,
   RunState,
@@ -376,7 +376,7 @@ export interface BoothEvents {
 
 /** QRIS photobox lewat cloud (TSD §8). Satu-satunya langkah yang butuh internet; gagal = reject. */
 export interface BoothPayments {
-  create(req: PaymentCreateRequest): Promise<PaymentCreateResponse>;
+  create(req: PaymentCreateRequest): Promise<PaymentCreateResult>;
   status(paymentId: string): Promise<PaymentStatus>;
 }
 
