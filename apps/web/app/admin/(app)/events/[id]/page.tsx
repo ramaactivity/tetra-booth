@@ -45,6 +45,7 @@ import { RecapDialog } from "./RecapDialog";
 import { RunPanel } from "./RunPanel";
 import { SessionTile } from "./SessionTile";
 import { LinksPanel } from "./settings/LinksPanel";
+import { UnsentBanner } from "./UnsentBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -384,6 +385,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
         </div>
       </div>
 
+      <UnsentBanner db={db} orgId={orgId} eventId={ev.id} />
       {units && <OpsUnits current={ev.id} units={units.rows} devices={units.devices} />}
       {opsDesign && opsPaper && (
         <OpsDesignInstall

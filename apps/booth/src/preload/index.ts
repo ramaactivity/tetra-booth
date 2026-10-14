@@ -34,6 +34,7 @@ const bridge: TetraBridge = {
   crewPair: (code) => ipcRenderer.invoke("crewPair", code),
   crewSyncEvents: () => ipcRenderer.invoke("crewSyncEvents"),
   crewRetryUploads: () => ipcRenderer.invoke("crewRetryUploads"),
+  crewUploads: () => ipcRenderer.invoke("crewUploads"),
   crewRunState: (id) => ipcRenderer.invoke("crewRunState", id),
   crewEventRun: (id, a) => ipcRenderer.invoke("crewEventRun", id, a),
   crewRecap: (id) => ipcRenderer.invoke("crewRecap", id),

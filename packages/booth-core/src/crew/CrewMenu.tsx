@@ -61,6 +61,7 @@ import { btn, dot, Panel, Pill, Row, StatusStrip, ToggleRow, type Tone } from ".
 import { Sheet } from "./Sheet";
 import { StartDialog } from "./StartDialog";
 import { testPrint } from "./testPrint";
+import { UploadStatus, uploadReason } from "./UploadStatus";
 
 const PAPER_LOW = 30;
 const DEFAULT_ROLL = 700;
@@ -1063,6 +1064,7 @@ export function CrewMenu({
               )}
             </Row>
           </Panel>
+          <UploadStatus activeId={event.id} />
           <RoleChoice dev={dev} />
           <Panel title={c.sharpen.title} hint={c.sharpen.body}>
             {sharpen && (
@@ -1365,14 +1367,4 @@ export function CrewMenu({
       )}
     </main>
   );
-}
-
-/** Error upload mentah ("/api/booth/sessions: server 404", "fetch failed") → alasan yang dimengerti crew. */
-function uploadReason(raw: string): string {
-  const e = copy.crew.uploadErr;
-  if (/server 401|server 403/.test(raw)) return e.revoked;
-  if (/server 404/.test(raw)) return e.gone;
-  if (/server 5\d\d/.test(raw)) return e.server;
-  if (/fetch failed|offline|ENOTFOUND|ECONN|ETIMEDOUT|network/i.test(raw)) return e.offline;
-  return e.other;
 }

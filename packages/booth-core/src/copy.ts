@@ -591,6 +591,21 @@ export const copy = {
       other: "dicoba lagi otomatis",
     },
     allSent: "Semua foto sudah terkirim",
+    uploads: {
+      title: "Upload per event",
+      hint: "Foto aman di laptop dan terkirim sendiri begitu ada internet. Jangan hapus aplikasi atau folder event sebelum semuanya terkirim.",
+      empty: "Belum ada sesi event cloud di laptop ini.",
+      summary: (sent: number, total: number, files: number) =>
+        `${sent}/${total} sesi terkirim${files ? ` · ${files} file antre` : ""}`,
+      allSent: "Semua terkirim",
+      notYet: "Belum lengkap",
+      show: "Lihat sesi",
+      hide: "Tutup",
+      files: (sent: number, total: number) => `${sent}/${total} file`,
+      sent: "Terkirim",
+      queued: "Antre",
+      more: (n: number) => `+${n} sesi lain`,
+    },
     sound: "Suara booth",
     soundHint:
       "Suara pemandu, sorakan, dan bunyi hitung mundur. Matikan untuk acara formal atau ruang tenang.",

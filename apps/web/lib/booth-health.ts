@@ -90,3 +90,39 @@ export const boothsOfEvent = <D extends { id: string; status: unknown }>(
       BoothStatus.safeParse(d.status).data?.activeEvent === e.id ||
       (!e.all_devices && e.event_devices.some((x) => x.device_id === d.id)),
   );
+
+/** Sesi & file event ini yang masih di laptop (heartbeat `uploadsByEvent`, #271), per laptop. */
+export type Unsent = {
+  device: string;
+  sessions: number;
+  files: number;
+  online: boolean;
+  lastSeen: string | null;
+};
+export function unsentByEvent(
+  devices: {
+    name: string;
+    short_code?: string | null;
+    last_seen_at: string | null;
+    status: unknown;
+  }[],
+  now = Date.now(),
+): Map<string, Unsent[]> {
+  const out = new Map<string, Unsent[]>();
+  for (const d of devices) {
+    const st = BoothStatus.safeParse(d.status);
+    for (const u of (st.success && st.data.uploadsByEvent) || []) {
+      if (!u.sessions) continue;
+      const list = out.get(u.eventId) ?? [];
+      list.push({
+        device: [d.name, d.short_code].filter(Boolean).join(" · "),
+        sessions: u.sessions,
+        files: u.files,
+        online: isOnline(d.last_seen_at, now),
+        lastSeen: d.last_seen_at,
+      });
+      out.set(u.eventId, list);
+    }
+  }
+  return out;
+}

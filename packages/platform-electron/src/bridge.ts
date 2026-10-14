@@ -75,6 +75,7 @@ export type TetraBridge = {
   crewPair: BoothCrew["pair"];
   crewSyncEvents: BoothCrew["syncEvents"];
   crewRetryUploads: BoothCrew["retryUploads"];
+  crewUploads: BoothCrew["uploads"];
   crewRunState: BoothCrew["runState"];
   crewEventRun: BoothCrew["eventRun"];
   crewRecap: BoothCrew["recap"];

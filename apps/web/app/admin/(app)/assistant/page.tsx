@@ -1,7 +1,7 @@
 import { BoothStatus } from "@tetra/shared";
 import { Camera, CloudUpload, Printer, TriangleAlert } from "lucide-react";
 import Link from "next/link";
-import { boothsOfEvent, CAMERA_KIND, PAPER_LOW, problems } from "@/lib/booth-health";
+import { boothsOfEvent, CAMERA_KIND, PAPER_LOW, problems, unsentByEvent } from "@/lib/booth-health";
 import { ymdWib } from "@/lib/events";
 import { ago, isOnline } from "@/lib/format";
 import { requireMember } from "@/lib/supabase/server";
@@ -72,6 +72,7 @@ export default async function AssistantPage() {
   const shown = new Set(evs.flatMap((e) => devsOf(e).map((d) => d.id)));
   const others = devs.filter((d) => !shown.has(d.id) && isOnline(d.last_seen_at, now));
   const units = unitLabels(evs);
+  const unsent = unsentByEvent(devs, now);
 
   return (
     <main className="mx-auto w-full max-w-[720px] px-4 pt-6 pb-16 md:px-8">
@@ -108,6 +109,16 @@ export default async function AssistantPage() {
                 {total.sessions} sesi · {total.prints} lembar
               </p>
             </div>
+            {(unsent.get(e.id) ?? []).map((u) => (
+              <p
+                key={u.device}
+                data-testid="assistant-unsent"
+                className="mt-2 rounded-xl border-[1.5px] border-ink bg-peach px-3 py-2 text-sm font-bold"
+              >
+                {u.device}: {u.sessions} sesi ({u.files} file) belum terkirim
+                {u.online ? ", sedang dikirim" : ", laptop offline"}
+              </p>
+            ))}
             {ds.length === 0 ? (
               <p className="mt-2 rounded-2xl border-[1.5px] border-dashed border-ink/40 bg-paper px-4 py-3 text-sm text-text-2">
                 Belum ada laptop yang membuka acara ini.

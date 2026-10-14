@@ -34,6 +34,14 @@ create table if not exists print_jobs (
 import type { AssetKindName } from "@tetra/shared";
 
 export type AssetKind = AssetKindName;
+export type UploadSessionRow = {
+  id: string;
+  eventId: string;
+  completedAt: string;
+  files: number;
+  sent: number;
+  error: string | null;
+};
 
 /** Urutan upload TSD §4.2: strip_web & thumb strip → original → sisanya. */
 export const UPLOAD_PRIORITY: Record<AssetKind, number> = {
@@ -392,6 +400,24 @@ export function openDb(file: string) {
         pendingGroups: rows.length,
         pending: rows.map((r) => r.id).filter((id) => want.has(id)),
       };
+    },
+    /**
+     * Status upload per sesi selesai (#271): jumlah file, yang sudah terunggah, error terakhir di antrean. Hanya
+     * event cloud; terbaru dulu. Dipakai crew (daftar per sesi) & heartbeat (ringkasan per event).
+     */
+    uploadSessions(): UploadSessionRow[] {
+      return (
+        db
+          .prepare(
+            `select s.id, s.event_id eventId, s.completed_at completedAt, count(a.id) files,
+               count(a.uploaded_at) sent, max(q.last_error) error
+             from sessions s join assets a on a.session_id = s.id
+               left join upload_queue q on q.asset_id = a.id
+             where s.completed_at is not null
+             group by s.id order by s.completed_at desc`,
+          )
+          .all() as UploadSessionRow[]
+      ).filter((r) => UUID.test(r.eventId));
     },
     uploadPending(): number {
       return (db.prepare("select count(*) n from upload_queue").get() as { n: number }).n;

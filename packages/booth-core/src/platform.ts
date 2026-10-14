@@ -79,6 +79,25 @@ export interface BoothDb {
   }): Promise<void>;
 }
 
+/** Satu sesi selesai: `sent` dari `files` sudah di cloud; `error` = alasan percobaan terakhir gagal. */
+export type UploadSession = {
+  id: string;
+  completedAt: string;
+  files: number;
+  sent: number;
+  error: string | null;
+};
+export type UploadEvent = {
+  eventId: string;
+  name: string;
+  sessions: number;
+  sentSessions: number;
+  files: number;
+  sentFiles: number;
+  /** Terbaru dulu, maks. 300. */
+  list: UploadSession[];
+};
+
 export type Unsubscribe = () => void;
 export type CrewStatus = {
   online: boolean;
@@ -257,6 +276,8 @@ export interface BoothCrew {
   galleryLink(eventId: string): Promise<string>;
   /** Unggah antrean sekarang juga, lewati jeda backoff (FSD §1.3 "coba sekarang"). */
   retryUploads(): Promise<void>;
+  /** Status upload per event cloud + per sesi (#271): mana yang sudah terkirim dan mana yang masih di laptop. */
+  uploads(): Promise<UploadEvent[]>;
   device(): Promise<DeviceInfo>;
   /** Simpan pengaturan perangkat; booth dibuka ulang supaya kamera & printer baru dipakai. */
   saveDevice(s: DeviceSettings): Promise<void>;

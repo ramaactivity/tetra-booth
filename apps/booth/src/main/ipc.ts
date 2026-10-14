@@ -59,6 +59,7 @@ import { onPhase } from "./shots";
 import { stageInbox, stageListen } from "./stage";
 import { stageHelperKey, stageLanUrls } from "./stage-lan";
 import { downloadInstaller, runInstaller } from "./update";
+import { summarizeUploads } from "./upload-report";
 
 /** %APPDATA%/TetraBooth/sessions (TSD §3). Renderer hanya boleh baca/tulis di bawah folder ini. */
 const sessionsRoot = () => join(app.getPath("userData"), "sessions");
@@ -399,6 +400,19 @@ export function registerIpc(
     const url = `${config.guestUrl}/g/${slug}`;
     clipboard.writeText(url);
     return url;
+  });
+  // Status upload per event & per sesi (#271, offline-first): event lokal tidak ikut (tidak pernah diunggah).
+  ipcMain.handle("crewUploads", () => {
+    crewOnly();
+    const rows = db.uploadSessions();
+    return summarizeUploads(rows).map((e) => ({
+      ...e,
+      name: bundles.find((b) => b.id === e.eventId)?.name ?? e.eventId,
+      list: rows
+        .filter((r) => r.eventId === e.eventId)
+        .slice(0, 300)
+        .map(({ eventId: _e, ...r }) => r),
+    }));
   });
   ipcMain.handle("crewRetryUploads", async () => {
     crewOnly();

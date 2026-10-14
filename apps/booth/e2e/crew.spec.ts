@@ -253,6 +253,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   const storage: { bytes: number; files: number }[] = [];
   let gifHead = "";
   let linkCalls = 0;
+  let r2Down = false;
   const EVENT = "7c9e6679-7425-40de-944b-e07fc1f90ae8";
   const pngSha = createHash("sha256").update(PNG).digest("hex");
   const config = JSON.parse(
@@ -344,6 +345,11 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
           }),
         );
       } else if (req.url?.startsWith("/r2/")) {
+        // Sinyal hilang di tengah acara (#271): upload file gagal, sesi tetap di laptop.
+        if (r2Down) {
+          res.statusCode = 503;
+          return res.end();
+        }
         puts.push(req.url);
         if (req.url.includes("animation")) gifHead = body.slice(0, 6);
         res.end();
@@ -422,6 +428,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   expect(st?.paper?.capacity).toBeGreaterThan(0);
   expect(st?.failedPrints).toBeGreaterThanOrEqual(0);
   expect(st?.uploadPending).toBeGreaterThanOrEqual(0);
+  expect(st?.uploadsByEvent).toEqual([]);
   expect(st?.diskFreeGb).toBeGreaterThan(0);
 
   // Bundle sudah ditarik otomatis setelah pairing; tombol sync tetap aman dipanggil ulang.
@@ -594,6 +601,28 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   expect(recorded).toContain("animation");
   expect(gifHead).toBe("GIF89a");
   expect(new Set(puts).size).toBe(recorded.length);
+
+  // Offline-first (#271): R2 tidak terjangkau → sesi tetap di laptop, crew melihat event & sesi mana yang belum
+  // terkirim beserta alasannya; begitu pulih, Kirim ulang sekarang → semua terkirim.
+  r2Down = true;
+  await session(w);
+  await openCrew(w);
+  await typePin(w, "2468");
+  await w.getByTestId("crew-nav-system").click();
+  const ev = w.getByTestId(`upload-event-${EVENT}`);
+  await expect(ev).toContainText("Belum lengkap", { timeout: 30_000 });
+  await expect(ev).toContainText(/2\/3 sesi terkirim · \d+ file antre/);
+  await ev.getByRole("button", { name: "Lihat sesi" }).click();
+  await expect(ev.getByTestId("upload-session")).toHaveCount(3);
+  await expect(ev.getByTestId("upload-session").first()).toContainText("dicoba lagi otomatis", {
+    timeout: 30_000,
+  });
+  await w.screenshot({ path: "test-results/crew-upload-pending.png" });
+  r2Down = false;
+  await w.getByRole("button", { name: "Kirim ulang sekarang" }).click();
+  await expect(ev).toContainText("Semua terkirim", { timeout: 30_000 });
+  await expect(ev).toContainText("3/3 sesi terkirim");
+  await w.screenshot({ path: "test-results/crew-upload-done.png" });
 
   await app.close();
   server.close();

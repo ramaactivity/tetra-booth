@@ -22,7 +22,7 @@ test("assistant: acara hari ini, laptop + masalahnya, bisa dibuka crew", async (
       event_date: today,
       ops_project_id: `PRJ-E2E-AS-${tag}`,
     })
-    .select("id")
+    .select("id, slug")
     .single();
   const { data: dev } = await db
     .from("devices")
@@ -36,7 +36,9 @@ test("assistant: acara hari ini, laptop + masalahnya, bisa dibuka crew", async (
         activeEventName: `e2e Assistant ${tag}`,
         paper: { capacity: 700, remaining: 20 },
         failedPrints: 2,
-        uploadPending: 0,
+        uploadPending: 18,
+        // Offline-first (#271): 3 sesi event ini masih di laptop.
+        uploadsByEvent: [{ eventId: ev?.id, sessions: 3, files: 18 }],
         camera: { kind: "canon", model: "Canon EOS 60D", connected: true },
         printer: { name: "DS-RX1", status: "ready", message: null },
       },
@@ -54,6 +56,9 @@ test("assistant: acara hari ini, laptop + masalahnya, bisa dibuka crew", async (
     await expect(laptop).toContainText("Kertas tinggal 20 lembar");
     await expect(laptop).toContainText("2 cetak gagal");
     await expect(laptop).toContainText("Canon EOS 60D");
+    await expect(card.getByTestId("assistant-unsent")).toHaveText(
+      `e2e laptop ${tag} · E2E-A${tag}: 3 sesi (18 file) belum terkirim, sedang dikirim`,
+    );
     await page.screenshot({ path: "test-results/assistant.png", fullPage: true });
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
     expect(overflow).toBe(false);
@@ -76,6 +81,20 @@ test("assistant: acara hari ini, laptop + masalahnya, bisa dibuka crew", async (
       camera: { model: "Canon EOS 60D", connected: true },
     });
     expect(opsEv.booths[0].issues).toContain("Kertas tinggal 20 lembar");
+
+    // Halaman event: banner sesi yang masih di laptop; daftar event: chip "3 sesi belum terkirim".
+    await page.goto(`/admin/events/${ev?.slug}`);
+    await expect(page.getByTestId("unsent-banner")).toContainText(
+      `e2e laptop ${tag} · E2E-A${tag}: 3 sesi (18 file) masih di laptop, sedang dikirim`,
+    );
+    await page.screenshot({ path: "test-results/event-unsent.png" });
+    await page.goto("/admin");
+    await expect(
+      page
+        .getByRole("link")
+        .filter({ hasText: `e2e Assistant ${tag}` })
+        .getByTestId("event-unsent"),
+    ).toHaveText("3 sesi belum terkirim");
   } finally {
     await db
       .from("devices")

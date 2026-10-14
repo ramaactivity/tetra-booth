@@ -43,6 +43,13 @@ export const BoothStatus = z.object({
   paper: tolerant(z.object({ remaining: count, capacity: count })),
   failedPrints: tolerant(count),
   uploadPending: tolerant(count),
+  /**
+   * Sesi & file yang masih di laptop per event cloud (#271, offline-first): admin tahu event mana yang belum
+   * terkirim lengkap walau sesinya belum pernah sampai ke cloud. Hanya event yang masih punya antrean.
+   */
+  uploadsByEvent: tolerant(
+    z.array(z.object({ eventId: z.string().max(40), sessions: count, files: count })).max(50),
+  ),
   lastError: tolerant(z.string().max(300).nullable()),
   diskFreeGb: tolerant(z.number().nonnegative()),
 });
