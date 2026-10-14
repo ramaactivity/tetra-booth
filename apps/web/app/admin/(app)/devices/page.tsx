@@ -13,6 +13,7 @@ import { copy } from "@/lib/copy";
 import { ago, isOnline } from "@/lib/format";
 import { latestBoothRelease } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
+import { unitLabels } from "@/lib/tetra-ops";
 import { AddDevice, AutoRefresh, DeviceActions } from "./PairPanel";
 
 export const dynamic = "force-dynamic";
@@ -61,11 +62,22 @@ export default async function DevicesPage() {
     ...new Set(rows.map((r) => r.st.activeEvent).filter((x): x is string => !!x && x !== "local")),
   ];
   const { data: events } = ids.length
-    ? await db.from("events").select("id, name").eq("organization_id", orgId).in("id", ids)
+    ? await db
+        .from("events")
+        .select("id, name, ops_project_id, ops_sync, paper:bundle->config->layout->paper")
+        .eq("organization_id", orgId)
+        .in("id", ids)
     : { data: [] };
+  // Dua laptop acara multi-unit sama-sama "Outing IT 2026": tambahkan "Unit N · ukuran" (#268).
+  const units = unitLabels(events ?? []);
   const eventName = (st: BoothStatus) =>
-    events?.find((e) => e.id === st.activeEvent)?.name ??
-    st.activeEventName ??
+    ([
+      events?.find((e) => e.id === st.activeEvent)?.name,
+      st.activeEvent && units.get(st.activeEvent),
+    ]
+      .filter(Boolean)
+      .join(" · ") ||
+      st.activeEventName) ??
     (!st.activeEvent || st.activeEvent === "local"
       ? "Belum dipilih"
       : UUID.test(st.activeEvent)

@@ -1540,42 +1540,61 @@ function OpsPanel({
               key={b.project_id}
               className="border-b-[1.5px] border-dashed border-line-soft last:border-b-0"
             >
-              <button
-                type="button"
-                onClick={() => onPick(b)}
-                className="grid w-full grid-cols-[88px_minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 text-left hover:bg-mint-soft"
-              >
-                <span className="font-mono text-[13px] leading-tight">
-                  {opsDate(b.event_date)}
-                  {b.start_time && (
-                    <span className="block text-xs text-text-2">
-                      {b.start_time}
-                      {b.end_time ? `–${b.end_time}` : ""}
-                    </span>
-                  )}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold">
+              {ops?.ok && ops.existing[b.project_id] ? (
+                // Booking ini sudah diimpor (#268): buka event yang ada, jangan buat Unit 1 dobel.
+                <Link
+                  href={`/admin/events/${ops.existing[b.project_id]}`}
+                  data-testid="ops-existing"
+                  className="grid w-full grid-cols-[88px_minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 text-left no-underline hover:bg-paper"
+                >
+                  <span className="font-mono text-[13px] leading-tight">
+                    {opsDate(b.event_date)}
+                  </span>
+                  <span className="block truncate text-sm font-bold text-text-2">
                     {opsName(b) || b.project_id}
                   </span>
-                  <span className="block truncate text-xs text-text-2">
-                    {[b.venue_name, b.venue_city].filter(Boolean).join(", ") ||
-                      "Lokasi belum diisi"}
+                  <span className="rounded-full border-[1.5px] border-ink bg-mint-soft px-2.5 py-0.5 text-xs font-extrabold">
+                    Sudah di Booth · Buka event
                   </span>
-                </span>
-                <span className="flex flex-wrap justify-end gap-1.5">
-                  {b.package_name && (
-                    <span className="rounded-full border-[1.5px] border-ink bg-white px-2.5 py-0.5 text-xs font-bold">
-                      {b.package_name}
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onPick(b)}
+                  className="grid w-full grid-cols-[88px_minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 text-left hover:bg-mint-soft"
+                >
+                  <span className="font-mono text-[13px] leading-tight">
+                    {opsDate(b.event_date)}
+                    {b.start_time && (
+                      <span className="block text-xs text-text-2">
+                        {b.start_time}
+                        {b.end_time ? `–${b.end_time}` : ""}
+                      </span>
+                    )}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-bold">
+                      {opsName(b) || b.project_id}
                     </span>
-                  )}
-                  {b.frame_size && b.frame_size !== "none" && (
-                    <span className="rounded-full border-[1.5px] border-ink bg-lavender px-2.5 py-0.5 font-mono text-xs font-medium">
-                      {b.frame_size}
+                    <span className="block truncate text-xs text-text-2">
+                      {[b.venue_name, b.venue_city].filter(Boolean).join(", ") ||
+                        "Lokasi belum diisi"}
                     </span>
-                  )}
-                </span>
-              </button>
+                  </span>
+                  <span className="flex flex-wrap justify-end gap-1.5">
+                    {b.package_name && (
+                      <span className="rounded-full border-[1.5px] border-ink bg-white px-2.5 py-0.5 text-xs font-bold">
+                        {b.package_name}
+                      </span>
+                    )}
+                    {b.frame_size && b.frame_size !== "none" && (
+                      <span className="rounded-full border-[1.5px] border-ink bg-lavender px-2.5 py-0.5 font-mono text-xs font-medium">
+                        {b.frame_size}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              )}
             </li>
           ))}
         </ul>

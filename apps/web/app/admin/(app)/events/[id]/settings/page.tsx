@@ -15,7 +15,7 @@ import type { PhotoboxSettings } from "@/lib/payments";
 import { photoboxKey } from "@/lib/payments";
 import { presignGet } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
-import { opsBookingNow, opsInstagram } from "@/lib/tetra-ops";
+import { opsBookingNow, opsInstagram, unitLabels } from "@/lib/tetra-ops";
 import { loadDesignOptions } from "./design-options";
 import { GuestLinkPanel } from "./GuestLinkPanel";
 import { LinksPanel } from "./LinksPanel";
@@ -30,13 +30,31 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, guest_token, guest_link, all_devices, package_name, package_hours, ops_frame_size, scheduled_start, scheduled_end, ops_project_id, client_instagram, promo_off, event_devices(device_id)",
+      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, guest_token, guest_link, all_devices, package_name, package_hours, ops_frame_size, scheduled_start, scheduled_end, ops_project_id, ops_sync, client_instagram, promo_off, event_devices(device_id)",
     )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
     .maybeSingle();
   if (!ev) notFound();
   if (id !== ev.slug) redirect(`/admin/events/${ev.slug}/settings`);
+  // "Ganti desain" membawa admin ke sini; di acara multi-unit nama unit sama, jadi tampilkan unitnya (#268).
+  const { data: sibs } = ev.ops_project_id
+    ? await db
+        .from("events")
+        .select("id, name, ops_project_id, ops_sync, paper:bundle->config->layout->paper")
+        .eq("organization_id", orgId)
+        .eq("ops_project_id", ev.ops_project_id)
+        .neq("status", "archived")
+    : { data: null };
+  const unit = unitLabels(
+    sibs ?? [
+      {
+        ...ev,
+        paper: (ev.bundle as { config?: { layout?: { paper?: unknown } } } | null)?.config?.layout
+          ?.paper,
+      },
+    ],
+  ).get(ev.id);
   const { data: devices } = await db
     .from("devices")
     .select("id, name")
@@ -81,7 +99,17 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           <ChevronLeft aria-hidden className="size-4" strokeWidth={2} />
           {ev.name}
         </Link>
-        <h1 className="mt-1 text-[28px] font-extrabold tracking-[-0.03em]">Pengaturan</h1>
+        <h1 className="mt-1 flex flex-wrap items-center gap-3 text-[28px] font-extrabold tracking-[-0.03em]">
+          Pengaturan
+          {unit && (
+            <span
+              data-testid="settings-unit"
+              className="rounded-full border-[1.5px] border-ink bg-lavender px-3 py-0.5 text-sm font-extrabold tracking-normal"
+            >
+              {unit}
+            </span>
+          )}
+        </h1>
       </div>
       <SettingsForm
         eventId={ev.id}

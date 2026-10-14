@@ -258,6 +258,16 @@ test("wizard Ambil dari Tetra Ops: booking 2 unit (units[]) langsung membuat eve
     await page.getByRole("link", { name: "Buka event" }).click();
     await expect(page.getByTestId("ops-units")).toContainText("Semua unit sudah siap");
     await page.screenshot({ path: "test-results/ops-units-wizard.png" });
+
+    // #268: Pengaturan menampilkan unit; booking yang sudah diimpor tidak bisa dibuat Unit 1 lagi.
+    await page.goto(`${page.url().replace(/\/$/, "")}/settings`);
+    await expect(page.getByTestId("settings-unit")).toHaveText("Unit 1 · 4R");
+    await page.goto("/admin/events/new");
+    const done = page.getByTestId("ops-existing").filter({ hasText: "Outing IT Uji" });
+    await expect(done).toContainText("Sudah di Booth · Buka event");
+    await expect(
+      page.getByTestId("ops-list").getByRole("button", { name: /Outing IT Uji/ }),
+    ).toHaveCount(0);
   } finally {
     server.close();
     await db.from("events").delete().eq("ops_project_id", project);

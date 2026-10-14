@@ -15,6 +15,7 @@ import {
   opsGuestCam,
   opsPackages,
   spotFrameSize,
+  spotOf,
   spotUnit,
   unitCount,
 } from "@/lib/tetra-ops";
@@ -95,6 +96,21 @@ export async function createEventWizard(
     auto_preset: form.get("auto_preset") || null,
   });
   if (!p.success) return { ok: false, message: "Isi nama, tanggal, dan mode event" };
+  // Satu booking Ops = satu acara (#268): impor ulang tidak boleh membuat Unit 1 dobel.
+  if (p.data.ops_project_id) {
+    const { data: dup } = await db
+      .from("events")
+      .select("name")
+      .eq("organization_id", orgId)
+      .eq("ops_project_id", p.data.ops_project_id)
+      .neq("status", "archived")
+      .limit(1);
+    if (dup?.[0])
+      return {
+        ok: false,
+        message: `Booking ini sudah punya event "${dup[0].name}" di Booth. Buka dari daftar Event.`,
+      };
+  }
   const { data: ev, error } = await db
     .from("events")
     .insert({
@@ -199,7 +215,13 @@ export async function createEventWizard(
 }
 
 export type OpsList =
-  | { ok: true; bookings: OpsBooking[]; packages: OpsPackage[] }
+  | {
+      ok: true;
+      bookings: OpsBooking[];
+      packages: OpsPackage[];
+      /** project_id → slug event unit 1 yang sudah ada di Booth (#268). */
+      existing: Record<string, string>;
+    }
   | { ok: false; message: string };
 
 /**
@@ -207,7 +229,7 @@ export type OpsList =
  * (baca-saja). Wizard memilahnya per bulan di klien. Owner/admin.
  */
 export async function loadOps(): Promise<OpsList> {
-  await requireMember(["owner", "admin"]);
+  const { db, orgId } = await requireMember(["owner", "admin"]);
   const ymd = (ms: number) =>
     new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date(ms));
   const now = Date.now();
@@ -216,7 +238,20 @@ export async function loadOps(): Promise<OpsList> {
       opsBookings(ymd(now), ymd(now + (OPS_MAX_DAYS - 1) * 86_400_000)),
       opsPackages(),
     ]);
-    return { ok: true, bookings, packages };
+    const { data: have } = await db
+      .from("events")
+      .select("slug, name, ops_project_id, ops_sync")
+      .eq("organization_id", orgId)
+      .neq("status", "archived")
+      .in(
+        "ops_project_id",
+        bookings.map((b) => b.project_id),
+      );
+    const existing: Record<string, string> = {};
+    for (const e of have ?? [])
+      if (e.ops_project_id && (spotOf(e) === 1 || !existing[e.ops_project_id]))
+        existing[e.ops_project_id] = e.slug;
+    return { ok: true, bookings, packages, existing };
   } catch (e) {
     console.warn(`[tetra-ops] ${e instanceof Error ? e.message : String(e)}`);
     return { ok: false, message: "Tetra Ops tidak bisa dihubungi. Isi manual, atau coba lagi." };

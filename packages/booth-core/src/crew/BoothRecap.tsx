@@ -25,7 +25,7 @@ import {
 import { useEffect, useState } from "react";
 import { copy } from "../copy";
 import { crewText } from "../errors";
-import type { BoothEvent } from "../event";
+import { type BoothEvent, crewName } from "../event";
 import { GalleryQr } from "../GalleryQr";
 import { usePlatform } from "../PlatformContext";
 import type { EventSize, BoothRecap as RecapData } from "../platform";
@@ -139,7 +139,7 @@ export function BoothRecap({ event, onClose }: { event: BoothEvent; onClose: () 
             id="recap-title"
             className="mt-1 text-[44px] leading-tight font-extrabold tracking-[-0.03em]"
           >
-            {event.name}
+            {crewName(event)}
           </h2>
           <p className="mt-1 font-mono text-2xl text-text-3">{event.date}</p>
         </header>

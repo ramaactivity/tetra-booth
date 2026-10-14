@@ -1,4 +1,5 @@
 import type { EventBundle, EventDesign, LayoutSpec, Photobox, SoundCue } from "@tetra/shared";
+import { copy } from "./copy";
 import type { BoothEvents } from "./platform";
 import { DEFAULT_SETTINGS, type EventSettings } from "./session";
 
@@ -149,6 +150,10 @@ export const DEFAULT_LAYOUT: LayoutSpec = {
     },
   ],
 };
+
+/** Nama event untuk layar crew: "Outing IT 2026 · Unit 2" di acara multi-unit (#268); layar tamu tetap nama saja. */
+export const crewName = (e: Pick<BoothEvent, "name" | "unit">) =>
+  e.unit ? `${e.name} · ${copy.start.unit(e.unit)}` : e.name;
 
 export const DEFAULT_EVENT: BoothEvent = {
   id: "local",

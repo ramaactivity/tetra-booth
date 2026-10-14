@@ -30,6 +30,20 @@ test("webhook Ops: IG klien & desain kartu QR masuk ke event", async ({ request 
     })
     .select("id")
     .single();
+  // Unit 2 acara yang sama: Snapbook sengaja mati (#262), kabar booking tidak menyalakannya (#268).
+  const { data: unit2 } = await db
+    .from("events")
+    .insert({
+      organization_id: org,
+      name: "e2e webhook ops",
+      mode: "event",
+      event_date: "2026-12-12",
+      ops_project_id: project,
+      ops_sync: { spot: 2 },
+      settings: { guestCam: { enabled: false } },
+    })
+    .select("id")
+    .single();
   try {
     const send = async (booking: Record<string, unknown>) => {
       const raw = JSON.stringify({
@@ -77,6 +91,14 @@ test("webhook Ops: IG klien & desain kartu QR masuk ke event", async ({ request 
       guest_cam_print: true,
     });
     expect((await row())?.settings).toMatchObject({ guestCam: { maxGuests: 500 } });
+    const u2 = (
+      await db
+        .from("events")
+        .select("settings")
+        .eq("id", unit2?.id ?? "")
+        .single()
+    ).data;
+    expect(u2?.settings).toEqual({ guestCam: { enabled: false } });
     // IG yang sudah terisi tidak ditimpa; desain tidak dikenal diabaikan.
     await send({ client_instagram: ["lain"], guest_card_design: "nope" });
     const b = await row();
@@ -86,6 +108,6 @@ test("webhook Ops: IG klien & desain kartu QR masuk ke event", async ({ request 
     await db
       .from("events")
       .delete()
-      .eq("id", ev?.id ?? "");
+      .in("id", [ev?.id ?? "", unit2?.id ?? ""]);
   }
 });

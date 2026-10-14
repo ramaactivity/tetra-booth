@@ -31,7 +31,7 @@ import { copy } from "../copy";
 import { boothSound, guestCursor } from "../cursorPref";
 import { eventDesigns } from "../designEdit";
 import { crewText, errText } from "../errors";
-import { type BoothEvent, DEFAULT_EVENT } from "../event";
+import { type BoothEvent, crewName, DEFAULT_EVENT } from "../event";
 import { GalleryQr } from "../GalleryQr";
 import { usePlatform } from "../PlatformContext";
 import type {
@@ -520,7 +520,7 @@ export function CrewMenu({
         ? c.paperShort(status.paper.remaining)
         : c.printerState(status.printer.status)
       : "…",
-    event: hasEvent ? event.name : c.setup.eventTodo,
+    event: hasEvent ? crewName(event) : c.setup.eventTodo,
     system: newVersion
       ? c.setup.versionNav
       : status
@@ -793,13 +793,7 @@ export function CrewMenu({
                 title={c.setup.event}
                 detail={
                   hasEvent
-                    ? [
-                        event.name,
-                        event.unit && copy.start.unit(event.unit),
-                        paperLabel(event.layout.paper, event.layout.canvas),
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")
+                    ? `${crewName(event)} · ${paperLabel(event.layout.paper, event.layout.canvas)}`
                     : c.setup.eventTodo
                 }
                 action={hasEvent ? c.setup.eventChange : c.setup.eventAction}
@@ -950,7 +944,7 @@ export function CrewMenu({
         <StatusStrip
           icon={Palette}
           tone="peach"
-          title={hasEvent ? event.name : c.setup.eventTodo}
+          title={hasEvent ? crewName(event) : c.setup.eventTodo}
           pill={<Pill tone="white">{modeLabel}</Pill>}
           detail={
             hasEvent
@@ -1219,7 +1213,7 @@ export function CrewMenu({
           <div className="min-w-0 text-right">
             <div className="text-base font-semibold text-text-2">{c.activeEvent}</div>
             <div className="truncate text-2xl font-extrabold">
-              {event.name} · {modeLabel}
+              {crewName(event)} · {modeLabel}
             </div>
           </div>
         </header>
