@@ -9,7 +9,7 @@ import {
   StagePresetSchema,
   stagePresetCss,
 } from "@tetra/shared";
-import { Camera, Check, EyeOff } from "lucide-react";
+import { Camera, Check, ChevronDown, EyeOff, Printer, Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { renderEvent } from "./compose";
@@ -140,6 +140,10 @@ export function StageRunner({
   const [now, setNow] = useState(Date.now());
   const [openHist, setOpenHist] = useState<string | null>(null);
   const [sel, setSel] = useState<number[]>([]);
+  // Cari di Riwayat (permintaan owner 15 Okt): nama atau "#12"; "/" memfokuskan.
+  const [histQ, setHistQ] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [designOpen, setDesignOpen] = useState(false);
   const [status, setStatus] = useState<StageStatus | null | undefined>(undefined);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const say = useCallback((m: string) => {
@@ -592,10 +596,11 @@ export function StageRunner({
         setColorOpen(false);
         setOpenHist(null);
         setHelperOpen(false);
+        setDesignOpen(false);
         return;
       }
       if (colorOpen || setupRef.current) return;
-      if (e.key === "Tab") {
+      if (e.key === "Tab" && e.target !== searchRef.current) {
         e.preventDefault();
         pickRef.current("");
         return;
@@ -611,6 +616,9 @@ export function StageRunner({
         e.preventDefault();
         nameRef.current?.focus();
         nameRef.current?.select();
+      } else if (e.key === "/") {
+        e.preventDefault();
+        searchRef.current?.focus();
       } else if ((e.key === "j" || e.key === "J") && canShootRef.current) {
         e.preventDefault();
         shootCountedRef.current();
@@ -693,9 +701,17 @@ export function StageRunner({
         : t.autoAfter(s.gapSec ?? 0);
   const qrGroup = cur?.shots.length ? cur : closed[0];
   const css = stagePresetCss(preset);
+  const q = histQ.trim().toLowerCase();
   const histRows = openHist
     ? closed.filter((g) => g.id === openHist)
-    : closed.slice(0, banner ? 2 : 3);
+    : q
+      ? closed.filter((g) =>
+          q.startsWith("#")
+            ? groupNo(g).startsWith(q.slice(1))
+            : groupLabel(g).toLowerCase().includes(q) || groupNo(g) === q,
+        )
+      : closed.slice(0, banner ? 2 : 3);
+  const designs = printChoices(stageDesigns(event));
   const histStatus = (g: StageGroup): [string, string] =>
     saves[g.id] === "failed"
       ? [t.histFailed, "bg-coral"]
@@ -709,8 +725,29 @@ export function StageRunner({
   const big =
     "pressable layered flex h-24 items-center gap-5 rounded-3xl border-[3px] border-ink px-8 text-[30px] font-extrabold tracking-[-0.02em] whitespace-nowrap [--lb:3px] [--lx:8px]";
 
-  const photo = (sh: StageShot, large: boolean) => {
+  // Tombol Cetak per foto: rombongan aktif & Riwayat, status dari `prints` yang sama.
+  const printBtn = (g: StageGroup | null | undefined, sh: StageShot, size: string) => {
     const pr = prints[sh.path];
+    return (
+      <button
+        type="button"
+        disabled={pr?.st === "printing"}
+        onClick={() => g && void printShot(g, sh)}
+        className={`pressable flex items-center justify-center gap-1 whitespace-nowrap rounded-[11px] border-[1.5px] border-ink font-bold ${size} ${pr?.st === "failed" ? "bg-coral" : pr?.st === "done" ? "bg-mint-soft" : pr?.st === "printing" ? "bg-peach" : "bg-white"}`}
+      >
+        {pr?.st === "printing"
+          ? t.printing
+          : pr?.st === "failed"
+            ? t.printFailed
+            : pr?.st === "done"
+              ? (pr.n > 1 ? t.printSentN(pr.n) : t.printSent).replace(" ✓", "")
+              : t.print}
+        {pr?.st === "done" && <Check className="size-4" strokeWidth={3} aria-hidden />}
+      </button>
+    );
+  };
+
+  const photo = (sh: StageShot, large: boolean) => {
     return (
       <div
         key={sh.path}
@@ -737,21 +774,7 @@ export function StageRunner({
             {hms(sh.at)}
             {large && ` · ${t.latest}`}
           </span>
-          <button
-            type="button"
-            disabled={pr?.st === "printing"}
-            onClick={() => cur && void printShot(cur, sh)}
-            className={`pressable flex items-center gap-1 whitespace-nowrap rounded-[11px] border-[1.5px] border-ink font-bold ${large ? "h-10 px-3.5 text-[15px]" : "h-9 px-[11px] text-sm"} ${pr?.st === "failed" ? "bg-coral" : pr?.st === "done" ? "bg-mint-soft" : pr?.st === "printing" ? "bg-peach" : "bg-white"}`}
-          >
-            {pr?.st === "printing"
-              ? t.printing
-              : pr?.st === "failed"
-                ? t.printFailed
-                : pr?.st === "done"
-                  ? (pr.n > 1 ? t.printSentN(pr.n) : t.printSent).replace(" ✓", "")
-                  : t.print}
-            {pr?.st === "done" && <Check className="size-4" strokeWidth={3} aria-hidden />}
-          </button>
+          {printBtn(cur, sh, large ? "h-10 px-3.5 text-[15px]" : "h-9 px-[11px] text-sm")}
         </div>
       </div>
     );
@@ -1040,7 +1063,88 @@ export function StageRunner({
           )}
 
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-[28px] border-[2.5px] border-ink bg-white px-[22px] py-4">
-            <span className="mb-1 text-xl font-extrabold tracking-[-0.02em]">{t.history}</span>
+            <div className="mb-1 flex flex-none items-center justify-between gap-3">
+              <span className="text-xl font-extrabold tracking-[-0.02em]">{t.history}</span>
+              {/* Desain cetak = pilihan wizard langkah Cetak (per event); dipakai semua tombol Cetak di layar ini. */}
+              <button
+                type="button"
+                data-testid="stage-print-design"
+                title={t.printDesign}
+                aria-expanded={designOpen}
+                onClick={() => setDesignOpen((x) => !x)}
+                className="pressable flex h-9 min-w-0 items-center gap-1.5 rounded-full border-2 border-ink bg-butter px-3.5 text-sm font-bold"
+              >
+                <Printer className="size-4 flex-none" strokeWidth={2.5} aria-hidden />
+                <span className="truncate">
+                  {designs.find((d) => d[0] === printChoice)?.[1] ?? designs[0]?.[1]}
+                </span>
+                <ChevronDown
+                  className={`size-4 flex-none transition-transform motion-reduce:transition-none ${designOpen ? "rotate-180" : ""}`}
+                  strokeWidth={2.5}
+                  aria-hidden
+                />
+              </button>
+            </div>
+            {designOpen && (
+              <fieldset
+                aria-label={t.printDesign}
+                className="mb-2 flex flex-none flex-wrap gap-1.5 rounded-2xl border-[1.5px] border-dashed border-ink bg-paper p-2"
+              >
+                <span className="w-full px-1 text-[13px] font-bold text-text-2">
+                  {t.printDesign}
+                </span>
+                {designs.map(([id, name, info]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    title={info}
+                    aria-pressed={id === printChoice}
+                    onClick={() => {
+                      setPrintChoice(id);
+                      setDesignOpen(false);
+                    }}
+                    className={`pressable h-8 rounded-full border-[1.5px] border-ink px-3 text-[13px] font-bold ${id === printChoice ? "bg-butter" : "bg-white"}`}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </fieldset>
+            )}
+            {!!closed.length && (
+              <div className="relative mb-1 flex-none">
+                <Search
+                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-2"
+                  strokeWidth={2.5}
+                  aria-hidden
+                />
+                <input
+                  ref={searchRef}
+                  type="search"
+                  aria-label={t.histSearch}
+                  placeholder={t.histSearch}
+                  value={histQ}
+                  onChange={(e) => {
+                    setHistQ(e.target.value);
+                    setOpenHist(null);
+                    setSel([]);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Escape") return;
+                    setHistQ("");
+                    e.currentTarget.blur();
+                  }}
+                  className="h-10 w-full rounded-xl border-2 border-ink bg-white pr-10 pl-9 text-base font-bold outline-none placeholder:font-medium placeholder:text-muted focus:shadow-[0_0_0_3px_var(--mint-soft)] [&::-webkit-search-cancel-button]:hidden"
+                />
+                <span className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 rounded-md border-[1.5px] border-muted px-1.5 font-mono text-xs text-muted">
+                  /
+                </span>
+              </div>
+            )}
+            {q && !histRows.length && (
+              <span data-testid="stage-history-none" className="py-2 text-sm text-text-3">
+                {t.histNone(histQ.trim())}
+              </span>
+            )}
             {histRows.map((g) => {
               const [label, bg] = histStatus(g);
               const last = [...g.shots]
@@ -1101,42 +1205,44 @@ export function StageRunner({
                         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
                         className="h-9 rounded-xl border-2 border-ink bg-white px-3 text-base font-bold shadow-[0_0_0_3px_var(--mint-soft)] outline-none"
                       />
-                      <div className="flex flex-wrap items-center gap-1.5">
+                      <div className="grid grid-cols-3 gap-2">
                         {g.shots.map((sh, i) => {
                           const idx = i + 1;
                           const on = sel.includes(idx);
                           const hid = g.hidden?.includes(idx);
                           return (
-                            <button
-                              key={sh.path}
-                              type="button"
-                              aria-pressed={on}
-                              aria-label={`Foto ${idx}${hid ? ` (${t.histHidden})` : ""}`}
-                              onClick={() =>
-                                setSel((x) => (on ? x.filter((k) => k !== idx) : [...x, idx]))
-                              }
-                              className={`relative h-8 w-12 flex-none overflow-hidden rounded-lg bg-neutral ${on ? "border-2 border-ink shadow-[0_0_0_3px_var(--mint)]" : "border-[1.5px] border-ink"}`}
-                            >
-                              {thumbs[sh.path] && (
-                                <img
-                                  src={thumbs[sh.path]}
-                                  alt=""
-                                  style={{ filter: css, opacity: hid ? 0.35 : 1 }}
-                                  className="size-full object-cover"
-                                />
-                              )}
-                              {hid && (
-                                <span className="absolute inset-0 flex items-center justify-center">
-                                  <EyeOff className="size-4" strokeWidth={2.5} aria-hidden />
-                                </span>
-                              )}
-                            </button>
+                            <div key={sh.path} className="flex min-w-0 flex-col gap-1">
+                              <button
+                                type="button"
+                                aria-pressed={on}
+                                aria-label={`Foto ${idx}${hid ? ` (${t.histHidden})` : ""}`}
+                                onClick={() =>
+                                  setSel((x) => (on ? x.filter((k) => k !== idx) : [...x, idx]))
+                                }
+                                className={`relative aspect-[3/2] w-full overflow-hidden rounded-lg bg-neutral ${on ? "border-2 border-ink shadow-[0_0_0_3px_var(--mint)]" : "border-[1.5px] border-ink"}`}
+                              >
+                                {thumbs[sh.path] && (
+                                  <img
+                                    src={thumbs[sh.path]}
+                                    alt=""
+                                    style={{ filter: css, opacity: hid ? 0.35 : 1 }}
+                                    className="size-full object-cover"
+                                  />
+                                )}
+                                {hid && (
+                                  <span className="absolute inset-0 flex items-center justify-center">
+                                    <EyeOff className="size-4" strokeWidth={2.5} aria-hidden />
+                                  </span>
+                                )}
+                              </button>
+                              {printBtn(g, sh, "h-8 px-1.5 text-[13px]")}
+                            </div>
                           );
                         })}
-                        <span className="ml-1 text-xs leading-[1.3] text-text-2">
-                          {sel.length ? t.histPicked(sel.length) : t.histPick}
-                        </span>
                       </div>
+                      <span className="text-xs leading-[1.3] text-text-2">
+                        {sel.length ? t.histPicked(sel.length) : t.histPick}
+                      </span>
                       <div className="flex gap-1.5">
                         <button
                           type="button"

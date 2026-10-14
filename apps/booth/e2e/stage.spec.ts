@@ -352,8 +352,56 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   // Asal [120,120,200] → invers [135,135,55]; urutan kanal bitmap tergantung OS.
   expect([...px].sort((a, b) => (a ?? 0) - (b ?? 0))[0]).toBeLessThan(80);
 
-  // Riwayat (#195): sembunyikan foto #1, penjaga "sisakan 1 foto", gabung #2 ke #1.
+  // Cari & cetak dari Riwayat (permintaan owner 15 Okt): "/" fokus cari → 1 hasil → buka → desain → Cetak.
   const hist = w.getByTestId("stage-history-row");
+  const search = w.getByLabel("Cari nama atau #nomor");
+  await w.keyboard.press("/");
+  await expect(search).toBeFocused();
+  await w.keyboard.type("hadi");
+  await expect(hist).toHaveCount(1);
+  await hist.getByRole("button").first().click();
+  await w.getByTestId("stage-print-design").click();
+  await w
+    .getByRole("group", { name: "Desain cetak" })
+    .getByRole("button", { name: "Foto penuh" })
+    .click();
+  await expect(w.getByTestId("stage-print-design")).toHaveText("Foto penuh");
+  await hist.getByRole("button", { name: "Cetak" }).first().click();
+  await expect(hist.getByRole("button", { name: /Dicetak|Gagal/ })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect.poll(() => printedLan().length, { timeout: 15_000 }).toBe(3);
+  await w.getByTestId("stage-print-design").click();
+  await w.screenshot({ path: "test-results/stage-history-print.png" });
+  // Laptop 1366×768: kanvas 1920×1080 diskalakan (lihat Stage di ui.tsx).
+  const resize = (wd: number, ht: number) =>
+    app.evaluate(
+      ({ BrowserWindow }, [a, b]) => {
+        const win = BrowserWindow.getAllWindows().find(
+          (x) => !x.webContents.getURL().endsWith("#tv"),
+        );
+        const old = win?.getContentSize();
+        win?.setContentSize(a ?? 0, b ?? 0);
+        return old;
+      },
+      [wd, ht],
+    );
+  const prev = (await resize(1366, 768)) ?? [2560, 1376];
+  await w.waitForTimeout(300);
+  await w.screenshot({ path: "test-results/stage-history-print-1366.png" });
+  await resize(prev[0] ?? 2560, prev[1] ?? 1376);
+  await w.keyboard.press("Escape");
+  await search.focus();
+  await w.keyboard.press("Escape");
+  await expect(search).toHaveValue("");
+  await expect(search).not.toBeFocused();
+  await search.fill("zzz");
+  await expect(hist).toHaveCount(0);
+  await expect(w.getByTestId("stage-history-none")).toHaveText('Tidak ada rombongan "zzz"');
+  await search.press("Escape");
+  await expect(hist).toHaveCount(2);
+
+  // Riwayat (#195): sembunyikan foto #1, penjaga "sisakan 1 foto", gabung #2 ke #1.
   await hist.filter({ hasText: "#1 ·" }).getByRole("button").first().click();
   const row1 = hist.filter({ hasText: "#1 ·" });
   await row1.getByRole("button", { name: "Foto 2" }).click();
