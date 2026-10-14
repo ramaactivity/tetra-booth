@@ -115,6 +115,7 @@ export type TetraBridge = {
   eventsSetActive: BoothEvents["setActive"];
   eventAsset: BoothEvents["asset"];
   eventsRecentPieces: BoothEvents["recentPieces"];
+  eventsUnsent: BoothEvents["unsent"];
   paymentCreate: BoothPayments["create"];
   paymentStatus: BoothPayments["status"];
   /** Photo Stage (#178). */

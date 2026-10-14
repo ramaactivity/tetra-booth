@@ -657,6 +657,20 @@ export const copy = {
       queued: "Antre",
       more: (n: number) => `+${n} sesi lain`,
     },
+    /** Pengingat foto belum terkirim (#274): saat aplikasi dibuka, di Rekap Acara, dan di Ringkasan. */
+    unsentNote: {
+      title: "Masih ada foto yang belum terkirim ke cloud",
+      line: (name: string, n: number) => `${name}: ${n} sesi`,
+      body: "Sambungkan laptop ke internet dan biarkan aplikasi terbuka, upload lanjut sendiri. Progresnya ada di mode crew → Sistem → Upload per event.",
+      ok: "Oke",
+      recapTitle: (sent: number, total: number) =>
+        `Baru ${sent} dari ${total} sesi terkirim ke cloud`,
+      recapBody:
+        "Sebelum pulang/laptop disimpan: sambungkan ke internet dan buka aplikasi sampai Sistem → Upload per event bilang Semua terkirim. Laptop boleh dimatikan, upload lanjut otomatis saat aplikasi dibuka lagi. Jangan hapus aplikasi atau folder event.",
+      recapDone: "Semua foto event ini sudah terkirim ke cloud.",
+      home: (n: number) => `${n} file foto belum terkirim ke cloud`,
+      open: "Lihat status upload",
+    },
     sound: "Suara booth",
     soundHint:
       "Suara pemandu, sorakan, dan bunyi hitung mundur. Matikan untuk acara formal atau ruang tenang.",

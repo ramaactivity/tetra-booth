@@ -367,6 +367,11 @@ export interface BoothEvents {
    * `before` = `completedAt` kartu terakhir halaman sebelumnya.
    */
   recentPieces(eventId: string, limit: number, before?: string): Promise<PiecePage>;
+  /**
+   * Event cloud yang sesinya masih di laptop, belum terkirim (#274): untuk pengingat saat aplikasi dibuka. Tanpa PIN,
+   * isinya hanya nama event & jumlah sesi.
+   */
+  unsent(): Promise<{ name: string; sessions: number }[]>;
 }
 
 /** QRIS photobox lewat cloud (TSD §8). Satu-satunya langkah yang butuh internet; gagal = reject. */

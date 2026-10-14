@@ -7,6 +7,90 @@ import { btn, dot, Panel, Pill, Row } from "./parts";
 
 const c = copy.crew;
 const SHOWN = 60;
+const NOTICE_MS = 60_000;
+// Sekali per aplikasi dibuka: layar pilih event → layar tamu tidak memunculkannya lagi.
+let noticeDone = false;
+
+/**
+ * Pengingat saat aplikasi dibuka (#274, Rama: "sampai kantor buka aplikasi, muncul notifikasi untuk melanjutkan
+ * upload"): event yang sesinya masih di laptop. Sekali per aplikasi dibuka; Oke / hilang sendiri setelah 60 dtk.
+ */
+export function UnsentNotice() {
+  const p = usePlatform();
+  const [list, setList] = useState<{ name: string; sessions: number }[]>([]);
+  const close = () => {
+    noticeDone = true;
+    setList([]);
+  };
+  useEffect(() => {
+    if (noticeDone) return;
+    p.events
+      .unsent()
+      .then(setList)
+      .catch(() => {});
+  }, [p]);
+  useEffect(() => {
+    if (!list.length) return;
+    const t = setTimeout(() => {
+      noticeDone = true;
+      setList([]);
+    }, NOTICE_MS);
+    return () => clearTimeout(t);
+  }, [list]);
+  if (!list.length) return null;
+  return (
+    <div
+      data-testid="unsent-notice"
+      className="absolute inset-0 z-50 flex items-center justify-center bg-ink/55"
+    >
+      <div className="flex max-w-[1000px] flex-col gap-5 rounded-[28px] border-[2.5px] border-ink bg-white p-10">
+        <h2 className="text-[38px] leading-tight font-extrabold">{c.unsentNote.title}</h2>
+        <ul className="flex flex-col gap-1 text-2xl font-bold">
+          {list.map((e) => (
+            <li key={e.name}>{c.unsentNote.line(e.name, e.sessions)}</li>
+          ))}
+        </ul>
+        <p className="text-xl font-medium text-text-2">{c.unsentNote.body}</p>
+        <Button className="h-[88px] self-end px-12 text-[28px]" onClick={close}>
+          {c.unsentNote.ok}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** Rekap Acara (#274): peringatan sebelum pulang kalau sesi event ini belum terkirim semua. */
+export function RecapUploads({ eventId }: { eventId: string }) {
+  const p = usePlatform();
+  const [e, setE] = useState<UploadEvent | null>();
+  useEffect(() => {
+    let live = true;
+    const load = () =>
+      p.crew
+        .uploads()
+        .then((all) => live && setE(all.find((x) => x.eventId === eventId) ?? null))
+        .catch(() => {});
+    void load();
+    const t = setInterval(load, 5000);
+    return () => {
+      live = false;
+      clearInterval(t);
+    };
+  }, [p, eventId]);
+  if (!e) return null;
+  const done = e.sentSessions >= e.sessions;
+  return (
+    <section
+      data-testid="recap-uploads"
+      className={`flex flex-col gap-1 rounded-[20px] border-[2.5px] border-ink px-6 py-4 ${done ? "bg-mint-soft" : "bg-peach"}`}
+    >
+      <p className="text-[26px] leading-tight font-extrabold">
+        {done ? c.unsentNote.recapDone : c.unsentNote.recapTitle(e.sentSessions, e.sessions)}
+      </p>
+      {!done && <p className="text-lg font-semibold">{c.unsentNote.recapBody}</p>}
+    </section>
+  );
+}
 
 /** Error upload mentah ("/api/booth/sessions: server 404", "fetch failed") → alasan yang dimengerti crew. */
 export function uploadReason(raw: string): string {

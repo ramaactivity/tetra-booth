@@ -742,6 +742,23 @@ export function CrewMenu({
     home: (
       <>
         <Journey now={phase} />
+        {/* Foto belum terkirim (#274): crew diingatkan di halaman pertama, terutama saat pulang/di kantor. */}
+        {!!status?.uploadPending && (
+          <div
+            data-testid="home-unsent"
+            className="flex items-center gap-6 rounded-[20px] border-[2.5px] border-ink bg-peach px-6 py-4"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-[26px] leading-tight font-extrabold">
+                {c.unsentNote.home(status.uploadPending)}
+              </p>
+              <p className="text-lg font-semibold">{c.unsentNote.recapBody}</p>
+            </div>
+            <Button variant="secondary" className={btn} onClick={() => setSection("system")}>
+              {c.unsentNote.open}
+            </Button>
+          </div>
+        )}
         <div className="grid grid-cols-[1.05fr_1fr] items-start gap-6 portrait:grid-cols-1">
           <Panel title={`1 · ${c.setup.title}`} hint={c.setup.sub}>
             <ol className="flex flex-col gap-4">

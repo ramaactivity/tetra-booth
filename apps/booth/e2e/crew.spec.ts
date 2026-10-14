@@ -618,6 +618,25 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
     timeout: 30_000,
   });
   await w.screenshot({ path: "test-results/crew-upload-pending.png" });
+  // Pengingat (#274): Ringkasan, Rekap Acara, dan saat aplikasi dibuka lagi (reload = buka ulang di kantor).
+  await w.getByTestId("crew-nav-home").click();
+  await expect(w.getByTestId("home-unsent")).toContainText("file foto belum terkirim ke cloud");
+  await w.getByTestId("crew-run").getByRole("button", { name: "Rekap Acara" }).click();
+  await expect(w.getByTestId("recap-uploads")).toContainText(
+    "Baru 2 dari 3 sesi terkirim ke cloud",
+  );
+  await expect(w.getByTestId("recap-uploads")).toContainText("Sebelum pulang");
+  await w.screenshot({ path: "test-results/recap-unsent.png" });
+  await w.getByTestId("booth-recap").getByRole("button", { name: "Tutup" }).click();
+  await w.reload();
+  const notice = w.getByTestId("unsent-notice");
+  await expect(notice).toContainText("Rina & Dimas: 1 sesi");
+  await w.screenshot({ path: "test-results/unsent-notice.png" });
+  await notice.getByRole("button", { name: "Oke" }).click();
+  await expect(notice).toHaveCount(0);
+  await openCrew(w);
+  await typePin(w, "2468");
+  await w.getByTestId("crew-nav-system").click();
   r2Down = false;
   await w.getByRole("button", { name: "Kirim ulang sekarang" }).click();
   await expect(ev).toContainText("Semua terkirim", { timeout: 30_000 });

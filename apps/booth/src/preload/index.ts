@@ -115,6 +115,7 @@ const bridge: TetraBridge = {
   eventsActive: () => ipcRenderer.invoke("eventsActive"),
   eventsSetActive: (id) => ipcRenderer.invoke("eventsSetActive", id),
   eventsRecentPieces: (id, n, before) => ipcRenderer.invoke("eventsRecentPieces", id, n, before),
+  eventsUnsent: () => ipcRenderer.invoke("eventsUnsent"),
   eventAsset: (e, a) => ipcRenderer.invoke("eventAsset", e, a),
   paymentCreate: (req) => ipcRenderer.invoke("paymentCreate", req),
   paymentStatus: (id) => ipcRenderer.invoke("paymentStatus", id),

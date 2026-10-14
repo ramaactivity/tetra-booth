@@ -59,7 +59,7 @@ import { onPhase } from "./shots";
 import { stageInbox, stageListen } from "./stage";
 import { stageHelperKey, stageLanUrls } from "./stage-lan";
 import { downloadInstaller, runInstaller } from "./update";
-import { summarizeUploads } from "./upload-report";
+import { pendingByEvent, summarizeUploads } from "./upload-report";
 
 /** %APPDATA%/TetraBooth/sessions (TSD §3). Renderer hanya boleh baca/tulis di bawah folder ini. */
 const sessionsRoot = () => join(app.getPath("userData"), "sessions");
@@ -401,6 +401,13 @@ export function registerIpc(
     clipboard.writeText(url);
     return url;
   });
+  // Pengingat saat aplikasi dibuka (#274): tanpa PIN, hanya nama event & jumlah sesi yang belum terkirim.
+  ipcMain.handle("eventsUnsent", () =>
+    pendingByEvent(db.uploadSessions()).map((e) => ({
+      name: bundles.find((b) => b.id === e.eventId)?.name ?? "Event",
+      sessions: e.sessions,
+    })),
+  );
   // Status upload per event & per sesi (#271, offline-first): event lokal tidak ikut (tidak pernah diunggah).
   ipcMain.handle("crewUploads", () => {
     crewOnly();

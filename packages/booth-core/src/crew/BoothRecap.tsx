@@ -29,6 +29,7 @@ import { type BoothEvent, crewName } from "../event";
 import { GalleryQr } from "../GalleryQr";
 import { usePlatform } from "../PlatformContext";
 import type { EventSize, BoothRecap as RecapData } from "../platform";
+import { RecapUploads } from "./UploadStatus";
 
 const t = copy.crew.recap;
 const TONE = {
@@ -238,6 +239,7 @@ export function BoothRecap({ event, onClose }: { event: BoothEvent; onClose: () 
           </p>
         )}
 
+        <RecapUploads eventId={event.id} />
         <section
           data-testid="booth-recap-size"
           className="flex items-center gap-5 rounded-[20px] border-[2.5px] border-ink bg-sky px-6 py-4"

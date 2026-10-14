@@ -2,6 +2,7 @@ import type { EventBundle } from "@tetra/shared";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { copy } from "./copy";
 import { CrewMode } from "./crew/CrewMode";
+import { UnsentNotice } from "./crew/UploadStatus";
 import { guestCursor } from "./cursorPref";
 import { errText } from "./errors";
 import { type BoothEvent, DEFAULT_EVENT, loadEvent, releaseEvent } from "./event";
@@ -167,6 +168,7 @@ export function BoothApp({
             setCrewOpen(true);
           }}
         />
+        <UnsentNotice />
         {notice}
       </Stage>
     );
@@ -248,6 +250,7 @@ export function BoothApp({
             {alert.message}
           </p>
         )}
+        {!start && <UnsentNotice />}
         {notice}
       </Stage>
     </div>
