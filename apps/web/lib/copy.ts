@@ -539,6 +539,8 @@ export const copy = {
       open: "Buka event",
       size: "Ukuran frame",
       fromOps: (s: string) => `di Tetra Ops: ${s}`,
+      resizeHint:
+        "Ganti ukuran = desain diganti desain bawaan ukuran itu; desain lain bisa dipasang lagi di Pengaturan.",
       laptop: "Laptop",
       anyLaptop: "Semua laptop",
       create: (n: number) => `Buat event Unit ${n}`,

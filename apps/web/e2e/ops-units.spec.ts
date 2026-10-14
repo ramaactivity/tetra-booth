@@ -74,10 +74,12 @@ test("acara 2 unit: buat event Unit 2 dari dashboard unit 1", async ({ page }) =
     await expect(card).toContainText("Acara ini pakai 2 unit booth");
     await expect(card).toContainText("1 unit belum dibuat");
     // Ukuran unit 2 terpilih dari Tetra Ops (design.spots).
-    await expect(card.getByRole("button", { name: "2R", exact: true })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(
+      card
+        .getByRole("listitem")
+        .filter({ hasText: "Unit 2" })
+        .getByRole("button", { name: "2R", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
     if (device) await card.getByRole("button", { name: device.name }).last().click();
     await page.screenshot({ path: "test-results/ops-units-before.png" });
     await card.getByRole("button", { name: "Buat event Unit 2" }).click();
@@ -103,12 +105,27 @@ test("acara 2 unit: buat event Unit 2 dari dashboard unit 1", async ({ page }) =
       expect(two?.all_devices).toBe(false);
       expect(two?.event_devices.map((d) => d.device_id)).toEqual([device.id]);
     }
-    const { data: lay } = await db
-      .from("events")
-      .select("paper:bundle->config->layout->paper")
-      .eq("id", two?.id ?? "")
-      .single();
-    expect((lay as { paper?: string } | null)?.paper).toBe("2x6x2");
+    const paperOf = async () =>
+      (
+        (
+          await db
+            .from("events")
+            .select("paper:bundle->config->layout->paper")
+            .eq("id", two?.id ?? "")
+            .single()
+        ).data as { paper?: string } | null
+      )?.paper;
+    expect(await paperOf()).toBe("2x6x2");
+
+    // #265: ukuran unit yang sudah dibuat bisa diganti dari kartu (Ops salah catat ukuran).
+    const unit2 = card.getByRole("listitem").filter({ hasText: "Unit 2" });
+    await unit2.getByRole("button", { name: "Polaroid" }).click();
+    await expect(unit2.getByRole("button", { name: "Polaroid" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+      { timeout: 30_000 },
+    );
+    expect(await paperOf()).toBe("3x4x2");
   } finally {
     server.close();
     await db.from("events").delete().eq("ops_project_id", project);

@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireMember } from "@/lib/supabase/server";
-import { createUnit } from "../unit-create";
+import { createUnit, resizeUnit } from "../unit-create";
 
 const Unit = z.object({
   eventId: z.uuid(),
@@ -19,6 +19,18 @@ export async function createUnitEvent(
   if (!p.success) return { ok: false, message: "Pilih ukuran frame dulu" };
   const r = await createUnit(db, orgId, user.id, p.data);
   if (r.ok) revalidatePath("/admin");
+  return r;
+}
+
+/** Ganti ukuran frame unit (#265): desain diganti preset ukuran baru; admin bisa ganti desainnya lagi nanti. */
+export async function changeUnitSize(eventId: string, size: string) {
+  const { db, orgId } = await requireMember(["owner", "admin"]);
+  const p = z
+    .object({ id: z.uuid(), size: z.enum(["2R", "4R", "polaroid"]) })
+    .safeParse({ id: eventId, size });
+  if (!p.success) return { ok: false, message: "Ukuran tidak dikenal" };
+  const r = await resizeUnit(db, orgId, p.data.id, p.data.size);
+  revalidatePath("/admin/(app)/events/[id]", "layout");
   return r;
 }
 

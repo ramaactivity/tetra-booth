@@ -363,7 +363,7 @@ export async function applySettings(
       ok: false,
       message: values.length
         ? `Desain frame maksimal ${MAX_DESIGNS}`
-        : "Pilih minimal satu desain frame",
+        : "Belum ada desain frame untuk ukuran kertas ini. Pilih satu di bagian Desain frame (desain ukuran lain otomatis dilepas saat ukuran diganti).",
     };
   type Resolved = { value: string; paper: string; lv: Awaited<ReturnType<typeof latest>> };
   const resolve = async (value: string): Promise<Resolved | null> => {

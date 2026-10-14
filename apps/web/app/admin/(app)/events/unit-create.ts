@@ -126,3 +126,27 @@ export async function createUnit(
       .eq("organization_id", orgId);
   return { ok: true, slug: r.slug ?? ev.slug };
 }
+
+/**
+ * Ganti ukuran frame satu unit (#265): desain utama diganti preset ukuran baru (desain berkertas lain dilepas oleh
+ * `assignToEvent`). Untuk kasus Ops mencatat ukuran unit salah (mis. CIMB unit 2 tercatat 4R padahal 2R).
+ */
+export async function resizeUnit(db: Db, orgId: string, eventId: string, size: UnitSize) {
+  const { data: ev } = await db
+    .from("events")
+    .select("id, name")
+    .eq("id", eventId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (!ev) return { ok: false as const, message: "Event tidak ditemukan" };
+  const layout = await copyLayout(db, orgId, PRESET[size], () => `${ev.name} · ${size}`, "event");
+  if (!layout) return { ok: false as const, message: "Gagal membuat desain" };
+  const r = await assignToEvent(db, orgId, { id: layout, paper: PAPER[size] }, ev.id);
+  if (!r.ok) return { ok: false as const, message: r.message };
+  await db
+    .from("events")
+    .update({ ops_frame_size: size })
+    .eq("id", ev.id)
+    .eq("organization_id", orgId);
+  return { ok: true as const };
+}

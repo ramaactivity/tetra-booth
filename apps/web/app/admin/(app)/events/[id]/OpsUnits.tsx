@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { copy } from "@/lib/copy";
-import { createUnitEvent, setUnitDevice } from "./units";
+import { changeUnitSize, createUnitEvent, setUnitDevice } from "./units";
 
 const t = copy.admin.units;
 const SIZES = ["2R", "4R", "polaroid"] as const;
@@ -119,18 +119,56 @@ export function OpsUnits({
                 )}
               </div>
               {u.event ? (
-                <div className="mt-2.5">
-                  <p className="mb-1.5 text-xs font-bold text-text-2">{t.laptop}</p>
-                  <Devices
-                    value={u.event.deviceId}
-                    disabled={pending}
-                    onPick={(id) =>
-                      start(async () => {
-                        await setUnitDevice(u.event?.id ?? "", id);
-                        router.refresh();
-                      })
-                    }
-                  />
+                <div className="mt-2.5 flex flex-col gap-2.5">
+                  <div>
+                    <p className="mb-1.5 text-xs font-bold text-text-2">
+                      {t.size}
+                      {u.opsSize &&
+                      u.event.size &&
+                      u.opsSize.toLowerCase() !== u.event.size.toLowerCase()
+                        ? ` · ${t.fromOps(u.opsSize)}`
+                        : ""}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {SIZES.map((s) => {
+                        const on = (u.event?.size ?? "").toLowerCase() === s.toLowerCase();
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            aria-pressed={on}
+                            disabled={pending || on}
+                            onClick={() =>
+                              start(async () => {
+                                setErr(null);
+                                const r = await changeUnitSize(u.event?.id ?? "", s);
+                                if (!r.ok) setErr(r.message);
+                                router.refresh();
+                              })
+                            }
+                            className={`${chip} ${on ? "bg-lavender" : "bg-white"} disabled:cursor-default`}
+                          >
+                            {on && <Check aria-hidden className="size-3.5" strokeWidth={3} />}
+                            {s === "polaroid" ? "Polaroid" : s}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-1 text-[11px] text-text-2">{t.resizeHint}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1.5 text-xs font-bold text-text-2">{t.laptop}</p>
+                    <Devices
+                      value={u.event.deviceId}
+                      disabled={pending}
+                      onPick={(id) =>
+                        start(async () => {
+                          await setUnitDevice(u.event?.id ?? "", id);
+                          router.refresh();
+                        })
+                      }
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="mt-2.5 flex flex-col gap-2.5">
