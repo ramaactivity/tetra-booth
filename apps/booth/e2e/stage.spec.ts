@@ -392,5 +392,19 @@ test("stage: jepret dari laptop dengan Canon (#201)", async () => {
   await expect(w.locator("section img")).toHaveCount(1, { timeout: 15_000 });
   await w.keyboard.press("j");
   await expect(w.locator("section img")).toHaveCount(2, { timeout: 15_000 });
+  // Hitung mundur (#275): Instan → 3 dtk; Esc membatalkan, hitungan selesai = jepret.
+  await w.getByTestId("stage-countdown").click();
+  await expect(w.getByTestId("stage-countdown")).toHaveText("⏱ 3 dtk");
+  await w.keyboard.press("j");
+  await expect(w.getByTestId("stage-count")).toContainText("3");
+  await w.keyboard.press("Escape");
+  await expect(w.getByTestId("stage-count")).toBeHidden();
+  await w.waitForTimeout(3500);
+  await expect(w.locator("section img")).toHaveCount(2);
+  await w.getByRole("button", { name: /^Jepret/ }).click();
+  await expect(w.getByTestId("stage-count")).toContainText("3");
+  await w.screenshot({ path: "test-results/stage-countdown.png" });
+  await expect(w.getByTestId("stage-count")).toBeHidden({ timeout: 5_000 });
+  await expect(w.locator("section img")).toHaveCount(3, { timeout: 15_000 });
   await app.close();
 });

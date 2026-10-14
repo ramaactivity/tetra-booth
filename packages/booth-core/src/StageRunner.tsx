@@ -45,6 +45,17 @@ const t = copy.stage;
 // ponytail: preset & jeda disimpan per laptop (localStorage); pindah ke pengaturan event cloud di S4.
 const presetKey = (eventId: string) => `tetra.stage.preset.${eventId}`;
 const GAP_KEY = "tetra.stage.gap";
+/** Hitung mundur sebelum Jepret dari laptop (#275): 0 = instan. Fotografer ikut berteriak ke tamu. */
+const COUNTDOWN_KEY = "tetra.stage.countdown";
+const COUNTDOWNS = [0, 3, 4, 5] as const;
+const loadCountdown = () => {
+  try {
+    const n = Number(localStorage.getItem(COUNTDOWN_KEY));
+    return (COUNTDOWNS as readonly number[]).includes(n) ? n : 0;
+  } catch {
+    return 0;
+  }
+};
 const loadPreset = (eventId: string): StagePreset => {
   try {
     return StagePresetSchema.parse(JSON.parse(localStorage.getItem(presetKey(eventId)) ?? "{}"));
@@ -436,6 +447,43 @@ export function StageRunner({
   }, [shooting, p, makeThumb, say]);
   const shootRef = useRef(shoot);
   shootRef.current = shoot;
+  // Hitung mundur (#275): angka besar di layar operator, Esc / ketuk = batal; foto tes wizard tetap instan.
+  const [countdown, setCountdownRaw] = useState(loadCountdown);
+  const nextCountdown = () => {
+    const n = COUNTDOWNS[(COUNTDOWNS.indexOf(countdown as 0) + 1) % COUNTDOWNS.length] ?? 0;
+    setCountdownRaw(n);
+    try {
+      localStorage.setItem(COUNTDOWN_KEY, String(n));
+    } catch {}
+  };
+  const [count, setCount] = useState<number | null>(null);
+  const countTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const cancelCount = useCallback(() => {
+    clearTimeout(countTimer.current);
+    countTimer.current = undefined;
+    setCount(null);
+  }, []);
+  const shootCounted = useCallback(() => {
+    if (shooting || countTimer.current) return;
+    if (!countdown) return void shootRef.current();
+    let n = countdown;
+    setCount(n);
+    const tick = () => {
+      n -= 1;
+      if (n > 0) {
+        setCount(n);
+        countTimer.current = setTimeout(tick, 1000);
+        return;
+      }
+      countTimer.current = undefined;
+      setCount(null);
+      void shootRef.current();
+    };
+    countTimer.current = setTimeout(tick, 1000);
+  }, [shooting, countdown]);
+  const shootCountedRef = useRef(shootCounted);
+  shootCountedRef.current = shootCounted;
+  useEffect(() => () => clearTimeout(countTimer.current), []);
 
   // Riwayat (#195): sembunyikan, pisah, gabung. Cloud diperbarui lewat metadata sesi (hiddenIdx) & aset baru.
   const sync = (g: StageGroup, hidden: number[]) =>
@@ -537,6 +585,7 @@ export function StageRunner({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        cancelCount();
         setColorOpen(false);
         setOpenHist(null);
         setHelperOpen(false);
@@ -557,12 +606,12 @@ export function StageRunner({
         togglePause();
       } else if ((e.key === "j" || e.key === "J") && canShootRef.current) {
         e.preventDefault();
-        void shootRef.current();
+        shootCountedRef.current();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [colorOpen, newGroup, togglePause]);
+  }, [colorOpen, newGroup, togglePause, cancelCount]);
 
   // Status bar: kamera, internet, antrean upload rombongan (polling 3 dtk).
   const closed = s.groups.filter((g) => g.closedAt !== null && !g.merged).reverse();
@@ -1121,16 +1170,27 @@ export function StageRunner({
           <Key>Spasi</Key>
         </button>
         {canShoot && (
-          <button
-            type="button"
-            disabled={shooting}
-            onClick={() => void shoot()}
-            className={`${big} px-[30px] text-[28px] [--under:var(--paper)] bg-white disabled:opacity-60`}
-          >
-            <Camera className="size-8" strokeWidth={2.5} aria-hidden />
-            {shooting ? t.shooting : t.shoot}
-            <Key>J</Key>
-          </button>
+          <>
+            <button
+              type="button"
+              disabled={shooting || count !== null}
+              onClick={shootCounted}
+              className={`${big} px-[30px] text-[28px] [--under:var(--paper)] bg-white disabled:opacity-60`}
+            >
+              <Camera className="size-8" strokeWidth={2.5} aria-hidden />
+              {shooting ? t.shooting : t.shoot}
+              <Key>J</Key>
+            </button>
+            <button
+              type="button"
+              data-testid="stage-countdown"
+              onClick={nextCountdown}
+              title={t.countdownHint}
+              className={`pressable h-16 whitespace-nowrap rounded-full border-[2.5px] border-ink px-5 text-xl font-bold ${countdown ? "bg-lavender" : "bg-white"}`}
+            >
+              {countdown ? t.countdownSec(countdown) : t.countdownOff}
+            </button>
+          </>
         )}
         <div className="flex-1" />
         <span className="whitespace-nowrap text-lg font-bold text-text-3">{t.auto}</span>
@@ -1186,6 +1246,23 @@ export function StageRunner({
         >
           {toast}
         </div>
+      )}
+
+      {count !== null && (
+        <button
+          type="button"
+          data-testid="stage-count"
+          aria-label={t.countdownCancel}
+          onClick={cancelCount}
+          className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-ink/40"
+        >
+          <span className="flex size-[320px] items-center justify-center rounded-full border-[4px] border-ink bg-butter font-mono text-[200px] leading-none font-extrabold">
+            {count}
+          </span>
+          <span className="rounded-full border-2 border-ink bg-white px-6 py-2 text-2xl font-bold">
+            {t.countdownCancel}
+          </span>
+        </button>
       )}
 
       {setupOpen && (
