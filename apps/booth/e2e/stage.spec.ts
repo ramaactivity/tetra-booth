@@ -140,8 +140,14 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   // Rombongan baru (Enter), nama diisi sebelum foto masuk.
   await w.keyboard.press("Enter");
   await expect(w.locator("section").getByText("#2", { exact: true })).toBeVisible();
-  await w.getByLabel("Nama grup (boleh kosong)", { exact: true }).fill("Keluarga Besar Bpk. Hadi");
+  // N = fokus isian nama tanpa mouse (kursor bisa dicuri sentuhan di monitor TV), Enter simpan (blur).
+  const nameInput = w.getByLabel("Nama grup (boleh kosong)", { exact: true });
+  await w.keyboard.press("n");
+  await expect(nameInput).toBeFocused();
+  await w.keyboard.type("Keluarga Besar Bpk. Hadi");
   await w.keyboard.press("Enter"); // simpan nama (blur), bukan rombongan baru
+  await expect(nameInput).not.toBeFocused();
+  await expect(nameInput).toHaveValue("Keluarga Besar Bpk. Hadi");
   await expect(w.locator("section").getByText("#2", { exact: true })).toBeVisible();
   writeFileSync(join(hot, "DSC0003.JPG"), await jpeg(3));
   await expect(w.locator("section img")).toHaveCount(1, { timeout: 10_000 });

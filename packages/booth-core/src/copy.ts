@@ -390,6 +390,7 @@ export const copy = {
     groupCaps: "ROMBONGAN",
     nameLabel: "Nama grup",
     fillHint: "isi dari daftar",
+    nameKeyHint: "ketik nama",
     latest: "terbaru",
     slotTitle: "Foto berikutnya",
     slotSub: "masuk otomatis dari kamera",

@@ -159,6 +159,9 @@ export function StageRunner({
     }
   });
   const setupRef = useRef(setupOpen);
+  const nameRef = useRef<HTMLInputElement>(null);
+  // Ketikan mentah: reducer men-trim tiap ketukan, jadi spasi yang baru diketik hilang ("KeluargaBesar").
+  const [nameDraft, setNameDraft] = useState("");
   setupRef.current = setupOpen;
   const [testShot, setTestShot] = useState<StageShot>();
   const [tvTest, setTvTest] = useState(false);
@@ -582,6 +585,7 @@ export function StageRunner({
   pickRef.current = () => next[0] && pickName(next[0]);
 
   // Keyboard (#186): ⏎ rombongan baru, Spasi jeda/lanjut, Tab isi nama dari daftar (juga di isian), Esc tutup.
+  // N = ketik nama grup tanpa mouse: kursor Windows bisa "dicuri" tamu yang menyentuh monitor TV.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -604,6 +608,10 @@ export function StageRunner({
       } else if (e.key === " ") {
         e.preventDefault();
         togglePause();
+      } else if ((e.key === "n" || e.key === "N") && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        nameRef.current?.focus();
+        nameRef.current?.select();
       } else if ((e.key === "j" || e.key === "J") && canShootRef.current) {
         e.preventDefault();
         shootCountedRef.current();
@@ -842,7 +850,13 @@ export function StageRunner({
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <div className="flex items-center justify-between">
-                <span className="text-base font-bold text-text-2">{t.nameLabel}</span>
+                <span className="flex items-center gap-3 text-base font-bold text-text-2">
+                  {t.nameLabel}
+                  <span className="flex items-center gap-2 text-[15px] font-normal text-muted">
+                    <Key>N</Key>
+                    {t.nameKeyHint}
+                  </span>
+                </span>
                 {!!next.length && (
                   <span className="flex items-center gap-2 text-[15px] text-muted">
                     <span className="rounded-md border-[1.5px] border-muted px-[7px] font-mono text-[13px]">
@@ -853,15 +867,19 @@ export function StageRunner({
                 )}
               </div>
               <input
+                ref={nameRef}
                 aria-label={t.namePlaceholder}
                 placeholder={`Tamu · ${hm(cur?.startedAt ?? now)}`}
-                value={cur?.name ?? ""}
+                value={nameDraft.trim() === (cur?.name ?? "") ? nameDraft : (cur?.name ?? "")}
                 disabled={!cur}
-                onChange={(e) =>
-                  cur && dispatch({ type: "RENAME", id: cur.id, name: e.target.value })
-                }
+                onChange={(e) => {
+                  setNameDraft(e.target.value);
+                  if (cur) dispatch({ type: "RENAME", id: cur.id, name: e.target.value });
+                }}
                 onBlur={(e) => cur && rename(cur, e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                onKeyDown={(e) =>
+                  (e.key === "Enter" || e.key === "Escape") && e.currentTarget.blur()
+                }
                 className="h-[76px] w-full rounded-[20px] border-[2.5px] border-ink bg-white px-6 text-[34px] font-extrabold tracking-[-0.02em] outline-none placeholder:text-muted focus:shadow-[0_0_0_4px_var(--mint)]"
               />
             </div>
