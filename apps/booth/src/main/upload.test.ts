@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { openDb } from "./db";
-import { BACKOFF_MS, createUploader } from "./upload";
+import { BACKOFF_MS, createUploader, GONE_AFTER, GONE_WAIT_MS } from "./upload";
 
 const EVENT = "7c9e6679-7425-40de-944b-e07fc1f90ae7";
 const setup = () => {
@@ -83,5 +83,35 @@ describe("uploader (N4)", () => {
     expect(db.uploadError()).toBe("fetch failed");
     expect(db.dueUploads(new Date(t).toISOString(), 5)).toHaveLength(1);
     expect(db.dueUploads(new Date(t + BACKOFF_MS[0]!).toISOString(), 5)).toHaveLength(3);
+  });
+
+  it("404 berulang (event tidak ada di cloud) → diparkir 24 jam, bukan tiap 5 mnt; file tetap di antrean", async () => {
+    const db = setup();
+    let t = Date.parse("2026-09-24T10:02:00Z");
+    const logs: string[] = [];
+    const up = createUploader({
+      db,
+      log: (m) => logs.push(m),
+      now: () => t,
+      api: async () => {
+        throw new Error("/api/booth/sessions: server 404");
+      },
+      put: async () => {},
+    });
+    for (let i = 0; i < GONE_AFTER; i++) {
+      t += 400_000; // lewat backoff terpanjang
+      db.uploadRetryNow(new Date(t).toISOString());
+      await up.drain();
+    }
+    expect(db.uploadPending()).toBe(3);
+    expect(logs.join(" | ")).toContain("diparkir 24 jam");
+    // Aset yang ditolak 3× tidak jatuh tempo 5 mnt kemudian, baru lagi setelah sehari.
+    const parked = db.query(
+      `select asset_id id, next_attempt_at at from upload_queue where attempts >= ${GONE_AFTER}`,
+    ) as { id: string; at: string }[];
+    expect(parked.length).toBeGreaterThan(0);
+    for (const p of parked) expect(Date.parse(p.at)).toBe(t + GONE_WAIT_MS);
+    const soon = db.dueUploads(new Date(t + 300_000).toISOString(), 5).map((u) => u.assetId);
+    expect(soon.filter((id) => parked.some((p) => p.id === id))).toEqual([]);
   });
 });

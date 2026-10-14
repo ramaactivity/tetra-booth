@@ -126,6 +126,7 @@ public class CanonCameraTests
         Assert.True(await cam.FocusAsync("af"));
         Assert.True(await cam.FocusAsync("near2"));
         Assert.Equal(["af", "near2"], d.FocusSteps);
+        await Task.Delay(1300); // ketuk fokus selama AF masih berjalan diabaikan
         Assert.True(await cam.FocusAtAsync(0.25, 0.75));
         Assert.Equal("at 0.25,0.75", d.FocusSteps[^1]);
         await Assert.ThrowsAsync<CameraFailure>(() => cam.FocusAtAsync(1.5, 0));
@@ -272,6 +273,36 @@ public class CanonCameraTests
         using var cam2 = new CanonCamera(d2, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(10), file);
         await Until(() => cam2.Connected && d2.Props[0x402] == 0x58);
         Assert.Equal("ISO 200", (await cam2.PropsAsync()).Single(p => p.Name == "iso_capture").Value);
+    }
+
+    [Fact]
+    public async Task AF_ditekan_beruntun_hanya_dikirim_sekali_selama_AF_berjalan()
+    {
+        var d = new FakeCanonDriver();
+        using var cam = Make(d);
+        await Until(() => cam.Connected);
+        for (var i = 0; i < 6; i++) Assert.True(await cam.FocusAsync("af"));
+        Assert.True(await cam.FocusAtAsync(0.5, 0.5));
+        Assert.Equal(["af"], d.FocusSteps);
+        await Task.Delay(1400); // AF sebelumnya selesai → boleh lagi
+        await cam.FocusAtAsync(0.3, 0.4);
+        Assert.Equal(["af", "at 0.30,0.40"], d.FocusSteps);
+    }
+
+    [Fact]
+    public async Task Frame_live_view_0x02_langsung_menutup_sesi_lalu_menyambung_ulang()
+    {
+        var d = new FakeCanonDriver();
+        using var cam = Make(d);
+        var events = new System.Collections.Concurrent.ConcurrentQueue<bool>();
+        cam.ConnectionChanged += events.Enqueue;
+        await Until(() => cam.Connected);
+        await cam.StartLiveViewAsync();
+        await Until(() => cam.LatestFrame is not null);
+        d.FrameError = "0x00000002";
+        await Until(() => events.Contains(false), 1500); // tanpa menunggu 6 s "live view gagal terus"
+        d.FrameError = null;
+        await Until(() => cam.Connected && cam.LatestFrame is not null);
     }
 
     [Fact]

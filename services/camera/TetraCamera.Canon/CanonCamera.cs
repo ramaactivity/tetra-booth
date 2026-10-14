@@ -182,7 +182,10 @@ public sealed class CanonCamera : ICameraSource, IDisposable
                 }
                 catch (Exception e)
                 {
-                    if (_failSince == DateTime.MaxValue)
+                    // 700D (lapangan 14 Okt): frame 0x02/0xC1 = USB putus; sesi dibiarkan terbuka membuat jepret berikutnya
+                    // macet ±18 s sampai Camera Service di-restart. Tutup langsung → sambung ulang ±3 s, jepret ditolak cepat.
+                    if (CommLost(e)) Lost($"komunikasi kamera putus: {e.Message}");
+                    else if (_failSince == DateTime.MaxValue)
                     {
                         _failSince = now;
                         Console.Error.WriteLine($"[{Brand}] frame live view gagal: {e.Message}");
@@ -212,6 +215,26 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     {
         try { ConnectionChanged?.Invoke(connected); }
         catch (Exception e) { Console.Error.WriteLine($"[{Brand}] pelapor status gagal: {e.Message}"); }
+    }
+
+    /// <summary>EDSDK 0x02 (INTERNAL_ERROR saat USB goyah) / 0xC0–0xC2 (komunikasi port putus): sesi tidak bisa dipakai lagi.</summary>
+    private static bool CommLost(Exception e) =>
+        e.Message.Contains("0x00000002") || e.Message.Contains("0x000000C1") || e.Message.Contains("0x000000C2");
+
+    /// <summary>
+    /// AF yang masih berjalan: ketukan/tombol AF berikutnya diabaikan (lapangan 14 Okt: ±30 tekanan dalam semenit
+    /// menumpuk di antrean thread SDK, perintah lain habis waktu "Camera Service tidak menjawab").
+    /// </summary>
+    private static readonly TimeSpan AfBusy = TimeSpan.FromMilliseconds(1200);
+    private long _afUntil;
+
+    /// <summary>true = AF baru boleh dikirim (dan menandai AF sedang berjalan).</summary>
+    private bool TakeAf()
+    {
+        var now = Environment.TickCount64;
+        var until = Interlocked.Read(ref _afUntil);
+        if (now < until) return false;
+        return Interlocked.CompareExchange(ref _afUntil, now + (long)AfBusy.TotalMilliseconds, until) == until;
     }
 
     /// <summary>Thread SDK: kamera tidak lagi menjawab → tutup sesi; putaran berikutnya melapor terputus & menyambung ulang.</summary>
@@ -382,6 +405,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
     {
         if (!Steps.Contains(step)) throw new CameraFailure("bad_focus", $"langkah fokus '{step}' tidak dikenal");
         RequireConnected();
+        if (step == "af" && !TakeAf()) return true; // AF sebelumnya masih berjalan
         await Run(() => { _driver.Focus(step); return 0; });
         return true;
     }
@@ -391,6 +415,7 @@ public sealed class CanonCamera : ICameraSource, IDisposable
         if (x is < 0 or > 1 || y is < 0 or > 1) throw new CameraFailure("bad_focus", "titik fokus harus 0–1");
         if (!_kind.FocusAt) return false;
         RequireConnected();
+        if (!TakeAf()) return true; // AF sebelumnya masih berjalan
         await Run(() => { _driver.FocusAt(x, y); return 0; });
         return true;
     }

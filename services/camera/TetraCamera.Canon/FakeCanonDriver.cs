@@ -76,8 +76,11 @@ public sealed class FakeCanonDriver(
     }
 
     public void SetLiveView(bool on) => LiveView = on;
+    /// <summary>Error frame live view berikutnya (mis. "0x00000002" = USB 700D goyah); null = normal.</summary>
+    public volatile string? FrameError;
     public byte[]? LiveViewFrame() =>
-        Silent ? throw new CameraFailure("canon_error", "EDSDK unduh frame live view gagal: 0x00000081")
+        FrameError is { } fe ? throw new CameraFailure("canon_error", $"EDSDK unduh frame live view gagal: {fe}")
+        : Silent ? throw new CameraFailure("canon_error", "EDSDK unduh frame live view gagal: 0x00000081")
         : LiveView && IsOpen ? Jpeg : null;
     public void Focus(string step) => FocusSteps.Add(step);
     public void FocusAt(double x, double y) => FocusSteps.Add($"at {x:0.00},{y:0.00}");

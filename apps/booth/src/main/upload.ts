@@ -5,6 +5,12 @@ import type { BoothDb, DueUpload } from "./db";
 /** Backoff per percobaan gagal (TSD §4.2): 5 dtk, 15 dtk, 1 mnt, lalu 5 mnt. */
 export const BACKOFF_MS = [5_000, 15_000, 60_000, 300_000];
 export const CONCURRENCY = 2;
+/**
+ * Server menjawab 404 berulang (event dihapus/diganti di cloud, lapangan 9–14 Okt): aset diparkir sehari, bukan dicoba
+ * tiap 5 mnt selamanya. File tetap di antrean; "Kirim ulang sekarang" di crew memaksa coba lagi.
+ */
+export const GONE_AFTER = 3;
+export const GONE_WAIT_MS = 24 * 60 * 60_000;
 
 export type Api = (path: string, body: unknown) => Promise<unknown>;
 
@@ -44,9 +50,16 @@ export function createUploader(o: {
       return true;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      const wait = BACKOFF_MS[Math.min(u.attempts, BACKOFF_MS.length - 1)] ?? 300_000;
+      const gone = /server 404(?!\d)/.test(msg) && u.attempts + 1 >= GONE_AFTER;
+      const wait = gone
+        ? GONE_WAIT_MS
+        : (BACKOFF_MS[Math.min(u.attempts, BACKOFF_MS.length - 1)] ?? 300_000);
       o.db.uploadFailed(u.assetId, msg, iso(now() + wait));
-      o.log(`[upload] ${u.assetId} gagal (${msg}), coba lagi ${wait / 1000} dtk`);
+      o.log(
+        gone
+          ? `[upload] ${u.assetId} ditolak server (${msg}) ${u.attempts + 1}×, diparkir 24 jam (event tidak ada di cloud?)`
+          : `[upload] ${u.assetId} gagal (${msg}), coba lagi ${wait / 1000} dtk`,
+      );
       return false;
     }
   };
