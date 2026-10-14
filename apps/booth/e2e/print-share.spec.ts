@@ -87,7 +87,8 @@ test("booth mencetak lewat laptop printer di WiFi yang sama, antre saat putus", 
       .click();
     await expect.poll(() => existsSync(join(boothData, "device.json"))).toBe(true);
     await booth.close().catch(() => {});
-    execSync(`pkill -f -- "--data=${boothData}" || true`);
+    // "[-]" supaya pola tidak cocok dengan shell pkill sendiri (Linux CI membunuh shell-nya).
+    execSync(`pkill -f "[-]-data=${boothData}" || true`);
     booth = await launch(boothData);
     bw = await crewPrinter(booth, false);
     await expect(bw.getByTestId("share-target")).toContainText("Terhubung", { timeout: 15_000 });
