@@ -195,6 +195,23 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     await expect(w.getByText("· @tetraphoto")).toBeVisible();
     await expect(w.getByText("Rina & Dimas", { exact: true }).nth(1)).toBeHidden();
     await w.screenshot({ path: "test-results/designs-attract.png" });
+    // Sesi dibatalkan di tengah hitung mundur (#279): rekaman video hitung mundurnya dibuang, tidak ikut ke tamu
+    // berikutnya.
+    const logs: string[] = [];
+    w.on("console", (m) => logs.push(m.text()));
+    await start.click();
+    await w.getByTestId("layout-card").filter({ hasText: "Bingkai Emas" }).click();
+    await w.getByRole("button", { name: /Mulai Foto/ }).click();
+    await w.getByRole("button", { name: "Siap, mulai!" }).click();
+    await expect(w.getByText("Siap-siap, gaya pertama!")).toBeVisible();
+    await w.waitForTimeout(1500);
+    await w.getByRole("button", { name: "Batal", exact: true }).click();
+    await w.getByRole("button", { name: "Ya, batalkan" }).click();
+    await expect(start).toBeVisible();
+    await expect
+      .poll(() => logs.some((l) => l.includes("video hitung mundur sesi batal dibuang")))
+      .toBe(true);
+    await w.waitForTimeout(1000); // START_GUARD_MS
     await start.click();
     await expect(w.getByRole("heading", { name: "Pilih desain" })).toBeVisible();
     const cards = w.getByTestId("layout-card");

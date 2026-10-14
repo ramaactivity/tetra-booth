@@ -143,6 +143,13 @@ export function SessionRunner({
   /** Potongan web 2× sesi ini (#133), dirender di latar belakang setelah compose; [sessionId, path]. */
   const webPiece = useRef<Promise<[string, string | null]>>(Promise.resolve(["", null]));
   useEffect(() => {
+    // Sesi dibatalkan (#273) kembali ke layar awal tanpa id sesi: rekaman tamu itu dibuang, jangan sampai ikut
+    // tersambung ke video hitung mundur tamu berikutnya (#279).
+    if (!s.sessionId && recorder.current) {
+      void recorder.current.stop().catch(() => null);
+      recorder.current = null;
+      console.info("[session] video hitung mundur sesi batal dibuang");
+    }
     if (!cfg.countdownVideo || demo || !s.sessionId) return;
     const shooting = s.phase === "countdown" || s.phase === "capture";
     if (shooting) {
