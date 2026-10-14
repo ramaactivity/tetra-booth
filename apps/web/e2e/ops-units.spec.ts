@@ -150,6 +150,11 @@ test("acara 2 unit: buat event Unit 2 dari dashboard unit 1", async ({ page }) =
   } finally {
     server.close();
     await db.from("events").delete().eq("ops_project_id", project);
+    // Preset unit disalin jadi template "<nama> · <ukuran>" (createUnit/resizeUnit); jangan tertinggal di org.
+    const { data: tpl } = await db.from("layouts").select("id").like("name", `${name} ·%`);
+    const tplIds = (tpl ?? []).map((l) => l.id);
+    await db.from("layout_versions").delete().in("layout_id", tplIds);
+    await db.from("layouts").delete().in("id", tplIds);
     await u.cleanup();
   }
 });
@@ -256,6 +261,14 @@ test("wizard Ambil dari Tetra Ops: booking 2 unit (units[]) langsung membuat eve
   } finally {
     server.close();
     await db.from("events").delete().eq("ops_project_id", project);
+    // Preset unit disalin jadi template "<nama> · <ukuran>" (createUnit/resizeUnit); jangan tertinggal di org.
+    const { data: tpl } = await db
+      .from("layouts")
+      .select("id")
+      .like("name", `e2e Outing ${tag} ·%`);
+    const tplIds = (tpl ?? []).map((l) => l.id);
+    await db.from("layout_versions").delete().in("layout_id", tplIds);
+    await db.from("layouts").delete().in("id", tplIds);
     await u.cleanup();
   }
 });

@@ -5,7 +5,13 @@ import { ArrowLeft, ArrowRight, CalendarHeart, Check, Plus, Store, X } from "luc
 import { useActionState, useRef, useState } from "react";
 import { DesignPreview } from "../events/[id]/settings/DesignPreview";
 import { createTemplate } from "./actions";
-import type { AssignEvent, WizardPreset, WizardTemplate } from "./types";
+import {
+  type AssignEvent,
+  assignOption,
+  paperSwapWarning,
+  type WizardPreset,
+  type WizardTemplate,
+} from "./types";
 import { type Design, UploadDesign } from "./UploadDesign";
 
 type Mode = "event" | "photobox";
@@ -47,13 +53,6 @@ const firstPreset = (paper: Paper, orient: Orient) => {
 };
 const isLand = (l: { canvas: { width: number; height: number } }) =>
   l.canvas.width > l.canvas.height;
-const dateText = (ymd: string) =>
-  new Intl.DateTimeFormat("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${ymd}T00:00:00Z`));
 
 /** Kertas mini: potongan per lembar 4R sesuai format & arah (2R = dua strip, polaroid = dua potong). */
 function PaperMock({ paper, orient }: { paper: Paper; orient: Orient }) {
@@ -457,14 +456,24 @@ export function NewTemplateWizard({
                         onChange={setEvent}
                         options={[
                           { value: "", label: "Jangan pasang dulu" },
-                          ...myEvents.map((e) => ({
-                            value: e.id,
-                            label: e.name,
-                            hint: dateText(e.date),
-                          })),
+                          ...myEvents.map(assignOption),
                         ]}
                       />
                     </div>
+                    {paperSwapWarning(
+                      myEvents.find((e) => e.id === event),
+                      paper,
+                    ) && (
+                      <p
+                        data-testid="paper-swap"
+                        className="rounded-xl border-[1.5px] border-ink bg-peach px-3.5 py-2.5 text-[13px] leading-normal font-semibold"
+                      >
+                        {paperSwapWarning(
+                          myEvents.find((e) => e.id === event),
+                          paper,
+                        )}
+                      </p>
+                    )}
                     {event && (
                       <p className="rounded-xl border-[1.5px] border-ink bg-sky px-3.5 py-2.5 text-[13px] leading-normal">
                         {mode === "photobox"

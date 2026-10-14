@@ -1,5 +1,5 @@
 import "server-only";
-import { InstagramSchema, type LayoutPaper } from "@tetra/shared";
+import { InstagramSchema, type LayoutPaper, LayoutPaperSchema, paperShort } from "@tetra/shared";
 import { z } from "zod";
 import { ymdWib } from "./events";
 import { type DriftEvent, type OpsDrift, opsDrift } from "./ops-sync";
@@ -98,7 +98,6 @@ export const spotOf = (ev: { name: string; ops_sync?: unknown }) => {
   return typeof s === "number" && s >= 1 ? s : Number(/Spot (\d+)/i.exec(ev.name)?.[1] ?? 1);
 };
 
-const PAPER_SIZE: Record<string, string> = { "2x6x2": "2R", "4R": "4R", "3x4x2": "Polaroid" };
 type UnitEv = {
   id: string;
   name: string;
@@ -125,7 +124,8 @@ export function unitLabels(evs: UnitEv[]): Map<string, string> {
   for (const e of evs) {
     const no = unitNo(e, e.ops_project_id ? (n.get(e.ops_project_id) ?? 1) : 1);
     if (!no) continue;
-    const size = typeof e.paper === "string" ? PAPER_SIZE[e.paper] : undefined;
+    const paper = LayoutPaperSchema.safeParse(e.paper).data;
+    const size = paper && paperShort(paper);
     out.set(e.id, [`Unit ${no}`, size].filter(Boolean).join(" · "));
   }
   return out;

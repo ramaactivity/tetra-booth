@@ -1,4 +1,4 @@
-import { paperLabel } from "@tetra/shared";
+import { LayoutPaperSchema, paperLabel } from "@tetra/shared";
 import { LayoutTemplate } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -13,6 +13,7 @@ import {
   stats,
   type TemplateRow,
 } from "@/lib/template-list";
+import { unitLabels } from "@/lib/tetra-ops";
 import { NewTemplateWizard } from "./NewTemplateWizard";
 import { TemplateFilters } from "./TemplateFilters";
 import { TemplateGrid, TemplateTable } from "./TemplateViews";
@@ -57,7 +58,7 @@ export default async function TemplatesPage({
       db
         .from("events")
         .select(
-          "id, slug, name, mode, status, event_date, tpl:settings->template, pb:settings->photobox->layouts",
+          "id, slug, name, mode, status, event_date, ops_project_id, ops_sync, paper:bundle->config->layout->paper, tpl:settings->template, pb:settings->photobox->layouts",
         )
         .eq("organization_id", orgId)
         .order("event_date", { ascending: false }),
@@ -116,6 +117,7 @@ export default async function TemplatesPage({
   const maxSessions = Math.max(1, ...mine.map((t) => t.sessions));
 
   // "Pasang ke event": event mendatang (mode event) / photobox yang masih berjalan.
+  const units = unitLabels(events ?? []);
   const assignable: AssignEvent[] = (events ?? [])
     .filter((e) =>
       e.mode === "photobox"
@@ -128,6 +130,8 @@ export default async function TemplatesPage({
       name: e.name,
       date: e.event_date,
       mode: e.mode === "photobox" ? ("photobox" as const) : ("event" as const),
+      unit: units.get(e.id),
+      paper: LayoutPaperSchema.safeParse(e.paper).data,
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
   const wizardTemplates: WizardTemplate[] = all.map((t) => ({

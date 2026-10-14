@@ -4,17 +4,10 @@ import { ArrowLeftRight, CalendarPlus, Copy, Ellipsis, Trash2, X } from "lucide-
 import Link from "next/link";
 import { useActionState, useRef, useState, useTransition } from "react";
 import { archiveTemplate, assignTemplate, duplicateTemplate, setTemplateMode } from "./actions";
-import type { AssignEvent, TemplateItem } from "./types";
+import { type AssignEvent, assignOption, paperSwapWarning, type TemplateItem } from "./types";
 
 const item =
   "flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left text-sm font-semibold hover:bg-paper disabled:opacity-50";
-const dateText = (ymd: string) =>
-  new Intl.DateTimeFormat("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${ymd}T00:00:00Z`));
 
 /** Menu "Lainnya" per template: pasang ke event, duplikat, pindah mode, hapus (konfirmasi di menu) (#160). */
 export function TemplateMenu({ t, events }: { t: TemplateItem; events: AssignEvent[] }) {
@@ -140,6 +133,10 @@ function AssignDialog({
   const [r, action, pending] = useActionState(assignTemplate.bind(null, t.id), null);
   const [ev, setEv] = useState("");
   const photobox = t.mode === "photobox";
+  const swap = paperSwapWarning(
+    events.find((e) => e.id === ev),
+    t.layout.paper,
+  );
   return (
     <dialog
       ref={ref}
@@ -176,13 +173,17 @@ function AssignDialog({
                 value={ev}
                 onChange={setEv}
                 placeholder="Pilih event…"
-                options={events.map((e) => ({
-                  value: e.id,
-                  label: e.name,
-                  hint: dateText(e.date),
-                }))}
+                options={events.map(assignOption)}
               />
             </div>
+            {swap && (
+              <p
+                data-testid="paper-swap"
+                className="rounded-xl border-[1.5px] border-ink bg-peach px-3.5 py-2.5 text-[13px] leading-normal font-semibold"
+              >
+                {swap}
+              </p>
+            )}
             {photobox && (
               <label className="flex flex-col gap-1.5 text-xs font-bold">
                 Harga paket (Rp)

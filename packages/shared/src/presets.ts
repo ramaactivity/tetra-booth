@@ -188,6 +188,9 @@ export const EVENT_PRESETS = [
   "4r-single",
 ] as const satisfies PresetId[];
 
+/** Nama ukuran kertas singkat: "2R", "4R", "Polaroid". */
+export const paperShort = (paper: LayoutPaper) => SIZE[paper].label;
+
 /** Label format, mis. "Polaroid 3x4" atau "2R 6x2 landscape". */
 export const paperLabel = (paper: LayoutPaper, canvas?: { width: number; height: number }) => {
   const s = SIZE[paper];

@@ -70,6 +70,20 @@ test("tab Event/Photobox terpisah, statistik pemakaian, filter, pasang ke event"
     })
     .select("id")
     .single();
+  // Unit 2 (2R) acara multi-unit (#267): nama sama antar unit, kertas dari desain utama (bundle).
+  const { data: unitEvent } = await db
+    .from("events")
+    .insert({
+      organization_id: u.org,
+      name: `e2e list unit ${ts}`,
+      mode: "event",
+      event_date: "2099-12-02",
+      ops_project_id: `PRJ-E2E-TL-${ts}`,
+      ops_sync: { spot: 2 },
+      bundle: { config: { layout: { paper: "2x6x2" } } },
+    })
+    .select("id")
+    .single();
   // 2 sesi lunas (satu + 1 lembar tambahan) + 1 sesi tes (tidak dihitung).
   const now = new Date().toISOString();
   const sess = [newSessionId(), newSessionId(), newSessionId()];
@@ -164,8 +178,20 @@ test("tab Event/Photobox terpisah, statistik pemakaian, filter, pasang ke event"
     await page.getByRole("button", { name: `Lainnya untuk ${evTpl}` }).click();
     await page.getByRole("button", { name: "Pasang ke event…" }).click();
     const dlg = page.getByRole("dialog", { name: `Pasang ${evTpl} ke event` });
+    // Opsi menampilkan unit + ukuran; template 4R ke unit 2R → peringatan (tidak diblokir).
     await dlg.getByRole("combobox", { name: "Event" }).click();
+    await page.getByRole("textbox", { name: "Cari event" }).fill(`e2e list unit ${ts}`);
+    const unitOpt = page.getByRole("option", { name: new RegExp(`e2e list unit ${ts}`) });
+    await expect(unitOpt).toContainText("Unit 2 · 2R");
+    await unitOpt.click();
+    await expect(dlg.getByTestId("paper-swap")).toHaveText(
+      "Unit 2 sekarang 2R. Memasang template 4R mengubahnya jadi 4R dan melepas desain 2R-nya.",
+    );
+    await page.screenshot({ path: "test-results/templates-assign-swap.png" });
+    await dlg.getByRole("combobox", { name: "Event" }).click();
+    await page.getByRole("textbox", { name: "Cari event" }).fill(`e2e list event ${ts}`);
     await page.getByRole("option", { name: new RegExp(`e2e list event ${ts}`) }).click();
+    await expect(dlg.getByTestId("paper-swap")).toHaveCount(0);
     await dlg.getByRole("button", { name: "Pasang" }).click();
     await expect(dlg.getByRole("status")).toContainText("Jadi desain utama", { timeout: 30_000 });
     const { data: ev } = await db
@@ -185,7 +211,7 @@ test("tab Event/Photobox terpisah, statistik pemakaian, filter, pasang ke event"
     await db
       .from("events")
       .delete()
-      .in("id", [pbEvent?.id ?? "", evEvent?.id ?? ""]);
+      .in("id", [pbEvent?.id ?? "", evEvent?.id ?? "", unitEvent?.id ?? ""]);
     for (const id of ids) {
       await db.from("layout_versions").delete().eq("layout_id", id);
       await db.from("layouts").delete().eq("id", id);
