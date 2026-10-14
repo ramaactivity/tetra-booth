@@ -293,6 +293,7 @@ Selesai: kata sandi admin, CORS R2, `CRON_SECRET` (cron menolak tanpa secret: 40
 
 | Tanggal | Mesin | Catatan |
 |---|---|---|
+| 2026-10-14 | Windows | Uji 0.6.29 di B02 (700D + DNP, antrean `DS-RX1 (Copy 1)`): 7 sesi selesai, jepret 2,2–3,1 s, cetak strip `(6x4)` lulus. 700D putus 3× (`0x02`/`0xC1` di live view) → 1 sesi kamera error, pulih otomatis ±50 s. AF ditekan beruntun → `crewFocus` timeout. Upload 404 sesi lama masih berulang. Laporan: `docs/reports/windows/2026-10-14-uji-0.6.29-700d.md`. |
 | 2026-10-08 | Mac | Nikon (#216): `TetraCamera.Nikon` — MAID3 klasik (31 modul, D-series + Z lama) + Remote SDK v2 (Z baru), `--camera=nikon`, unduh kit `nikon`/`nikonz`, `--nikon-probe`. Teruji dengan kamera palsu; uji asli W-044. |
 | 2026-10-08 | Mac | Lumix GH5 (#214): `TetraCamera.Lumix` (Lmxptpif.dll lewat `CanonCamera`), `--camera=lumix`, DLL diunduh dari R2 per kit, `--lumix-probe`. Teruji dengan kamera palsu; uji GH5 asli W-043. |
 | 2026-10-06 | Mac | Sony S2–S5 selesai dengan kamera palsu tingkat PTP (#171): jepret S1/S2 + unduh JPEG, live view ≤ 30 fps, setelan v2 langkah / v3 absolut, AF & tap to focus v3, kartu/panas/sibuk/cabut-colok. Sony masuk pilihan crew dengan catatan "Belum diuji dengan kamera asli". W-037…W-041 menunggu kamera Sony. |
