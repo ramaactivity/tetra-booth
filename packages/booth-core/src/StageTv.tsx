@@ -1,4 +1,4 @@
-import { ChevronLeft, Search, X } from "lucide-react";
+import { ChevronLeft, Printer, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { copy } from "./copy";
 import { storedLut } from "./lut";
@@ -74,7 +74,12 @@ const useReducedMotion = () => {
  * setelah jepretan terakhir (bar sisa waktu); selain itu galeri cetakan bergeser + QR galeri acara. Dua lapisan
  * selalu ter-mount (pudar 250 ms), ganti rombongan 160 ms; tanpa animasi saat `prefers-reduced-motion`.
  */
-export function StageTv() {
+export function StageTv({
+  onPrint,
+}: {
+  /** Layar staf `#display=<kode>` (#280): cetak foto rombongan dari galeri; tidak ada = layar tamu tanpa cetak. */
+  onPrint?: (groupId: string, path: string, choice: string) => Promise<void>;
+} = {}) {
   const p = usePlatform();
   const reduce = useReducedMotion();
   const [st, setSt] = useState<StageTvState | null>(null);
@@ -117,6 +122,24 @@ export function StageTv() {
   const [zoom, setZoom] = useState<string | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: tutup saat rombongan/daftar berganti
   useEffect(() => setZoom(null), [browse]);
+  // Cetak dari galeri staf: desain pilihan di layar ini (awal = pilihan operator); "sending" sampai keadaan TV
+  // berikutnya membawa status cetak dari laptop stage.
+  const [choice, setChoice] = useState<string | null>(null);
+  const [sent, setSent] = useState<Record<string, "printing" | "failed">>({});
+  const printNow = (id: string, path: string) => {
+    if (!onPrint) return;
+    const clear = () =>
+      setSent((x) => {
+        const { [path]: _, ...rest } = x;
+        return rest;
+      });
+    setSent((x) => ({ ...x, [path]: "printing" }));
+    onPrint(id, path, choice ?? st?.printChoice ?? "auto").then(
+      () => setTimeout(clear, 4000),
+      () => setSent((x) => ({ ...x, [path]: "failed" })),
+    );
+  };
+  const printState = zoom ? (sent[zoom] ?? st?.prints?.[zoom]) : undefined;
   useEffect(() => {
     if (browse && now - touchedAt > BROWSE_IDLE_MS) setBrowse(null);
   }, [now, browse, touchedAt]);
@@ -414,7 +437,9 @@ export function StageTv() {
               <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_480px] gap-16">
                 <div className="flex min-h-0 flex-col justify-center gap-4">
                   {mosaic(picked.shots, setZoom)}
-                  <span className="text-[24px] font-semibold text-text-3">{t.tvZoomHint}</span>
+                  <span className="text-[24px] font-semibold text-text-3">
+                    {onPrint ? t.tvZoomHintPrint : t.tvZoomHint}
+                  </span>
                 </div>
                 <div className="flex flex-col items-center justify-center gap-6">
                   <div className="layered rounded-[36px] border-[3px] border-ink bg-white p-7 [--lb:3px] [--lx:14px] [--under:var(--butter)]">
@@ -457,26 +482,69 @@ export function StageTv() {
               <p className="text-[40px] font-bold text-text-2">{t.tvNone}</p>
             )}
             {zoom && photos[zoom] && (
-              <button
-                type="button"
+              <div
                 data-testid="stage-tv-zoom"
-                aria-label={t.tvClose}
-                onClick={() => {
-                  setTouchedAt(Date.now());
-                  setZoom(null);
-                }}
                 className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-6 bg-ink/85 p-12"
               >
+                <button
+                  type="button"
+                  aria-label={t.tvClose}
+                  onClick={() => {
+                    setTouchedAt(Date.now());
+                    setZoom(null);
+                  }}
+                  className="absolute inset-0"
+                />
                 <img
                   src={photos[zoom]}
                   alt=""
                   style={{ filter }}
-                  className="min-h-0 max-w-full flex-1 rounded-2xl border-[3px] border-white object-contain"
+                  className="pointer-events-none relative min-h-0 max-w-full flex-1 rounded-2xl border-[3px] border-white object-contain"
                 />
-                <span className="rounded-full border-2 border-ink bg-white px-7 py-2.5 text-[26px] font-bold">
+                {onPrint && picked && (
+                  <div
+                    data-testid="stage-tv-print"
+                    className="relative flex max-w-full items-center gap-6 rounded-[28px] border-[3px] border-ink bg-white p-4 pl-6"
+                  >
+                    <div className="flex min-w-0 flex-wrap gap-2.5">
+                      {(st.printDesigns ?? []).map((d) => {
+                        const on = d.id === (choice ?? st.printChoice ?? "auto");
+                        return (
+                          <button
+                            key={d.id}
+                            type="button"
+                            title={d.info}
+                            aria-pressed={on}
+                            onClick={() => setChoice(d.id)}
+                            className={`pressable rounded-full border-[2.5px] border-ink px-5 py-2 text-[22px] font-bold ${on ? "bg-butter" : "bg-white"}`}
+                          >
+                            {d.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {printState && (
+                      <span
+                        className={`flex-none rounded-full border-2 border-ink px-5 py-2 text-[22px] font-bold ${printState === "done" ? "bg-mint" : printState === "failed" ? "bg-coral" : "bg-paper"}`}
+                      >
+                        {t.tvPrintState[printState]}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      disabled={printState === "printing"}
+                      onClick={() => printNow(picked.id, zoom)}
+                      className="pressable layered flex h-[76px] flex-none items-center gap-3 rounded-full border-[3px] border-ink bg-butter px-9 text-[30px] font-extrabold [--lb:3px] [--lx:6px] disabled:opacity-50"
+                    >
+                      <Printer className="size-8" strokeWidth={2.75} aria-hidden />
+                      {t.tvPrint}
+                    </button>
+                  </div>
+                )}
+                <span className="pointer-events-none relative rounded-full border-2 border-ink bg-white px-7 py-2.5 text-[26px] font-bold">
                   {t.tvZoomClose}
                 </span>
-              </button>
+              </div>
             )}
           </div>
         )}

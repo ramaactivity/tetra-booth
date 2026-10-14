@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { existsSync } from "node:fs";
 import { hostname } from "node:os";
 import { join } from "node:path";
@@ -248,6 +249,12 @@ app.whenReady().then(async () => {
       rendererDir: join(__dirname, "../renderer"),
       sessionsRoot: () => join(app.getPath("userData"), "sessions"),
       state: tv.last,
+      // Tetap per laptop: QR "HP crew" / layar staf yang sudah dibuka tetap berlaku setelah aplikasi dibuka ulang.
+      key: (() => {
+        const k = db.kv.get("stage_helper_key") || String(randomInt(1000, 10000));
+        db.kv.set("stage_helper_key", k);
+        return k;
+      })(),
       // HP helper (#206) → layar operator (jendela TV mengabaikan).
       remote: (m) => {
         for (const w of BrowserWindow.getAllWindows()) w.webContents.send("stageRemote", m);

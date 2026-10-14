@@ -1,6 +1,6 @@
 "use client";
 import { tvMosaic } from "@tetra/shared";
-import { QrCode } from "@tetra/ui";
+import { FullscreenButton, QrCode } from "@tetra/ui";
 import { ChevronLeft, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { copy } from "@/lib/copy";
@@ -136,6 +136,7 @@ export function StageDisplayView({
 
   return (
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-paper">
+      <FullscreenButton />
       <style>
         {"@keyframes tvMarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}"}
       </style>

@@ -22,7 +22,7 @@ import { usePlatform } from "./PlatformContext";
 import type { PrinterAlert, SessionAsset, StageRemote, StageStatus } from "./platform";
 import { toneForPrint } from "./printTone";
 import { StageColor } from "./StageColor";
-import { StageSetup } from "./StageSetup";
+import { printChoices, StageSetup } from "./StageSetup";
 import {
   activeGroup,
   groupLabel,
@@ -339,25 +339,16 @@ export function StageRunner({
         lut: lut ? { key: lutKey(event.id), at: lut.at } : null,
         test: setupOpen && tvTest,
         next: nextKey ? nextKey.split("\n") : [],
+        printDesigns: printChoices(stageDesigns(event)).map(([id, name, info]) => ({
+          id,
+          name,
+          info,
+        })),
+        printChoice,
+        prints: Object.fromEntries(Object.entries(prints).map(([k, v]) => [k, v.st])),
       }),
     );
-  }, [
-    nextKey,
-    s,
-    preset,
-    lut,
-    stage,
-    event.id,
-    event.name,
-    event.tagline,
-    event.date,
-    event.slug,
-    event.publicGallery,
-    event.settings.stageTvSec,
-    guestBaseUrl,
-    setupOpen,
-    tvTest,
-  ]);
+  }, [nextKey, printChoice, prints, event, s, preset, lut, stage, guestBaseUrl, setupOpen, tvTest]);
 
   const newGroup = useCallback(() => {
     const a = activeGroup(sRef.current);
@@ -379,7 +370,11 @@ export function StageRunner({
   };
   // Cetak instan (#183, #274): satu foto mengisi semua slot desain pilihan, warna preset, lewat antrean print yang
   // sama dengan booth (printer laptop ini atau laptop printer pusat #261). `g` kosong = tes cetak wizard.
-  const printShot = async (g: StageGroup | null, sh: StageShot) => {
+  const printShot = async (
+    g: StageGroup | null,
+    sh: StageShot,
+    choice: StagePrintChoice = printChoice,
+  ) => {
     if (prints[sh.path]?.st === "printing") return;
     const n = prints[sh.path]?.n ?? 0;
     setPrints((x) => ({ ...x, [sh.path]: { st: "printing", n } }));
@@ -387,7 +382,7 @@ export function StageRunner({
       const bmp = await createImageBitmap(new Blob([await p.storage.readFile(sh.path)]));
       try {
         const photo = stageCanvas(bmp, ORIGINAL_LONG_SIDE, "none", lutRef.current?.lut ?? null);
-        const layout = stagePrintLayout(event, bmp, printChoice);
+        const layout = stagePrintLayout(event, bmp, choice);
         const ov = layout.overlay;
         // Frame bawaan "Lengkung" (#194): lengkung putih + font serif khusus cetakan.
         const frame =
@@ -578,7 +573,11 @@ export function StageRunner({
   remoteRef.current = (m) => {
     if (m.kind === "pick") return pickName(m.name);
     const g = s.groups.find((x) => x.id === m.id);
-    if (g) rename(g, m.name);
+    if (!g) return;
+    if (m.kind === "rename") return rename(g, m.name);
+    // Cetak dari galeri layar staf: desain pilihan di galeri (bukan pilihan operator).
+    const sh = g.shots.find((x) => x.path === m.path);
+    if (sh) void printShot(g, sh, m.choice as StagePrintChoice);
   };
   useEffect(() => stage?.onRemote?.((m) => remoteRef.current(m)), [stage]);
   const pickRef = useRef(pickName);
@@ -1353,6 +1352,12 @@ export function StageRunner({
                   {`${status.lanUrls[0]}/#helper=${status.helperKey}`}
                 </p>
                 <p className="text-lg font-bold">{t.helper.code(status.helperKey)}</p>
+                <p className="max-w-[760px] text-lg leading-[1.45] text-text-3">
+                  {t.helper.display}{" "}
+                  <span className="font-mono text-ink" data-testid="stage-display-url">
+                    {`${status.lanUrls[0]}/#display=${status.helperKey}`}
+                  </span>
+                </p>
               </>
             ) : (
               <p className="text-xl text-text-3">{t.helper.none}</p>

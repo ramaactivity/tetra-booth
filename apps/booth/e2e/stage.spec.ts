@@ -179,6 +179,9 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   });
   await expect(other.locator('[aria-hidden="false"] img')).toHaveCount(1, { timeout: 15_000 });
   await other.screenshot({ path: "test-results/stage-lan.png" });
+  // Layar penuh hanya di browser, bukan jendela TV Electron.
+  await expect(other.getByRole("button", { name: "Layar penuh" })).toBeVisible();
+  await expect(tvWin.getByRole("button", { name: "Layar penuh" })).toHaveCount(0);
 
   // HP helper (#206): kode dari dialog "HP crew" → HP ganti nama rombongan #1 → laptop ikut.
   await w.getByRole("button", { name: "HP crew" }).click();
@@ -232,6 +235,61 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   expect([size.width, size.height].sort()).toEqual([1200, 1800]);
   copyFileSync(join(data, "sessions", printed[0] ?? ""), "test-results/stage-print.jpg");
   await w.screenshot({ path: "test-results/stage-printed.png" });
+
+  // Cetak dari galeri layar staf (`#display=<kode>`): tamu tanpa kode tidak melihat Cetak; kode salah → 403.
+  const displayUrl = await (async () => {
+    await w.getByRole("button", { name: "HP crew" }).click();
+    const u = await w.getByTestId("stage-display-url").textContent();
+    await w.keyboard.press("Escape");
+    return u ?? "";
+  })();
+  expect(displayUrl).toContain(`#display=${key}`);
+  const gallery = await chromium.launch();
+  const openGroup = async (hash: string) => {
+    const pg = await gallery.newPage({ viewport: { width: 1280, height: 720 } });
+    await pg.goto(`${lan}${hash}`);
+    await pg.getByRole("button", { name: "Cari fotomu" }).click();
+    await pg.getByRole("button", { name: /Keluarga Besar Bpk\. Hadi/ }).click();
+    await pg.getByTestId("stage-tv-find").getByTestId("stage-tv-photo").first().click();
+    await expect(pg.getByTestId("stage-tv-zoom").locator("img")).toBeVisible({ timeout: 15_000 });
+    return pg;
+  };
+  const guest = await openGroup("");
+  await expect(guest.getByTestId("stage-tv-print")).toHaveCount(0);
+  await expect(guest.getByRole("button", { name: "Cetak" })).toHaveCount(0);
+  const tvState = (await fetch(`${lan}api/tv`).then((r) => r.json())) as {
+    groups: { id: string; label: string; shots: string[] }[];
+  };
+  const hadi = tvState.groups.find((g) => g.label === "Keluarga Besar Bpk. Hadi");
+  const bad = await fetch(`${lan}api/helper`, {
+    method: "POST",
+    body: JSON.stringify({
+      key: key === "1234" ? "4321" : "1234",
+      kind: "print",
+      id: hadi?.id,
+      path: hadi?.shots[0],
+      choice: "auto",
+    }),
+  });
+  expect(bad.status).toBe(403);
+  const staff = await openGroup(`#display=${key}`);
+  const bar = staff.getByTestId("stage-tv-print");
+  await expect(bar.getByRole("button", { name: "Foto penuh" })).toBeVisible();
+  await bar.getByRole("button", { name: "Foto penuh" }).click();
+  await expect(bar.getByRole("button", { name: "Foto penuh" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await bar.getByRole("button", { name: "Cetak" }).click();
+  // Mac tanpa adapter printer: status akhir boleh Gagal; yang dicek file cetakannya.
+  await expect(bar.getByText(/Terkirim|Gagal/)).toBeVisible({ timeout: 15_000 });
+  await staff.screenshot({ path: "test-results/stage-lan-print.png" });
+  const printedLan = () =>
+    readdirSync(join(data, "sessions"), { recursive: true })
+      .map(String)
+      .filter((f) => /out[/\\]print_\w+\.jpg$/.test(f));
+  await expect.poll(() => printedLan().length, { timeout: 15_000 }).toBe(2);
+  await gallery.close();
 
   // Rombongan #1 sudah ditutup → diproses & tersimpan.
   await expect(w.getByText(/^(terunggah|mengunggah|antre)$/)).toHaveCount(1, { timeout: 15_000 });

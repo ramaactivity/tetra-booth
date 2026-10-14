@@ -232,6 +232,10 @@ export type StageTvState = {
   test?: boolean;
   /** LUT `.cube` aktif (#184): kunci localStorage + waktu simpan; jendela TV membacanya sendiri. */
   lut: { key: string; at: number } | null;
+  /** Cetak dari galeri layar staf: pilihan desain (seperti wizard), pilihan operator, status cetak per foto. */
+  printDesigns?: { id: string; name: string; info: string }[];
+  printChoice?: string;
+  prints?: Record<string, "printing" | "done" | "failed">;
 };
 
 /** Ringkasan untuk TV dari keadaan rombongan. */

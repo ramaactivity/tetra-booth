@@ -453,6 +453,7 @@ export const copy = {
       body: "Crew kedua di WiFi/hotspot yang sama scan QR ini. Nama yang diketik di HP langsung masuk ke laptop.",
       none: "Sambungkan laptop ke WiFi/hotspot dulu supaya HP crew bisa tersambung.",
       code: (k: string) => `Kode ${k}`,
+      display: "Layar galeri staf (bisa cetak), buka di laptop/TV crew:",
       close: "Tutup",
       pageTitle: "Nama rombongan",
       active: "Rombongan terbaru",
@@ -532,6 +533,10 @@ export const copy = {
     tvZoomHint: "Ketuk foto untuk memperbesar",
     tvAllQr: "Scan untuk\nsemua foto acara",
     tvZoomClose: "Ketuk untuk kembali",
+    // Cetak dari galeri layar staf (`#display=<kode>`).
+    tvZoomHintPrint: "Ketuk foto untuk memperbesar & mencetak",
+    tvPrint: "Cetak",
+    tvPrintState: { printing: "Mencetak…", done: "Terkirim ✓", failed: "Gagal, coba lagi" },
     tvNone: "Belum ada rombongan yang difoto",
     tvPrev: "Rombongan sebelumnya",
     tvIdle: "Foto dari pelaminan akan tampil di sini",

@@ -5,6 +5,7 @@ import {
   StageTv,
   type StageTvState,
 } from "@tetra/booth-core";
+import { FullscreenButton } from "@tetra/ui";
 
 /**
  * Layar TV Photo Stage di browser device kedua (#205): renderer yang sama disajikan laptop stage lewat WiFi.
@@ -41,9 +42,20 @@ export function LanTv() {
   // HP helper crew (#206): `#helper=<kode>` dari QR "HP crew" di laptop.
   const key = /^#helper=(\d{4})$/.exec(location.hash)?.[1];
   if (key) return <StageHelper helperKey={key} />;
+  // Layar staf (laptop/TV milik crew): `#display=<kode>` → cetak dari galeri. Tamu (tanpa kode) tidak bisa mencetak.
+  const display = /^#display=(\d{4})$/.exec(location.hash)?.[1];
+  const print = async (id: string, path: string, choice: string) => {
+    const r = await fetch("/api/helper", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ key: display, kind: "print", id, path, choice }),
+    });
+    if (!r.ok) throw new Error(`cetak ${r.status}`);
+  };
   return (
     <PlatformProvider platform={platform}>
-      <StageTv />
+      <StageTv {...(display && { onPrint: print })} />
+      <FullscreenButton />
     </PlatformProvider>
   );
 }

@@ -7,6 +7,20 @@ import type { PrinterAlert, StageDisplayMode } from "./platform";
 import type { StagePrintChoice, StageShot } from "./stage";
 
 const t = copy.stage.setup;
+
+/** Pilihan desain cetak stage (#274): [id, nama, keterangan]; dipakai wizard & galeri layar staf. */
+export const printChoices = (
+  designs: { id: string; name: string; layout: LayoutSpec }[],
+): [StagePrintChoice, string, string][] => [
+  ["auto", t.auto[0], t.auto[1]],
+  ...designs.map((d): [StagePrintChoice, string, string] => [
+    `design:${d.id}`,
+    d.name,
+    `${paperLabel(d.layout.paper, d.layout.canvas)} · ${d.layout.slots.length} foto`,
+  ]),
+  ["arch", t.arch[0], t.arch[1]],
+  ["full", t.full[0], t.full[1]],
+];
 const hms = (ms: number) =>
   new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
     .format(ms)
@@ -95,16 +109,7 @@ export function StageSetup({
         ),
       (e: unknown) => setDisplayNote(String(e)),
     );
-  const choices: [StagePrintChoice, string, string][] = [
-    ["auto", t.auto[0], t.auto[1]],
-    ...print.designs.map((d): [StagePrintChoice, string, string] => [
-      `design:${d.id}`,
-      d.name,
-      `${paperLabel(d.layout.paper, d.layout.canvas)} · ${d.layout.slots.length} foto`,
-    ]),
-    ["arch", t.arch[0], t.arch[1]],
-    ["full", t.full[0], t.full[1]],
-  ];
+  const choices = printChoices(print.designs);
   const choiceName = choices.find((c) => c[0] === print.choice)?.[1] ?? t.auto[0];
   const folder = model === "Hot folder";
   const camName = folder ? t.folder[0] : (model ?? t.canon[0]);

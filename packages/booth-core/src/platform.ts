@@ -385,7 +385,9 @@ export type StageShotEvent = { path: string; width: number; height: number };
 /** HP helper crew lewat WiFi (#206): ganti nama rombongan, atau pasang nama dari daftar ke rombongan aktif. */
 export type StageRemote =
   | { kind: "rename"; id: string; name: string }
-  | { kind: "pick"; name: string };
+  | { kind: "pick"; name: string }
+  /** Cetak dari galeri layar staf `#display=<kode>`: foto rombongan + desain cetak pilihan. */
+  | { kind: "print"; id: string; path: string; choice: string };
 /** Status bar laptop stage (#186). `camera` null = Camera Service tidak menjawab. */
 export type StageStatus = {
   online: boolean;

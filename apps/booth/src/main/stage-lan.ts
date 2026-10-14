@@ -1,4 +1,3 @@
-import { randomInt } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { networkInterfaces } from "node:os";
@@ -22,6 +21,14 @@ const Helper = z.union([
     name: z.string().max(120),
   }),
   z.object({ key: z.string(), kind: z.literal("pick"), name: z.string().min(1).max(120) }),
+  // Cetak dari galeri layar staf (`#display=<kode>`): foto rombongan + pilihan desain cetak.
+  z.object({
+    key: z.string(),
+    kind: z.literal("print"),
+    id: z.string().regex(SESSION_ID_PATTERN),
+    path: z.string().max(1024),
+    choice: z.string().max(80),
+  }),
 ]);
 const TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -44,8 +51,11 @@ export const lanAddresses = () =>
     .filter(Boolean);
 
 let livePort: number | null = null;
-/** Kode HP helper (#206): acak per jalan, ditampilkan di laptop; tamu di WiFi yang sama tidak bisa mengubah nama. */
-const helperKey = String(1000 + randomInt(9000));
+/**
+ * Kode HP helper (#206) & layar staf `#display=` (cetak dari galeri): tetap per laptop (kv), ditampilkan di laptop;
+ * tamu di WiFi yang sama tidak bisa mengubah nama atau mencetak.
+ */
+let helperKey = "";
 export const stageHelperKey = () => helperKey;
 /** Alamat layar WiFi yang sedang aktif (untuk operator & wizard); kosong = belum/tidak aktif. */
 export const stageLanUrls = () =>
@@ -55,12 +65,18 @@ export function startStageLan(o: {
   rendererDir: string;
   sessionsRoot: () => string;
   state: () => unknown;
+  /** Kode 4 digit helper/layar staf (tersimpan di kv). */
+  key: string;
   /** Perintah HP helper yang sudah divalidasi (#206), diteruskan ke layar operator. */
   remote: (
-    m: { kind: "rename"; id: string; name: string } | { kind: "pick"; name: string },
+    m:
+      | { kind: "rename"; id: string; name: string }
+      | { kind: "pick"; name: string }
+      | { kind: "print"; id: string; path: string; choice: string },
   ) => void;
   log: (m: string) => void;
 }): { port: () => number | null; close: () => void } {
+  helperKey = o.key;
   let port: number | null = null;
   let server: Server | null = null;
 
@@ -73,6 +89,8 @@ export function startStageLan(o: {
       if (!m.success || m.data.key !== helperKey)
         return { status: 403, type: "application/json", body: '{"error":"kode salah"}' };
       const { key: _, ...cmd } = m.data;
+      if (cmd.kind === "print" && !normalize(cmd.path).startsWith(o.sessionsRoot() + sep))
+        return { status: 403, type: "application/json", body: '{"error":"path"}' };
       o.remote(cmd);
       return { status: 200, type: "application/json", body: '{"ok":true}' };
     }
