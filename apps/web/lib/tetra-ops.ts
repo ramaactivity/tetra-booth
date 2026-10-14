@@ -27,6 +27,8 @@ export const OpsBooking = z.object({
   frame_size: str,
   package_name: str,
   package_duration_hours: z.number().positive().max(48).nullable(),
+  // Kontrak v0.5 §2.2: jumlah unit/spot booth di acara ini (satu event Booth per unit, #262).
+  unit_count: z.number().int().min(1).max(10).nullable().optional(),
   // Usulan Booth #182 (aditif): daftar grup Photo Stage dari portal klien/WO.
   stage_groups: z.array(z.string().max(120)).max(300).nullable().optional(),
   // Kontrak v0.7 (usulan Booth #215): IG klien untuk kartu promosi halaman tamu, tanpa "@".
@@ -74,13 +76,28 @@ export type OpsDesign = {
   approvedAt: string | null;
 };
 /**
- * Desain ACC dari booking Ops untuk satu event Booth. Event multi-unit dibuat satu per spot dengan nama
- * "… · Spot N" (kontrak §2.2): spot ≥ 2 diambil dari `design.spots`, spot 1 dari field level atas.
+ * Nomor unit (spot) event Booth di acara multi-unit (#262): `ops_sync.spot` (diisi tombol "Buat event Unit N"),
+ * atau nama lama "… · Spot N" (#177); selain itu unit 1.
  */
-export function approvedDesign(b: OpsBooking | undefined, eventName: string): OpsDesign | null {
+export const spotOf = (ev: { name: string; ops_sync?: unknown }) => {
+  const s = (ev.ops_sync as { spot?: unknown } | null)?.spot;
+  return typeof s === "number" && s >= 1 ? s : Number(/Spot (\d+)/i.exec(ev.name)?.[1] ?? 1);
+};
+
+/** Ukuran frame unit ini menurut Ops: unit 1 = level atas, unit ≥ 2 = `design.spots`. */
+export const spotFrameSize = (b: OpsBooking | undefined, spot: number): string | null =>
+  (spot > 1
+    ? b?.design?.spots?.find((x) => x.spot_no === spot)?.frame_size
+    : (b?.design?.frame_size ?? b?.frame_size)) ?? null;
+
+/**
+ * Desain ACC dari booking Ops untuk satu event Booth. Event multi-unit dibuat satu per spot (kontrak §2.2):
+ * spot ≥ 2 diambil dari `design.spots`, spot 1 dari field level atas.
+ */
+export function approvedDesign(b: OpsBooking | undefined, spot: number): OpsDesign | null {
   const d = b?.design;
   if (!d || d.status !== "approved") return null;
-  const n = Number(/Spot (\d+)/i.exec(eventName)?.[1] ?? 1);
+  const n = spot;
   const s = n > 1 ? d.spots?.find((x) => x.spot_no === n) : d;
   if (!s?.frame_url) return null;
   return {

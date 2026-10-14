@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { requireMember } from "@/lib/supabase/server";
-import { approvedDesign, opsBookingNow } from "@/lib/tetra-ops";
+import { approvedDesign, opsBookingNow, spotOf } from "@/lib/tetra-ops";
 
 /** Batas unggah desain di Ops (kontrak §2.3). */
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -15,12 +15,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   if (!id) return new Response("bad request", { status: 400 });
   const { data: ev } = await db
     .from("events")
-    .select("name, event_date, ops_project_id")
+    .select("name, event_date, ops_project_id, ops_sync")
     .eq("id", id)
     .eq("organization_id", orgId)
     .maybeSingle();
   if (!ev) return new Response("not found", { status: 404 });
-  const design = approvedDesign((await opsBookingNow(ev))?.booking, ev.name);
+  const design = approvedDesign((await opsBookingNow(ev))?.booking, spotOf(ev));
   if (!design) return new Response("no design", { status: 404 });
   const res = await fetch(design.frameUrl, {
     cache: "no-store",

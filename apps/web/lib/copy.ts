@@ -528,6 +528,22 @@ export const copy = {
       },
     ],
     /** Tanda dari Tetra Ops di dashboard event (#173). */
+    // Acara multi-unit (#262): satu event Booth per unit.
+    units: {
+      title: (n: number) => `Acara ini pakai ${n} unit booth`,
+      why: "Tiap unit punya event sendiri (ukuran frame, desain, printer, dan hitungan foto terpisah). Nama acara tetap sama di cetakan dan galeri.",
+      missing: (n: number) => `${n} unit belum dibuat`,
+      allSet: "Semua unit sudah siap",
+      unit: (n: number) => `Unit ${n}`,
+      here: "· halaman ini",
+      open: "Buka event",
+      size: "Ukuran frame",
+      fromOps: (s: string) => `di Tetra Ops: ${s}`,
+      laptop: "Laptop",
+      anyLaptop: "Semua laptop",
+      create: (n: number) => `Buat event Unit ${n}`,
+      creating: "Membuat…",
+    },
     opsSync: {
       cancelled:
         "Booking ini dibatalkan di Tetra Ops. Event tidak dihapus otomatis; putuskan sendiri.",

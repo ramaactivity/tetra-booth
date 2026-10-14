@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-const { approvedDesign, OpsBooking, opsGuestCam, opsInstagram } = await import("./tetra-ops");
+const { approvedDesign, OpsBooking, opsGuestCam, opsInstagram, spotOf } = await import(
+  "./tetra-ops"
+);
 
 const base = {
   project_id: "PRJ-1",
@@ -34,19 +36,25 @@ describe("approvedDesign (#177)", () => {
     },
   });
   it("spot 1 dari level atas, spot N dari spots[]", () => {
-    expect(approvedDesign(b, "Wedding Rina")?.frameUrl).toBe("https://x/spot1.png");
-    expect(approvedDesign(b, "Wedding Rina · Spot 2")).toMatchObject({
+    expect(approvedDesign(b, spotOf({ name: "Wedding Rina" }))?.frameUrl).toBe(
+      "https://x/spot1.png",
+    );
+    // #262: nomor unit dari ops_sync.spot (nama tetap sama di kedua event), nama lama "· Spot N" tetap dibaca.
+    expect(
+      approvedDesign(b, spotOf({ name: "Wedding Rina", ops_sync: { spot: 2 } })),
+    ).toMatchObject({ frameUrl: expect.stringContaining("spot2") });
+    expect(approvedDesign(b, spotOf({ name: "Wedding Rina · Spot 2" }))).toMatchObject({
       frameUrl: "https://x/spot2.png",
       frameSize: "2R",
     });
-    expect(approvedDesign(b, "Wedding Rina · Spot 3")).toBeNull();
+    expect(approvedDesign(b, spotOf({ name: "Wedding Rina · Spot 3" }))).toBeNull();
   });
   it("belum ACC, tanpa desain, atau tanpa file = null", () => {
     expect(
-      approvedDesign(OpsBooking.parse({ ...base, design: { status: "proses" } }), "x"),
+      approvedDesign(OpsBooking.parse({ ...base, design: { status: "proses" } }), 1),
     ).toBeNull();
-    expect(approvedDesign(OpsBooking.parse(base), "x")).toBeNull();
-    expect(approvedDesign(undefined, "x")).toBeNull();
+    expect(approvedDesign(OpsBooking.parse(base), 1)).toBeNull();
+    expect(approvedDesign(undefined, 1)).toBeNull();
   });
 });
 

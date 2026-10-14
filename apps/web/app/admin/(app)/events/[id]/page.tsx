@@ -28,9 +28,18 @@ import type { OpsSync } from "@/lib/ops-sync";
 import { presignDownload, presignGet } from "@/lib/r2";
 import type { RecapData } from "@/lib/recap";
 import { requireMember } from "@/lib/supabase/server";
-import { approvedDesign, OPS_PAPER_OF, opsBookingNow, opsDriftOf } from "@/lib/tetra-ops";
+import {
+  approvedDesign,
+  OPS_PAPER_OF,
+  type OpsBooking,
+  opsBookingNow,
+  opsDriftOf,
+  spotFrameSize,
+  spotOf,
+} from "@/lib/tetra-ops";
 import { GuestCamSection } from "./GuestCamSection";
 import { OpsDesignInstall } from "./OpsDesignInstall";
+import { OpsUnits, type UnitRow } from "./OpsUnits";
 import { RecapDialog } from "./RecapDialog";
 import { RunPanel } from "./RunPanel";
 import { SessionTile } from "./SessionTile";
@@ -57,6 +66,47 @@ const UPLOAD: Record<string, string> = {
 const TILES = 60;
 
 /** Dashboard event (desain v2 E2) + moderasi sesi (E8). */
+const SIZE_OF: Record<string, string> = { "2x6x2": "2R", "4R": "4R", "3x4x2": "polaroid" };
+
+/** Baris unit acara multi-unit (#262); null = acara satu unit (kartu tidak tampil). */
+async function unitRows(
+  db: Awaited<ReturnType<typeof requireMember>>["db"],
+  orgId: string,
+  ev: { ops_project_id: string | null },
+  booking: OpsBooking | undefined,
+): Promise<{ rows: UnitRow[]; devices: { id: string; name: string }[] } | null> {
+  const [{ data: sibs }, { data: devices }] = await Promise.all([
+    db
+      .from("events")
+      .select(
+        "id, slug, name, ops_sync, all_devices, paper:bundle->config->layout->paper, event_devices(device_id)",
+      )
+      .eq("organization_id", orgId)
+      .eq("ops_project_id", ev.ops_project_id ?? ""),
+    db.from("devices").select("id, name").eq("organization_id", orgId).is("revoked_at", null),
+  ]);
+  const list = (sibs ?? []).map((e) => ({ ...e, spot: spotOf(e) }));
+  const n = Math.max(booking?.unit_count ?? 1, list.length, ...list.map((e) => e.spot));
+  if (n < 2) return null;
+  const rows = Array.from({ length: n }, (_, i): UnitRow => {
+    const e = list.find((x) => x.spot === i + 1);
+    const paper = (e as { paper?: unknown } | undefined)?.paper;
+    return {
+      spot: i + 1,
+      opsSize: spotFrameSize(booking, i + 1),
+      event: e
+        ? {
+            id: e.id,
+            slug: e.slug,
+            size: typeof paper === "string" ? (SIZE_OF[paper] ?? null) : null,
+            deviceId: e.all_devices ? null : (e.event_devices[0]?.device_id ?? null),
+          }
+        : null,
+    };
+  });
+  return { rows, devices: devices ?? [] };
+}
+
 export default async function EventDashboard({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { db, orgId, role } = await requireMember();
@@ -251,8 +301,13 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   if (ops.design_approved_at) opsNotes.push({ text: t.design, bg: "bg-mint-soft" });
   const opsNow = await opsBookingNow(ev);
   const drift = opsDriftOf(ev, opsNow);
-  const opsDesign = ev.mode === "event" ? approvedDesign(opsNow?.booking, ev.name) : null;
+  const opsDesign = ev.mode === "event" ? approvedDesign(opsNow?.booking, spotOf(ev)) : null;
   const opsPaper = opsDesign ? OPS_PAPER_OF(opsDesign.frameSize) : undefined;
+  // Acara multi-unit (#262): satu event Booth per unit, dikenali dari booking Ops yang sama.
+  const units =
+    ev.mode === "event" && ev.ops_project_id
+      ? await unitRows(db, orgId, ev, opsNow?.booking)
+      : null;
   if (drift?.kind === "missing") opsNotes.push({ text: t.missing, bg: "bg-coral" });
   if (drift?.kind === "changed") {
     const val = (f: (typeof drift.fields)[number]) =>
@@ -328,6 +383,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
         </div>
       </div>
 
+      {units && <OpsUnits current={ev.id} units={units.rows} devices={units.devices} />}
       {opsDesign && opsPaper && (
         <OpsDesignInstall
           eventId={ev.id}

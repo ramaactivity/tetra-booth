@@ -56,6 +56,8 @@ export type OpsSync = {
   design?: Record<string, unknown>;
   /** Desain Ops terakhir dipasang lewat "Pasang desain dari Tetra Ops" (#177). */
   design_installed_at?: string;
+  /** Nomor unit di acara multi-unit (#262); kosong = unit 1. */
+  spot?: number;
 };
 
 const newer = (prev: string | undefined, at: string) => !prev || Date.parse(at) > Date.parse(prev);
