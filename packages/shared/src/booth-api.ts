@@ -214,6 +214,8 @@ export const AssetKindSchema = z.enum([
   "video",
 ]);
 export type AssetKindName = z.infer<typeof AssetKindSchema>;
+/** Boomerang dari live view = aset `video` idx 1 (idx 0 = video hitung mundur #117); tanpa kind/migrasi baru. */
+export const BOOMERANG_IDX = 1;
 /** Aset sesi = JPEG, kecuali animasi (GIF) & video hitung mundur (MP4, #117). Dipakai key R2, URL bertanda tangan, PUT booth. */
 export const assetFile = (kind: AssetKindName) =>
   kind === "animation"

@@ -1,4 +1,5 @@
 "use client";
+import { BOOMERANG_IDX } from "@tetra/shared";
 import { Check, Images, Share2 } from "lucide-react";
 import { type CSSProperties, useRef, useState } from "react";
 import { PROMO_SAVED } from "@/components/GuestPromo";
@@ -56,7 +57,7 @@ async function saveAssets(assets: GuestAsset[], sessionId: string) {
   }
 }
 
-type Tab = "strip" | "original" | "animation" | "video";
+type Tab = "strip" | "original" | "animation" | "video" | "boomerang";
 
 /** Notifikasi kecil di atas tombol aksi (#217): muncul, lalu hilang sendiri. */
 export function useToast() {
@@ -117,9 +118,11 @@ export function GuestReady({
   const thumbOf = (a: GuestAsset) =>
     assets.find((x) => x.kind === "thumb_original" && x.idx === a.idx)?.url ?? a.url;
   const gif = assets.find((a) => a.kind === "animation");
-  // Video hitung mundur (#117).
-  const video = assets.find((a) => a.kind === "video");
-  const main = tab === "animation" ? gif : tab === "video" ? video : strip;
+  // Video hitung mundur (#117) = idx 0; boomerang live view = idx BOOMERANG_IDX.
+  const video = assets.find((a) => a.kind === "video" && a.idx !== BOOMERANG_IDX);
+  const boomerang = assets.find((a) => a.kind === "video" && a.idx === BOOMERANG_IDX);
+  const main =
+    tab === "animation" ? gif : tab === "video" ? video : tab === "boomerang" ? boomerang : strip;
   const run =
     (list: GuestAsset[], all = false) =>
     async () => {
@@ -134,6 +137,7 @@ export function GuestReady({
     ["original", t.original],
     ...(gif ? [["animation", t.animation] as [Tab, string]] : []),
     ...(video ? [["video", t.video] as [Tab, string]] : []),
+    ...(boomerang ? [["boomerang", t.boomerang] as [Tab, string]] : []),
   ];
   const at = tabs.findIndex(([k]) => k === tab);
   const media =
@@ -195,10 +199,10 @@ export function GuestReady({
             <p className="mt-1 font-mono text-[11px] text-text-2">{t.tapToView}</p>
           </div>
         )}
-        {tab === "video" && video && (
-          // biome-ignore lint/a11y/useMediaCaption: video momen booth tanpa suara/ucapan
+        {(tab === "video" || tab === "boomerang") && main && (
           <video
-            src={video.url}
+            key={main.url}
+            src={main.url}
             controls
             autoPlay
             muted
@@ -258,7 +262,9 @@ export function GuestReady({
                   ? t.saveGif
                   : tab === "video"
                     ? t.saveVideo
-                    : t.saveStrip}
+                    : tab === "boomerang"
+                      ? t.saveBoomerang
+                      : t.saveStrip}
           </button>
           <button
             type="button"

@@ -20,6 +20,8 @@ export const EventSettingsSchema = z.object({
   /** Kalimat sebelum / setelah foto (#103); kosong = kalimat bawaan booth. */
   /** Rekam video saat hitung mundur (#117) → aset `video` di halaman tamu. */
   countdownVideo: z.boolean().default(false),
+  /** Boomerang (maju-mundur) dari frame live view sesaat sebelum tiap jepretan → aset `video` idx 1. */
+  boomerang: z.boolean().default(false),
   /** Video bumper Tetra saat event dibuka di booth terpasang (#105). */
   bumper: z.boolean().default(true),
   /** Filter yang ditawarkan ke tamu setelah cek foto (#116); kosong = tanpa langkah filter. */

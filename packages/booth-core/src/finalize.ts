@@ -1,4 +1,5 @@
 /// <reference path="./gifenc.d.ts" />
+import { BOOMERANG_IDX } from "@tetra/shared";
 import { cpuCanvas } from "@tetra/template-engine";
 import { applyPalette, GIFEncoder, quantize } from "gifenc";
 import type { AssetKind, BoothStorage, SessionAsset } from "./platform";
@@ -98,6 +99,8 @@ export async function buildOutputs(
   filter?: string,
   /** SessionRunner sudah menulis `out/video.mp4` untuk sesi ini (#117). */
   withVideo = false,
+  /** SessionRunner sudah menulis `out/boomerang.mp4` untuk sesi ini (aset `video` idx BOOMERANG_IDX). */
+  withBoomerang = false,
 ): Promise<SessionAsset[]> {
   const dir = `${await storage.sessionDir(sessionId)}/out`;
   const assets: SessionAsset[] = [];
@@ -160,5 +163,15 @@ export async function buildOutputs(
   const video = withVideo ? await storage.readFile(`${dir}/video.mp4`).catch(() => null) : null;
   if (video?.byteLength)
     assets.push({ kind: "video", idx: 0, path: `${dir}/video.mp4`, bytes: video.byteLength });
+  const boom = withBoomerang
+    ? await storage.readFile(`${dir}/boomerang.mp4`).catch(() => null)
+    : null;
+  if (boom?.byteLength)
+    assets.push({
+      kind: "video",
+      idx: BOOMERANG_IDX,
+      path: `${dir}/boomerang.mp4`,
+      bytes: boom.byteLength,
+    });
   return assets;
 }

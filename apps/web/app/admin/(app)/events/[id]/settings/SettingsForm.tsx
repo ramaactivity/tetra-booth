@@ -60,6 +60,7 @@ export type SettingsValues = {
   countdownSound: boolean;
   bumper: boolean;
   countdownVideo: boolean;
+  boomerang: boolean;
   /** Polaroid & 2R: sisi kiri/kanan foto berbeda (#207). */
   pairDifferent: boolean;
   /** Filter yang ditawarkan ke tamu (#116). */
@@ -1189,6 +1190,12 @@ export function SettingsForm({
               defaultChecked={v.countdownVideo}
               title="Rekam video saat hitung mundur"
               hint="Muncul di tab Video di halaman tamu. Bawaan: mati."
+            />
+            <ToggleRow
+              name="boomerang"
+              defaultChecked={v.boomerang}
+              title="Buat boomerang dari live view"
+              hint="Klip maju-mundur 1 detik sebelum tiap jepretan, muncul di tab Boomerang di halaman tamu. Butuh kamera dengan live view. Bawaan: mati."
             />
             <ToggleRow
               name="pairDifferent"

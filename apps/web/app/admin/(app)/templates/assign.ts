@@ -117,6 +117,7 @@ export async function assignToEvent(
   on("countdownSound", s.countdownSound);
   on("bumper", s.bumper);
   on("countdownVideo", s.countdownVideo);
+  on("boomerang", s.boomerang);
   on("pairDifferent", s.pairDifferent);
   for (const x of s.filters) f.set(`filter_${x}`, "on");
   set("prompts_before", s.promptsBefore.join("\n"));

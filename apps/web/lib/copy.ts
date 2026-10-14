@@ -460,6 +460,8 @@ export const copy = {
     saveGif: "Simpan GIF ke HP",
     video: "Video",
     saveVideo: "Simpan Video ke HP",
+    boomerang: "Boomerang",
+    saveBoomerang: "Simpan Boomerang ke HP",
     saveStrip: "Simpan ke Galeri HP",
     saveAll: "Simpan Semua Original",
     saveAllStage: "Simpan Semua Foto",

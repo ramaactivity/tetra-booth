@@ -9,6 +9,26 @@ export const recorderMime = () =>
     ? null
     : (MIME.find((m) => MediaRecorder.isTypeSupported(m)) ?? null);
 
+/** Gambar frame memenuhi canvas `g` (cover, terpusat), dicermin seperti live view. Dipakai video & boomerang. */
+export function drawCover(
+  g: CanvasRenderingContext2D,
+  source: CanvasImageSource,
+  width: number,
+  height: number,
+  mirror: boolean,
+) {
+  const { width: cw, height: ch } = g.canvas;
+  const scale = Math.max(cw / width, ch / height);
+  g.setTransform(mirror ? -1 : 1, 0, 0, 1, mirror ? cw : 0, 0);
+  g.drawImage(
+    source,
+    (cw - width * scale) / 2,
+    (ch - height * scale) / 2,
+    width * scale,
+    height * scale,
+  );
+}
+
 export class CountdownRecorder {
   private readonly canvas = document.createElement("canvas");
   private readonly g: CanvasRenderingContext2D | null;
@@ -36,16 +56,7 @@ export class CountdownRecorder {
   draw(source: CanvasImageSource, width: number, height: number) {
     const g = this.g;
     if (!g || this.rec.state !== "recording") return;
-    const { width: cw, height: ch } = this.canvas;
-    const scale = Math.max(cw / width, ch / height);
-    g.setTransform(this.mirror ? -1 : 1, 0, 0, 1, this.mirror ? cw : 0, 0);
-    g.drawImage(
-      source,
-      (cw - width * scale) / 2,
-      (ch - height * scale) / 2,
-      width * scale,
-      height * scale,
-    );
+    drawCover(g, source, width, height, this.mirror);
     this.frames++;
   }
 

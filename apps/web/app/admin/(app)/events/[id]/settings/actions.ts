@@ -303,6 +303,7 @@ export async function applySettings(
     countdownSound: form.get("countdownSound") === "on",
     bumper: form.get("bumper") === "on",
     countdownVideo: form.get("countdownVideo") === "on",
+    boomerang: form.get("boomerang") === "on",
     pairDifferent: form.get("pairDifferent") === "on",
     // Filter pilihan tamu (#116): tanpa centang = langkah filter dilewati.
     filters: PHOTO_FILTERS.filter(

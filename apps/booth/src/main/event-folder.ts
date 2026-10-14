@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { copyFile, link, mkdir, stat } from "node:fs/promises";
 import { dirname, extname, join } from "node:path";
+import { BOOMERANG_IDX } from "@tetra/shared";
 import type { EventFile } from "./db";
 
 /** Subfolder per jenis file (bahasa crew). */
@@ -33,7 +34,12 @@ function plan(files: EventFile[]) {
   for (const f of files) {
     const sub = SUB[f.kind];
     if (!sub) continue;
-    const n = f.kind === "original" ? `-${f.idx + 1}` : "";
+    const n =
+      f.kind === "original"
+        ? `-${f.idx + 1}`
+        : f.kind === "video" && f.idx === BOOMERANG_IDX
+          ? " boomerang"
+          : "";
     const to = join(sub, `${stamp(f.startedAt)} ${f.sessionId}${n}${extname(f.path)}`);
     if (!out.has(to)) out.set(to, f.path);
   }

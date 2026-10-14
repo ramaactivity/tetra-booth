@@ -151,6 +151,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           countdownSound: s.countdownSound,
           bumper: s.bumper,
           countdownVideo: s.countdownVideo,
+          boomerang: s.boomerang,
           pairDifferent: s.pairDifferent,
           filters: s.filters,
           promptsBefore: s.promptsBefore,

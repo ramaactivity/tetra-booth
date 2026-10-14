@@ -71,6 +71,24 @@ describe("folder event", () => {
     const dest = join(mkdtempSync(join(tmpdir(), "tb-dst-")), "Event");
     expect(await buildEventFolder(dest, files)).toBe(3);
   });
+  it("boomerang (video idx 1) tidak bentrok dengan video hitung mundur", async () => {
+    const src = mkdtempSync(join(tmpdir(), "tb-src-"));
+    writeFileSync(join(src, "video.mp4"), "v");
+    writeFileSync(join(src, "boomerang.mp4"), "b");
+    const f = (idx: number, name: string) => ({
+      sessionId: "abc",
+      startedAt: "2026-10-04T01:12:05.000Z",
+      kind: "video" as const,
+      idx,
+      path: join(src, name),
+    });
+    const dest = join(mkdtempSync(join(tmpdir(), "tb-dst-")), "Event");
+    expect(await buildEventFolder(dest, [f(0, "video.mp4"), f(1, "boomerang.mp4")])).toBe(2);
+    expect(readdirSync(join(dest, "Video")).sort()).toEqual([
+      expect.stringMatching(/ abc boomerang\.mp4$/),
+      expect.stringMatching(/ abc\.mp4$/),
+    ]);
+  });
   it("baca drive removable dari PowerShell", () => {
     expect(parseDrives("E:|1073741824|16000000000\r\nrusak\r\nF:|5|10\r\n")).toEqual([
       { name: "E:", free: 1073741824, total: 16000000000 },

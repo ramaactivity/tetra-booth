@@ -1,5 +1,6 @@
 import { filterCss, newSessionId, printPaper } from "@tetra/shared";
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { BoomerangRecorder } from "./boomerang";
 import { composeStrip, designPreview, renderWebPiece, shotsPerSession } from "./compose";
 import { copy } from "./copy";
 import { CountdownRecorder, recorderMime } from "./countdownVideo";
@@ -169,6 +170,38 @@ export function SessionRunner({
           });
     } else recorder.current?.pause();
   }, [s.phase, s.sessionId, cfg.countdownVideo, demo, p]);
+
+  // Boomerang (opsional per event): frame live view hanya diambil saat hitung mundur (lihat onFrame), dibekukan
+  // per foto saat jepret, MP4 dibuat di belakang layar saat compose (±2 s per foto, real time).
+  const boomerang = useRef<BoomerangRecorder | null>(null);
+  const boomerangSaved = useRef<Promise<string | null>>(Promise.resolve(null));
+  useEffect(() => {
+    if (!cfg.boomerang || demo) return;
+    if (s.phase === "countdown" && s.sessionId)
+      boomerang.current ??= new BoomerangRecorder(p.mirrorLiveView ?? true);
+    else if (s.phase === "capture") boomerang.current?.freeze(s.index);
+    // Batal sesi kembali ke attract tanpa id sesi: frame dibuang, tidak bocor ke sesi berikutnya.
+    else if (s.phase === "compose" || !s.sessionId) {
+      const b = boomerang.current;
+      boomerang.current = null;
+      const mime = recorderMime();
+      const id = s.sessionId;
+      if (b && id && mime)
+        boomerangSaved.current = b
+          .encode(mime)
+          .then(async (bytes) => {
+            if (!bytes) return null;
+            await p.storage.writeFile(`${await p.storage.sessionDir(id)}/out/boomerang.mp4`, bytes);
+            console.info(`[session] boomerang ${Math.round(bytes.byteLength / 1024)} KB`);
+            return id;
+          })
+          .catch((e: unknown) => {
+            console.warn(`[session] boomerang gagal: ${errText(e)}`);
+            return null;
+          });
+      else b?.dispose();
+    }
+  }, [s.phase, s.sessionId, s.index, cfg.boomerang, demo, p]);
 
   // Frame live view sudah tampil di layar jepret ini; countdown menunggunya (EVF DSLR dingin, lihat Countdown).
   const [live, setLive] = useState(false);
@@ -404,15 +437,17 @@ export function SessionRunner({
     const t0 = performance.now();
     const strip = s.strip;
     (strip
-      ? Promise.all([videoSaved.current, webPiece.current]).then(([vid, [webId, web]]) =>
-          buildOutputs(
-            p.storage,
-            id,
-            photos,
-            webId === id && web ? { ...strip, piecePath: web } : strip,
-            filterCss(s.filter),
-            vid === id,
-          ),
+      ? Promise.all([videoSaved.current, webPiece.current, boomerangSaved.current]).then(
+          ([vid, [webId, web], boom]) =>
+            buildOutputs(
+              p.storage,
+              id,
+              photos,
+              webId === id && web ? { ...strip, piecePath: web } : strip,
+              filterCss(s.filter),
+              vid === id,
+              boom === id,
+            ),
         )
       : Promise.resolve([])
     )
@@ -489,6 +524,7 @@ export function SessionRunner({
           guide={slotAspect(ev.layout.slots[s.index % ev.layout.slots.length])}
           onFrame={(f) => {
             recorder.current?.draw(f.source, f.width, f.height);
+            if (s.phase === "countdown") boomerang.current?.draw(f.source, f.width, f.height);
             setLive(true);
           }}
         />
