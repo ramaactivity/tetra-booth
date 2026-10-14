@@ -4,8 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import { copy } from "../copy";
 import { crewText } from "../errors";
 import { usePlatform } from "../PlatformContext";
-import type { DeviceInfo, DeviceSettings, FoundHub, PrintShareInfo } from "../platform";
-import { btn, Choice, Panel, Pill, Row, ToggleRow } from "./parts";
+import type {
+  DeviceInfo,
+  DeviceSettings,
+  FoundHub,
+  PrintQueueJob,
+  PrintShareInfo,
+} from "../platform";
+import { btn, Choice, Panel, Pill, Row, ToggleRow, type Tone } from "./parts";
 
 const d = copy.crew.dev;
 
@@ -312,6 +318,51 @@ export function RoleChoice({ dev }: { dev: Device }) {
 
 const sh = d.share;
 
+const JOB_TONE: Record<PrintQueueJob["status"], Tone> = {
+  queued: "butter",
+  sent: "sky",
+  done: "mint",
+  reprinted: "mint",
+  failed: "coral",
+  dismissed: "white",
+};
+
+/** Antrean cetak printer bersama (6 jam terakhir): di laptop printer = kiriman booth lain, di booth = kirimannya. */
+function PrintQueue({ jobs, hub }: { jobs: PrintQueueJob[]; hub: boolean }) {
+  return (
+    <div className="flex flex-col gap-3" data-testid="share-queue">
+      <span className="text-xl font-bold">{sh.queue}</span>
+      {!jobs.length && <p className="text-lg font-medium text-text-2">{sh.queueEmpty}</p>}
+      {jobs.map((j) => (
+        <div
+          key={j.id}
+          data-testid="share-job"
+          className="flex items-center gap-4 rounded-[16px] border-2 border-ink bg-white px-5 py-3"
+        >
+          <span className="font-mono text-lg font-bold">
+            {new Date(j.created_at).toLocaleTimeString("id-ID", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className="truncate text-lg font-bold">
+              {hub ? (j.peer ?? sh.unknownPeer) : sh.copies(j.copies, j.paper)}
+              {hub && ` · ${sh.copies(j.copies, j.paper)}`}
+            </span>
+            {j.error && (
+              <span className="truncate text-base font-medium text-text-2">{j.error}</span>
+            )}
+          </span>
+          <Pill tone={JOB_TONE[j.status]}>
+            {sh.job[hub && j.status === "queued" ? "printing" : j.status]}
+          </Pill>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Printer bersama (#261) di halaman Printer: pilih peran printer laptop ini. Pusat menampilkan kode & booth yang
  * tersambung; booth pengirim mencari laptop printer di WiFi yang sama, cek kode, lalu Simpan lewat bar yang sama.
@@ -431,6 +482,7 @@ export function PrintSharePanel({
                 )
               }
             />
+            <PrintQueue jobs={info.jobs} hub />
           </div>
         ) : (
           <p className="text-lg font-semibold text-text-2">{sh.saveFirst}</p>
@@ -464,6 +516,7 @@ export function PrintSharePanel({
           </Button>
         </Row>
       )}
+      {mode === "remote" && live && !finder && <PrintQueue jobs={live.jobs} hub={false} />}
       {mode === "remote" && (finder || !target) && (
         <div className="flex flex-col gap-4" data-testid="share-finder">
           <div className="flex items-center justify-between gap-4">

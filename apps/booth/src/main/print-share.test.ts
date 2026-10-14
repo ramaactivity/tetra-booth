@@ -22,6 +22,13 @@ describe("printer bersama (#261)", async () => {
     print: async (j) => {
       printed.push({ jobId: j.jobId, copies: j.copies, paper: j.paper, from: j.from });
     },
+    // Laptop printer menjawab status job kiriman booth (hanya job yang ia kenal).
+    jobs: (ids) =>
+      Object.fromEntries(
+        ids
+          .filter((id) => printed.some((p) => p.jobId === id))
+          .map((id) => [id, { status: "failed", error: "kertas habis" }]),
+      ),
     status: () => ({
       printer: { status: "ready" },
       paper: { remaining: 300, capacity: 400 },
@@ -61,6 +68,23 @@ describe("printer bersama (#261)", async () => {
     expect(printed).toEqual([
       { jobId: "lan-01JX-abc", copies: 2, paper: "2x6x2", from: "Garden ✿" },
     ]);
+  });
+
+  it("booth menanyakan hasil cetak kirimannya (id tanpa awalan lan-)", async () => {
+    const c = createHubClient({
+      hub: { id: "hub1", name: "Operator", key: "1234", url },
+      from: () => "Booth A",
+      log: () => {},
+    });
+    expect(await c.jobs(["01JX-abc", "belum-ada", "bad id!"])).toEqual({
+      "01JX-abc": { status: "failed", error: "kertas habis" },
+    });
+    const off = createHubClient({
+      hub: { id: "hub1", name: "Operator", key: "1234", url: "http://127.0.0.1:1" },
+      from: () => "Booth A",
+      log: () => {},
+    });
+    expect(await off.jobs(["01JX-abc"])).toBeNull();
   });
 
   it("laptop printer tidak terjangkau = antre (ServiceUnavailable), kode salah = gagal", async () => {

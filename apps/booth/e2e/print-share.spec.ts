@@ -72,7 +72,16 @@ test("booth mencetak lewat laptop printer di WiFi yang sama, antre saat putus", 
     booth = await launch(boothData);
     let bw = await crewPrinter(booth, true);
     await bw.getByTestId("share-remote").click();
-    await expect(bw.getByTestId("share-hub-choice")).toHaveCount(1, { timeout: 10_000 });
+    // Laptop printer lain di WiFi yang sama (mis. laptop Windows crew) boleh ikut muncul: pilih pusat tes lewat IP-nya.
+    const addrs = ((await hw.locator("div[data-testid=share-hub]").textContent()) ?? "").match(
+      /\d+\.\d+\.\d+\.\d+:\d+/g,
+    );
+    expect(addrs?.length).toBeTruthy();
+    const mine = bw
+      .getByTestId("share-hub-choice")
+      .filter({ hasText: new RegExp(addrs?.map((x) => x.replace(/\./g, "\\.")).join("|") ?? "") });
+    await expect(mine).toHaveCount(1, { timeout: 10_000 });
+    await mine.click();
     await bw.getByTestId("share-code").fill("0000");
     await bw.getByRole("button", { name: "Hubungkan" }).click();
     await expect(bw.getByText(/kode printer salah/i)).toBeVisible();
@@ -96,6 +105,15 @@ test("booth mencetak lewat laptop printer di WiFi yang sama, antre saat putus", 
     await bw.getByRole("button", { name: "Tes Cetak" }).click();
     await expect.poll(() => inbox(hubData).length, { timeout: 20_000 }).toBe(1);
     await expect(hw.getByTestId("share-peer")).toHaveCount(1, { timeout: 10_000 });
+    // Antrean cetak (#261): pusat mencatat booth pengirim, booth melihat status job di pusat (pusat tes tanpa
+    // printer = job menunggu di sana; hasil tercetak/gagal disalin balik, lihat print-share.test.ts).
+    await expect(hw.getByTestId("share-job")).toHaveCount(1, { timeout: 10_000 });
+    await expect(bw.getByTestId("share-job").first()).toContainText(
+      /Di laptop printer|Tercetak|Gagal/,
+      {
+        timeout: 20_000,
+      },
+    );
     await hw.screenshot({ path: "test-results/print-share-hub-peer.png" });
     await bw.screenshot({ path: "test-results/print-share-booth.png" });
 
@@ -108,6 +126,7 @@ test("booth mencetak lewat laptop printer di WiFi yang sama, antre saat putus", 
     await expect(bw.getByTestId("share-target")).toContainText("1 cetakan menunggu", {
       timeout: 15_000,
     });
+    await expect(bw.getByTestId("share-job").first()).toContainText("Menunggu dikirim");
     await bw.screenshot({ path: "test-results/print-share-booth-offline.png" });
     hub = await launch(hubData);
     await expect.poll(() => inbox(hubData).length, { timeout: 30_000 }).toBe(2);

@@ -242,7 +242,9 @@ export function BoothApp({
             role="status"
             data-testid="printer-alert"
           >
-            <span className="size-2.5 rounded-full border-[1.5px] border-ink bg-coral-strong" />
+            <span
+              className={`size-2.5 rounded-full border-[1.5px] border-ink ${alert.ok ? "bg-mint" : "bg-coral-strong"}`}
+            />
             {alert.message}
           </p>
         )}

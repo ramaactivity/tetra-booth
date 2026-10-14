@@ -212,6 +212,23 @@ describe("status print_jobs (M-009, M-012)", () => {
     expect(status(db, "c")?.status).toBe("done");
   });
 
+  it("printer bersama (#261): queued → sent (diterima pusat) → hasil dari pusat; sent tidak dikirim ulang", () => {
+    const db = openDb(":memory:");
+    db.printSubmitting(job("s"));
+    db.printSent("s");
+    expect(db.printSubmitting(job("s"))).toBe(false);
+    expect(db.pendingPrints("0", 99)).toEqual([]);
+    expect(db.sentPrints("0")).toEqual(["s"]);
+    db.printJobResult("s", "failed", "Gagal di Operator: kertas habis");
+    expect(db.sentPrints("0")).toEqual([]);
+    expect(db.printStates(["s", "x"])).toEqual({
+      s: { status: "failed", error: "Gagal di Operator: kertas habis" },
+    });
+    db.printSubmitting(job("lan-1"));
+    db.printPeer("lan-1", "Booth A");
+    expect(db.recentPrints("0", true).map((j) => [j.id, j.peer])).toEqual([["lan-1", "Booth A"]]);
+  });
+
   it("hasil yang datang belakangan tidak menimpa hasil pertama", () => {
     const db = openDb(":memory:");
     db.printSubmitting(job("d"));

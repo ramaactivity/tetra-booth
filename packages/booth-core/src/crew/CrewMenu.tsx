@@ -25,6 +25,7 @@ import {
   Printer,
   QrCode as QrCodeIcon,
   Settings,
+  X,
 } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
@@ -1252,12 +1253,22 @@ export function CrewMenu({
       </div>
 
       {note && (
-        <p
+        // Naik di atas bar Simpan supaya tombol Simpan tidak tertutup; ✕ untuk menutup sebelum 8 dtk.
+        <div
           role="status"
-          className="layered fixed right-8 bottom-8 z-20 max-w-[620px] rounded-[20px] border-[2.5px] border-ink bg-sky px-6 py-4 text-xl font-semibold [--lx:6px]"
+          className={`layered fixed right-8 z-20 flex max-w-[620px] items-start gap-4 rounded-[20px] border-[2.5px] border-ink bg-sky py-4 pr-4 pl-6 text-xl font-semibold [--lx:6px] ${dev.changes.length ? "bottom-36" : "bottom-8"}`}
         >
-          {note}
-        </p>
+          <span className="min-w-0 flex-1 py-1.5">{note}</span>
+          <button
+            type="button"
+            data-testid="crew-note-close"
+            aria-label={c.closeNote}
+            onClick={() => setNoteRaw(undefined)}
+            className="pressable flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-white"
+          >
+            <X size={22} strokeWidth={2.5} />
+          </button>
+        </div>
       )}
 
       {sheet === "roll" && roll !== null && (

@@ -172,6 +172,16 @@ export type HubCheck =
     }
   | "badkey"
   | null;
+/** Satu cetakan di antrean printer bersama; `peer` = booth pengirim (hanya di laptop printer). */
+export type PrintQueueJob = {
+  id: string;
+  peer: string | null;
+  copies: number;
+  paper: string;
+  status: "queued" | "sent" | "done" | "failed" | "reprinted" | "dismissed";
+  error: string | null;
+  created_at: string;
+};
 /** Keadaan printer bersama di laptop ini (halaman Printer mode crew). */
 export type PrintShareInfo =
   | { mode: "local" }
@@ -181,8 +191,15 @@ export type PrintShareInfo =
       key: string;
       urls: string[];
       peers: { name: string; secAgo: number }[];
+      jobs: PrintQueueJob[];
     }
-  | { mode: "remote"; name: string; state: "ok" | "unreachable" | "badkey"; pending: number };
+  | {
+      mode: "remote";
+      name: string;
+      state: "ok" | "unreachable" | "badkey";
+      pending: number;
+      jobs: PrintQueueJob[];
+    };
 /** Antrean printer Windows: `offline` = port tidak tersambung (WorkOffline), `port` mis. "USB003". */
 export type PrinterQueue = { offline: boolean; port: string };
 /**
@@ -222,7 +239,8 @@ export type UpdateCheck = {
 export type UpdateResult = { ok: boolean; from: string; to: string; now: string } | null;
 export type FailedPrint = { id: string; copies: number; error: string | null; createdAt: string };
 /** Peringatan kecil untuk crew di pojok layar (printer error, cetak gagal, kertas menipis). */
-export type PrinterAlert = { message: string } | null;
+/** `ok` = kabar baik (titik mint), mis. "Terhubung ke printer pusat" (#261). */
+export type PrinterAlert = { message: string; ok?: true } | null;
 
 /** Sesi lama tanpa potongan web 2× (#140): foto raw urut & potongan 1× tersimpan (null = tidak ada). */
 export type OldSession = { id: string; eventId: string; photos: string[]; piece: string | null };
