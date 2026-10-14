@@ -1,5 +1,14 @@
 import { BoothStatus, newerVersion } from "@tetra/shared";
 import { Laptop, TriangleAlert } from "lucide-react";
+import {
+  CAMERA_KIND,
+  DISK_LOW_GB,
+  PAPER_LOW,
+  type Pill,
+  PRINTER_TEXT,
+  problems,
+  TONE,
+} from "@/lib/booth-health";
 import { copy } from "@/lib/copy";
 import { ago, isOnline } from "@/lib/format";
 import { latestBoothRelease } from "@/lib/r2";
@@ -8,57 +17,8 @@ import { AddDevice, AutoRefresh, DeviceActions } from "./PairPanel";
 
 export const dynamic = "force-dynamic";
 
-const PAPER_LOW = 30;
-const DISK_LOW_GB = 5;
 const REFRESH_S = 20;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const OFFLINE_ALERT_MS = 12 * 3600_000;
-
-const PRINTER_TEXT: Record<string, string> = {
-  ready: "Siap",
-  error: "Error",
-  unavailable: "Tidak terhubung",
-};
-const CAMERA_KIND: Record<string, string> = {
-  webcam: "Webcam",
-  simulated: "Simulasi",
-  hotfolder: "Hot folder",
-  canon: "Canon",
-  sony: "Sony",
-  lumix: "Lumix",
-  nikon: "Nikon",
-};
-
-/** Status perangkat: `detail` (model/nama) teks biasa, `text` di pill berwarna + teks. */
-type Pill = { detail?: string | null | undefined; text: string; tone: "ok" | "bad" | "off" };
-const TONE = { ok: "bg-mint-soft", bad: "bg-coral", off: "bg-neutral" } as const;
-
-/** Masalah yang perlu ditangani crew (teks, bukan warna saja); dipakai juga untuk urutan kartu. */
-function problems(
-  st: BoothStatus,
-  lastSeen: string | null,
-  now: number,
-  paired: boolean,
-  outdated: boolean,
-) {
-  const p: string[] = [];
-  if (!paired) return p;
-  // Offline: snapshot terakhir sudah basi. Hanya ditandai kalau baru hilang (< 12 jam, kemungkinan saat event),
-  // booth yang lama disimpan tidak ikut naik ke atas.
-  if (!isOnline(lastSeen, now))
-    return lastSeen && now - Date.parse(lastSeen) < OFFLINE_ALERT_MS ? ["Booth offline"] : p;
-  if (st.camera?.connected === false) p.push("Kamera tidak terhubung");
-  if (st.printer && st.printer.status !== "ready" && st.printer.status !== "unknown")
-    p.push(`Printer ${PRINTER_TEXT[st.printer.status]?.toLowerCase() ?? st.printer.status}`);
-  if (st.paper && st.paper.remaining <= PAPER_LOW)
-    p.push(`Kertas tinggal ${st.paper.remaining} lembar`);
-  if (st.failedPrints) p.push(`${st.failedPrints} cetak gagal`);
-  if (st.uploadPending && st.lastError) p.push(`Upload tersendat: ${st.lastError}`);
-  if (st.diskFreeGb !== undefined && st.diskFreeGb < DISK_LOW_GB)
-    p.push(`Disk tinggal ${st.diskFreeGb} GB`);
-  if (outdated) p.push("Versi aplikasi lama");
-  return p;
-}
 
 /** Device (desain v2 E5): pantauan kondisi tiap booth dari heartbeat (tiap 60 dtk), tambah booth & sambungkan laptop booth. */
 export default async function DevicesPage() {

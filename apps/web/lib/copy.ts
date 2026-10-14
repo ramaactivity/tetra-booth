@@ -615,6 +615,7 @@ export const copy = {
       actual: "Nyata",
     },
     nav: {
+      assistant: "Assistant",
       ops: "Operasional",
       events: "Event",
       photobox: "Photobox",

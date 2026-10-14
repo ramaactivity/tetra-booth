@@ -153,7 +153,9 @@ test("Photo Stage di galeri klien, halaman tamu, dan live", async ({ browser, re
 
     // Cuplikan untuk dashboard klien Ops (#185): sampul, satu thumbnail per sesi (terbaru dulu), modules.
     const res = await request.get(`/api/ops/events/PRJ-E2E-STAGE-${tag}`, {
-      headers: { authorization: `Bearer ${process.env.TETRA_OPS_API_TOKEN}` },
+      headers: {
+        authorization: "Bearer e2e-ops-api-token" /* = playwright.config webServer env */,
+      },
     });
     expect(res.status()).toBe(200);
     const [ops] = (

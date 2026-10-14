@@ -1,8 +1,10 @@
 import { parseRun, runState } from "@tetra/shared";
+import { boothSummary, boothsOfEvent } from "@/lib/booth-health";
 import { eventPhase, ymdWib } from "@/lib/events";
 import { bearerOk, opsOrgId } from "@/lib/ops-sync";
 import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
+import { spotOf } from "@/lib/tetra-ops";
 
 type Db = ReturnType<typeof createServiceClient>;
 const DAY = 86_400;
@@ -87,7 +89,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ projectId: stri
   const { data: events, error } = await db
     .from("events")
     .select(
-      "id, slug, name, event_date, status, run, client_token, client_expires_at, purge_at, purged_at, public_gallery, live_token, guest_expires_at",
+      "id, slug, name, event_date, status, run, client_token, client_expires_at, purge_at, purged_at, public_gallery, live_token, guest_expires_at, ops_sync, all_devices, event_devices(device_id)",
     )
     .eq("organization_id", org)
     .eq("ops_project_id", projectId)
@@ -99,6 +101,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ projectId: stri
     ? await db.rpc("ops_event_stats", { org, evs: ids })
     : { data: [] };
   const byId = new Map((stats ?? []).map((s) => [s.event_id, s]));
+  // Kondisi laptop booth per event untuk halaman crew Ops (#264, Tetra Assistant digabung ke Ops).
+  const { data: devices } = ids.length
+    ? await db
+        .from("devices")
+        .select("id, name, short_code, last_seen_at, status")
+        .eq("organization_id", org)
+        .is("revoked_at", null)
+    : { data: [] };
   const origin = new URL(req.url).origin;
   const today = ymdWib(Date.now());
 
@@ -126,6 +136,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ projectId: stri
           : null,
       guest_expires_at: e.guest_expires_at,
       purge_at: e.purge_at,
+      // Acara multi-unit (#262): nomor unit event Booth ini.
+      unit: spotOf(e),
+      booths: boothsOfEvent(e, devices ?? []).map((d) => boothSummary(d)),
       session_count: Number(byId.get(e.id)?.sessions ?? 0),
       photo_count: Number(byId.get(e.id)?.photos ?? 0),
       ...previews[i],

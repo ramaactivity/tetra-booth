@@ -1,5 +1,6 @@
 "use client";
 import {
+  Activity,
   Briefcase,
   CalendarDays,
   Laptop,
@@ -22,6 +23,12 @@ const item = (on: boolean) =>
   `flex h-11 items-center lg:h-[42px] gap-3 rounded-[11px] border-[1.5px] px-3 text-sm no-underline ${on ? "border-ink bg-butter font-bold" : "border-transparent font-medium text-text-2 hover:bg-paper hover:text-ink"}`;
 
 const items = [
+  {
+    href: "/admin/assistant",
+    t: copy.admin.nav.assistant,
+    I: Activity,
+    match: (p: string) => p.startsWith("/admin/assistant"),
+  },
   {
     href: "/admin/templates",
     t: copy.admin.nav.templates,
