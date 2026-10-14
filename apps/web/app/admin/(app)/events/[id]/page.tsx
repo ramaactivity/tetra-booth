@@ -36,6 +36,7 @@ import {
   opsDriftOf,
   spotFrameSize,
   spotOf,
+  unitCount,
 } from "@/lib/tetra-ops";
 import { GuestCamSection } from "./GuestCamSection";
 import { OpsDesignInstall } from "./OpsDesignInstall";
@@ -86,7 +87,7 @@ async function unitRows(
     db.from("devices").select("id, name").eq("organization_id", orgId).is("revoked_at", null),
   ]);
   const list = (sibs ?? []).map((e) => ({ ...e, spot: spotOf(e) }));
-  const n = Math.max(booking?.unit_count ?? 1, list.length, ...list.map((e) => e.spot));
+  const n = Math.max(unitCount(booking), list.length, ...list.map((e) => e.spot));
   if (n < 2) return null;
   const rows = Array.from({ length: n }, (_, i): UnitRow => {
     const e = list.find((x) => x.spot === i + 1);

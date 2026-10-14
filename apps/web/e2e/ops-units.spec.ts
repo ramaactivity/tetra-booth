@@ -64,9 +64,9 @@ test("acara 2 unit: buat event Unit 2 dari dashboard unit 1", async ({ page }) =
     })
     .select("id, slug")
     .single();
-  const device =
-    (await db.from("devices").select("id, name").eq("organization_id", u.org).limit(1).single())
-      .data;
+  const device = (
+    await db.from("devices").select("id, name").eq("organization_id", u.org).limit(1).single()
+  ).data;
   try {
     await login(page, u);
     await page.goto(`/admin/events/${ev?.slug}`);
@@ -96,7 +96,9 @@ test("acara 2 unit: buat event Unit 2 dari dashboard unit 1", async ({ page }) =
     expect(two?.ops_sync).toMatchObject({ spot: 2 });
     expect(one?.ops_sync).toMatchObject({ spot: 1 });
     expect(two?.ops_frame_size).toBe("2R");
-    expect((two?.settings as { guestCam?: { enabled?: boolean } }).guestCam?.enabled).toBe(false);
+    expect(
+      (two?.settings as { guestCam?: { enabled?: boolean } } | undefined)?.guestCam?.enabled,
+    ).toBe(false);
     if (device) {
       expect(two?.all_devices).toBe(false);
       expect(two?.event_devices.map((d) => d.device_id)).toEqual([device.id]);
@@ -107,6 +109,112 @@ test("acara 2 unit: buat event Unit 2 dari dashboard unit 1", async ({ page }) =
       .eq("id", two?.id ?? "")
       .single();
     expect((lay as { paper?: string } | null)?.paper).toBe("2x6x2");
+  } finally {
+    server.close();
+    await db.from("events").delete().eq("ops_project_id", project);
+    await u.cleanup();
+  }
+});
+
+test("wizard Ambil dari Tetra Ops: booking 2 unit (units[]) langsung membuat event Unit 1 & Unit 2", async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  const tag = String(Date.now()).slice(-6);
+  const project = `PRJ-E2E-UNITW-${tag}`;
+  const server: Server = createServer((req, res) => {
+    res.setHeader("content-type", "application/json");
+    if (req.url?.startsWith("/api/booth/bookings"))
+      return res.end(
+        JSON.stringify({
+          bookings: [
+            {
+              project_id: project,
+              client_name: "CIMB",
+              event_title: "Outing IT Uji",
+              event_category: "corporate",
+              event_category_label: "Corporate",
+              event_date: "2026-10-16",
+              start_time: "10:00",
+              end_time: "16:00",
+              venue_name: "Hall A",
+              venue_city: "Jakarta",
+              service_type: "photobooth_classic",
+              frame_size: "4R",
+              package_name: "4R Unlimited 3 Jam",
+              package_duration_hours: 3,
+              unit_count: 2,
+              units: [
+                {
+                  spot_no: 1,
+                  frame_size: "4R",
+                  package_name: "4R Unlimited 3 Jam",
+                  package_duration_hours: 3,
+                },
+                {
+                  spot_no: 2,
+                  frame_size: "2R",
+                  package_name: "2R Unlimited 3 Jam",
+                  package_duration_hours: 3,
+                  label: "Lobby",
+                },
+              ],
+            },
+          ],
+        }),
+      );
+    if (req.url?.startsWith("/api/booth/packages"))
+      return res.end(JSON.stringify({ packages: [] }));
+    res.statusCode = 404;
+    res.end("{}");
+  });
+  await new Promise<void>((r) => server.listen(4019, "127.0.0.1", r));
+  const u = await makeUser("owner");
+  try {
+    await login(page, u);
+    await page.goto("/admin/events/new");
+    await page
+      .getByTestId("ops-list")
+      .getByRole("button", { name: /Outing IT Uji/ })
+      .click();
+    await page.getByLabel("Nama event").fill(`e2e Outing ${tag}`);
+    await page.getByRole("button", { name: /^Lanjut/ }).click();
+    await page.getByRole("button", { name: /^Lanjut/ }).click();
+    await expect(page.getByRole("radio", { name: /Foto 4R/ })).toBeChecked();
+    const picker = page.getByRole("dialog", { name: "Tambah desain frame" });
+    await page.getByRole("button", { name: /Tambah desain/ }).click();
+    await picker.getByRole("textbox", { name: "Cari nama desain" }).fill("4R Grid");
+    await picker
+      .getByRole("button", { name: /^4R Grid/ })
+      .first()
+      .click();
+    await picker.getByRole("button", { name: "Pakai desain ini" }).click();
+    await page.getByRole("button", { name: /^Lanjut/ }).click();
+    await page.getByRole("button", { name: /^Lanjut/ }).click();
+    await page.getByRole("button", { name: "Buat event" }).click();
+    await expect(page.getByRole("link", { name: "Buka event" })).toBeVisible({ timeout: 60_000 });
+
+    const { data: all } = await db
+      .from("events")
+      .select("name, ops_sync, ops_frame_size, package_name, paper:bundle->config->layout->paper")
+      .eq("ops_project_id", project)
+      .order("created_at");
+    expect(all).toHaveLength(2);
+    expect(all?.[0]).toMatchObject({
+      name: `e2e Outing ${tag}`,
+      ops_sync: { spot: 1 },
+      paper: "4R",
+    });
+    expect(all?.[1]).toMatchObject({
+      name: `e2e Outing ${tag}`,
+      ops_sync: { spot: 2 },
+      ops_frame_size: "2R",
+      package_name: "2R Unlimited 3 Jam",
+      paper: "2x6x2",
+    });
+    await page.getByRole("link", { name: "Buka event" }).click();
+    await expect(page.getByTestId("ops-units")).toContainText("Semua unit sudah siap");
+    await page.screenshot({ path: "test-results/ops-units-wizard.png" });
   } finally {
     server.close();
     await db.from("events").delete().eq("ops_project_id", project);

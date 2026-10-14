@@ -29,6 +29,20 @@ export const OpsBooking = z.object({
   package_duration_hours: z.number().positive().max(48).nullable(),
   // Kontrak v0.5 §2.2: jumlah unit/spot booth di acara ini (satu event Booth per unit, #262).
   unit_count: z.number().int().min(1).max(10).nullable().optional(),
+  // Usulan Booth #263 (aditif, dari isian booking per unit): ukuran frame & paket tiap unit, sebelum ada desain.
+  units: z
+    .array(
+      z.looseObject({
+        spot_no: z.number().int().min(1).max(10),
+        frame_size: z.string().max(20).nullable().optional(),
+        package_name: z.string().max(200).nullable().optional(),
+        package_duration_hours: z.number().positive().max(48).nullable().optional(),
+        label: z.string().max(60).nullable().optional(),
+      }),
+    )
+    .max(10)
+    .nullable()
+    .optional(),
   // Usulan Booth #182 (aditif): daftar grup Photo Stage dari portal klien/WO.
   stage_groups: z.array(z.string().max(120)).max(300).nullable().optional(),
   // Kontrak v0.7 (usulan Booth #215): IG klien untuk kartu promosi halaman tamu, tanpa "@".
@@ -84,11 +98,24 @@ export const spotOf = (ev: { name: string; ops_sync?: unknown }) => {
   return typeof s === "number" && s >= 1 ? s : Number(/Spot (\d+)/i.exec(ev.name)?.[1] ?? 1);
 };
 
-/** Ukuran frame unit ini menurut Ops: unit 1 = level atas, unit ≥ 2 = `design.spots`. */
+/**
+ * Ukuran frame unit ini menurut Ops: `units[]` (isian booking per unit, #263), lalu desain (unit 1 = level atas,
+ * unit ≥ 2 = `design.spots`), lalu `frame_size` booking untuk unit 1.
+ */
 export const spotFrameSize = (b: OpsBooking | undefined, spot: number): string | null =>
+  b?.units?.find((u) => u.spot_no === spot)?.frame_size ??
   (spot > 1
     ? b?.design?.spots?.find((x) => x.spot_no === spot)?.frame_size
-    : (b?.design?.frame_size ?? b?.frame_size)) ?? null;
+    : (b?.design?.frame_size ?? b?.frame_size)) ??
+  null;
+
+/** Paket & label unit ini dari `units[]` Ops (#263), kalau ada. */
+export const spotUnit = (b: OpsBooking | undefined, spot: number) =>
+  b?.units?.find((u) => u.spot_no === spot) ?? null;
+
+/** Jumlah unit acara: `unit_count`, atau panjang `units[]`. */
+export const unitCount = (b: OpsBooking | undefined) =>
+  Math.max(b?.unit_count ?? 1, b?.units?.length ?? 0);
 
 /**
  * Desain ACC dari booking Ops untuk satu event Booth. Event multi-unit dibuat satu per spot (kontrak §2.2):

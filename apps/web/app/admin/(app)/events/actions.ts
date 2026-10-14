@@ -14,8 +14,12 @@ import {
   opsBookings,
   opsGuestCam,
   opsPackages,
+  spotFrameSize,
+  spotUnit,
+  unitCount,
 } from "@/lib/tetra-ops";
 import { applySettings } from "./[id]/settings/actions";
+import { createUnit, UNIT_SIZES, type UnitSize } from "./unit-create";
 
 const NewEvent = z.object({
   name: z.string().trim().min(1).max(120),
@@ -149,11 +153,13 @@ export async function createEventWizard(
     }
     return { ok: false, message: r.message };
   } // Paket Guest Cam dari booking Ops (#226, kontrak v0.9): batas tamu, add-on cetak, desain kartu QR.
+  let opsBooking: OpsBooking | undefined;
   if (p.data.ops_project_id) {
     const now = await opsBookingNow({
       event_date: p.data.event_date,
       ops_project_id: p.data.ops_project_id,
     });
+    opsBooking = now?.booking;
     const gc = now?.booking ? opsGuestCam(now.booking, CARD_IDS) : {};
     if (Object.keys(gc).length) {
       const { data: cur } = await db
@@ -170,6 +176,23 @@ export async function createEventWizard(
         .eq("organization_id", orgId);
     }
   }
+
+  // Acara multi-unit (#263): booking Ops ≥ 2 unit → event unit 2..N ikut dibuat sekarang (ukuran dari `units[]`
+  // atau desain Ops). Ukuran yang belum diketahui dibiarkan; admin memilihnya di kartu "Acara ini pakai N unit".
+  if (opsBooking && unitCount(opsBooking) > 1)
+    for (let spot = 2; spot <= unitCount(opsBooking); spot++) {
+      const size = spotFrameSize(opsBooking, spot);
+      const u = spotUnit(opsBooking, spot);
+      if (size && (UNIT_SIZES as readonly string[]).includes(size))
+        await createUnit(db, orgId, user.id, {
+          eventId: ev.id,
+          spot,
+          size: size as UnitSize,
+          deviceId: null,
+          packageName: u?.package_name ?? null,
+          packageHours: u?.package_duration_hours ?? null,
+        });
+    }
 
   const copied = made ?? r.copied;
   return { ok: true, slug: r.slug ?? ev.id, ...(copied && { copied }) };
