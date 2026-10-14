@@ -8,6 +8,7 @@ import { type BoothEvent, DEFAULT_EVENT, loadEvent, releaseEvent } from "./event
 import { GuestPrinter } from "./GuestPrinter";
 import { usePlatform } from "./PlatformContext";
 import type { PrinterAlert } from "./platform";
+import { loadPrintTone, savePrintTone } from "./printTone";
 import { SessionRunner } from "./SessionRunner";
 import { StageRunner } from "./StageRunner";
 import { PrintStation } from "./screens/PrintStation";
@@ -49,6 +50,20 @@ export function BoothApp({
   const [showCursor, setShowCursor] = useState(guestCursor.shown);
   // Notifikasi hasil update (berhasil / gagal dipasang) sekali setelah booth terbuka lagi (masukan Rama).
   const [toast, setToast] = useState<{ ok: boolean; text: string; ms?: number } | null>(null);
+  // Printer bersama (#261): warna cetakan dikalibrasi di laptop printer. Laptop printer mengirim nilainya, booth yang
+  // mencetak lewat sana memakai nilai itu (halaman Warna cetakan di booth tersebut dikunci).
+  useEffect(() => {
+    const sync = p.printShareTone;
+    if (!sync) return;
+    const tick = () =>
+      void sync(loadPrintTone()).then(
+        (t) => t && savePrintTone(t),
+        () => {},
+      );
+    tick();
+    const id = setInterval(tick, 10_000);
+    return () => clearInterval(id);
+  }, [p]);
   // Ctrl+Shift+K di layar tamu: tampil/sembunyikan kursor tanpa masuk mode crew (masukan Rama).
   useEffect(() => {
     if (crewOpen) return;

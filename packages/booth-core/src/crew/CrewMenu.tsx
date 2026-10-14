@@ -34,13 +34,27 @@ import { crewText, errText } from "../errors";
 import { type BoothEvent, DEFAULT_EVENT } from "../event";
 import { GalleryQr } from "../GalleryQr";
 import { usePlatform } from "../PlatformContext";
-import type { BoothRunState, CrewStatus, FailedPrint, UpdateCheck } from "../platform";
+import type {
+  BoothRunState,
+  CrewStatus,
+  FailedPrint,
+  PrintShareInfo,
+  UpdateCheck,
+} from "../platform";
 import { type SharpenProgress, sharpenOldSessions } from "../rerender";
 import { sharpNotes } from "../sharpness";
 import { Logo } from "../ui";
 import { BoothRecap } from "./BoothRecap";
 import { CameraProps } from "./CameraProps";
-import { CameraChoice, CameraView, PrinterChoice, RoleChoice, SaveBar, useDevice } from "./devices";
+import {
+  CameraChoice,
+  CameraView,
+  PrinterChoice,
+  PrintSharePanel,
+  RoleChoice,
+  SaveBar,
+  useDevice,
+} from "./devices";
 import { EventSettings } from "./EventSettings";
 import { PrintToneCard } from "./PrintTone";
 import { btn, dot, Panel, Pill, Row, StatusStrip, ToggleRow, type Tone } from "./parts";
@@ -315,15 +329,23 @@ export function CrewMenu({
   /** Job test print / cetak ulang terakhir: hasil akhirnya menggantikan catatan "dikirim" (W-018). */
   const [, setWatching] = useState<string | null>(null);
   const [auto, setAuto] = useState<{ enabled: boolean; supported: boolean }>();
+  /** Printer bersama (#261): booth ini mencetak lewat laptop printer = kertas & warna diatur di sana. */
+  const [share, setShare] = useState<PrintShareInfo>();
+  const viaHub = share?.mode === "remote" ? share.name : null;
   useEffect(() => {
     p.crew.autoStart().then(setAuto, (e: unknown) => setNote(errText(e)));
   }, [p, setNote]);
 
   const refresh = useCallback(async () => {
     try {
-      const [s, f] = await Promise.all([p.crew.status(), p.crew.failedPrints()]);
+      const [s, f, sh] = await Promise.all([
+        p.crew.status(),
+        p.crew.failedPrints(),
+        p.crew.printShare(),
+      ]);
       setStatus({ ...s, online: s.online && navigator.onLine });
       setFailed(f);
+      setShare(sh);
     } catch (e) {
       setNote(errText(e));
     }
@@ -792,7 +814,13 @@ export function CrewMenu({
                 testId="step-printer"
                 done={printerReady}
                 title={c.setup.printer}
-                detail={printerReady ? c.setup.printerOk : c.setup.printerTodo}
+                detail={
+                  viaHub
+                    ? `${c.dev.share.via(viaHub)} · ${printerReady ? c.setup.printerOk : (status?.printer.message ?? c.setup.printerTodo)}`
+                    : printerReady
+                      ? c.setup.printerOk
+                      : c.setup.printerTodo
+                }
                 action={printerReady ? c.setup.printerAction : c.setup.pickPrinter}
                 onAction={printerReady ? doTestPrint : () => setSection("printer")}
               />
@@ -854,7 +882,11 @@ export function CrewMenu({
         <StatusStrip
           icon={Printer}
           tone={printerTone}
-          title={dev.info?.now.printer ?? c.flow.noPrinterPicked}
+          title={
+            viaHub
+              ? `${c.dev.share.target}: ${viaHub}`
+              : (dev.info?.now.printer ?? c.flow.noPrinterPicked)
+          }
           pill={printerPill}
           detail={
             status
@@ -868,9 +900,10 @@ export function CrewMenu({
         </StatusStrip>
         <div className="grid grid-cols-2 items-start gap-6 portrait:grid-cols-1">
           <div className="flex min-w-0 flex-col gap-6">
+            <PrintSharePanel dev={dev} info={share} onNote={setNote} />
             <Panel
               title={c.flow.paper}
-              hint={c.flow.paperHint}
+              hint={viaHub ? c.dev.share.paperRemote : c.flow.paperHint}
               aside={paperLow && <Pill tone="peach">{c.paperLow}</Pill>}
             >
               <Row
@@ -881,16 +914,18 @@ export function CrewMenu({
                 }
                 hint={status ? c.paper(status.paper.remaining, status.paper.capacity) : "…"}
               >
-                <Button variant="secondary" className={btn} onClick={openRoll}>
+                <Button variant="secondary" className={btn} disabled={!!viaHub} onClick={openRoll}>
                   {c.newRoll}
                 </Button>
               </Row>
             </Panel>
-            <PrinterChoice
-              dev={dev}
-              paper={printPaper(event.layout.paper)}
-              onSettings={() => void printerSettings()}
-            />
+            {dev.draft.printShare !== "remote" && (
+              <PrinterChoice
+                dev={dev}
+                paper={printPaper(event.layout.paper)}
+                onSettings={() => void printerSettings()}
+              />
+            )}
           </div>
           <div className="flex min-w-0 flex-col gap-6">
             <Panel
@@ -899,7 +934,7 @@ export function CrewMenu({
             >
               {failedList}
             </Panel>
-            <PrintToneCard />
+            <PrintToneCard remote={!!viaHub} />
           </div>
         </div>
       </>

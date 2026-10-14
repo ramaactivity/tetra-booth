@@ -60,6 +60,15 @@ Nama menu dari dokumen Sony & manual; bisa beda per firmware. Bagian ini dirapik
 - [ ] Event aktif benar (pojok kanan atas menu crew).
 - [ ] Satu sesi penuh sebagai tamu: foto → pilih cetak → hasil cetak → **scan QR dengan HP data seluler**.
 - [ ] Live slideshow dibuka di TV/laptop kedua (link `/live/…`).
+
+### Printer bersama (beberapa booth, satu printer — #261)
+- [ ] Pasang **router sendiri** (bukan WiFi venue): tengah area, agak tinggi, jauh dari speaker/LED. Semua laptop ke WiFi router ini. Internet tidak wajib untuk cetak.
+- [ ] Booth paling jauh / sinyal lemah: colok **kabel LAN** ke router, atau pakai router mesh. Hotspot HP hanya untuk jarak dekat (±10 m).
+- [ ] Laptop printer: Mode Crew → Printer → **Laptop printer (pusat)** → Simpan. Windows Firewall bertanya → centang **Private** → Allow. Catat **kode printer** yang tampil.
+- [ ] Tiap booth lain: Mode Crew → Printer → **Kirim ke laptop printer** → pilih nama laptop printer → ketik kode → **Hubungkan** → **Simpan**.
+- [ ] Tes Cetak dari **tiap** booth. Di laptop printer, "Booth yang tersambung" harus memuat semua booth.
+- [ ] Kalibrasi warna cetakan & ganti roll **hanya di laptop printer**.
+- [ ] Sinyal putus saat acara: sesi tamu tetap jalan, cetakan antre di booth dan keluar sendiri (urut, tidak dobel) begitu tersambung lagi. Lebih dari 5 menit? Dekatkan booth ke router / colok kabel LAN, atau ganti booth itu ke "Printer di laptop ini" kalau ada printer cadangan.
 - [ ] Laptop LumaBooth cadangan siap tapi tidak dipakai.
 
 ## C. Selama event

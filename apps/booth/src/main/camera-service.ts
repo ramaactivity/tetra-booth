@@ -5,15 +5,10 @@ import { createServer } from "node:net";
 import { dirname, join } from "node:path";
 import { app } from "electron";
 import type { Alerts } from "./alerts";
-import {
-  cameraHealth,
-  listenEvents,
-  request,
-  ServiceUnavailable,
-  setEndpoint,
-} from "./camera-client";
+import { cameraHealth, listenEvents, ServiceUnavailable, setEndpoint } from "./camera-client";
 import { cameraServiceFlags } from "./config";
 import type { BoothDb } from "./db";
+import { hubClient, submitPrint } from "./print-share";
 import { stageReassert, stageShot } from "./stage";
 import { createSupervisor } from "./supervisor";
 import { waitUntil } from "./wait";
@@ -110,7 +105,10 @@ export async function startCameraService(log: (m: string) => void, db: BoothDb, 
     },
     health: cameraHealth,
     log,
-    onReady: (startedAt) => void resubmitPending(db, log, Date.now(), startedAt),
+    // Mencetak lewat laptop printer (#261): antrean dikirim ulang oleh printer bersama, bukan saat service pulih.
+    onReady: (startedAt) => {
+      if (!hubClient()) void resubmitPending(db, log, Date.now(), startedAt);
+    },
   });
   sup.start();
   // Tunggu service siap sebelum jendela dibuka, supaya health pertama di renderer tidak gagal palsu (M-008).
@@ -219,12 +217,8 @@ export async function resubmitPending(
     )
       continue;
     try {
-      const r = await request({
-        id: crypto.randomUUID(),
-        type: "print.submit",
-        payload: { jobId: j.id, path: j.path, copies: j.copies, paper },
-      });
-      if (!r.accepted) db.printJobResult(j.id, "failed", "print ditolak Camera Service");
+      const accepted = await submitPrint({ jobId: j.id, path: j.path, copies: j.copies, paper });
+      if (!accepted) db.printJobResult(j.id, "failed", "print ditolak Camera Service");
       // Camera Service bisa langsung menjawab lewat event (mis. print_uncertain dari jurnal): log status sebenarnya.
       const st = db.printStatus(j.id);
       log(

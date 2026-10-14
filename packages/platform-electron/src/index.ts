@@ -178,7 +178,11 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       printerAlert: () => bridge.printerAlert(),
       onPrinterAlert: (cb) => bridge.onPrinterAlert(cb),
       onPrintUpdated: (cb) => bridge.onPrintUpdated(cb),
+      printShare: () => bridge.crewPrintShare(),
+      findHubs: () => bridge.crewFindHubs(),
+      checkHub: (url, key) => bridge.crewCheckHub(url, key),
     },
+    printShareTone: (t) => bridge.printShareTone(t),
     events: {
       list: () => bridge.eventsList(),
       active: () => bridge.eventsActive(),

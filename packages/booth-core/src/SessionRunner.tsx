@@ -207,6 +207,7 @@ export function SessionRunner({
   }, [s.phase]);
 
   // Timer sederhana per fase.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: s.resumes memasang ulang timer preview setelah "Lanjut" (#254).
   useEffect(() => {
     const tapMs = fast ? FAST_TAP_MS : DEMO_TAP_MS;
     const after = (ms: number, e: SessionEvent) => {

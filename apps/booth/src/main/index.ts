@@ -1,8 +1,10 @@
 import { existsSync } from "node:fs";
+import { hostname } from "node:os";
 import { join } from "node:path";
 import { init as sentryInit } from "@sentry/electron/main";
 import { SDK_FILES, type SdkKit } from "@tetra/shared";
 import { app, BrowserWindow, ipcMain } from "electron";
+import { z } from "zod";
 import { createAlerts } from "./alerts";
 import { startCameraService, watchPrintEvents } from "./camera-service";
 import { createCloud } from "./cloud";
@@ -11,11 +13,13 @@ import {
   cameraServiceFlags,
   canon,
   config,
+  device,
   flagWarnings,
   kioskFlag,
   lumix,
   metricsEverySec,
   nikon,
+  printShare,
   RESUME_KEY,
   stageTvWindow,
   startScreenFlag,
@@ -30,6 +34,7 @@ import { registerIpc } from "./ipc";
 import { APP_ID, allowQuit, applyKiosk } from "./kiosk";
 import { setupLogging } from "./log";
 import { startMetrics } from "./metrics";
+import { checkHub, findHubs, setupPrintShare } from "./print-share";
 import { startStageLan } from "./stage-lan";
 import { startStageTv } from "./stage-tv";
 
@@ -174,7 +179,51 @@ const onPaired = () => {
     relaunch();
   });
 };
-registerIpc(db, alerts, cloud, (p) => gpu.phase(p), onPaired);
+const { sendPrint, crewOnly } = registerIpc(db, alerts, cloud, (p) => gpu.phase(p), onPaired);
+// Printer bersama lewat WiFi (#261): laptop printer menerima cetakan booth lain, atau booth ini mengirim ke sana.
+const boothName = () => cloud.device()?.name ?? hostname();
+const share = setupPrintShare({
+  mode: printShare,
+  hub: device.printHub,
+  db,
+  alerts,
+  name: boothName,
+  inbox: join(app.getPath("userData"), "sessions", "lan-prints"),
+  sendPrint,
+  log: (m) => console.info(m),
+});
+ipcMain.handle("crewPrintShare", () => {
+  crewOnly();
+  return share.info();
+});
+ipcMain.handle("crewFindHubs", () => {
+  crewOnly();
+  return findHubs();
+});
+ipcMain.handle("crewCheckHub", async (_e, url: unknown, key: unknown) => {
+  crewOnly();
+  const u = z.url().max(200).parse(url);
+  const st = await checkHub(
+    u,
+    z
+      .string()
+      .regex(/^\d{4}$/)
+      .parse(key),
+    boothName(),
+  );
+  return st === "badkey" || st === null
+    ? st
+    : { id: st.id, name: st.name, printer: st.printer, paper: st.paper };
+});
+const Tone = z
+  .object({
+    brightness: z.number(),
+    contrast: z.number(),
+    saturation: z.number(),
+    sharpness: z.number(),
+  })
+  .nullable();
+ipcMain.handle("printShareTone", (_e, local: unknown) => share.tone(Tone.parse(local)));
 app.on("will-quit", () => {
   // Renderer masih mem-poll crewStatus saat quit → "database is not open" di log tiap tutup (audit B04, #251).
   ipcMain.removeHandler("crewStatus");

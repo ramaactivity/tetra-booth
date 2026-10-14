@@ -53,6 +53,7 @@ import {
   storeOverride,
 } from "./event-override";
 import { allowQuit, autoStart, setAutoStart, setKioskOn } from "./kiosk";
+import { submitPrint } from "./print-share";
 import { orderPrinters, queryPrinterQueues } from "./printers";
 import { onPhase } from "./shots";
 import { stageInbox, stageListen } from "./stage";
@@ -214,12 +215,13 @@ export function registerIpc(
     // Write-ahead: baris queued ada sebelum event hasil bisa datang (M-012).
     if (!db.printSubmitting({ ...j, id: j.jobId })) return;
     try {
-      const r = await request({
-        id: crypto.randomUUID(),
-        type: "print.submit",
-        payload: { jobId: j.jobId, path: j.path, copies: j.copies, paper: j.paper },
+      const accepted = await submitPrint({
+        jobId: j.jobId,
+        path: j.path,
+        copies: j.copies,
+        paper: j.paper,
       });
-      if (!r.accepted) db.printJobResult(j.jobId, "failed", "print ditolak Camera Service");
+      if (!accepted) db.printJobResult(j.jobId, "failed", "print ditolak Camera Service");
     } catch (e) {
       if (e instanceof ServiceUnavailable) {
         // Camera Service sedang restart: tetap queued, dikirim ulang begitu pulih (M-009). Sesi tetap lanjut.
@@ -281,7 +283,7 @@ export function registerIpc(
       online: net.isOnline(),
       uploadPending: db.uploadPending(),
       uploadError: db.uploadError(),
-      paper: db.paper(),
+      paper: alerts.paper(),
       printer: alerts.printer(),
       cameraService,
       camera,
@@ -588,12 +590,8 @@ export function registerIpc(
     db.printReprinted(j.id);
     const newJobId = jobId;
     try {
-      const r = await request({
-        id: crypto.randomUUID(),
-        type: "print.submit",
-        payload: { jobId, path, copies: j.copies, paper },
-      });
-      if (!r.accepted) throw new Error("print ditolak Camera Service");
+      if (!(await submitPrint({ jobId, path, copies: j.copies, paper })))
+        throw new Error("print ditolak Camera Service");
     } catch (e) {
       db.printJobResult(jobId, "failed", e instanceof Error ? e.message : String(e));
       throw e;
@@ -958,4 +956,5 @@ export function registerIpc(
       onPhaseChanged(p.data);
     }
   });
+  return { sendPrint, crewOnly };
 }

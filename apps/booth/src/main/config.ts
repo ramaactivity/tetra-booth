@@ -87,6 +87,19 @@ export const DeviceSettings = z.object({
   printer: z.string().min(1).max(256).optional(),
   /** Peran laptop (#178): `stage` = Photo Stage, `print` = Print Station (#224). Bawaan booth. */
   role: z.enum(["booth", "stage", "print"]).optional(),
+  /**
+   * Printer bersama lewat WiFi (#261): `local` = printer di laptop ini (bawaan), `hub` = laptop printer yang juga
+   * menerima cetakan booth lain, `remote` = kirim cetakan ke laptop printer `printHub`.
+   */
+  printShare: z.enum(["local", "hub", "remote"]).optional(),
+  printHub: z
+    .object({
+      id: z.string().min(1).max(64),
+      name: z.string().min(1).max(80),
+      key: z.string().regex(/^\d{4}$/),
+      url: z.url().max(200),
+    })
+    .optional(),
 });
 export type DeviceSettings = z.infer<typeof DeviceSettings>;
 export const deviceFile = join(userDir, "device.json");
@@ -289,7 +302,13 @@ export const deviceNow: DeviceSettings = {
     : {}),
   ...(printerName ? { printer: printerName } : {}),
   role: config.role ?? "booth",
+  ...(device.printShare ? { printShare: device.printShare } : {}),
+  ...(device.printHub ? { printHub: device.printHub } : {}),
 };
+
+/** Printer bersama (#261); `remote` tanpa tujuan = printer lokal. */
+export const printShare =
+  device.printShare === "remote" && !device.printHub ? "local" : (device.printShare ?? "local");
 
 /** Interval log metrik (detik), default 60. Stress test memakai nilai kecil. */
 export const metricsEverySec = Math.max(2, Number(flags.value("metrics-every") ?? 60) || 60);

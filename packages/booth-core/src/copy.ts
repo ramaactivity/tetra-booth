@@ -778,6 +778,57 @@ export const copy = {
         afBeforeCapture: "AF sebelum jepret",
         printer: "Printer",
         role: "Peran laptop",
+        printShare: "Printer bersama",
+        printHub: "Laptop printer tujuan",
+      },
+      /** Printer bersama lewat WiFi (#261). */
+      share: {
+        title: "Printer dipakai di mana?",
+        hint: "Satu printer bisa dipakai beberapa booth lewat WiFi yang sama. Tidak butuh internet.",
+        mode: {
+          local: {
+            title: "Printer di laptop ini",
+            detail: "Booth biasa: printer dicolok ke laptop ini.",
+          },
+          hub: {
+            title: "Laptop printer (pusat)",
+            detail: "Printer dicolok di sini. Booth lain ikut mencetak ke sini.",
+          },
+          remote: {
+            title: "Kirim ke laptop printer",
+            detail: "Tanpa printer di sini. Cetakan dikirim lewat WiFi ke laptop printer.",
+          },
+        },
+        saveFirst: "Simpan dulu. Kode printer muncul setelah booth terbuka lagi.",
+        code: "Kode printer",
+        hubName: (name: string) => `Nama laptop printer: ${name}`,
+        howTo: (name: string, key: string) =>
+          `Di tiap booth lain: Mode Crew → Printer → Kirim ke laptop printer → pilih ${name} → ketik kode ${key} → Hubungkan → Simpan.`,
+        peers: "Booth yang tersambung",
+        noPeers: "Belum ada booth yang tersambung.",
+        ago: (s: number) =>
+          s < 15 ? "baru saja" : s < 90 ? `${s} detik lalu` : `${Math.round(s / 60)} menit lalu`,
+        stale: "tidak terdengar, cek WiFi booth itu",
+        find: "Cari laptop printer",
+        finding: "Mencari…",
+        found: "Pilih laptop printer",
+        noneFound:
+          "Tidak ketemu. Pastikan laptop printer menyala, sudah disimpan sebagai Laptop printer (pusat), dan kedua laptop tersambung ke WiFi yang sama. Di laptop printer, izinkan Tetra Booth di jendela Windows Firewall (pilih Private).",
+        codeHint: "Kode 4 angka di halaman Printer laptop printer",
+        connect: "Hubungkan",
+        badKey: "Kode printer salah. Lihat kodenya di halaman Printer laptop printer.",
+        unreachable: (name: string) =>
+          `${name} tidak menjawab. Cek WiFi kedua laptop, lalu Cari lagi.`,
+        checked: (name: string) =>
+          `${name} terhubung. Tekan Simpan supaya booth mulai mencetak ke sana.`,
+        target: "Laptop printer",
+        change: "Ganti laptop printer",
+        state: { ok: "Terhubung", unreachable: "Tidak terjangkau", badkey: "Kode salah" },
+        pending: (n: number) =>
+          n ? `${n} cetakan menunggu, terkirim otomatis begitu tersambung` : "Tidak ada antrean",
+        paperRemote: "Kertas dihitung di laptop printer. Ganti roll di sana.",
+        toneRemote: "Warna cetakan ikut laptop printer. Atur dan Tes Cetak di sana.",
+        via: (name: string) => `Lewat ${name}`,
       },
       canonTips: [
         "Sambungkan kamera lewat USB langsung ke laptop, bukan hub.",

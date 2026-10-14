@@ -88,6 +88,10 @@ export type TetraBridge = {
   crewCheckUpdate: BoothCrew["checkUpdate"];
   crewDevice: BoothCrew["device"];
   crewSaveDevice: BoothCrew["saveDevice"];
+  crewPrintShare: BoothCrew["printShare"];
+  crewFindHubs: BoothCrew["findHubs"];
+  crewCheckHub: BoothCrew["checkHub"];
+  printShareTone: NonNullable<BoothPlatform["printShareTone"]>;
   crewCameraProps: BoothCrew["cameraProps"];
   crewSetCameraProp: BoothCrew["setCameraProp"];
   crewFocus: NonNullable<BoothCrew["focus"]>;

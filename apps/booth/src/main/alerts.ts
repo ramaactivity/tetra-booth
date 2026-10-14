@@ -14,13 +14,16 @@ export function createAlerts(db: BoothDb) {
   let printer: { status: string; message?: string | undefined } = { status: "unknown" };
   let lastFailure: string | null = null;
   let current: PrinterAlert = null;
+  /** Printer bersama (#261): booth ini mencetak lewat laptop printer; status & kertas dari sana. */
+  let hubPaper: (() => { remaining: number; capacity: number }) | null = null;
+  const paper = () => hubPaper?.() ?? db.paper();
 
   // Tampil di layar tamu: kalimat pendek tanpa istilah teknis. Detail ada di menu crew & log (M-010).
   const compute = (): PrinterAlert => {
     if (printer.status === "error" || printer.status === "unavailable" || lastFailure) {
       return { message: "Printer bermasalah, hubungi crew" };
     }
-    const { remaining } = db.paper();
+    const { remaining } = paper();
     if (remaining <= PAPER_LOW) return { message: `Kertas hampir habis (${remaining})` };
     return null;
   };
@@ -38,7 +41,17 @@ export function createAlerts(db: BoothDb) {
   return {
     get: () => compute(),
     printer: () => printer,
+    paper,
+    /** Status printer lokal (Camera Service); diabaikan kalau booth ini mencetak lewat laptop printer. */
     onPrinterStatus(status: string, message?: string) {
+      if (hubPaper) return;
+      printer = { status, message };
+      publish();
+    },
+    viaHub(p: () => { remaining: number; capacity: number }) {
+      hubPaper = p;
+    },
+    onHubStatus(status: string, message?: string) {
       printer = { status, message };
       publish();
     },

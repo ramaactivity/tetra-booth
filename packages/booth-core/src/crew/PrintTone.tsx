@@ -18,7 +18,7 @@ const ROWS = [
 ] as const;
 
 /** Kalibrasi warna lembar cetak per laptop (#208): langsung tersimpan, dipakai Tes Cetak berikutnya. */
-export function PrintToneCard() {
+export function PrintToneCard({ remote = false }: { remote?: boolean }) {
   const [tone, setTone] = useState<PrintTone>(loadPrintTone);
   const set = (next: PrintTone) => {
     setTone(next);
@@ -28,12 +28,13 @@ export function PrintToneCard() {
     <Panel
       testId="print-tone"
       title={t.title}
-      hint={t.note}
+      hint={remote ? copy.crew.dev.share.toneRemote : t.note}
       aside={
         <button
           type="button"
+          disabled={remote}
           onClick={() => set(PRINT_TONE_DEFAULT)}
-          className="pressable h-14 flex-none rounded-[16px] border-2 border-ink bg-white px-5 text-lg font-bold"
+          className="pressable h-14 flex-none rounded-[16px] border-2 border-ink bg-white px-5 text-lg font-bold disabled:opacity-40"
         >
           {t.reset}
         </button>
@@ -68,6 +69,7 @@ export function PrintToneCard() {
                 step={1}
                 value={v}
                 aria-label={label}
+                disabled={remote}
                 onChange={(e) => set({ ...tone, [k]: Number(e.target.value) })}
                 className="absolute inset-0 m-0 size-full cursor-pointer opacity-0"
               />

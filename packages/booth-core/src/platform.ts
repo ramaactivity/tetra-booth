@@ -14,6 +14,7 @@ import type {
   RunAction,
   RunState,
 } from "@tetra/shared";
+import type { PrintTone } from "./printTone";
 import type { StageTvState } from "./stage";
 
 /**
@@ -134,7 +135,35 @@ export type DeviceSettings = {
   printer?: string;
   /** Peran laptop (#178): `stage` = Photo Stage; bawaan booth. */
   role?: "booth" | "stage" | "print";
+  /** Printer bersama lewat WiFi (#261): printer di laptop ini / laptop printer (pusat) / kirim ke laptop printer. */
+  printShare?: "local" | "hub" | "remote";
+  printHub?: PrintHub;
 };
+/** Laptop printer tujuan (#261): `id` tetap per laptop, `url` = alamat terakhir (dicari ulang kalau berubah). */
+export type PrintHub = { id: string; name: string; key: string; url: string };
+/** Laptop printer yang menjawab pencarian di WiFi yang sama. */
+export type FoundHub = { id: string; name: string; url: string };
+/** Hasil cek kode laptop printer: status pusat, "badkey" = kode salah, null = tidak terjangkau. */
+export type HubCheck =
+  | {
+      id: string;
+      name: string;
+      printer: { status: string; message?: string };
+      paper: { remaining: number; capacity: number };
+    }
+  | "badkey"
+  | null;
+/** Keadaan printer bersama di laptop ini (halaman Printer mode crew). */
+export type PrintShareInfo =
+  | { mode: "local" }
+  | {
+      mode: "hub";
+      name: string;
+      key: string;
+      urls: string[];
+      peers: { name: string; secAgo: number }[];
+    }
+  | { mode: "remote"; name: string; state: "ok" | "unreachable" | "badkey"; pending: number };
 /** Antrean printer Windows: `offline` = port tidak tersambung (WorkOffline), `port` mis. "USB003". */
 export type PrinterQueue = { offline: boolean; port: string };
 /**
@@ -261,6 +290,10 @@ export interface BoothCrew {
   onPrinterAlert(cb: (a: PrinterAlert) => void): Unsubscribe;
   /** Setiap print selesai/gagal (menyegarkan kertas & daftar gagal, dan hasil test print di menu crew). */
   onPrintUpdated(cb: (u: PrintUpdate) => void): Unsubscribe;
+  /** Printer bersama (#261): keadaan di laptop ini, cari laptop printer, cek kode sebelum disimpan. */
+  printShare(): Promise<PrintShareInfo>;
+  findHubs(): Promise<FoundHub[]>;
+  checkHub(url: string, key: string): Promise<HubCheck>;
 }
 
 /** Satu sesi selesai: `path` = potongan kecil (layar awal), `full` = potongan paling tajam (galeri). */
@@ -356,6 +389,11 @@ export interface BoothPlatform {
     /** Cetak lagi dari galeri lewat antrean & tabel print_jobs yang sama (#145). */
     reprint(req: ReprintRequest): Promise<ReprintResult>;
   };
+  /**
+   * Warna cetakan printer bersama (#261): kirim nilai laptop ini, terima nilai laptop printer (null = pakai milik
+   * sendiri). Tidak ada = platform tanpa printer bersama.
+   */
+  printShareTone?(local: PrintTone | null): Promise<PrintTone | null>;
   /** Laptop ini Print Station (#224): hanya mencetak foto tamu Guest Cam, tanpa sesi foto. */
   printStation?: boolean;
   /** Cetak tamu Guest Cam (#223). Tidak ada = platform tanpa cloud (uji/browser). Offline = daftar kosong. */
