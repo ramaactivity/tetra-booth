@@ -20,7 +20,8 @@ const session = async (w: Page) => {
   await expect(start).toBeVisible();
   await w.waitForTimeout(1000); // START_GUARD_MS: sentuhan pertama setelah layar muncul diabaikan
   await start.click();
-  await w.getByRole("button", { name: /pakai semua foto/i }).click({ timeout: 30_000 });
+  // Ngaca 20 dtk + hitung mundur 5 dtk × 3 + cermin foto: di runner CI sesi bisa > 30 dtk (sama dengan webcam.spec).
+  await w.getByRole("button", { name: /pakai semua foto/i }).click({ timeout: 60_000 });
   await w.getByRole("button", { name: /cetak sekarang/i }).click({ timeout: 15_000 });
   await w.getByRole("button", { name: "Selesai" }).click({ timeout: 60_000 });
 };
