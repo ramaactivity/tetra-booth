@@ -38,6 +38,8 @@ export type BoothEvent = {
   sounds?: Partial<Record<SoundCue, string>> | undefined;
   /** Mode event: 2–3 desain pilihan tamu (DECISIONS #99); tanpa ini = satu desain `layout`. */
   designs?: EventDesign[] | undefined;
+  /** Desain cetak Photo Stage dari admin (#274). */
+  stageLayout?: LayoutSpec | undefined;
   /** Aset bundle yang sudah dimuat (overlay/background) + nama font terdaftar per assetId. */
   render?: { images: Record<string, ImageBitmap>; fonts: Record<string, string> };
 };
@@ -88,6 +90,7 @@ export async function loadEvent(bundle: EventBundle, events: BoothEvents): Promi
     unit: bundle.info?.unit,
     date: bundle.date,
     layout: bundle.layout,
+    ...(bundle.stageLayout && { stageLayout: bundle.stageLayout }),
     settings: bundle.settings,
     ...(bundle.mode === "photobox"
       ? { photobox: bundle.photobox }

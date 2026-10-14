@@ -63,6 +63,25 @@ describe("buildBundle designs (DECISIONS #99)", () => {
       ["d1-f1.ttf", "k/f1.ttf"],
     ]);
   });
+  it("desain cetak Photo Stage (#274): stageLayout + aset berawalan st-, desain frame tidak berubah", () => {
+    const b = buildBundle({ ...base, stage: { name: "Stage", custom } }) as {
+      config: {
+        layout: { id: string };
+        stageLayout: { overlay: { assetId: string }; texts: { fontAssetId: string }[] };
+        designs?: unknown;
+        assets: Record<string, string>;
+      };
+    };
+    expect(b.config.stageLayout.overlay.assetId).toBe("st-ov");
+    expect(b.config.stageLayout.texts[0]?.fontAssetId).toBe("st-f1");
+    expect(b.config.assets).toEqual({ "st-ov": "st-ov.png", "st-f1": "st-f1.ttf" });
+    expect(b.config.designs).toBeUndefined();
+    const p = buildBundle({ ...base, stage: { preset: "4rl-single" } }) as {
+      config: { stageLayout: { canvas: { width: number } } };
+    };
+    expect(p.config.stageLayout.canvas.width).toBe(1800);
+  });
+
   it("suara per cue (#104): mati = off, pengganti = file snd-<cue>, bawaan = tidak ada", () => {
     const b = buildBundle({ ...base, sounds: { "3": "off", jepret: f("snd-jepret.wav") } }) as {
       config: { sounds: Record<string, string>; assets: Record<string, string> };

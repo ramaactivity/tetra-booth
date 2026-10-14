@@ -85,6 +85,7 @@ const bridge: TetraBridge = {
   stageTvPublish: (st) => ipcRenderer.invoke("stageTvPublish", st),
   stageTvLast: () => ipcRenderer.invoke("stageTvLast"),
   stageTvStatus: () => ipcRenderer.invoke("stageTvStatus"),
+  stageDisplayMode: (mode) => ipcRenderer.invoke("stageDisplayMode", mode),
   onStageTv: (cb) => {
     const h = (_e: IpcRendererEvent, st: unknown) => cb(st);
     ipcRenderer.on("stageTv", h);

@@ -18,7 +18,7 @@ export type DesignOption = {
   /** Bentuk dasar di luar preset event (wizard): hanya bisa dipakai lewat "Salin & sesuaikan". */
   copyOnly?: boolean;
   /** Template editor: untuk mode Event atau Photobox (layouts.mode, #160); preset = semua mode. */
-  mode?: "event" | "photobox";
+  mode?: "event" | "photobox" | "stage";
 };
 
 /** Pilihan untuk satu mode event: preset + template mode itu, plus yang sudah terpasang (`keep`) walau beda mode. */
@@ -49,6 +49,7 @@ export function DesignPicker({
   overlayUrl,
   copy,
   paper: fixedPaper,
+  single,
 }: {
   options: DesignOption[];
   value: string[];
@@ -64,15 +65,18 @@ export function DesignPicker({
   copy?: { value: string | null; onChange: (v: string | null) => void };
   /** Wizard: kertas sudah dipilih lebih dulu, pemilih hanya menampilkan ukuran ini. */
   paper?: LayoutPaper;
+  /** Satu desain bebas ukuran (Photo Stage #274): nama field form + teks kartu kosong, tanpa Utama/Salin. */
+  single?: { field: string; label: string; empty: string };
 }) {
   const [open, setOpen] = useState(false);
   const byValue = new Map(options.map((o) => [o.value, o]));
   const picked = value.flatMap((v) => byValue.get(v) ?? []);
-  const paper = picked[0]?.paper ?? fixedPaper;
+  const paper = single ? undefined : (picked[0]?.paper ?? fixedPaper);
+  const max = single ? 1 : MAX_DESIGNS;
   return (
     <div className="flex flex-col gap-4 md:col-span-2">
       {value.map((v) => (
-        <input key={v} type="hidden" name="design" value={v} />
+        <input key={v} type="hidden" name={single?.field ?? "design"} value={v} />
       ))}
       {paper && (
         <p className="text-[13px] text-text-2">
@@ -81,7 +85,7 @@ export function DesignPicker({
         </p>
       )}
       <fieldset
-        aria-label="Desain frame"
+        aria-label={single?.label ?? "Desain frame"}
         className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4"
       >
         {picked.map((o, i) => {
@@ -109,7 +113,7 @@ export function DesignPicker({
                     </div>
                     <div className="mt-0.5 font-mono text-xs text-text-2">{o.info}</div>
                   </div>
-                  {i === 0 ? (
+                  {single ? null : i === 0 ? (
                     <span className="flex-none rounded-md border-[1.5px] border-ink bg-butter px-2 py-0.5 text-[11px] font-extrabold">
                       Utama
                     </span>
@@ -143,7 +147,7 @@ export function DesignPicker({
                       Edit desain
                     </Link>
                   )}
-                  {copy ? (
+                  {single ? null : copy ? (
                     <button
                       type="button"
                       aria-pressed={copy.value === o.value}
@@ -187,7 +191,7 @@ export function DesignPicker({
             </article>
           );
         })}
-        {value.length < MAX_DESIGNS && (
+        {value.length < max && (
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -196,11 +200,15 @@ export function DesignPicker({
             <span className="flex size-11 items-center justify-center rounded-full border-[1.5px] border-ink bg-butter">
               <Plus className="size-5" strokeWidth={2} />
             </span>
-            <span className="text-sm font-extrabold">Tambah desain</span>
+            <span className="text-sm font-extrabold">
+              {single ? "Pilih desain" : "Tambah desain"}
+            </span>
             <span className="max-w-[200px] text-xs leading-snug text-text-2">
-              {value.length
-                ? `Tamu memilih salah satu sebelum foto. Maks. ${MAX_DESIGNS} desain.`
-                : "Belum ada desain. Pilih minimal satu."}
+              {single
+                ? single.empty
+                : value.length
+                  ? `Tamu memilih salah satu sebelum foto. Maks. ${MAX_DESIGNS} desain.`
+                  : "Belum ada desain. Pilih minimal satu."}
             </span>
           </button>
         )}

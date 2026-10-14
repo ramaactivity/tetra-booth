@@ -394,6 +394,8 @@ export type StageStatus = {
   /** Kode 4 digit HP helper (#206), dipasang di alamat `#helper=<kode>`. */
   helperKey?: string;
 };
+/** Mode layar laptop + TV (#274): Perluas / Duplikat / Hanya laptop / Hanya TV, atau buka Pengaturan layar OS. */
+export type StageDisplayMode = "extend" | "clone" | "internal" | "external" | "settings";
 /** Photo Stage (#178): ada hanya di laptop berperan `stage`. */
 export interface BoothStage {
   /** Mulai/berhenti menerima jepretan rana fotografer (Canon, atau folder pantau aplikasi tether). */
@@ -417,6 +419,8 @@ export interface BoothStage {
     /** TV tersambung (jendela TV terbuka). */
     connected(): Promise<boolean>;
     onConnected(cb: (on: boolean) => void): Unsubscribe;
+    /** Ganti mode layar (Windows) atau buka Pengaturan layar OS; "settings" = yang terjadi pengaturan dibuka. */
+    displayMode?(mode: StageDisplayMode): Promise<"switched" | "settings">;
   };
 }
 

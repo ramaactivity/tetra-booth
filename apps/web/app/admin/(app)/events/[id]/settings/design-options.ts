@@ -1,5 +1,5 @@
 import "server-only";
-import { EVENT_PRESETS, LAYOUT_PRESETS, paperLabel } from "@tetra/shared";
+import { EVENT_PRESETS, LAYOUT_PRESETS, paperLabel, STAGE_PRESETS } from "@tetra/shared";
 import { StoredLayout } from "@/lib/layouts";
 import type { requireMember } from "@/lib/supabase/server";
 import type { DesignOption } from "./DesignPicker";
@@ -52,6 +52,18 @@ export async function loadDesignOptions(
         value: id,
         name: LAYOUT_PRESETS[id].name,
         paper: layout.paper,
+        info: `${paperLabel(layout.paper, layout.canvas)} · ${layout.slots.length} foto`,
+        layout: { id, version: 1, ...layout },
+      };
+    }),
+    // Hanya di pemilih desain cetak Photo Stage (#274).
+    ...STAGE_PRESETS.map((id) => {
+      const { layout } = LAYOUT_PRESETS[id];
+      return {
+        value: id,
+        name: `${LAYOUT_PRESETS[id].name} landscape`,
+        paper: layout.paper,
+        mode: "stage" as const,
         info: `${paperLabel(layout.paper, layout.canvas)} · ${layout.slots.length} foto`,
         layout: { id, version: 1, ...layout },
       };

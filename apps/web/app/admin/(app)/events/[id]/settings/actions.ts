@@ -11,6 +11,7 @@ import {
   paperLabel,
   SOUND_CUES,
   type SoundCue,
+  STAGE_PRESETS,
   StoredBundle,
 } from "@tetra/shared";
 import { revalidatePath } from "next/cache";
@@ -59,6 +60,8 @@ const MIN_PRICE = 1500;
 
 const Tpl = z.string().regex(/^tpl:[0-9a-f-]{36}$/);
 const Design = z.union([z.enum(EVENT_PRESETS), Tpl]);
+/** Desain cetak Photo Stage (#274): preset event + preset landscape khusus stage, atau template. */
+const StageDesign = z.union([z.enum([...EVENT_PRESETS, ...STAGE_PRESETS]), Tpl]);
 /** "Salin & sesuaikan" juga menerima bentuk dasar di luar EVENT_PRESETS (mis. Polaroid): salinannya template. */
 const CopySource = z.union([z.enum(Object.keys(LAYOUT_PRESETS) as [PresetId, ...PresetId[]]), Tpl]);
 /** Desain frame event: 1–3, ukuran kertas sama; lebih dari satu = tamu memilih (DECISIONS #99). */
@@ -406,6 +409,9 @@ export async function applySettings(
     await db.from("layout_versions").delete().eq("layout_id", copied).eq("organization_id", orgId);
     await db.from("layouts").delete().eq("id", copied).eq("organization_id", orgId);
   };
+  // Desain cetak Photo Stage (#274): opsional; template yang sudah diarsip/hilang dilepas diam-diam.
+  const stageValue = StageDesign.safeParse(form.get("stage_design"));
+  const stagePick = stageValue.success ? await resolve(stageValue.data) : null;
   const [main, ...rest] = resolved as [Resolved, ...Resolved[]];
   const custom = main.lv?.custom ?? null;
   const customName = main.lv?.name;
@@ -414,8 +420,11 @@ export async function applySettings(
     background: f.background,
     ...(main.lv && { layoutId: main.value.slice(4), layoutVersion: main.lv.version }),
     ...(rest.length && { extras: rest.map((r) => r.value) }),
+    ...(stagePick && { stage: stagePick.value }),
     versions: Object.fromEntries(
-      resolved.flatMap((r) => (r.lv ? [[r.value.slice(4), r.lv.version]] : [])),
+      [...resolved, ...(stagePick ? [stagePick] : [])].flatMap((r) =>
+        r.lv ? [[r.value.slice(4), r.lv.version]] : [],
+      ),
     ),
   };
   const extras: ExtraDesign[] = rest.map((r) =>
@@ -442,6 +451,11 @@ export async function applySettings(
       custom,
       ...(customName && { customName }),
       extras,
+      stage: stagePick
+        ? stagePick.lv
+          ? { name: stagePick.lv.name, custom: stagePick.lv.custom }
+          : { preset: stagePick.value as PresetId }
+        : null,
       pbTemplates,
       attract,
       attractImage,

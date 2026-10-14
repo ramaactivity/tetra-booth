@@ -31,6 +31,7 @@ async function skipSetupFrom(w: import("@playwright/test").Page, from: string) {
   for (const name of steps.slice(steps.indexOf(from)))
     await setup.getByRole("button", { name }).click();
   await setup.getByRole("button", { name: "Pakai untuk semua foto" }).click();
+  await setup.getByRole("button", { name: "Lanjut ke Pemisah" }).click();
   await setup.getByRole("button", { name: "Mulai Photo Stage" }).click();
   await expect(setup).toBeHidden();
 }
@@ -41,6 +42,7 @@ async function skipSetup(w: import("@playwright/test").Page) {
   for (const name of ["Lanjut ke Kamera", "Lanjut ke TV", "Lanjut ke Warna"])
     await setup.getByRole("button", { name }).click();
   await setup.getByRole("button", { name: "Pakai untuk semua foto" }).click();
+  await setup.getByRole("button", { name: "Lanjut ke Pemisah" }).click();
   await setup.getByRole("button", { name: "Mulai Photo Stage" }).click();
   await expect(setup).toBeHidden();
 }
@@ -101,8 +103,27 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   await setup.getByRole("button", { name: "Lanjut ke TV" }).click();
   await setup.getByRole("button", { name: "Tampilkan uji di TV" }).click();
   await expect(tvWin.getByText("Uji tampilan TV")).toBeVisible();
+  // Mode layar (#274): Perluas/Duplikat/Hanya laptop/Hanya TV + Pengaturan layar OS.
+  await expect(setup.getByTestId("stage-display").getByRole("button")).toHaveCount(5);
+  await w.screenshot({ path: "test-results/stage-setup-3.png" });
   await setup.getByRole("button", { name: "Lanjut ke Warna" }).click();
   await setup.getByRole("button", { name: "Pakai untuk semua foto" }).click();
+  // Langkah Cetak (#274): desain cetak + printer + tes cetak foto tes (file `out/test_*`).
+  await expect(setup.getByTestId("stage-printer")).toBeVisible();
+  await setup.getByRole("button", { name: /Foto penuh/ }).click();
+  await setup.getByRole("button", { name: /Otomatis/ }).click();
+  await setup.getByRole("button", { name: "Tes cetak foto tes" }).click();
+  // Mac tanpa adapter printer = Gagal; yang diuji: lembar tes tersusun di folder sesi sendiri.
+  await expect(setup.getByRole("button", { name: /Terkirim ke printer|Gagal/ })).toBeVisible({
+    timeout: 15_000,
+  });
+  expect(
+    readdirSync(join(data, "sessions"), { recursive: true })
+      .map(String)
+      .filter((f) => /out[/\\]test_\w+\.jpg$/.test(f)),
+  ).toHaveLength(1);
+  await w.screenshot({ path: "test-results/stage-setup-cetak.png" });
+  await setup.getByRole("button", { name: "Lanjut ke Pemisah" }).click();
   await w.screenshot({ path: "test-results/stage-setup-5.png" });
   await setup.getByRole("button", { name: "Mulai Photo Stage" }).click();
   await expect(setup).toBeHidden();
@@ -184,7 +205,7 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   await expect(tvWin.getByRole("heading", { name: "Cari fotomu" })).toHaveCount(0);
 
   // Cetak instan 4R (#183): foto landscape → lembar 4R lewat antrean print booth.
-  await w.locator("section").getByRole("button", { name: "Cetak 4R" }).click();
+  await w.locator("section").getByRole("button", { name: "Cetak" }).click();
   await expect(w.locator("section").getByRole("button", { name: /Dicetak|Gagal/ })).toBeVisible({
     timeout: 15_000,
   });

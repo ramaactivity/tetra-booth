@@ -6,6 +6,7 @@ import {
   createWebcamCamera,
   type FocusStep,
   type SessionAsset,
+  type StageDisplayMode,
   type StageTvState,
   withMirroredPhotos,
 } from "@tetra/booth-core";
@@ -230,6 +231,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
               onState: (cb: (st: StageTvState) => void) =>
                 bridge.onStageTv((st) => cb(st as StageTvState)),
               connected: () => bridge.stageTvStatus(),
+              displayMode: (m: StageDisplayMode) => bridge.stageDisplayMode(m),
               onConnected: (cb: (on: boolean) => void) => bridge.onStageTvStatus(cb),
             },
           },

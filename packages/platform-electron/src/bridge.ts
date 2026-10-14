@@ -5,6 +5,7 @@ import type {
   BoothPayments,
   BoothPlatform,
   SessionAsset,
+  StageDisplayMode,
   StageRemote,
   StageStatus,
 } from "@tetra/booth-core";
@@ -128,6 +129,7 @@ export type TetraBridge = {
   stageTvLast(): Promise<unknown>;
   onStageTv(cb: (state: unknown) => void): () => void;
   stageTvStatus(): Promise<boolean>;
+  stageDisplayMode(mode: StageDisplayMode): Promise<"switched" | "settings">;
   onStageTvStatus(cb: (on: boolean) => void): () => void;
 };
 

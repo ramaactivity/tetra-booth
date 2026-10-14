@@ -2,6 +2,7 @@ import {
   DEFAULT_STAGE_PRESET,
   newSessionId,
   PHOTO_FILTERS,
+  printPaper,
   STAGE_GAP,
   STAGE_MAX_SHOTS,
   type StagePreset,
@@ -18,7 +19,7 @@ import type { BoothEvent } from "./event";
 import { ORIGINAL_LONG_SIDE, THUMB_LONG_SIDE } from "./finalize";
 import { lutKey, parseCube, storedLut } from "./lut";
 import { usePlatform } from "./PlatformContext";
-import type { SessionAsset, StageRemote, StageStatus } from "./platform";
+import type { PrinterAlert, SessionAsset, StageRemote, StageStatus } from "./platform";
 import { toneForPrint } from "./printTone";
 import { StageColor } from "./StageColor";
 import { StageSetup } from "./StageSetup";
@@ -30,7 +31,9 @@ import {
   STAGE_ARCH,
   STAGE_SERIF,
   type StageGroup,
+  type StagePrintChoice,
   type StageShot,
+  stageDesigns,
   stagePrintLayout,
   stageReducer,
   tvState,
@@ -102,6 +105,26 @@ export function StageRunner({
   const [colorOpen, setColorOpen] = useState(false);
   const [retry, setRetry] = useState(0);
   const [prints, setPrints] = useState<Record<string, PrintState>>({});
+  // Desain cetak (#274) per event di laptop ini; printer/pusat dari peringatan printer yang sama dengan booth.
+  const printKey = `tetra.stage.print.${event.id}`;
+  const [printChoice, setPrintChoiceRaw] = useState<StagePrintChoice>(() => {
+    try {
+      return (localStorage.getItem(printKey) as StagePrintChoice | null) ?? "auto";
+    } catch {
+      return "auto";
+    }
+  });
+  const setPrintChoice = (c: StagePrintChoice) => {
+    setPrintChoiceRaw(c);
+    try {
+      localStorage.setItem(printKey, c);
+    } catch {}
+  };
+  const [printer, setPrinter] = useState<PrinterAlert>(null);
+  useEffect(() => {
+    p.crew.printerAlert().then(setPrinter, () => {});
+    return p.crew.onPrinterAlert(setPrinter);
+  }, [p]);
   const [toast, setToast] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [openHist, setOpenHist] = useState<string | null>(null);
@@ -340,8 +363,9 @@ export function StageRunner({
         ?.then(() => stage?.rename(g.id, name.trim() || null))
         .catch((e: unknown) => console.warn(`[stage] ganti nama gagal: ${errText(e)}`));
   };
-  // Cetak instan 4R (#183): satu foto, warna preset, lewat antrean print yang sama dengan booth.
-  const printShot = async (g: StageGroup, sh: StageShot) => {
+  // Cetak instan (#183, #274): satu foto mengisi semua slot desain pilihan, warna preset, lewat antrean print yang
+  // sama dengan booth (printer laptop ini atau laptop printer pusat #261). `g` kosong = tes cetak wizard.
+  const printShot = async (g: StageGroup | null, sh: StageShot) => {
     if (prints[sh.path]?.st === "printing") return;
     const n = prints[sh.path]?.n ?? 0;
     setPrints((x) => ({ ...x, [sh.path]: { st: "printing", n } }));
@@ -349,7 +373,7 @@ export function StageRunner({
       const bmp = await createImageBitmap(new Blob([await p.storage.readFile(sh.path)]));
       try {
         const photo = stageCanvas(bmp, ORIGINAL_LONG_SIDE, "none", lutRef.current?.lut ?? null);
-        const layout = stagePrintLayout(event, bmp);
+        const layout = stagePrintLayout(event, bmp, printChoice);
         const ov = layout.overlay;
         // Frame bawaan "Lengkung" (#194): lengkung putih + font serif khusus cetakan.
         const frame =
@@ -365,15 +389,22 @@ export function StageRunner({
         if (frame !== event.render) await document.fonts.load('96px "Cormorant Garamond"');
         const { sheet } = await renderEvent(
           { ...event, layout, ...(frame && { render: frame }) },
-          [photo],
+          layout.slots.map(() => photo),
           stagePresetCss(presetRef.current),
-          `${guestBaseUrl}/s/${g.id}`,
+          g ? `${guestBaseUrl}/s/${g.id}` : undefined,
         );
         const blob = await toneForPrint(sheet).convertToBlob({ type: "image/jpeg", quality: 0.92 });
         const stamp = Date.now().toString(36);
-        const path = `${await p.storage.sessionDir(g.id)}/out/print_${stamp}.jpg`;
+        // Tes cetak wizard: folder sesi sendiri (id sesi sah), file `test_*` supaya tidak dikira cetakan rombongan.
+        const sid = g?.id ?? newSessionId();
+        const path = `${await p.storage.sessionDir(sid)}/out/${g ? "print" : "test"}_${stamp}.jpg`;
         await p.storage.writeFile(path, new Uint8Array(await blob.arrayBuffer()));
-        await p.printer.submit({ jobId: `${g.id}-s${stamp}`, path, copies: 1, paper: "4R" });
+        await p.printer.submit({
+          jobId: `${sid}-s${stamp}`,
+          path,
+          copies: 1,
+          paper: printPaper(layout.paper),
+        });
       } finally {
         bmp.close();
       }
@@ -1172,6 +1203,15 @@ export function StageRunner({
           onShoot={canShoot ? () => void shoot() : undefined}
           shooting={shooting}
           lanUrls={status?.lanUrls ?? []}
+          displayMode={stage?.tv.displayMode}
+          print={{
+            choice: printChoice,
+            setChoice: setPrintChoice,
+            designs: stageDesigns(event),
+            printer,
+            testState: testShot && prints[testShot.path]?.st,
+            onTest: testShot ? () => void printShot(null, testShot) : undefined,
+          }}
           colorSummary={[PHOTO_FILTERS.find((f) => f.id === preset.filter)?.label, lut?.name]
             .filter(Boolean)
             .join(" · ")}

@@ -138,6 +138,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
             tpl.layoutId ? `tpl:${tpl.layoutId}` : tpl.preset,
             ...(tpl.extras ?? []),
           ].filter((d) => known.has(d)),
+          stageDesign: tpl.stage && known.has(tpl.stage) ? tpl.stage : "",
           designOptions,
           attract: {
             background: raw.attract?.background ?? "#f8f7f4",

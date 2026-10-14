@@ -1,5 +1,17 @@
+import { execFile } from "node:child_process";
 import { join } from "node:path";
-import { BrowserWindow, type Display, ipcMain, screen } from "electron";
+import { BrowserWindow, type Display, ipcMain, screen, shell } from "electron";
+import { z } from "zod";
+import { setKioskOn } from "./kiosk";
+
+/** Mode layar Windows lewat DisplaySwitch.exe bawaan (sama dengan Win+P), #274. */
+const DISPLAY_SWITCH = {
+  extend: "/extend",
+  clone: "/clone",
+  internal: "/internal",
+  external: "/external",
+} as const;
+const DisplayMode = z.enum(["extend", "clone", "internal", "external", "settings"]);
 
 /**
  * Photo Stage S2 (#179, docs/PLAN-PHOTO-STAGE.md §7): jendela TV layar penuh di layar kedua (HDMI, HDMI nirkabel,
@@ -87,6 +99,34 @@ export function startStageTv(o: {
   });
   ipcMain.handle("stageTvLast", () => last);
   ipcMain.handle("stageTvStatus", () => !!tv);
+  // Setel layar tanpa keluar aplikasi (#274): Windows langsung ganti mode (Win+P); "settings" / macOS = buka
+  // Pengaturan layar OS, kiosk dilepas sampai jendela booth difokus lagi.
+  ipcMain.handle("stageDisplayMode", async (e, mode: unknown) => {
+    const m = DisplayMode.parse(mode);
+    if (process.platform === "win32" && m !== "settings") {
+      const exe = join(process.env.SystemRoot ?? "C:\\Windows", "System32", "DisplaySwitch.exe");
+      await new Promise<void>((ok, fail) =>
+        execFile(exe, [DISPLAY_SWITCH[m]], (err) => (err ? fail(err) : ok())),
+      );
+      o.log(`[stage-tv] mode layar → ${m}`);
+      return "switched";
+    }
+    if (process.env.TETRA_NO_SHELL_OPEN === "1") return "settings";
+    const win = BrowserWindow.fromWebContents(e.sender);
+    if (win?.isKiosk()) {
+      setKioskOn(win, false);
+      win.once("focus", () => {
+        if (!win.isDestroyed()) setKioskOn(win, true);
+      });
+    }
+    await shell.openExternal(
+      process.platform === "win32"
+        ? "ms-settings:display"
+        : "x-apple.systempreferences:com.apple.Displays-Settings.extension",
+    );
+    o.log(`[stage-tv] pengaturan layar OS dibuka (${m})`);
+    return "settings";
+  });
   screen.on("display-added", sync);
   screen.on("display-removed", sync);
   screen.on("display-metrics-changed", sync);

@@ -150,6 +150,11 @@ export const EventBundleSchema = z
      * booth tetap menerima sampai 5 supaya bundle lama (≤ 5, #99) tidak ditolak setelah booth update.
      */
     designs: z.array(EventDesignSchema).min(2).max(5).optional(),
+    /**
+     * Desain cetak Photo Stage (#274): ukuran & orientasi bebas (umumnya 4R landscape), satu foto stage mengisi
+     * semua slot. Tidak ada = frame event 4R satu slot / frame bawaan "Lengkung" (#183, #194).
+     */
+    stageLayout: LayoutSpecSchema.optional(),
     attract: AttractSchema.optional(),
     /** Per suara (#104): "off" = dimatikan, selain itu assetId file pengganti; tidak ada = suara bawaan booth. */
     sounds: z.partialRecord(z.enum(SOUND_CUES), z.string().min(1).max(64)).optional(),
@@ -161,6 +166,7 @@ export const EventBundleSchema = z
   .superRefine((b, ctx) => {
     const layouts = [
       b.layout,
+      ...(b.stageLayout ? [b.stageLayout] : []),
       ...[...(b.photobox?.layouts ?? []), ...(b.designs ?? [])].map((l) => l.layout),
     ];
     const refs = [

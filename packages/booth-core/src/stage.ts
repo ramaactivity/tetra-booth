@@ -340,23 +340,64 @@ export function stageArchLayout(e: {
   };
 }
 
-/**
- * Cetak instan stage (#183, #194): frame 4R event dipakai kalau 4R satu slot (frame klien); foto landscape tanpa
- * frame event = frame bawaan "Lengkung"; foto portrait = foto penuh 4R.
- */
-export function stagePrintLayout(
-  e: { layout: LayoutSpec; name: string; tagline?: string | undefined; date: string },
-  photo: { width: number; height: number },
-): LayoutSpec {
-  if (e.layout.paper === "4R" && e.layout.slots.length === 1) return e.layout;
-  if (photo.width > photo.height) return stageArchLayout(e);
+/** Foto penuh 4R mengikuti arah foto (landscape 1800×1200, portrait 1200×1800). */
+const fullLayout = (landscape: boolean): LayoutSpec => {
+  const [width, height] = landscape ? [1800, 1200] : [1200, 1800];
   return {
     id: "stage-print",
     version: 1,
     paper: "4R",
-    canvas: { width: 1200, height: 1800, dpi: 300 },
+    canvas: { width, height, dpi: 300 },
     background: { color: "#ffffff" },
-    slots: [{ id: "photo", x: 0, y: 0, w: 1200, h: 1800, fit: "cover", z: "below_overlay" }],
+    slots: [{ id: "photo", x: 0, y: 0, w: width, h: height, fit: "cover", z: "below_overlay" }],
     texts: [],
   };
+};
+
+type StageEvent = {
+  layout: LayoutSpec;
+  name: string;
+  tagline?: string | undefined;
+  date: string;
+  /** Desain cetak Photo Stage dari admin (#274). */
+  stageLayout?: LayoutSpec | undefined;
+  designs?: { id: string; name: string; layout: LayoutSpec }[] | undefined;
+};
+
+/**
+ * Pilihan desain cetak stage (#274), disimpan per event di laptop stage: `auto` = desain Photo Stage dari admin,
+ * kalau tidak ada perilaku lama (#183/#194); `design:<id>` = desain admin/event mana pun (ukuran & orientasi bebas).
+ */
+export type StagePrintChoice = "auto" | "arch" | "full" | `design:${string}`;
+
+/** Desain event yang bisa dipakai cetak stage: desain Photo Stage admin dulu, lalu desain frame event. */
+export function stageDesigns(e: StageEvent): { id: string; name: string; layout: LayoutSpec }[] {
+  const out = [
+    ...(e.stageLayout
+      ? [{ id: e.stageLayout.id, name: "Desain Photo Stage", layout: e.stageLayout }]
+      : []),
+    ...(e.designs ?? [{ id: e.layout.id, name: "Desain frame event", layout: e.layout }]),
+  ];
+  return out.filter((d, i) => out.findIndex((x) => x.id === d.id) === i);
+}
+
+/**
+ * Cetak instan stage (#183, #194, #274): desain pilihan crew; `auto` = desain Photo Stage admin, lalu frame 4R
+ * event satu slot (frame klien), lalu foto landscape = frame bawaan "Lengkung", portrait = foto penuh 4R.
+ */
+export function stagePrintLayout(
+  e: StageEvent,
+  photo: { width: number; height: number },
+  choice: StagePrintChoice = "auto",
+): LayoutSpec {
+  const landscape = photo.width > photo.height;
+  if (choice === "arch") return stageArchLayout(e);
+  if (choice === "full") return fullLayout(landscape);
+  if (choice.startsWith("design:")) {
+    const d = stageDesigns(e).find((x) => `design:${x.id}` === choice);
+    if (d) return d.layout;
+  }
+  if (e.stageLayout) return e.stageLayout;
+  if (e.layout.paper === "4R" && e.layout.slots.length === 1) return e.layout;
+  return landscape ? stageArchLayout(e) : fullLayout(false);
 }

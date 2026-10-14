@@ -49,6 +49,8 @@ export type SettingsValues = {
   scheduled_end: string;
   /** Desain frame terpilih, berurutan (pertama = utama): preset id atau `tpl:<layoutId>`. */
   designs: string[];
+  /** Desain cetak Photo Stage (#274): preset id / `tpl:<layoutId>`, kosong = frame bawaan booth. */
+  stageDesign: string;
   designOptions: DesignOption[];
   templates: { id: string; name: string; paper: string; mode: string; version: number }[];
   background: string;
@@ -449,6 +451,7 @@ export function SettingsForm({
   const [date, setDate] = useState(v.event_date);
   const [mode, setMode] = useState(v.mode);
   const [designs, setDesigns] = useState(v.designs);
+  const [stageDesign, setStageDesign] = useState(v.stageDesign);
   const [background, setBackground] = useState(v.background);
   const [guestColor, setGuestColor] = useState(v.guestColor);
   const [attractBg, setAttractBg] = useState(v.attract.background);
@@ -1260,8 +1263,35 @@ export function SettingsForm({
             title="Photo Stage"
             hidden={pb}
             badge={v.stageGroups.length ? "ok" : "opsional"}
-            desc="Daftar grup foto pelaminan dari klien atau WO. Muncul di laptop stage sebagai pilihan cepat nama rombongan."
+            desc="Desain cetak khusus Photo Stage dan daftar grup foto pelaminan dari klien atau WO."
           >
+            <div className="flex flex-col gap-2 md:col-span-2">
+              <p className="text-[13px] font-bold">
+                Desain cetak Photo Stage
+                <span className="block text-xs font-normal text-text-2">
+                  Bebas ukuran & orientasi, umumnya 4R landscape. Satu foto mengisi semua slot
+                  desain. Kosong = frame desain utama (kalau 4R satu foto) atau frame bawaan
+                  "Lengkung". Crew bisa menggantinya di laptop stage.
+                </span>
+              </p>
+              <DesignPicker
+                single={{
+                  field: "stage_design",
+                  label: "Desain cetak Photo Stage",
+                  empty: "Belum dipilih. Laptop stage memakai frame bawaan.",
+                }}
+                options={v.designOptions.filter(
+                  (o) => o.mode !== "photobox" || o.value === stageDesign,
+                )}
+                value={stageDesign ? [stageDesign] : []}
+                onChange={(d) => {
+                  setStageDesign(d[0] ?? "");
+                  setDirty(true);
+                }}
+                vars={{ event_name: name, date: longDate(date) }}
+                background={background}
+              />
+            </div>
             <StageGroups
               initial={v.stageGroups.length ? v.stageGroups : v.opsStageGroups}
               fromOps={v.stageGroups.length ? 0 : v.opsStageGroups.length}
