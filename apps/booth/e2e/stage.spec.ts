@@ -201,6 +201,12 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   await expect(find.getByRole("button", { name: "Semua rombongan" })).toBeVisible();
   await expect(find.getByRole("img", { name: /\/s\// })).toBeVisible();
   await tvWin.screenshot({ path: "test-results/stage-tv-find.png" });
+  // Perbesar foto (#276): ketuk foto → layar penuh → ketuk = kembali.
+  await find.getByTestId("stage-tv-photo").first().click();
+  await expect(tvWin.getByTestId("stage-tv-zoom").locator("img")).toBeVisible();
+  await tvWin.screenshot({ path: "test-results/stage-tv-zoom.png" });
+  await tvWin.getByTestId("stage-tv-zoom").click();
+  await expect(tvWin.getByTestId("stage-tv-zoom")).toHaveCount(0);
   await tvWin.getByRole("button", { name: "Tutup" }).click();
   await expect(tvWin.getByRole("heading", { name: "Cari fotomu" })).toHaveCount(0);
 

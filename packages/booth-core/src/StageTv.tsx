@@ -113,6 +113,10 @@ export function StageTv() {
   const [touchedAt, setTouchedAt] = useState(0);
   const groups = st?.groups ?? [];
   const picked = browse && browse !== "list" ? groups.find((g) => g.id === browse) : undefined;
+  // Perbesar satu foto rombongan (#276): ketuk foto → layar penuh, ketuk lagi = kembali.
+  const [zoom, setZoom] = useState<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: tutup saat rombongan/daftar berganti
+  useEffect(() => setZoom(null), [browse]);
   useEffect(() => {
     if (browse && now - touchedAt > BROWSE_IDLE_MS) setBrowse(null);
   }, [now, browse, touchedAt]);
@@ -150,7 +154,7 @@ export function StageTv() {
       {t.tvFind}
     </button>
   );
-  const mosaic = (shots: string[]) => {
+  const mosaic = (shots: string[], onPick?: (path: string) => void) => {
     const m = tvMosaic(Math.min(5, shots.length || 1), 1220, 600, 32);
     return (
       <div className="relative flex-none" style={{ width: m.w, height: m.h }}>
@@ -162,6 +166,15 @@ export function StageTv() {
               key={path}
               className="layered absolute rounded-[20px] border-[3px] border-ink bg-white p-3.5 [--lb:3px] [--lx:10px]"
               style={{ left: b.x, top: b.y, transform: `rotate(${ROTS[i]}deg)` }}
+              {...(onPick && {
+                role: "button",
+                tabIndex: 0,
+                "data-testid": "stage-tv-photo",
+                onClick: () => {
+                  setTouchedAt(Date.now());
+                  onPick(path);
+                },
+              })}
             >
               <div
                 className="overflow-hidden rounded-lg bg-neutral"
@@ -365,6 +378,19 @@ export function StageTv() {
                 </h1>
                 {!picked && <p className="text-[30px] text-text-3">{t.tvFindSub}</p>}
               </div>
+              {!picked && st.galleryUrl && (
+                <div
+                  data-testid="stage-tv-gallery-qr"
+                  className="flex flex-none items-center gap-5 rounded-[24px] border-[2.5px] border-ink bg-sky py-3 pr-6 pl-3"
+                >
+                  <div className="rounded-xl border-2 border-ink bg-white p-2">
+                    <QrCode url={st.galleryUrl} size={120} />
+                  </div>
+                  <span className="text-[26px] leading-[1.15] font-extrabold whitespace-pre-line">
+                    {t.tvAllQr}
+                  </span>
+                </div>
+              )}
               {picked && (
                 <button
                   type="button"
@@ -386,7 +412,10 @@ export function StageTv() {
             </div>
             {picked ? (
               <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_480px] gap-16">
-                <div className="flex min-h-0 items-center">{mosaic(picked.shots)}</div>
+                <div className="flex min-h-0 flex-col justify-center gap-4">
+                  {mosaic(picked.shots, setZoom)}
+                  <span className="text-[24px] font-semibold text-text-3">{t.tvZoomHint}</span>
+                </div>
                 <div className="flex flex-col items-center justify-center gap-6">
                   <div className="layered rounded-[36px] border-[3px] border-ink bg-white p-7 [--lb:3px] [--lx:14px] [--under:var(--butter)]">
                     <QrCode url={url(picked.id)} size={360} />
@@ -426,6 +455,28 @@ export function StageTv() {
               </div>
             ) : (
               <p className="text-[40px] font-bold text-text-2">{t.tvNone}</p>
+            )}
+            {zoom && photos[zoom] && (
+              <button
+                type="button"
+                data-testid="stage-tv-zoom"
+                aria-label={t.tvClose}
+                onClick={() => {
+                  setTouchedAt(Date.now());
+                  setZoom(null);
+                }}
+                className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-6 bg-ink/85 p-12"
+              >
+                <img
+                  src={photos[zoom]}
+                  alt=""
+                  style={{ filter }}
+                  className="min-h-0 max-w-full flex-1 rounded-2xl border-[3px] border-white object-contain"
+                />
+                <span className="rounded-full border-2 border-ink bg-white px-7 py-2.5 text-[26px] font-bold">
+                  {t.tvZoomClose}
+                </span>
+              </button>
             )}
           </div>
         )}
