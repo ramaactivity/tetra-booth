@@ -31,6 +31,20 @@ export const copy = {
     galleryCount: (n: number) => `${n} foto`,
     openPiece: "Buka foto ini",
   },
+  /** Antrean bernomor photobox (walk-in): layar awal + tiket. */
+  queue: {
+    called: "Giliran nomor",
+    calledSub: "silakan",
+    take: "Ambil nomor antrean",
+    waiting: (n: number) => `${n} antre`,
+    ticketTitle: "Nomor antrean kamu",
+    ahead: (n: number) =>
+      n > 0
+        ? `${n} nomor sebelum kamu. Tunggu nomormu dipanggil di layar ini.`
+        : "Giliranmu sekarang! Sentuh tombol mulai.",
+    ticketHint: "Foto layar ini pakai HP supaya tidak lupa nomornya.",
+    ok: "Oke",
+  },
   /** QR galeri online (#240). */
   galleryQr: {
     title: "Galeri online",
@@ -803,6 +817,12 @@ export const copy = {
       pinHint: "PIN untuk masuk ke mode crew.",
       exitHint: "Booth berhenti sampai aplikasi dibuka lagi.",
       navHint: "Layar tamu tampil. Masuk lagi: ketuk pojok kanan atas 5×.",
+      queue: "Antrean",
+      queueState: (called: number | null, waiting: number) =>
+        called === null ? "Belum ada yang antre" : `Dipanggil nomor ${called} · ${waiting} antre`,
+      queueSkip: "Lewati nomor",
+      queueSkipped: (called: number | null) =>
+        called === null ? "Antrean kosong" : `Sekarang memanggil nomor ${called}`,
     },
     paperShort: (n: number) => `Kertas ±${n}`,
     cameraHelp: "Cek kabel USB & kamera menyala. Kamera salah? Ganti di Kamera yang dipakai.",

@@ -272,7 +272,12 @@ export async function applySettings(
     return { ok: false, message: `Harga layout minimal Rp ${MIN_PRICE.toLocaleString("id-ID")}` };
   if (f.mode === "photobox" && !layouts.length)
     return { ok: false, message: "Mode photobox: centang minimal satu layout yang dijual" };
-  const photobox: PhotoboxSettings = { layouts, extraPrintPrice: f.extraPrintPrice };
+  const photobox: PhotoboxSettings = {
+    layouts,
+    extraPrintPrice: f.extraPrintPrice,
+    // Antrean bernomor (bawaan mati): kunci hanya disimpan saat nyala.
+    ...(form.get("photobox_queue") === "on" && { queue: true }),
+  };
 
   // Lead capture (FSD §2, DECISIONS #71): versi persetujuan = hash teks, berubah otomatis saat teks diubah.
   const leadOn = form.get("lead_enabled") === "on";

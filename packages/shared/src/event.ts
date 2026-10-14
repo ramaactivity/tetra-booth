@@ -105,6 +105,8 @@ export type PhotoboxLayout = z.infer<typeof PhotoboxLayoutSchema>;
 export const PhotoboxSchema = z.object({
   layouts: z.array(PhotoboxLayoutSchema).min(1).max(8),
   extraPrintPrice: z.number().int().min(0).max(1_000_000),
+  /** Antrean bernomor di layar awal (walk-in). Tidak ada = mati (perilaku lama). */
+  queue: z.boolean().optional(),
 });
 export type Photobox = z.infer<typeof PhotoboxSchema>;
 

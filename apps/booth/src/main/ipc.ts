@@ -6,11 +6,13 @@ import {
   AssetKindSchema,
   LayoutPaperSchema,
   LayoutSpecSchema,
+  localYmd,
   newerVersion,
   outsideRun,
   PairRequest,
   PaperSchema,
   PaymentCreateRequest,
+  QueueActionSchema,
   RUN_ACTIONS,
   SESSION_ID_PATTERN,
 } from "@tetra/shared";
@@ -400,6 +402,12 @@ export function registerIpc(
     const url = `${config.guestUrl}/g/${slug}`;
     clipboard.writeText(url);
     return url;
+  });
+  // Antrean photobox: tamu mengambil nomor & sesi lunas memakai giliran tanpa PIN; melewati nomor hanya crew.
+  ipcMain.handle("queue", (_e, id: unknown, action: unknown) => {
+    const a = QueueActionSchema.optional().parse(action);
+    if (a === "next") crewOnly();
+    return db.queue(z.string().min(1).max(64).parse(id), localYmd(Date.now()), a);
   });
   // Pengingat saat aplikasi dibuka (#274): tanpa PIN, hanya nama event & jumlah sesi yang belum terkirim.
   ipcMain.handle("eventsUnsent", () =>

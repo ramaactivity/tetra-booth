@@ -195,6 +195,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           mode: ev.mode === "photobox" ? "photobox" : "event",
           sessionSec: s.sessionSec,
           extraPrintPrice: raw.photobox?.extraPrintPrice ?? 10000,
+          queue: !!raw.photobox?.queue,
           lead: ev.lead_capture as SettingsValues["lead"],
           prices: Object.fromEntries(
             (raw.photobox?.layouts ?? []).map((l) => [photoboxKey(l), l.price]),

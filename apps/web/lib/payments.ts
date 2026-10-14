@@ -217,7 +217,12 @@ export function paymentProvider(): PaymentProvider | null {
 export type PhotoboxLayoutSetting = ({ preset: PresetId } | { template: string }) & {
   price: number;
 };
-export type PhotoboxSettings = { layouts: PhotoboxLayoutSetting[]; extraPrintPrice: number };
+export type PhotoboxSettings = {
+  layouts: PhotoboxLayoutSetting[];
+  extraPrintPrice: number;
+  /** Antrean bernomor di layar awal booth; tidak ada = mati. */
+  queue?: boolean;
+};
 export const photoboxKey = (l: PhotoboxLayoutSetting) =>
   "preset" in l ? l.preset : `tpl-${l.template}`;
 

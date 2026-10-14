@@ -91,6 +91,8 @@ export type SettingsValues = {
   mode: "event" | "photobox";
   sessionSec: number;
   extraPrintPrice: number;
+  /** Antrean bernomor photobox di layar awal booth. */
+  queue: boolean;
   /** Harga per preset yang dijual di photobox (tidak ada = tidak dijual). */
   /** Kunci: id preset atau `tpl-<layoutId>` (#108). */
   prices: Record<string, number>;
@@ -1556,6 +1558,12 @@ export function SettingsForm({
             >
               {num("sessionSec", 60, 900)}
             </Field>
+            <ToggleRow
+              name="photobox_queue"
+              defaultChecked={v.queue}
+              title="Antrean bernomor"
+              hint="Layar awal booth menampilkan tombol Ambil nomor antrean dan nomor yang sedang dipanggil. Nomor dibuat di laptop (tetap jalan tanpa internet) dan mulai dari 1 setiap hari. Bawaan: mati."
+            />
           </Section>
 
           {/* ── Tamu & data ─────────────────────────────────────── */}

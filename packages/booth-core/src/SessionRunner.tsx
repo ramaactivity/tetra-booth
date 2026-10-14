@@ -1,5 +1,12 @@
-import { filterCss, newSessionId, printPaper } from "@tetra/shared";
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import {
+  filterCss,
+  newSessionId,
+  printPaper,
+  type QueueState,
+  queueCalled,
+  queueWaiting,
+} from "@tetra/shared";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { composeStrip, designPreview, renderWebPiece, shotsPerSession } from "./compose";
 import { copy } from "./copy";
 import { CountdownRecorder, recorderMime } from "./countdownVideo";
@@ -33,6 +40,7 @@ import { Paid, Payment } from "./screens/Payment";
 import { PhotoPreview } from "./screens/PhotoPreview";
 import { PrintSelect } from "./screens/PrintSelect";
 import { Qr } from "./screens/Qr";
+import { QueueBar, QueueTicket } from "./screens/Queue";
 import { Review } from "./screens/Review";
 import {
   canCancel,
@@ -132,6 +140,34 @@ export function SessionRunner({
   // Galeri tamu (#145): layar di atas attract, bukan fase sesi; selama terbuka tidak ada sesi baru yang mulai.
   const [gallery, setGallery] = useState<{ at?: SessionPiece | undefined } | null>(null);
   useEffect(() => setSoundOverrides(event.sounds), [event.sounds]);
+  // Antrean bernomor photobox (opsional, bawaan mati): nomor dibuat & disimpan di laptop (offline).
+  const queueOn = !!event.photobox?.queue && !!p.queue;
+  const [queue, setQueue] = useState<QueueState | null>(null);
+  const [ticket, setTicket] = useState<{ number: number; ahead: number } | null>(null);
+  const closeTicket = useCallback(() => setTicket(null), []);
+  useEffect(() => {
+    if (!queueOn || s.phase !== "attract") return;
+    // Dibaca ulang berkala: lewat tengah malam antrean mulai dari 1 lagi.
+    const load = () => p.queue?.(event.id).then(setQueue, () => {});
+    load();
+    const id = setInterval(load, 60_000);
+    return () => clearInterval(id);
+  }, [queueOn, s.phase, p, event.id]);
+  // Paket lunas = giliran nomor yang dipanggil terpakai (batal sebelum bayar tidak menghanguskan nomor).
+  useEffect(() => {
+    if (queueOn && s.phase === "paid")
+      p.queue?.(event.id, "start").then(setQueue, (e: unknown) =>
+        console.warn(`[queue] ${errText(e)}`),
+      );
+  }, [queueOn, s.phase, p, event.id]);
+  const takeNumber = () =>
+    p.queue?.(event.id, "take").then(
+      (q) => {
+        setQueue(q);
+        setTicket({ number: q.issued, ahead: q.issued - q.served - 1 });
+      },
+      (e: unknown) => console.warn(`[queue] ${errText(e)}`),
+    );
   // Bumper (#105): play → leave (memudar, layar awal mulai dibangun di bawahnya) → done.
   const [bumperState, setBumperState] = useState<"play" | "leave" | "done">(
     bumper && event.settings.bumper && !demo ? "play" : "done",
@@ -513,6 +549,9 @@ export function SessionRunner({
       {!demo && !s.photobox && (canCancel(s) || s.phase === "capture") && !asking && (
         <CancelButton disabled={s.phase === "capture"} onClick={askCancel} />
       )}
+      {ticket && s.phase === "attract" && (
+        <QueueTicket number={ticket.number} ahead={ticket.ahead} onClose={closeTicket} />
+      )}
       {asking && (
         <CancelConfirm
           onYes={() => {
@@ -578,6 +617,16 @@ export function SessionRunner({
             layout={event.layout}
             photosOf={event.photobox ? undefined : event.id}
             onGallery={event.photobox ? undefined : (at) => setGallery({ at })}
+            queue={
+              queueOn &&
+              queue && (
+                <QueueBar
+                  called={queueCalled(queue)}
+                  waiting={queueWaiting(queue)}
+                  onTake={takeNumber}
+                />
+              )
+            }
             onStart={() => {
               // Sapaan hanya kalau ada layar pilih dulu; kalau langsung foto, "gaya pertama" sudah menyapa.
               if (cfg.countdownSound && (event.photobox || event.designs)) void play("mulai");

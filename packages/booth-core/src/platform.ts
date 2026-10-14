@@ -11,6 +11,8 @@ import type {
   PaymentCreateRequest,
   PaymentCreateResponse,
   PaymentStatus,
+  QueueAction,
+  QueueState,
   RunAction,
   RunState,
 } from "@tetra/shared";
@@ -466,4 +468,9 @@ export interface BoothPlatform {
   mirrorLiveView?: boolean;
   /** Laptop Photo Stage (#178); tidak ada = booth biasa. */
   stage?: BoothStage;
+  /**
+   * Antrean bernomor photobox (SQLite lokal, offline). Tanpa `action` = baca; `next` (lewati nomor) hanya saat mode
+   * crew terbuka. Tidak ada = platform tanpa antrean (fitur tidak tampil).
+   */
+  queue?(eventId: string, action?: QueueAction): Promise<QueueState>;
 }

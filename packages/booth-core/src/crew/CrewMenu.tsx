@@ -5,6 +5,9 @@ import {
   localYmd,
   paperLabel,
   printPaper,
+  type QueueState,
+  queueCalled,
+  queueWaiting,
   type RunAction,
   runElapsedMs,
 } from "@tetra/shared";
@@ -424,6 +427,20 @@ export function CrewMenu({
       .catch((e: unknown) => setNote(crewText(e)));
 
   const [section, setSection] = useState<Section>("home");
+  // Antrean bernomor photobox: crew melewati nomor yang tidak datang.
+  const queueOn = !!event.photobox?.queue && !!p.queue;
+  const [queue, setQueue] = useState<QueueState | null>(null);
+  useEffect(() => {
+    if (queueOn) p.queue?.(event.id).then(setQueue, () => {});
+  }, [queueOn, p, event.id]);
+  const skipNumber = () =>
+    p.queue?.(event.id, "next").then(
+      (q) => {
+        setQueue(q);
+        setNote(c.flow.queueSkipped(queueCalled(q)));
+      },
+      (e: unknown) => setNote(crewText(e)),
+    );
   const modeLabel = event.photobox ? copy.start.mode.photobox : copy.start.mode.event;
   const paperLow = !!status && status.paper.remaining <= PAPER_LOW;
   const openRoll = () => {
@@ -694,6 +711,15 @@ export function CrewMenu({
           action={c.flow.open}
           onAction={() => setSection("printer")}
         />
+        {queueOn && queue && (
+          <Glance
+            label={c.flow.queue}
+            value={c.flow.queueState(queueCalled(queue), queueWaiting(queue))}
+            valueTestId="crew-queue"
+            action={c.flow.queueSkip}
+            onAction={skipNumber}
+          />
+        )}
         <Glance
           label={c.flow.upload}
           pill={onlinePill}

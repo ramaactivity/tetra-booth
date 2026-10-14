@@ -31,7 +31,13 @@ create table if not exists print_jobs (
 );
 `;
 
-import type { AssetKindName } from "@tetra/shared";
+import {
+  type AssetKindName,
+  type QueueAction,
+  type QueueState,
+  queueLoad,
+  queueReduce,
+} from "@tetra/shared";
 
 export type AssetKind = AssetKindName;
 export type UploadSessionRow = {
@@ -382,6 +388,17 @@ export function openDb(file: string) {
     },
 
     kv,
+    /** Antrean photobox per event (nomor dibuat di laptop, mulai dari 1 tiap `day`); tanpa `action` = baca saja. */
+    queue(eventId: string, day: string, action?: QueueAction): QueueState {
+      return tx(() => {
+        const key = `queue:${eventId}`;
+        const q = queueLoad(kv.get(key), day);
+        if (!action) return q;
+        const next = queueReduce(q, action);
+        kv.set(key, JSON.stringify(next));
+        return next;
+      });
+    },
     paper,
     resetPaper(capacity: number) {
       kv.set("paper_capacity", String(capacity));

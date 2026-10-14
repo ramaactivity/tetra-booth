@@ -131,6 +131,7 @@ export async function assignToEvent(
   }
   set("mode", ev.mode === "photobox" ? "photobox" : "event");
   set("extraPrintPrice", raw.photobox?.extraPrintPrice ?? 10000);
+  on("photobox_queue", raw.photobox?.queue);
   const sold = new Map(
     (raw.photobox?.layouts ?? [])
       .filter((l) => !("template" in l) || paperOf.has(l.template))

@@ -207,6 +207,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       create: (req) => bridge.paymentCreate(req),
       status: (id) => bridge.paymentStatus(id),
     },
+    queue: (id, action) => bridge.queue(id, action),
     health: () => bridge.health(),
     phaseChanged: (phase) => bridge.phaseChanged(phase),
     printStation: cfg.role === "print",

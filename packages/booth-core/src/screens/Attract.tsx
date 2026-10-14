@@ -1,7 +1,14 @@
 import type { LayoutSpec } from "@tetra/shared";
 import { Button } from "@tetra/ui";
 import { ArrowRight, Images } from "lucide-react";
-import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { copy } from "../copy";
 import { CrewHotspot, useCrewKeys } from "../crew/CrewEntry";
 import type { BoothEvent } from "../event";
@@ -209,6 +216,7 @@ export function Attract({
   photosOf,
   onStart,
   onGallery,
+  queue,
   onCrew,
 }: {
   eventName: string;
@@ -223,6 +231,8 @@ export function Attract({
   onStart: () => void;
   /** Galeri tamu (#145), mode event saja; dengan sesi = langsung buka foto itu. */
   onGallery?: ((at?: SessionPiece) => void) | undefined;
+  /** Antrean bernomor photobox (di bawah tombol mulai); tidak ada = antrean mati. */
+  queue?: ReactNode;
   /** `"exit"` = Ctrl+Shift+Q: setelah PIN langsung konfirmasi Tutup Aplikasi. */
   onCrew?: ((intent?: "exit") => void) | undefined;
 }) {
@@ -441,6 +451,7 @@ export function Attract({
             </span>
           </Button>
         )}
+        {queue && <div style={rise(360)}>{queue}</div>}
       </div>
     </main>
   );

@@ -315,4 +315,20 @@ describe("log harian", () => {
     db.sessionRename(start.id, "x");
     expect(db.query("select group_name from sessions")).toEqual([{ group_name: null }]);
   });
+
+  it("antrean photobox tersimpan per event, bertahan saat app dibuka ulang, mulai dari 1 di hari baru", () => {
+    const file = join(tmp(), "booth.db");
+    let db = openDb(file);
+    const ev = start.eventId;
+    expect(db.queue(ev, "2026-10-14")).toEqual({ day: "2026-10-14", issued: 0, served: 0 });
+    db.queue(ev, "2026-10-14", "take");
+    db.queue(ev, "2026-10-14", "take");
+    db.queue(ev, "2026-10-14", "start");
+    db.queue("event-lain", "2026-10-14", "take");
+    db.close();
+    db = openDb(file);
+    expect(db.queue(ev, "2026-10-14")).toEqual({ day: "2026-10-14", issued: 2, served: 1 });
+    expect(db.queue(ev, "2026-10-15", "take")).toEqual({ day: "2026-10-15", issued: 1, served: 0 });
+    expect(db.queue("event-lain", "2026-10-14").issued).toBe(1);
+  });
 });

@@ -146,4 +146,19 @@ describe("buildBundle designs (DECISIONS #99)", () => {
     }) as { config: object };
     expect(pb.config).not.toHaveProperty("designs");
   });
+  it("antrean bernomor photobox: ikut ke bundle hanya saat dinyalakan", () => {
+    const pb = (queue?: boolean) =>
+      buildBundle({
+        ...base,
+        mode: "photobox",
+        photobox: {
+          layouts: [{ preset: "strip-3", price: 25000 }],
+          extraPrintPrice: 0,
+          ...(queue !== undefined && { queue }),
+        },
+      }) as { config: { photobox: object } };
+    expect(pb(true).config.photobox).toHaveProperty("queue", true);
+    expect(pb(false).config.photobox).not.toHaveProperty("queue");
+    expect(pb().config.photobox).not.toHaveProperty("queue");
+  });
 });
