@@ -51,10 +51,13 @@ export function PauseControl({
   paused,
   onPause,
   onResume,
+  onCancel,
 }: {
   paused: boolean;
   onPause: () => void;
   onResume: () => void;
+  /** Batalkan seluruh sesi dari layar jeda (Rama 14 Okt); lewat konfirmasi. */
+  onCancel?: () => void;
 }) {
   if (!paused)
     return (
@@ -77,6 +80,15 @@ export function PauseControl({
         <Play size={34} strokeWidth={2.5} fill="currentColor" />
         {t.resume}
       </Button>
+      {onCancel && (
+        <Button
+          variant="plain"
+          className="h-[80px] rounded-[22px] bg-white! px-8 text-[26px]"
+          onClick={onCancel}
+        >
+          {copy.cancel.fromPause}
+        </Button>
+      )}
     </div>
   );
 }

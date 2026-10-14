@@ -66,6 +66,11 @@ export type SessionState = {
   paused: boolean;
   /** Bertambah tiap Lanjut: hitung mundur dimulai ulang dari awal. */
   resumes: number;
+  /**
+   * Ditahan sistem selama konfirmasi "Batalkan sesi?" atau foto diperbesar di cek foto (Rama 14 Okt): semua timer
+   * fase ini berhenti. Terpisah dari `paused` ("Tunggu dulu" tamu, #254) supaya perilaku jeda tidak berubah.
+   */
+  held: boolean;
 };
 
 export type SessionEvent =
@@ -85,6 +90,11 @@ export type SessionEvent =
   | { type: "MIRROR_DONE" }
   | { type: "PAUSE" }
   | { type: "RESUME" }
+  /** Tahan/lepas timer fase ini (konfirmasi batal, foto diperbesar). */
+  | { type: "HOLD" }
+  | { type: "RELEASE" }
+  /** Tamu membatalkan seluruh sesi → layar awal (mode event saja, lihat `canCancel`). */
+  | { type: "CANCEL" }
   | { type: "FILTER_CHOSEN"; filter: string }
   | { type: "PHOTOBOX_START"; draftId: string }
   /** Mode event dengan beberapa desain (DECISIONS #99): tamu memilih desain dulu, tanpa bayar. */
@@ -131,7 +141,21 @@ export const initialSession: SessionState = {
   filter: null,
   paused: false,
   resumes: 0,
+  held: false,
 };
+
+/** Fase yang boleh ditahan & dibatalkan: bukan saat kamera memotret atau sesudah foto dirangkai. */
+const HOLDABLE: ReadonlySet<Phase> = new Set<Phase>([
+  "mirror",
+  "countdown",
+  "preview",
+  "camera_error",
+  "review",
+  "filter",
+]);
+
+/** Tamu boleh membatalkan seluruh sesi (Rama 14 Okt): mode event saja, photobox sudah dibayar. */
+export const canCancel = (s: SessionState) => !s.photobox && HOLDABLE.has(s.phase);
 
 /** Waktu habis: slot kosong diisi foto terakhir yang ada (FSD §1.5). */
 const fillPhotos = (photos: (Photo | null)[]) => {
@@ -201,6 +225,7 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
             photos: fillPhotos(s.photos),
             retaking: false,
             paused: false,
+            held: false,
           };
         case "print_select":
           // Photobox (satu-satunya pemakai timer): lembar paket sudah dibayar → tetap dicetak 1 (DECISIONS #84).
@@ -210,13 +235,22 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
           return s;
       }
     case "MIRROR_DONE":
-      return s.phase === "mirror" ? { ...s, phase: "countdown" } : s;
+      return s.phase === "mirror" && !s.held ? { ...s, phase: "countdown" } : s;
     case "PAUSE":
       return s.phase === "countdown" || s.phase === "preview" ? { ...s, paused: true } : s;
     case "RESUME":
       return s.paused ? { ...s, paused: false, resumes: s.resumes + 1 } : s;
+    case "HOLD":
+      return HOLDABLE.has(s.phase) ? { ...s, held: true } : s;
+    case "RELEASE":
+      // Timer fase ini mulai lagi dari awal (hitung mundur penuh), sama seperti Lanjut.
+      return s.held ? { ...s, held: false, resumes: s.resumes + 1 } : s;
+    case "CANCEL":
+      return canCancel(s) ? initialSession : s;
     case "COUNTDOWN_DONE":
-      return s.phase === "countdown" && !s.paused ? { ...s, phase: "capture", attempt: 1 } : s;
+      return s.phase === "countdown" && !s.paused && !s.held
+        ? { ...s, phase: "capture", attempt: 1 }
+        : s;
     case "CAPTURED": {
       if (s.phase !== "capture") return s;
       const photos = s.photos.with(s.index, e.photo);
@@ -237,7 +271,7 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
       // Lanjut dari foto yang gagal (FSD §1.7).
       return s.phase === "camera_error" ? { ...s, phase: "countdown" } : s;
     case "PREVIEW_DONE": {
-      if (s.phase !== "preview" || s.paused) return s;
+      if (s.phase !== "preview" || s.paused || s.held) return s;
       const next = s.index + 1;
       return next < s.slots ? { ...s, phase: "countdown", index: next } : { ...s, phase: "review" };
     }
@@ -251,12 +285,13 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
         index: e.index,
         retaking: true,
         retakesUsed: s.retakesUsed.with(e.index, (s.retakesUsed[e.index] ?? 0) + 1),
+        held: false,
       };
     case "CONTINUE":
       if (s.phase !== "review") return s;
-      return { ...s, phase: s.filterStep ? "filter" : "compose" };
+      return { ...s, phase: s.filterStep ? "filter" : "compose", held: false };
     case "FILTER_CHOSEN":
-      return s.phase === "filter" ? { ...s, phase: "compose", filter: e.filter } : s;
+      return s.phase === "filter" ? { ...s, phase: "compose", filter: e.filter, held: false } : s;
     case "COMPOSED":
       return s.phase === "compose" ? { ...s, phase: "print_select", strip: e.strip } : s;
     case "COMPOSE_FAILED":

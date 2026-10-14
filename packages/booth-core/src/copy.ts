@@ -90,6 +90,14 @@ export const copy = {
     pausedSub: "Siapin gaya berikutnya, lalu tekan Lanjut",
     resume: "Lanjut",
   },
+  cancel: {
+    button: "Batal",
+    fromPause: "Batalkan sesi",
+    title: "Batalkan sesi foto?",
+    sub: "Foto yang sudah diambil tidak dicetak dan tidak masuk galeri.",
+    yes: "Ya, batalkan",
+    no: "Lanjut foto",
+  },
   countdown: {
     ready: "Siap? Senyum!",
     lookAtCamera: "Lihat ke kamera",
@@ -105,6 +113,9 @@ export const copy = {
     next: "Pakai Semua Foto",
     rule: (n: number) => `Tiap foto bisa diulang ${n} kali`,
     retaken: (used: number, max: number) => `Sudah diulang (${used}/${max})`,
+    zoom: (n: number) => `Perbesar foto ${n}`,
+    close: "Tutup",
+    back: "Kembali ke cek foto",
   },
   compose: { busy: "Menyusun fotomu…" },
   print: {
