@@ -23,8 +23,19 @@ export function StageDisplay({ onCrew }: { onCrew: () => void }) {
   const [st, setSt] = useState<State | undefined>();
   const frame = useRef<HTMLIFrameElement>(null);
   useCrewKeys(onCrew);
+  // Satu cek gagal tidak langsung menutup galeri (laptop stage sibuk menyimpan foto): "Menghubungkan…" baru tampil
+  // setelah 2 cek berturut-turut tidak terjangkau.
+  const misses = useRef(0);
   const check = useCallback(() => {
-    d?.check().then(setSt, () => {});
+    d?.check().then(
+      (next) => {
+        misses.current = next?.state === "unreachable" ? misses.current + 1 : 0;
+        setSt((cur) =>
+          next?.state === "unreachable" && cur?.state === "ok" && misses.current < 2 ? cur : next,
+        );
+      },
+      () => {},
+    );
   }, [d]);
   useEffect(() => {
     check();
