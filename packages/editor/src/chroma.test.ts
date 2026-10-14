@@ -97,4 +97,5 @@ it("cepat untuk kanvas 1200×1800", () => {
   keyColor(d, 1200, 1800, { color: Y });
   suggestKeyColor(d, 1200, 1800);
   expect(performance.now() - t).toBeLessThan(1500);
-});
+  // Batas waktu tes = menyusun gambar uji di runner CI yang sibuk (5,5 dtk); yang diukur tetap < 1,5 dtk.
+}, 30_000);
