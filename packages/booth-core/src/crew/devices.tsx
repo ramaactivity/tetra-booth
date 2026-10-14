@@ -18,7 +18,7 @@ const SDK: readonly CameraKind[] = ["canon", "nikon", "sony", "lumix"];
 /** Nilai bawaan tiap setelan (sama dengan main), supaya "belum diisi" tidak dianggap perubahan. */
 const DEFAULTS: DeviceSettings = {
   mirrorLiveView: true,
-  mirrorPhoto: false,
+  mirrorPhoto: true,
   afBeforeCapture: false,
   role: "booth",
 };

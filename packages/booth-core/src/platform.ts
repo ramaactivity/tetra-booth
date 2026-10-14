@@ -178,7 +178,10 @@ export type DeviceInfo = {
 };
 /** Field pengaturan event yang boleh diubah crew di booth (DECISIONS #100). */
 export type EventOverride = Partial<
-  Pick<EventSettings, "countdownSec" | "retakeMax" | "maxPrints" | "qrScreenSec" | "sessionSec">
+  Pick<
+    EventSettings,
+    "countdownSec" | "retakeMax" | "maxPrints" | "qrScreenSec" | "sessionSec" | "mirrorSec"
+  >
 >;
 export type EventSettingsInfo = { cloud: EventSettings; override: EventOverride };
 /** File aset baru dari editor desain booth (overlay/latar/font); disimpan di folder lokal event. */

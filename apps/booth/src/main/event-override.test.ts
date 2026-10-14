@@ -31,6 +31,18 @@ describe("override pengaturan event di booth (#100)", () => {
   });
 });
 
+describe("waktu ngaca diubah di booth (Rama 14 Okt)", () => {
+  it("0 = layar ngaca mati, tetap disimpan sebagai override", () => {
+    expect(diffOverride(bundle.settings, { mirrorSec: 0 })).toEqual({ mirrorSec: 0 });
+    expect(applyOverride(bundle, { mirrorSec: 0 }).settings.mirrorSec).toBe(0);
+  });
+  it("sama dengan cloud bukan override; di luar 0–60 ditolak", () => {
+    expect(diffOverride(bundle.settings, { mirrorSec: DEFAULT_SETTINGS.mirrorSec })).toEqual({});
+    expect(parseOverride('{"mirrorSec":10}')).toEqual({ mirrorSec: 10 });
+    expect(parseOverride('{"mirrorSec":99}')).toEqual({});
+  });
+});
+
 describe("override vs perubahan admin (#255)", () => {
   const cloud = { ...DEFAULT_SETTINGS, countdownSec: 3, maxPrints: 2 };
   it("admin mengubah nilai sesudah override disimpan → nilai admin berlaku", () => {

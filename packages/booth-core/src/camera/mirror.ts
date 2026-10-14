@@ -2,7 +2,8 @@ import { cpuCanvas } from "@tetra/template-engine";
 import type { BoothCamera, BoothStorage } from "../platform";
 
 /**
- * Opsi crew "Cermin hasil foto" (bawaan mati, DECISIONS #35): file raw dibalik kiri-kanan tepat setelah capture,
+ * Opsi crew "Cermin hasil foto" (bawaan nyala sejak 14 Okt; dulu mati, DECISIONS #35): file raw dibalik kiri-kanan
+ * tepat setelah capture,
  * jadi preview, review, cetakan, dan original semuanya sama dengan yang dilihat tamu di live view.
  */
 export const withMirroredPhotos = (camera: BoothCamera, storage: BoothStorage): BoothCamera => ({

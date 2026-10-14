@@ -660,6 +660,7 @@ export const copy = {
       maxPrints: "Maks. cetak per sesi",
       qrScreenSec: "Layar QR (detik)",
       sessionSec: "Timer sesi photobox (detik)",
+      mirrorSec: "Waktu ngaca (detik, 0 = mati)",
     },
     cloudValue: (v: number) => `cloud: ${v}`,
     changedHere: "diubah di booth",
@@ -754,7 +755,7 @@ export const copy = {
         },
         mirrorPhoto: {
           label: "Cermin di hasil foto",
-          hint: "Tulisan di baju & latar ikut terbalik di cetakan. Biasanya mati.",
+          hint: "Hasil foto sama dengan yang tamu lihat di layar (tulisan ikut terbalik). Biasanya nyala.",
         },
       },
       afHint: "Kamera fokus ulang di awal tiap hitung mundur.",

@@ -126,10 +126,11 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   // Bar simpan hanya muncul kalau ada perubahan perangkat.
   const saveBar = w.getByTestId("device-savebar");
   await expect(saveBar).toHaveCount(0);
-  // Cermin: bawaan layar tamu nyala, hasil foto mati (DECISIONS #35); ubah → bar simpan menyebut perubahannya.
+  // Cermin: bawaan layar tamu & hasil foto nyala (Rama 14 Okt, dulu hasil foto mati #35); ubah → bar simpan
+  // menyebut perubahannya.
   await expect(w.getByTestId("toggle-mirrorLiveView")).toHaveAttribute("aria-pressed", "true");
   const mirrorPhoto = w.getByTestId("toggle-mirrorPhoto");
-  await expect(mirrorPhoto).toHaveAttribute("aria-pressed", "false");
+  await expect(mirrorPhoto).toHaveAttribute("aria-pressed", "true");
   await mirrorPhoto.click();
   await expect(saveBar).toContainText("Cermin di hasil foto");
   await expect(saveBar.getByRole("button", { name: "Simpan & Mulai Ulang" })).toBeEnabled();
@@ -137,7 +138,7 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   // Batal di bar simpan = kembali ke setelan tersimpan.
   await saveBar.getByRole("button", { name: "Batal" }).click();
   await expect(saveBar).toHaveCount(0);
-  await expect(mirrorPhoto).toHaveAttribute("aria-pressed", "false");
+  await expect(mirrorPhoto).toHaveAttribute("aria-pressed", "true");
 
   // Pengaturan event di booth (DECISIONS #100), langsung di halaman Event & Desain: override lokal, kembalikan.
   await w.getByTestId("crew-nav-event").click();
