@@ -56,6 +56,13 @@ test("canon (EDSDK palsu): live view dari Camera Service, 3 jepretan sampai laya
     const vw = await w.evaluate(() => window.innerWidth);
     expect(box && box.x > vw * 0.75 && box.y < 120).toBe(true);
     await w.screenshot({ path: "test-results/canon-liveview.png" });
+    // #269: live view tetap mengalir di foto 2 & 3 (dulu loop frame berhenti setelah jepret pertama → beku).
+    const frames = () => w.getByTestId("liveview").evaluate((c) => Number(c.dataset.frames ?? 0));
+    for (const n of [2, 3]) {
+      await expect(w.getByText(`Foto ${n} dari 3`)).toBeVisible({ timeout: 30_000 });
+      const before = await frames();
+      await expect.poll(frames, { timeout: 5000 }).toBeGreaterThan(before + 5);
+    }
     await expect(w.getByRole("heading", { name: "Cek fotonya dulu" })).toBeVisible({
       timeout: 30_000,
     });
