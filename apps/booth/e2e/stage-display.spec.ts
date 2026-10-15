@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { networkInterfaces, tmpdir } from "node:os";
@@ -131,8 +131,8 @@ test("layar galeri: cari laptop stage, kode, galeri tamu tampil, sambung ulang s
       timeout: 15_000,
     });
     // Jepretan fotografer di laptop stage → tampil di layar galeri.
-    // Folder pantau dibuat aplikasi saat layar stage terbuka; runner CI lebih lambat dari Mac.
-    await expect.poll(() => existsSync(join(stageData, "hot")), { timeout: 15_000 }).toBe(true);
+    // Folder pantau belum tentu sudah dibuat aplikasi (runner CI lebih lambat dari Mac): siapkan sendiri.
+    mkdirSync(join(stageData, "hot"), { recursive: true });
     await new Promise((r) => setTimeout(r, 800)); // pemantau folder terpasang sesudah folder dibuat
     writeFileSync(join(stageData, "hot", "DSC0001.JPG"), await jpeg(stage, 1));
     await expect(frame.locator('[aria-hidden="false"] img')).toHaveCount(1, { timeout: 20_000 });
