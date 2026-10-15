@@ -519,16 +519,27 @@ public sealed class SonyCamera : ICameraSource, IDisposable
     private enum How { ReadOnly, Absolute, Step }
 
     /// <summary>
-    /// GetSet = 1 → SDIO_SetExtDevicePropValue nilai absolut (v3, juga WB di v2). Hanya-baca tapi bodi punya kontrol
-    /// berkode sama → langkah notch lewat SDIO_ControlDevice (v2: ISO/shutter/F/EV). Selain itu diatur di kamera.
+    /// GetSet = 1 → SDIO_SetExtDevicePropValue nilai absolut (v3, juga WB di v2). Hanya-baca tapi bisa dilangkah →
+    /// notch lewat SDIO_ControlDevice dengan kode properti itu sendiri. A7 III (lapangan 15 Okt) tidak mencantumkan
+    /// ISO/shutter/F di daftar kontrolnya, tapi langkah 0x9207 ±1 terbukti mengubah ketiganya. Selain itu diatur di kamera.
     /// </summary>
     private How HowToSet(SonyProp p) =>
         p.Enabled != 0x01 ? How.ReadOnly
         : p.Settable ? How.Absolute
-        : _session?.Ext.Controls.Contains(p.Code) == true ? How.Step
+        : _session?.Ext.Controls.Contains(p.Code) == true || SonyProps.Steppable(p.Code) ? How.Step
         : How.ReadOnly;
 
-    private static long[] Options(SonyProp p) => p.SetValues.Length > 0 ? p.SetValues : p.GetSetValues;
+    /// <summary>Pilihan dari kamera; shutter/aperture v2 tanpa daftar enum memakai tabel 1/3 stop standar.</summary>
+    private static long[] Options(SonyProp p) =>
+        p.Code == SonyProps.Iso ? [.. RawOptions(p).Where(v => v >> 24 == 0)] // tanpa varian Multi Frame NR (89 → ±40)
+        : RawOptions(p);
+
+    private static long[] RawOptions(SonyProp p) =>
+        p.SetValues.Length > 0 ? p.SetValues
+        : p.GetSetValues.Length > 0 ? p.GetSetValues
+        : p.Code == SonyProps.Shutter ? SonyProps.ShutterSteps
+        : p.Code == SonyProps.FNumber ? SonyProps.ApertureSteps
+        : [];
 
     /// <summary>Pasang satu setelan (thread kamera), lalu tunggu dataset menunjukkan nilai baru.</summary>
     private void ApplyProp(string name, string value)

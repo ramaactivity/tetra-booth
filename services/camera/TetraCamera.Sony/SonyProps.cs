@@ -34,6 +34,27 @@ public static class SonyProps
         new("exposurecomp", "Kompensasi eksposur", ExposureComp, EvLabel),
     ];
 
+    /// <summary>
+    /// v2 (A7 III) tidak mengirim daftar enum shutter & aperture (pilihan 0, lapangan 15 Okt), padahal bisa diubah per
+    /// langkah. Tabel 1/3 stop standar, urut arah langkah +1 kamera (shutter makin cepat, angka F makin besar).
+    /// Shutter = pembilang (2 byte atas) / penyebut (2 byte bawah) seperti nilai kamera: 1/200 = 0x000100C8, 30" = 300/10.
+    /// </summary>
+    public static readonly long[] ShutterSteps =
+    [
+        .. new[] { 300, 250, 200, 150, 130, 100, 80, 60, 50, 40, 32, 25, 20, 16, 13, 10, 8, 6, 5, 4 }
+            .Select(t => ((long)t << 16) | 10),
+        .. new[] { 3, 4, 5, 6, 8, 10, 13, 15, 20, 25, 30, 40, 50, 60, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800,
+                   1000, 1250, 1600, 2000, 2500, 3200, 4000, 5000, 6400, 8000 }
+            .Select(d => (1L << 16) | (uint)d),
+    ];
+
+    /// <summary>Angka F ×100, 1/3 stop (lensa membatasi; nilai di luar jangkauan lensa tidak berubah saat dilangkah).</summary>
+    public static readonly long[] ApertureSteps =
+        [140, 160, 180, 200, 220, 250, 280, 320, 350, 400, 450, 500, 560, 630, 710, 800, 900, 1000, 1100, 1300, 1400, 1600, 1800, 2000, 2200];
+
+    /// <summary>Setelan yang bisa dilangkah ±n lewat SDIO_ControlDevice dengan kode properti itu sendiri (v2, uji A7 III).</summary>
+    public static bool Steppable(ushort code) => code is Iso or Shutter or FNumber or ExposureComp;
+
     public static string IsoLabel(long v) => v switch
     {
         0x00FFFFFF => "ISO Auto",

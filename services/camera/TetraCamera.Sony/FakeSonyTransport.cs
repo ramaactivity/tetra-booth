@@ -182,8 +182,9 @@ public sealed class FakeSonyTransport : IPtpTransport
         }
         ushort[] controls = _v3
             ? [S1, S2, NearFar, AfAreaPosition, 0xD2E6]
-            // v2: ISO/shutter/F/EV hanya bisa diubah lewat kontrol langkah berkode sama dengan propertinya.
-            : [S1, S2, 0xD2C7, FNumber, ExposureComp, Shutter, Iso];
+            // v2: daftar kontrol A7 III asli (fw 4.0, 15 Okt) hanya tombol; ISO/shutter/F/EV tetap bisa dilangkah
+            // lewat SDIO_ControlDevice dengan kode propertinya walau tidak tercantum di sini.
+            : [S1, S2, 0xD2C3, 0xD2C9, 0xD2C8, 0xD2C5, 0xD2C7, 0xD2CB, 0xD2CC, 0xD2CD, 0xD2CE, 0xD2CF, 0xD2D0, 0xD2D2, 0xD2D3, 0xD2D4, NearFar];
         return Ok(new PtpWriter().U16(_version)
             .U16Array([.. _props.Keys])
             .U16Array(controls).ToArray());

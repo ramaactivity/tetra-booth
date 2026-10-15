@@ -356,9 +356,9 @@ public class SonyCameraTests
         using var cam = await Make(t);
         Assert.True(await cam.FocusAsync("af"));
         lock (t.Controls) Assert.Equal([(S1, Down), (S1, Up)], t.Controls.Select(c => (c.Code, c.Value)));
-        // A7 III (fake): tanpa kontrol Near/Far → tidak didukung; A7 IV: langkah −1.
-        Assert.Equal(body == "A7IV", await cam.FocusAsync("near1"));
-        if (body == "A7IV") lock (t.Controls) Assert.Contains((NearFar, -1L), t.Controls);
+        // Kedua bodi punya kontrol Near/Far (A7 III asli mencantumkan 0xD2D1, lapangan 15 Okt): langkah −1.
+        Assert.True(await cam.FocusAsync("near1"));
+        lock (t.Controls) Assert.Contains((NearFar, -1L), t.Controls);
         await Assert.ThrowsAsync<CameraFailure>(() => cam.FocusAsync("zoom"));
     }
 
