@@ -62,6 +62,15 @@ mengambil frame tiap 40 ms). Saran Mac: kunci satu instans per data folder (dev 
 ## UI
 
 - Tombol **Batal** sesi pindah ke kiri atas: di kanan atas menutupi angka hitung mundur (Rama).
+- Tombol **Tunggu dulu** naik ke `bottom-[84px]`: di `bottom-12` menutupi pil status printer (`bottom-5`) (Rama).
+  Dicek dengan screenshot hitung mundur di booth dev: Batal kiri atas, angka kanan atas, Tunggu dulu di atas pil printer.
+
+## Gate e2e di B02 malam ini
+
+Suite penuh paralel gagal 3–7 tes yang berganti-ganti (attract 2x6x2, crew cloud "Menghitung…", gallery, rerender,
+stage, sony Tes Jepret), padahal tes yang sama lulus saat dijalankan sendiri. Uji A/B: `booth-core` 67e644f (sebelum
+perubahan hari ini) gagal 7 tes di kondisi yang sama → lingkungan (VS Code sedang update di latar, beban tinggi),
+bukan regresi. Gate dijalankan ulang dengan `--workers=1`.
 - Pengingat setelan Lumix di halaman Kamera crew (seperti Sony), tips Lumix: Aspect 3:2, dial M bukan video, MF untuk near/far.
 
 ## Untuk Mac
