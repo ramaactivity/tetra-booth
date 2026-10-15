@@ -11,9 +11,12 @@ const t = copy.cancel;
  */
 export function CancelButton({
   disabled = false,
+  right = false,
   onClick,
 }: {
   disabled?: boolean;
+  /** Cek foto / filter: kiri atas dipakai logo tetra, kanan atas kosong (#283). */
+  right?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -21,7 +24,7 @@ export function CancelButton({
       variant="plain"
       disabled={disabled}
       // Kiri atas: kanan atas dipakai angka hitung mundur (tertutup, Rama 15 Okt) dan hotspot crew.
-      className="absolute top-10 left-10 z-20 h-[72px] rounded-[20px] bg-white/85! px-6 text-[24px]"
+      className={`absolute top-10 z-20 h-[72px] rounded-[20px] bg-white/85! px-6 text-[24px] ${right ? "right-[120px]" : "left-10"}`}
       onClick={onClick}
     >
       <X size={24} strokeWidth={2.5} />

@@ -518,7 +518,11 @@ export function SessionRunner({
       )}
       {/* Batal sesi (Rama 14 Okt): mode event; saat kamera memotret tombol terlihat tapi nonaktif. */}
       {!demo && !s.photobox && (canCancel(s) || s.phase === "capture") && !asking && (
-        <CancelButton disabled={s.phase === "capture"} onClick={askCancel} />
+        <CancelButton
+          disabled={s.phase === "capture"}
+          right={s.phase === "review" || s.phase === "filter"}
+          onClick={askCancel}
+        />
       )}
       {asking && (
         <CancelConfirm

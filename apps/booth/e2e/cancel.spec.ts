@@ -34,8 +34,24 @@ test("batal sesi lewat konfirmasi, hitung mundur tertahan; perbesar foto di cek 
     };
     await start();
 
+    // Posisi (#283): hitung mundur = kiri atas, tidak menutupi angka hitung mundur di kanan atas.
+    const cancel = w.getByRole("button", { name: "Batal", exact: true });
+    const overlap = (
+      a: { x: number; y: number; width: number; height: number } | null,
+      b: { x: number; y: number; width: number; height: number } | null,
+    ) =>
+      !!a &&
+      !!b &&
+      a.x < b.x + b.width &&
+      b.x < a.x + a.width &&
+      a.y < b.y + b.height &&
+      b.y < a.y + a.height;
+    const vw = await w.evaluate(() => window.innerWidth);
+    const cdBox = await cancel.boundingBox();
+    expect((cdBox?.x ?? vw) < vw / 2).toBe(true);
+    expect(overlap(cdBox, await w.getByTestId("countdown-number").boundingBox())).toBe(false);
     // Batal → konfirmasi; hitung mundur (5 dtk) tertahan selama konfirmasi terbuka.
-    await w.getByRole("button", { name: "Batal", exact: true }).click();
+    await cancel.click();
     await expect(w.getByText("Batalkan sesi foto?")).toBeVisible();
     await w.screenshot({ path: "test-results/cancel-confirm.png" });
     await w.waitForTimeout(7000);
@@ -48,6 +64,13 @@ test("batal sesi lewat konfirmasi, hitung mundur tertahan; perbesar foto di cek 
     await expect(w.getByRole("heading", { name: "Cek fotonya dulu" })).toBeVisible({
       timeout: 60_000,
     });
+    // Cek foto: kiri atas = logo tetra → Batal di kanan atas, tidak menutupi logo/judul.
+    await w.waitForTimeout(400); // animasi masuk layar
+    const rvBox = await cancel.boundingBox();
+    expect((rvBox?.x ?? 0) > vw / 2).toBe(true);
+    expect(
+      overlap(rvBox, await w.getByRole("heading", { name: "Cek fotonya dulu" }).boundingBox()),
+    ).toBe(false);
     await w.screenshot({ path: "test-results/cancel-review.png" });
     await w.getByRole("button", { name: "Perbesar foto 1" }).click();
     await expect(w.getByRole("button", { name: "Kembali ke cek foto" })).toBeVisible();
