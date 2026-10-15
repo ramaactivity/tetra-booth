@@ -179,7 +179,14 @@ public sealed class SonyCamera : ICameraSource, IDisposable
     /// </summary>
     private void Prepare(SonySession s)
     {
+        // Dataset pertama tepat setelah sambung belum lengkap di A7 III (lapangan 15 Okt): ISO terbaca 0 dan
+        // shutter/F belum aktif, sehingga setelan tersimpan ditolak "hanya bisa diubah di kamera". Tunggu sampai siap.
         var st = Poll();
+        for (var i = 0; i < ReadyTries && !DatasetReady(st); i++)
+        {
+            Thread.Sleep(100);
+            st = Poll();
+        }
         foreach (var (code, value) in new[] { (PositionKey, 0x01L), (LiveViewQuality, 0x02L) })
         {
             if (st.Props.TryGetValue(code, out var p) && p.Settable && p.Current != value)
@@ -199,6 +206,14 @@ public sealed class SonyCamera : ICameraSource, IDisposable
             }
         }
     }
+
+    /// <summary>Batas tunggu dataset lengkap setelah sambung (×100 ms).</summary>
+    private const int ReadyTries = 30;
+
+    /// <summary>ISO sudah terbaca (bukan 0) dan setelan eksposur yang ada sudah aktif = kamera siap diberi setelan.</summary>
+    private static bool DatasetReady(PropSet st) =>
+        Value(st, Iso) is { } iso && iso != 0
+        && new[] { Shutter, FNumber }.All(c => !st.Props.TryGetValue(c, out var p) || p.Enabled == 0x01);
 
     /// <summary>Panggilan transport gagal (perangkat hilang): tutup, loop menyambung ulang.</summary>
     private void Drop(Exception e)
@@ -354,7 +369,9 @@ public sealed class SonyCamera : ICameraSource, IDisposable
             if (files > 0) break;
             if (DateTime.UtcNow > deadline)
                 throw new CameraFailure("capture_timeout",
-                    "kamera Sony tidak mengirim foto. Cek Still Img. Save Dest. = PC Only / PC+Camera, lensa terpasang, dan fokus.");
+                    (Value(st, SaveDestination) ?? SaveToPc) is var dest && (dest & SaveToCard) != 0
+                        ? "Kamera Sony tidak memotret. Simpan foto ke PC + kartu: pastikan kartu memori terpasang dan tidak penuh, atau ubah Still Img. Save Dest. ke PC Only."
+                        : "Kamera Sony tidak mengirim foto. Cek lensa terpasang dan fokus, lalu coba lagi.");
             Thread.Sleep(50);
         }
         Console.WriteLine($"[sony] jepret → file {(DateTime.UtcNow - t0).TotalMilliseconds:0} ms");

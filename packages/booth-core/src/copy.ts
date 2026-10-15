@@ -755,9 +755,13 @@ export const copy = {
     roles: { booth: "Photobooth", stage: "Photo Stage", print: "Print Station" },
     /** Hapus isinya (jadikan "") setelah W-038…W-041 lulus dengan kamera Sony asli (#171). */
     sonyUntested: "Belum diuji dengan kamera asli" as string,
+    sonyRemindTitle: "Pengingat setelan kamera Sony",
+    sonyRemindHint:
+      "Cek di menu kamera sebelum acara. Kalau salah satu tidak sesuai, rana bisa tidak mau jepret.",
     sonyTips: [
       "Menu kamera: USB Connection = PC Remote (A7 IV ke atas: PC Remote Function = On, sambungan USB).",
-      "Still Img. Save Dest. = PC Only, format file JPEG (RAW+J PC Save Img = JPEG Only), ukuran L.",
+      "Still Img. Save Dest. = PC Only. Kalau PC+Camera: kartu memori wajib terpasang dan tidak penuh (A7 III tidak memberi tahu booth kalau kartu penuh).",
+      "Format file JPEG (RAW+J PC Save Img = JPEG Only), ukuran L.",
       "Putar dial ke M. Power Save Start Time 30 menit, USB Power Supply On atau baterai dummy.",
       "Kabel USB langsung ke laptop, bukan hub. Tutup Imaging Edge sebelum booth dibuka.",
       "Tap to focus hanya A7 IV ke atas (Focus Area: Spot / Expand Flexible Spot).",
