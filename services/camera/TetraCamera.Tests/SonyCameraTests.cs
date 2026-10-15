@@ -148,7 +148,12 @@ public class SonyCameraTests
         using var cam = await Make(t, captureTimeout: TimeSpan.FromMilliseconds(300));
         var e = await Assert.ThrowsAsync<CameraFailure>(() => cam.CaptureAsync(Dir(), 0));
         Assert.Equal("capture_timeout", e.Code);
-        Assert.Contains("PC Only", e.Message);
+        Assert.Contains("lensa", e.Message); // simpan ke PC saja: bukan soal kartu
+        // Simpan ke PC + kartu (A7 III tidak melapor kartu penuh, uji 15 Okt): pesan menyebut kartu & PC Only.
+        t.SetStatus(SaveDestination, SaveToBoth);
+        var e2 = await Assert.ThrowsAsync<CameraFailure>(() => cam.CaptureAsync(Dir(), 1));
+        Assert.Contains("kartu memori", e2.Message);
+        Assert.Contains("PC Only", e2.Message);
         // S1 tetap dilepas (urutan Sony), kamera tetap tersambung.
         lock (t.Controls) Assert.Equal((S1, (long)Up), t.Controls.Last(c => c.Code == S1));
         Assert.True(cam.Connected);

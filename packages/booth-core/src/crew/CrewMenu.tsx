@@ -880,6 +880,21 @@ export function CrewMenu({
             {c.openCameraCheck}
           </Button>
         </StatusStrip>
+        {savedCamera === "sony" && (
+          // Uji A7 III 15 Okt: rana diam saat Save Dest. PC+Camera tanpa kartu / kartu penuh, tanpa pesan dari kamera.
+          <section
+            data-testid="sony-reminder"
+            className="flex flex-col gap-3 rounded-[22px] border-[2.5px] border-ink bg-peach px-7 py-5"
+          >
+            <h2 className="text-2xl font-extrabold">{c.sonyRemindTitle}</h2>
+            <p className="text-lg font-medium">{c.sonyRemindHint}</p>
+            <ul className="flex list-disc flex-col gap-1.5 pl-6 text-lg">
+              {c.sonyTips.map((t) => (
+                <li key={t}>{t}</li>
+              ))}
+            </ul>
+          </section>
+        )}
         <div className="grid grid-cols-[1.1fr_1fr] items-start gap-6 portrait:grid-cols-1">
           <div className="flex min-w-0 flex-col gap-6">
             <CameraChoice dev={dev} />
