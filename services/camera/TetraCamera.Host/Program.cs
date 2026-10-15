@@ -18,7 +18,7 @@ string? canon = null, canonSettings = null;
 // `--sony-probe <wpd|fake|fake-v3>` = diagnostik W-037 lalu keluar; `--sony-force 2|3` memaksa versi protokol;
 // `--sony-settings <file>` = setelan crew yang dipasang ulang tiap sambung (#113, #171).
 string? sony = null, sonyProbe = null, sonyForce = null, sonySettings = null;
-bool sonyShoot = false, sonySet = false; // --sony-shoot: diagnostik jepret di --sony-probe (lapangan 15 Okt)
+bool sonyShoot = false, sonySet = false, lumixShoot = false; // --sony-shoot: diagnostik jepret di --sony-probe (lapangan 15 Okt)
 // Panasonic Lumix (DECISIONS #214): folder berisi Lmxptpif.dll, atau "fake" (kamera simulasi untuk dev/e2e).
 // `--lumix-probe <folder|fake>` = diagnostik W-043 (jepret satu ke folder kerja) lalu keluar.
 string? lumix = null, lumixProbe = null, lumixSettings = null;
@@ -53,6 +53,7 @@ for (var i = 0; i + 1 < args.Length; i++)
         case "--sony-settings": sonySettings = Path.GetFullPath(args[i + 1]); break;
         case "--lumix": lumix = args[i + 1]; break;
         case "--lumix-probe": lumixProbe = args[i + 1]; break;
+        case "--lumix-shoot": lumixShoot = true; break;
         case "--lumix-settings": lumixSettings = Path.GetFullPath(args[i + 1]); break;
         case "--nikon": nikon = args[i + 1]; break;
         case "--nikon-probe": nikonProbe = args[i + 1]; break;
@@ -72,6 +73,7 @@ if (lumixProbe is not null)
 {
     try
     {
+        if (lumixShoot) return TetraCamera.Lumix.LumixShootProbe.Run(Path.GetFullPath(lumixProbe), Console.Out);
         using var d = LumixDriver(lumixProbe);
         return TetraCamera.Canon.DriverProbe.Run(d, TetraCamera.Lumix.LumixProps.All, Console.Out, Path.GetFullPath("lumix-probe.jpg"));
     }

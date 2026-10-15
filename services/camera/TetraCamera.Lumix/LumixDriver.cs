@@ -51,8 +51,11 @@ public sealed class LumixDriver : ICanonDriver
 
     public bool IsOpen => _open;
 
+    private uint _lastErr;
+
     private void Check(byte ok, uint err, string what)
     {
+        _lastErr = err;
         if (ok == 1) return;
         if (Lost(err)) Interlocked.Increment(ref _lost);
         throw new CameraFailure("lumix_error", $"Lumix {what} gagal: 0x{err:X8}");
@@ -149,20 +152,30 @@ public sealed class LumixDriver : ICanonDriver
             }
             _shots.Enqueue(bytes);
         }
-        catch (Exception e) { Console.Error.WriteLine($"[lumix] foto gagal diunduh: {e.Message}"); }
+        catch (Exception e) { Console.Error.WriteLine($"[lumix] foto gagal diunduh: {e.Message} (event 0x{type:X8}, objek 0x{param:X8})"); }
         return 0;
     }
 
     public byte[] Capture(TimeSpan timeout)
     {
         _shots.Clear();
-        Control(LMX_func_api_Rec_Ctrl_Release, TagReleaseOneShot, null, "jepret");
         var deadline = DateTime.UtcNow + timeout;
+        // GH5 (15 Okt): rana ditolak tanpa kode error (0) selama foto sebelumnya masih ditulis (~1,5 dtk): coba ulang.
+        for (var busyUntil = DateTime.UtcNow.AddSeconds(4); ; Thread.Sleep(100))
+        {
+            try
+            {
+                Control(LMX_func_api_Rec_Ctrl_Release, TagReleaseOneShot, null, "jepret");
+                break;
+            }
+            catch (CameraFailure) when (_lastErr == 0 && DateTime.UtcNow < busyUntil) { }
+        }
         while (true)
         {
             if (_shots.TryDequeue(out var jpeg)) return jpeg;
             if (!_open) throw new CameraFailure("camera_disconnected", "kamera terputus saat jepret");
-            if (DateTime.UtcNow > deadline) throw new CameraFailure("capture_timeout", "kamera tidak mengirim foto");
+            if (DateTime.UtcNow > deadline) throw new CameraFailure("capture_timeout",
+                "Kamera Lumix tidak mengirim foto. Putar dial ke M (bukan mode video), kualitas JPEG, lalu coba lagi.");
             Thread.Sleep(20);
         }
     }
@@ -217,7 +230,12 @@ public sealed class LumixDriver : ICanonDriver
             return;
         }
         if (!Steps.TryGetValue(step, out var s)) throw new CameraFailure("bad_focus", $"langkah fokus '{step}' tidak dikenal");
-        Control(LMX_func_api_Rec_Ctrl_Lens, TagLensMfBar, s.Dir, "fokus manual");
+        try { Control(LMX_func_api_Rec_Ctrl_Lens, TagLensMfBar, s.Dir, "fokus manual"); }
+        catch (CameraFailure) when (_lastErr == 0)
+        {
+            // GH5 (15 Okt, W-043): MF_BAR ditolak tanpa kode di AFS/AFC, berhasil di MF.
+            throw new CameraFailure("focus_unavailable", "geser fokus hanya di mode MF: putar tuas fokus kamera ke MF, atau pakai AF");
+        }
         Thread.Sleep(s.Ms);
         Control(LMX_func_api_Rec_Ctrl_Lens, TagLensMfBar, MfStop, "fokus manual");
     }
@@ -258,7 +276,16 @@ public sealed class LumixDriver : ICanonDriver
         };
         Array.Clear(_capa);
         Check(f(_capa, out var err), err, "pilihan setelan");
-        return Lmx.Enum(_capa, at, wide);
+        var list = Lmx.Enum(_capa, at, wide);
+        // GH5 (15 Okt): EV dikirim sebagai rentang (u16 min @2, max @4, 1/3 stop; negatif = 0x8000 | n), daftarnya kosong.
+        if (list.Length == 0 && propId == LumixProps.Exposure)
+        {
+            int Ev(int i) => BitConverter.ToUInt16(_capa, i) is var v && (v & 0x8000) != 0 ? -(v & 0x7FFF) : v;
+            var (min, max) = (Ev(2), Ev(4));
+            if (min < max && max - min <= 60)
+                return [.. Enumerable.Range(min, max - min + 1).Select(n => n < 0 ? 0x8000u | (uint)-n : (uint)n)];
+        }
+        return list;
     }
 
     private delegate byte SetFn(uint v, out uint err);
@@ -274,7 +301,13 @@ public sealed class LumixDriver : ICanonDriver
             LumixProps.Exposure => LMX_func_api_Exposure_Set_Param,
             _ => throw new CameraFailure("bad_prop", $"setelan Lumix 0x{propId:X8} tidak dikenal"),
         };
-        Check(f(value, out var err), err, "ubah setelan");
+        if (f(value, out var err) == 1) return;
+        // GH5 (15 Okt): nilai yang tidak berlaku di mode sekarang ditolak tanpa kode (mis. EV di M dengan ISO manual).
+        if (err == 0)
+            throw new CameraFailure("prop_rejected", propId == LumixProps.Exposure
+                ? "kamera menolak EV: di mode M dengan ISO manual EV tidak berlaku, pakai ISO Auto atau ubah ISO/shutter"
+                : "kamera menolak nilai ini di mode sekarang; atur di kamera");
+        Check(0, err, "ubah setelan");
     }
 
     public void Dispose() => Close();

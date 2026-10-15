@@ -39,8 +39,12 @@ public class LumixTests
         Assert.Equal("Cloudy", LumixProps.WbLabel(0x8008));
         // Pilihan umum GH5 punya label (bukan "0x…").
         var shutter = LumixProps.All.First(d => d.PropId == LumixProps.Shutter).Values;
-        foreach (var s in new[] { 1 / 8000.0, 1 / 1300.0, 1 / 125.0, 1 / 60.0, 1 / 13.0, 1.3, 60 })
+        foreach (var s in new[] { 1 / 8000.0, 1 / 1300.0, 1 / 125.0, 1 / 60.0, 1 / 13.0, 1.3, 40, 50, 60 })
             Assert.True(shutter.ContainsKey(LumixProps.ShutterCode(s)), $"{s}");
+        // GH5 asli (W-043, 15 Okt): ISO extended = bit 28 (0x10000064 = L.100), ikut tampil di pilihan.
+        Assert.Equal("ISO L.100", LumixProps.IsoLabel(0x10000064));
+        var iso = LumixProps.All.First(d => d.PropId == LumixProps.Iso).Values;
+        foreach (var v in new uint[] { 0x10000064, 0x1000007D, 0x100000A0 }) Assert.True(iso.ContainsKey(v), $"0x{v:X}");
     }
 
     [Fact]

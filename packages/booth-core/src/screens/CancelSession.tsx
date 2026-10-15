@@ -20,7 +20,8 @@ export function CancelButton({
     <Button
       variant="plain"
       disabled={disabled}
-      className="absolute top-10 right-[120px] z-20 h-[72px] rounded-[20px] bg-white/85! px-6 text-[24px]"
+      // Kiri atas: kanan atas dipakai angka hitung mundur (tertutup, Rama 15 Okt) dan hotspot crew.
+      className="absolute top-10 left-10 z-20 h-[72px] rounded-[20px] bg-white/85! px-6 text-[24px]"
       onClick={onClick}
     >
       <X size={24} strokeWidth={2.5} />

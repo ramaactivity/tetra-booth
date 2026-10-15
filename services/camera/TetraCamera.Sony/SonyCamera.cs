@@ -22,7 +22,7 @@ public sealed class SonyCamera : ICameraSource, IDisposable
     /// <summary>Device_Busy (0x2019) diulang sekian kali × 100 ms sebelum menyerah.</summary>
     private const int BusyTries = 10;
     /// <summary>Setelan baru ditunggu muncul di dataset maks. selama ini (ms).</summary>
-    private const int SettleMs = 1500;
+    private const int SettleMs = 3000; // ZV-E10: ISO ~1 dtk, lebih lama tepat setelah jepret (1500 ms ditolak di lapangan 15 Okt)
     private static readonly HashSet<string> Steps = ["af", "near1", "near2", "near3", "far1", "far2", "far3"];
     /// <summary>Near/Far (INT16 −7…7). Negatif = dekat: diverifikasi di bodi (W-039).</summary>
     private static readonly Dictionary<string, short> NearFarSteps =
@@ -516,6 +516,10 @@ public sealed class SonyCamera : ICameraSource, IDisposable
                     SonyProps.CardProblem(card) is { } bad ? bad.Code == "card_missing" ? "Tidak ada kartu" : "Error / terkunci"
                         : shots is { } n ? $"OK, sisa {n} foto" : "OK", []));
             }
+            // ZV-E10 bawaan 16:9 (15 Okt): frame booth memakai 3:2, jadi beri tahu crew selain 3:2.
+            if (Value(st, AspectRatio) is { } ar and >= 1 and <= 4)
+                list.Add(new CameraProp("aspect", "Rasio foto",
+                    ar == 1 ? "3:2" : $"{(ar == 2 ? "16:9" : ar == 3 ? "4:3" : "1:1")} (ubah ke 3:2 di menu kamera)", []));
             if (Value(st, Overheating) is { } heat and > 0)
                 list.Add(new CameraProp("heat", "Suhu kamera", heat >= 2 ? "Terlalu panas" : "Mulai panas", []));
             return (IReadOnlyList<CameraProp>)list;

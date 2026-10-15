@@ -753,26 +753,27 @@ export const copy = {
     eventSettingsReset: "Pengaturan event kembali ke cloud",
     deviceRole: "Peran laptop",
     roles: { booth: "Photobooth", stage: "Photo Stage", print: "Print Station" },
-    /** Hapus isinya (jadikan "") setelah W-038…W-041 lulus dengan kamera Sony asli (#171). */
-    sonyUntested: "Belum diuji dengan kamera asli" as string,
+    /** Kosong: A7 III (v2) & ZV-E10 (v3) lulus uji kamera asli di B02, 15 Okt (sesi tamu, live view, setelan, cabut-pasang). */
+    sonyUntested: "" as string,
     sonyRemindTitle: "Pengingat setelan kamera Sony",
+    lumixRemindTitle: "Pengingat setelan kamera Lumix",
     sonyRemindHint:
       "Cek di menu kamera sebelum acara. Kalau salah satu tidak sesuai, rana bisa tidak mau jepret.",
     sonyTips: [
-      "Menu kamera: USB Connection = PC Remote (A7 IV ke atas: PC Remote Function = On, sambungan USB).",
+      "Menu kamera: USB Connection = PC Remote. ZV-E10 / A7 IV ke atas: Network → PC Remote Function → PC Remote = On, sambungan USB. Kalau tidak, laptop melihat kamera sebagai flashdisk.",
       "Still Img. Save Dest. = PC Only. Kalau PC+Camera: kartu memori wajib terpasang dan tidak penuh (A7 III tidak memberi tahu booth kalau kartu penuh).",
-      "Format file JPEG (RAW+J PC Save Img = JPEG Only), ukuran L.",
+      "Format file JPEG (RAW+J PC Save Img = JPEG Only), ukuran L, Aspect Ratio 3:2 (16:9 memotong atas-bawah foto di frame).",
       "Putar dial ke M. Power Save Start Time 30 menit, USB Power Supply On atau baterai dummy.",
       "Kabel USB langsung ke laptop, bukan hub. Tutup Imaging Edge sebelum booth dibuka.",
-      "Tap to focus hanya A7 IV ke atas (Focus Area: Spot / Expand Flexible Spot).",
+      "Tap to focus hanya ZV-E10 / A7 IV ke atas (Focus Area: Flexible Spot / Expand Flexible Spot).",
     ],
-    /** Hapus isinya (jadikan "") setelah W-043 lulus dengan GH5 Rama (#214). */
-    lumixUntested: "Belum diuji dengan kamera asli" as string,
+    /** Kosong: GH5 lulus uji kamera asli di B02, 15 Okt (W-043: jepret, live view, AF/MF, setelan, sesi tamu). */
+    lumixUntested: "" as string,
     lumixTips: [
       "Menu kamera: Setup → USB Mode = PC(Tether). Tutup aplikasi LUMIX Tether sebelum booth dibuka.",
-      "Kualitas JPEG Fine (bukan RAW). Foto dikirim ke laptop, kartu memori tidak wajib.",
-      "Putar dial ke M. Setup → Economy → Sleep Mode OFF. Event panjang: baterai dummy + adaptor AC.",
-      "Kabel USB-C langsung ke laptop, bukan hub. Tap to focus tidak ada; pakai tombol AF atau AF sebelum jepret.",
+      "Kualitas JPEG Fine (bukan RAW), Aspect Ratio 3:2. Foto dikirim ke laptop, kartu memori tidak wajib.",
+      "Putar dial ke M (bukan mode video: rana tidak jalan). Setup → Economy → Sleep Mode OFF. Event panjang: baterai dummy + adaptor AC.",
+      "Kabel USB-C langsung ke laptop, bukan hub. Tap to focus tidak ada; pakai tombol AF atau AF sebelum jepret. Geser fokus near/far hanya saat tuas fokus di MF.",
     ],
     /** Hapus isinya (jadikan "") setelah W-044 lulus dengan kamera Nikon asli (#216). */
     nikonUntested: "Belum diuji dengan kamera asli" as string,
@@ -821,7 +822,7 @@ export const copy = {
       choice: {
         canon: { title: "Canon", detail: "DSLR & mirrorless EOS lewat USB" },
         nikon: { title: "Nikon", detail: "D-series & Z lewat USB" },
-        sony: { title: "Sony", detail: "A7 II/III/IV/V, A7C, A6100–A6700" },
+        sony: { title: "Sony", detail: "A7 II/III/IV/V, A7C, ZV-E10, A6100–A6700" },
         lumix: { title: "Lumix", detail: "GH5 lewat USB" },
         webcam: { title: "Webcam", detail: "Kamera USB atau bawaan laptop" },
         simulated: { title: "Latihan tanpa kamera", detail: "Foto contoh, untuk belajar alur" },

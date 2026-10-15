@@ -13,12 +13,15 @@ public static class LumixProps
     public const uint Iso = 0x02000020, Shutter = 0x02000030, Aperture = 0x02000040, WhiteBalance = 0x02000050,
         Exposure = 0x02000060;
 
+    private const uint ExtendedIso = 0x10000000;
+
     private static string Num(double v) => v.ToString("0.#", CultureInfo.InvariantCulture);
 
     public static string IsoLabel(uint v) => v switch
     {
         0xFFFFFFFF => "ISO Auto",
         0xFFFFFFFE => "ISO Intelligent",
+        _ when (v & ExtendedIso) != 0 => $"ISO L.{v & ~ExtendedIso}", // GH5 (15 Okt): L.100/L.125/L.160 = bit 28
         _ => $"ISO {v}",
     };
 
@@ -76,14 +79,15 @@ public static class LumixProps
     // tidak ada di sini tidak tampil di pilihan; tambahkan di sini kalau uji W-043 menemukan "0x…".
     private static readonly uint[] IsoCodes =
     [
-        0xFFFFFFFF, 0xFFFFFFFE, 50, 64, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600, 2000,
+        0xFFFFFFFF, 0xFFFFFFFE, ExtendedIso | 50, ExtendedIso | 64, ExtendedIso | 80, ExtendedIso | 100,
+        ExtendedIso | 125, ExtendedIso | 160, 50, 64, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600, 2000,
         2500, 3200, 4000, 5000, 6400, 8000, 10000, 12800, 16000, 20000, 25600, 32000, 40000, 51200, 64000, 80000, 102400,
         128000, 160000, 204800,
     ];
 
     private static readonly double[] ShutterSeconds =
     [
-        60, 30, 25, 20, 15, 13, 10, 8, 6, 5, 4, 3.2, 2.5, 2, 1.6, 1.3, 1,
+        60, 50, 40, 30, 25, 20, 15, 13, 10, 8, 6, 5, 4, 3.2, 2.5, 2, 1.6, 1.3, 1,
         .. new double[]
         {
             1.3, 1.5, 1.6, 2, 2.5, 3, 3.2, 4, 5, 6, 8, 10, 11, 13, 15, 20, 25, 30, 40, 45, 50, 60, 80, 90, 100, 125, 160,
