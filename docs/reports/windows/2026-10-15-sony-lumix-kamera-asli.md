@@ -125,3 +125,11 @@ FOTO +1243 ms 6737408 byte
 rana dikirim +1277 ms
 FOTO +2344 ms 6740480 byte
 ```
+
+## Tambahan: GH5 cabut-pasang / mati-nyala dengan booth dev berjalan
+
+- Kamera hilang → `kamera tidak merespons … dianggap terputus` → `tersambung: DC-GH5` dalam ±8 s (14:57:10Z → 14:57:19Z). Lulus.
+- Setelah tersambung, setelan tersimpan (ISO 3200, 1/50, f/1.7, Daylight) **ditolak** (err 0): GH5 belum siap tepat
+  setelah menyala/tersambung. Perbaikan di `LumixDriver.SetProp` saja (Canon tidak disentuh): coba ulang tiap 250 ms
+  selama 6 s pertama setelah Open (tenggat bersama, jauh di bawah `StuckAfter` 20 s). **Belum diuji di kamera asli**
+  (GH5 dipakai Rama).
