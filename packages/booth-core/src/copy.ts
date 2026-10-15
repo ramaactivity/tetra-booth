@@ -808,7 +808,7 @@ export const copy = {
     /** Kosong: GH5 lulus uji kamera asli di B02, 15 Okt (W-043: jepret, live view, AF/MF, setelan, sesi tamu). */
     lumixUntested: "" as string,
     lumixTips: [
-      "Menu kamera: Setup → USB Mode = PC(Tether). Tutup aplikasi LUMIX Tether sebelum booth dibuka.",
+      "Menu kamera: Setup → USB Mode = PC(Tether), bukan pilih saat sambung (kalau ditanya tiap menyala, pilih PC(Tether)). Tutup aplikasi LUMIX Tether sebelum booth dibuka.",
       "Kualitas JPEG Fine (bukan RAW), Aspect Ratio 3:2. Foto dikirim ke laptop, kartu memori tidak wajib.",
       "Putar dial ke M (bukan mode video: rana tidak jalan). Setup → Economy → Sleep Mode OFF. Event panjang: baterai dummy + adaptor AC.",
       "Kabel USB-C langsung ke laptop, bukan hub. Tap to focus tidak ada; pakai tombol AF atau AF sebelum jepret. Geser fokus near/far hanya saat tuas fokus di MF.",
