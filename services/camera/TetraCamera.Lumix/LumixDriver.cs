@@ -53,8 +53,9 @@ public sealed class LumixDriver : ICanonDriver
 
     private uint _lastErr;
     private long _openedAt;
-    /// <summary>Batas coba ulang setelan setelah Open, bersama untuk semua setelan (thread kamera tertahan maks. segini).</summary>
-    private const int ReadyMs = 6000;
+    /// <summary>Selama ini setelah Open, setelan dicek & dipasang ulang di Pump sampai kamera memakainya (USB mode GH5).</summary>
+    private const int WakingMs = 120_000;
+    private readonly Dictionary<uint, uint> _pending = [];
 
     private void Check(byte ok, uint err, string what)
     {
@@ -94,6 +95,7 @@ public sealed class LumixDriver : ICanonDriver
             Console.Error.WriteLine($"[lumix] simpan ke PC ditolak (0x{err:X8}), foto diambil dari kartu");
         _lost = 0;
         _openedAt = Environment.TickCount64;
+        _pending.Clear();
         _open = true;
         return (model, "usb");
     }
@@ -126,7 +128,9 @@ public sealed class LumixDriver : ICanonDriver
         {
             Console.WriteLine($"[lumix] kamera tidak menjawab (0x{err:X8}), sesi ditutup");
             Close();
+            return;
         }
+        ApplyPending();
     }
 
     /// <summary>Thread DLL: unduh JPEG jepretan ke antrean, RAW/video dilewati. Tidak boleh melempar ke kode native.</summary>
@@ -294,19 +298,28 @@ public sealed class LumixDriver : ICanonDriver
 
     private delegate byte SetFn(uint v, out uint err);
 
+    private static SetFn Setter(uint propId) => propId switch
+    {
+        LumixProps.Iso => LMX_func_api_ISO_Set_Param,
+        LumixProps.Shutter => LMX_func_api_SS_Set_Param,
+        LumixProps.Aperture => LMX_func_api_Aperture_Set_Param,
+        LumixProps.WhiteBalance => LMX_func_api_WB_Set_Param,
+        LumixProps.Exposure => LMX_func_api_Exposure_Set_Param,
+        _ => throw new CameraFailure("bad_prop", $"setelan Lumix 0x{propId:X8} tidak dikenal"),
+    };
+
     public void SetProp(uint propId, uint value)
     {
-        SetFn f = propId switch
+        var ok = Setter(propId)(value, out var err) == 1;
+        // GH5 (15 Okt): setelah dinyalakan / disambung kamera menanyakan USB mode, dan sampai crew memilih (bisa lama)
+        // setelan ditolak tanpa kode atau "berhasil" tapi tidak terpasang. Selama Waking: catat, Pump memasang ulang.
+        if (Environment.TickCount64 - _openedAt <= WakingMs && (ok || err == 0))
         {
-            LumixProps.Iso => LMX_func_api_ISO_Set_Param,
-            LumixProps.Shutter => LMX_func_api_SS_Set_Param,
-            LumixProps.Aperture => LMX_func_api_Aperture_Set_Param,
-            LumixProps.WhiteBalance => LMX_func_api_WB_Set_Param,
-            LumixProps.Exposure => LMX_func_api_Exposure_Set_Param,
-            _ => throw new CameraFailure("bad_prop", $"setelan Lumix 0x{propId:X8} tidak dikenal"),
-        };
-        if (SetWhenReady(f, value, out var err)) return;
-        // GH5 (15 Okt): nilai yang tidak berlaku di mode sekarang ditolak tanpa kode (mis. EV di M dengan ISO manual).
+            _pending[propId] = value;
+            return;
+        }
+        if (ok) return;
+        // Nilai yang tidak berlaku di mode sekarang ditolak tanpa kode (mis. EV di M dengan ISO manual).
         if (err == 0)
             throw new CameraFailure("prop_rejected", propId == LumixProps.Exposure
                 ? "kamera menolak EV: di mode M dengan ISO manual EV tidak berlaku, pakai ISO Auto atau ubah ISO/shutter"
@@ -314,18 +327,26 @@ public sealed class LumixDriver : ICanonDriver
         Check(0, err, "ubah setelan");
     }
 
-    /// <summary>
-    /// GH5 (15 Okt): tepat setelah tersambung / dinyalakan kamera menolak semua setelan tanpa kode beberapa detik, jadi
-    /// setelan tersimpan tidak terpasang. Dalam <see cref="ReadyMs"/> pertama setelah Open: coba ulang sampai kamera siap.
-    /// </summary>
-    private bool SetWhenReady(SetFn f, uint value, out uint err)
+    /// <summary>Thread SDK, tiap detik selama Waking: setelan yang belum dipakai kamera dipasang lagi.</summary>
+    private void ApplyPending()
     {
-        while (f(value, out err) != 1)
+        if (_pending.Count == 0) return;
+        if (Environment.TickCount64 - _openedAt > WakingMs)
         {
-            if (err != 0 || Environment.TickCount64 - _openedAt > ReadyMs) return false;
-            Thread.Sleep(250);
+            foreach (var p in _pending.Keys)
+                Console.Error.WriteLine($"[lumix] setelan 0x{p:X8} tidak terpasang setelah {WakingMs / 1000} dtk, atur di kamera");
+            _pending.Clear();
+            return;
         }
-        return true;
+        foreach (var (prop, value) in _pending.ToArray())
+        {
+            if (LMX_func_api_ISO_Get_Param(out _, out _) != 1) return; // kamera belum menjawab sama sekali
+            uint now;
+            try { now = GetProp(prop); }
+            catch (CameraFailure) { continue; }
+            if (now == value) _pending.Remove(prop);
+            else Setter(prop)(value, out _);
+        }
     }
 
     public void Dispose() => Close();
