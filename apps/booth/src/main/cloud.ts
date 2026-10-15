@@ -29,6 +29,7 @@ import { config, printerName, SDK_CAMERAS } from "./config";
 import type { BoothDb } from "./db";
 import { createRunQueue } from "./run-queue";
 import { createUploader } from "./upload";
+import { pendingByEvent } from "./upload-report";
 
 /**
  * Koneksi cloud (Fase 2, N2/N3/N5): pairing kode 6 digit → device token, heartbeat tiap 60 s,
@@ -93,6 +94,7 @@ async function statusSnapshot(db: BoothDb, alerts: Alerts): Promise<BoothStatus>
     paper: db.paper(),
     failedPrints: db.failedPrintCount(),
     uploadPending: db.uploadPending(),
+    uploadsByEvent: pendingByEvent(db.uploadSessions()),
     lastError: db.uploadError()?.slice(0, 300) ?? null,
     ...(disk ? { diskFreeGb: Math.round((disk.bavail * disk.bsize) / 1e8) / 10 } : {}),
   };

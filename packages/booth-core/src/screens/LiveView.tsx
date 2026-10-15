@@ -85,6 +85,8 @@ export function LiveView({
         const { source, width, height } = frame;
         setHasFrame(true);
         liveSeen(camera);
+        // Penghitung frame (tanpa render ulang): e2e memastikan live view tidak beku antar foto (#269).
+        canvas.dataset.frames = String(Number(canvas.dataset.frames ?? 0) + 1);
         frameCb.current?.(frame);
         const dpr = window.devicePixelRatio || 1;
         const cw = Math.round(canvas.clientWidth * dpr);
@@ -157,7 +159,7 @@ export function LiveView({
 
   return (
     <>
-      <canvas ref={ref} className="absolute inset-0 h-full w-full bg-ink" />
+      <canvas ref={ref} data-testid="liveview" className="absolute inset-0 h-full w-full bg-ink" />
       {/* Kamera tanpa live view (hot folder): arahkan tamu ke kamera. */}
       {!hasFrame && (
         <p className="absolute bottom-36 left-1/2 -translate-x-1/2 rounded-full border-[2.5px] border-ink bg-white px-8 py-3.5 text-[26px] font-extrabold whitespace-nowrap">

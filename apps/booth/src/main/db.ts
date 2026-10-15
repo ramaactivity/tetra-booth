@@ -34,6 +34,14 @@ create table if not exists print_jobs (
 import type { AssetKindName } from "@tetra/shared";
 
 export type AssetKind = AssetKindName;
+export type UploadSessionRow = {
+  id: string;
+  eventId: string;
+  completedAt: string;
+  files: number;
+  sent: number;
+  error: string | null;
+};
 
 /** Urutan upload TSD §4.2: strip_web & thumb strip → original → sisanya. */
 export const UPLOAD_PRIORITY: Record<AssetKind, number> = {
@@ -122,7 +130,18 @@ export type GallerySession = {
   reprinted: number;
 };
 /** `dismissed` = cetak gagal dihapus crew dari daftar (tidak dicetak ulang, tidak dihitung). */
-export type PrintJobStatus = "queued" | "done" | "failed" | "reprinted" | "dismissed";
+/** `sent` = booth pengirim: lembar sudah diterima laptop printer, hasil cetak menyusul dari sana (#261). */
+export type PrintJobStatus = "queued" | "sent" | "done" | "failed" | "reprinted" | "dismissed";
+/** Satu baris antrean cetak di halaman Printer (printer bersama). `peer` = booth pengirim (di laptop printer). */
+export type PrintQueueRow = {
+  id: string;
+  peer: string | null;
+  copies: number;
+  paper: string;
+  status: PrintJobStatus;
+  error: string | null;
+  created_at: string;
+};
 export type PrintJobInfo = {
   id: string;
   session_id: string;
@@ -159,6 +178,10 @@ export function openDb(file: string) {
   if (!cols.has("group_name")) db.exec("alter table sessions add column group_name text");
   // Photo Stage (#195): idx foto yang disembunyikan (JSON array), dikirim sebagai `hiddenIdx`.
   if (!cols.has("hidden_idx")) db.exec("alter table sessions add column hidden_idx text");
+  const printCols = new Set(
+    (db.prepare("pragma table_info(print_jobs)").all() as { name: string }[]).map((c) => c.name),
+  );
+  if (!printCols.has("peer")) db.exec("alter table print_jobs add column peer text");
   // Sesi yang masih berjalan saat app mati tidak akan pernah selesai.
   const abandoned = db
     .prepare("update sessions set status = 'abandoned' where status = 'in_progress'")
@@ -205,7 +228,7 @@ export function openDb(file: string) {
     "update print_jobs set error = ? where id = ? and status = 'queued'",
   );
   const updatePrint = db.prepare(
-    "update print_jobs set status = ?, error = ? where id = ? and status = 'queued' returning copies",
+    "update print_jobs set status = ?, error = ? where id = ? and status in ('queued', 'sent') returning copies",
   );
   const markReprinted = db.prepare(
     "update print_jobs set status = 'reprinted' where id = ? and status = 'failed'",
@@ -295,6 +318,44 @@ export function openDb(file: string) {
         const p = paper();
         kv.set("paper_remaining", String(Math.max(0, p.remaining - row.copies)));
       }
+    },
+
+    /** Booth pengirim (#261): laptop printer sudah menerima lembar ini; hasil cetak menyusul dari sana. */
+    printSent(id: string) {
+      db.prepare("update print_jobs set status = 'sent' where id = ? and status = 'queued'").run(
+        id,
+      );
+    },
+    /** Laptop printer (#261): catat booth pengirim job `lan-*` untuk daftar antrean. */
+    printPeer(id: string, peer: string) {
+      db.prepare("update print_jobs set peer = ? where id = ?").run(peer, id);
+    },
+    /** Job yang sudah diterima laptop printer tapi hasilnya belum diketahui booth ini. */
+    sentPrints(since: string): string[] {
+      return (
+        db
+          .prepare("select id from print_jobs where status = 'sent' and created_at >= ?")
+          .all(since) as { id: string }[]
+      ).map((r) => r.id);
+    },
+    /** Status & error beberapa job sekaligus (laptop printer menjawab booth pengirim). */
+    printStates(ids: string[]): Record<string, { status: PrintJobStatus; error: string | null }> {
+      const q = db.prepare("select status, error from print_jobs where id = ?");
+      const out: Record<string, { status: PrintJobStatus; error: string | null }> = {};
+      for (const id of ids) {
+        const r = q.get(id) as { status: PrintJobStatus; error: string | null } | undefined;
+        if (r) out[id] = r;
+      }
+      return out;
+    },
+    /** Antrean cetak terbaru (halaman Printer); `lanOnly` = laptop printer, hanya kiriman booth lain. */
+    recentPrints(since: string, lanOnly: boolean, limit = 20): PrintQueueRow[] {
+      return db
+        .prepare(
+          `select id, peer, copies, paper, status, error, created_at from print_jobs
+           where created_at >= ? ${lanOnly ? "and id like 'lan-%'" : ""} order by created_at desc limit ?`,
+        )
+        .all(since, limit) as PrintQueueRow[];
     },
 
     /** Crew mencetak ulang job gagal (job baru dengan id lain). */
@@ -392,6 +453,24 @@ export function openDb(file: string) {
         pendingGroups: rows.length,
         pending: rows.map((r) => r.id).filter((id) => want.has(id)),
       };
+    },
+    /**
+     * Status upload per sesi selesai (#271): jumlah file, yang sudah terunggah, error terakhir di antrean. Hanya
+     * event cloud; terbaru dulu. Dipakai crew (daftar per sesi) & heartbeat (ringkasan per event).
+     */
+    uploadSessions(): UploadSessionRow[] {
+      return (
+        db
+          .prepare(
+            `select s.id, s.event_id eventId, s.completed_at completedAt, count(a.id) files,
+               count(a.uploaded_at) sent, max(q.last_error) error
+             from sessions s join assets a on a.session_id = s.id
+               left join upload_queue q on q.asset_id = a.id
+             where s.completed_at is not null
+             group by s.id order by s.completed_at desc`,
+          )
+          .all() as UploadSessionRow[]
+      ).filter((r) => UUID.test(r.eventId));
     },
     uploadPending(): number {
       return (db.prepare("select count(*) n from upload_queue").get() as { n: number }).n;

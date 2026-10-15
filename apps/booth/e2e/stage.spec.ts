@@ -31,6 +31,7 @@ async function skipSetupFrom(w: import("@playwright/test").Page, from: string) {
   for (const name of steps.slice(steps.indexOf(from)))
     await setup.getByRole("button", { name }).click();
   await setup.getByRole("button", { name: "Pakai untuk semua foto" }).click();
+  await setup.getByRole("button", { name: "Lanjut ke Pemisah" }).click();
   await setup.getByRole("button", { name: "Mulai Photo Stage" }).click();
   await expect(setup).toBeHidden();
 }
@@ -41,6 +42,7 @@ async function skipSetup(w: import("@playwright/test").Page) {
   for (const name of ["Lanjut ke Kamera", "Lanjut ke TV", "Lanjut ke Warna"])
     await setup.getByRole("button", { name }).click();
   await setup.getByRole("button", { name: "Pakai untuk semua foto" }).click();
+  await setup.getByRole("button", { name: "Lanjut ke Pemisah" }).click();
   await setup.getByRole("button", { name: "Mulai Photo Stage" }).click();
   await expect(setup).toBeHidden();
 }
@@ -101,8 +103,27 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   await setup.getByRole("button", { name: "Lanjut ke TV" }).click();
   await setup.getByRole("button", { name: "Tampilkan uji di TV" }).click();
   await expect(tvWin.getByText("Uji tampilan TV")).toBeVisible();
+  // Mode layar (#274): Perluas/Duplikat/Hanya laptop/Hanya TV + Pengaturan layar OS.
+  await expect(setup.getByTestId("stage-display").getByRole("button")).toHaveCount(5);
+  await w.screenshot({ path: "test-results/stage-setup-3.png" });
   await setup.getByRole("button", { name: "Lanjut ke Warna" }).click();
   await setup.getByRole("button", { name: "Pakai untuk semua foto" }).click();
+  // Langkah Cetak (#274): desain cetak + printer + tes cetak foto tes (file `out/test_*`).
+  await expect(setup.getByTestId("stage-printer")).toBeVisible();
+  await setup.getByRole("button", { name: /Foto penuh/ }).click();
+  await setup.getByRole("button", { name: /Otomatis/ }).click();
+  await setup.getByRole("button", { name: "Tes cetak foto tes" }).click();
+  // Mac tanpa adapter printer = Gagal; yang diuji: lembar tes tersusun di folder sesi sendiri.
+  await expect(setup.getByRole("button", { name: /Terkirim ke printer|Gagal/ })).toBeVisible({
+    timeout: 15_000,
+  });
+  expect(
+    readdirSync(join(data, "sessions"), { recursive: true })
+      .map(String)
+      .filter((f) => /out[/\\]test_\w+\.jpg$/.test(f)),
+  ).toHaveLength(1);
+  await w.screenshot({ path: "test-results/stage-setup-cetak.png" });
+  await setup.getByRole("button", { name: "Lanjut ke Pemisah" }).click();
   await w.screenshot({ path: "test-results/stage-setup-5.png" });
   await setup.getByRole("button", { name: "Mulai Photo Stage" }).click();
   await expect(setup).toBeHidden();
@@ -119,8 +140,14 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   // Rombongan baru (Enter), nama diisi sebelum foto masuk.
   await w.keyboard.press("Enter");
   await expect(w.locator("section").getByText("#2", { exact: true })).toBeVisible();
-  await w.getByLabel("Nama grup (boleh kosong)", { exact: true }).fill("Keluarga Besar Bpk. Hadi");
+  // N = fokus isian nama tanpa mouse (kursor bisa dicuri sentuhan di monitor TV), Enter simpan (blur).
+  const nameInput = w.getByLabel("Nama grup (boleh kosong)", { exact: true });
+  await w.keyboard.press("n");
+  await expect(nameInput).toBeFocused();
+  await w.keyboard.type("Keluarga Besar Bpk. Hadi");
   await w.keyboard.press("Enter"); // simpan nama (blur), bukan rombongan baru
+  await expect(nameInput).not.toBeFocused();
+  await expect(nameInput).toHaveValue("Keluarga Besar Bpk. Hadi");
   await expect(w.locator("section").getByText("#2", { exact: true })).toBeVisible();
   writeFileSync(join(hot, "DSC0003.JPG"), await jpeg(3));
   await expect(w.locator("section img")).toHaveCount(1, { timeout: 10_000 });
@@ -180,11 +207,17 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
   await expect(find.getByRole("button", { name: "Semua rombongan" })).toBeVisible();
   await expect(find.getByRole("img", { name: /\/s\// })).toBeVisible();
   await tvWin.screenshot({ path: "test-results/stage-tv-find.png" });
+  // Perbesar foto (#276): ketuk foto → layar penuh → ketuk = kembali.
+  await find.getByTestId("stage-tv-photo").first().click();
+  await expect(tvWin.getByTestId("stage-tv-zoom").locator("img")).toBeVisible();
+  await tvWin.screenshot({ path: "test-results/stage-tv-zoom.png" });
+  await tvWin.getByTestId("stage-tv-zoom").click();
+  await expect(tvWin.getByTestId("stage-tv-zoom")).toHaveCount(0);
   await tvWin.getByRole("button", { name: "Tutup" }).click();
   await expect(tvWin.getByRole("heading", { name: "Cari fotomu" })).toHaveCount(0);
 
   // Cetak instan 4R (#183): foto landscape → lembar 4R lewat antrean print booth.
-  await w.locator("section").getByRole("button", { name: "Cetak 4R" }).click();
+  await w.locator("section").getByRole("button", { name: "Cetak" }).click();
   await expect(w.locator("section").getByRole("button", { name: /Dicetak|Gagal/ })).toBeVisible({
     timeout: 15_000,
   });
@@ -371,5 +404,19 @@ test("stage: jepret dari laptop dengan Canon (#201)", async () => {
   await expect(w.locator("section img")).toHaveCount(1, { timeout: 15_000 });
   await w.keyboard.press("j");
   await expect(w.locator("section img")).toHaveCount(2, { timeout: 15_000 });
+  // Hitung mundur (#275): Instan → 3 dtk; Esc membatalkan, hitungan selesai = jepret.
+  await w.getByTestId("stage-countdown").click();
+  await expect(w.getByTestId("stage-countdown")).toHaveText("⏱ 3 dtk");
+  await w.keyboard.press("j");
+  await expect(w.getByTestId("stage-count")).toContainText("3");
+  await w.keyboard.press("Escape");
+  await expect(w.getByTestId("stage-count")).toBeHidden();
+  await w.waitForTimeout(3500);
+  await expect(w.locator("section img")).toHaveCount(2);
+  await w.getByRole("button", { name: /^Jepret/ }).click();
+  await expect(w.getByTestId("stage-count")).toContainText("3");
+  await w.screenshot({ path: "test-results/stage-countdown.png" });
+  await expect(w.getByTestId("stage-count")).toBeHidden({ timeout: 5_000 });
+  await expect(w.locator("section img")).toHaveCount(3, { timeout: 15_000 });
   await app.close();
 });

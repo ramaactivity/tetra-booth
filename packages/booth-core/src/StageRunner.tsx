@@ -2,6 +2,7 @@ import {
   DEFAULT_STAGE_PRESET,
   newSessionId,
   PHOTO_FILTERS,
+  printPaper,
   STAGE_GAP,
   STAGE_MAX_SHOTS,
   type StagePreset,
@@ -18,7 +19,7 @@ import type { BoothEvent } from "./event";
 import { ORIGINAL_LONG_SIDE, THUMB_LONG_SIDE } from "./finalize";
 import { lutKey, parseCube, storedLut } from "./lut";
 import { usePlatform } from "./PlatformContext";
-import type { SessionAsset, StageRemote, StageStatus } from "./platform";
+import type { PrinterAlert, SessionAsset, StageRemote, StageStatus } from "./platform";
 import { toneForPrint } from "./printTone";
 import { StageColor } from "./StageColor";
 import { StageSetup } from "./StageSetup";
@@ -30,7 +31,9 @@ import {
   STAGE_ARCH,
   STAGE_SERIF,
   type StageGroup,
+  type StagePrintChoice,
   type StageShot,
+  stageDesigns,
   stagePrintLayout,
   stageReducer,
   tvState,
@@ -42,6 +45,17 @@ const t = copy.stage;
 // ponytail: preset & jeda disimpan per laptop (localStorage); pindah ke pengaturan event cloud di S4.
 const presetKey = (eventId: string) => `tetra.stage.preset.${eventId}`;
 const GAP_KEY = "tetra.stage.gap";
+/** Hitung mundur sebelum Jepret dari laptop (#275): 0 = instan. Fotografer ikut berteriak ke tamu. */
+const COUNTDOWN_KEY = "tetra.stage.countdown";
+const COUNTDOWNS = [0, 3, 4, 5] as const;
+const loadCountdown = () => {
+  try {
+    const n = Number(localStorage.getItem(COUNTDOWN_KEY));
+    return (COUNTDOWNS as readonly number[]).includes(n) ? n : 0;
+  } catch {
+    return 0;
+  }
+};
 const loadPreset = (eventId: string): StagePreset => {
   try {
     return StagePresetSchema.parse(JSON.parse(localStorage.getItem(presetKey(eventId)) ?? "{}"));
@@ -102,6 +116,26 @@ export function StageRunner({
   const [colorOpen, setColorOpen] = useState(false);
   const [retry, setRetry] = useState(0);
   const [prints, setPrints] = useState<Record<string, PrintState>>({});
+  // Desain cetak (#274) per event di laptop ini; printer/pusat dari peringatan printer yang sama dengan booth.
+  const printKey = `tetra.stage.print.${event.id}`;
+  const [printChoice, setPrintChoiceRaw] = useState<StagePrintChoice>(() => {
+    try {
+      return (localStorage.getItem(printKey) as StagePrintChoice | null) ?? "auto";
+    } catch {
+      return "auto";
+    }
+  });
+  const setPrintChoice = (c: StagePrintChoice) => {
+    setPrintChoiceRaw(c);
+    try {
+      localStorage.setItem(printKey, c);
+    } catch {}
+  };
+  const [printer, setPrinter] = useState<PrinterAlert>(null);
+  useEffect(() => {
+    p.crew.printerAlert().then(setPrinter, () => {});
+    return p.crew.onPrinterAlert(setPrinter);
+  }, [p]);
   const [toast, setToast] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const [openHist, setOpenHist] = useState<string | null>(null);
@@ -125,6 +159,9 @@ export function StageRunner({
     }
   });
   const setupRef = useRef(setupOpen);
+  const nameRef = useRef<HTMLInputElement>(null);
+  // Ketikan mentah: reducer men-trim tiap ketukan, jadi spasi yang baru diketik hilang ("KeluargaBesar").
+  const [nameDraft, setNameDraft] = useState("");
   setupRef.current = setupOpen;
   const [testShot, setTestShot] = useState<StageShot>();
   const [tvTest, setTvTest] = useState(false);
@@ -340,8 +377,9 @@ export function StageRunner({
         ?.then(() => stage?.rename(g.id, name.trim() || null))
         .catch((e: unknown) => console.warn(`[stage] ganti nama gagal: ${errText(e)}`));
   };
-  // Cetak instan 4R (#183): satu foto, warna preset, lewat antrean print yang sama dengan booth.
-  const printShot = async (g: StageGroup, sh: StageShot) => {
+  // Cetak instan (#183, #274): satu foto mengisi semua slot desain pilihan, warna preset, lewat antrean print yang
+  // sama dengan booth (printer laptop ini atau laptop printer pusat #261). `g` kosong = tes cetak wizard.
+  const printShot = async (g: StageGroup | null, sh: StageShot) => {
     if (prints[sh.path]?.st === "printing") return;
     const n = prints[sh.path]?.n ?? 0;
     setPrints((x) => ({ ...x, [sh.path]: { st: "printing", n } }));
@@ -349,7 +387,7 @@ export function StageRunner({
       const bmp = await createImageBitmap(new Blob([await p.storage.readFile(sh.path)]));
       try {
         const photo = stageCanvas(bmp, ORIGINAL_LONG_SIDE, "none", lutRef.current?.lut ?? null);
-        const layout = stagePrintLayout(event, bmp);
+        const layout = stagePrintLayout(event, bmp, printChoice);
         const ov = layout.overlay;
         // Frame bawaan "Lengkung" (#194): lengkung putih + font serif khusus cetakan.
         const frame =
@@ -365,15 +403,22 @@ export function StageRunner({
         if (frame !== event.render) await document.fonts.load('96px "Cormorant Garamond"');
         const { sheet } = await renderEvent(
           { ...event, layout, ...(frame && { render: frame }) },
-          [photo],
+          layout.slots.map(() => photo),
           stagePresetCss(presetRef.current),
-          `${guestBaseUrl}/s/${g.id}`,
+          g ? `${guestBaseUrl}/s/${g.id}` : undefined,
         );
         const blob = await toneForPrint(sheet).convertToBlob({ type: "image/jpeg", quality: 0.92 });
         const stamp = Date.now().toString(36);
-        const path = `${await p.storage.sessionDir(g.id)}/out/print_${stamp}.jpg`;
+        // Tes cetak wizard: folder sesi sendiri (id sesi sah), file `test_*` supaya tidak dikira cetakan rombongan.
+        const sid = g?.id ?? newSessionId();
+        const path = `${await p.storage.sessionDir(sid)}/out/${g ? "print" : "test"}_${stamp}.jpg`;
         await p.storage.writeFile(path, new Uint8Array(await blob.arrayBuffer()));
-        await p.printer.submit({ jobId: `${g.id}-s${stamp}`, path, copies: 1, paper: "4R" });
+        await p.printer.submit({
+          jobId: `${sid}-s${stamp}`,
+          path,
+          copies: 1,
+          paper: printPaper(layout.paper),
+        });
       } finally {
         bmp.close();
       }
@@ -405,6 +450,43 @@ export function StageRunner({
   }, [shooting, p, makeThumb, say]);
   const shootRef = useRef(shoot);
   shootRef.current = shoot;
+  // Hitung mundur (#275): angka besar di layar operator, Esc / ketuk = batal; foto tes wizard tetap instan.
+  const [countdown, setCountdownRaw] = useState(loadCountdown);
+  const nextCountdown = () => {
+    const n = COUNTDOWNS[(COUNTDOWNS.indexOf(countdown as 0) + 1) % COUNTDOWNS.length] ?? 0;
+    setCountdownRaw(n);
+    try {
+      localStorage.setItem(COUNTDOWN_KEY, String(n));
+    } catch {}
+  };
+  const [count, setCount] = useState<number | null>(null);
+  const countTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const cancelCount = useCallback(() => {
+    clearTimeout(countTimer.current);
+    countTimer.current = undefined;
+    setCount(null);
+  }, []);
+  const shootCounted = useCallback(() => {
+    if (shooting || countTimer.current) return;
+    if (!countdown) return void shootRef.current();
+    let n = countdown;
+    setCount(n);
+    const tick = () => {
+      n -= 1;
+      if (n > 0) {
+        setCount(n);
+        countTimer.current = setTimeout(tick, 1000);
+        return;
+      }
+      countTimer.current = undefined;
+      setCount(null);
+      void shootRef.current();
+    };
+    countTimer.current = setTimeout(tick, 1000);
+  }, [shooting, countdown]);
+  const shootCountedRef = useRef(shootCounted);
+  shootCountedRef.current = shootCounted;
+  useEffect(() => () => clearTimeout(countTimer.current), []);
 
   // Riwayat (#195): sembunyikan, pisah, gabung. Cloud diperbarui lewat metadata sesi (hiddenIdx) & aset baru.
   const sync = (g: StageGroup, hidden: number[]) =>
@@ -503,9 +585,11 @@ export function StageRunner({
   pickRef.current = () => next[0] && pickName(next[0]);
 
   // Keyboard (#186): ⏎ rombongan baru, Spasi jeda/lanjut, Tab isi nama dari daftar (juga di isian), Esc tutup.
+  // N = ketik nama grup tanpa mouse: kursor Windows bisa "dicuri" tamu yang menyentuh monitor TV.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        cancelCount();
         setColorOpen(false);
         setOpenHist(null);
         setHelperOpen(false);
@@ -524,14 +608,18 @@ export function StageRunner({
       } else if (e.key === " ") {
         e.preventDefault();
         togglePause();
+      } else if ((e.key === "n" || e.key === "N") && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        nameRef.current?.focus();
+        nameRef.current?.select();
       } else if ((e.key === "j" || e.key === "J") && canShootRef.current) {
         e.preventDefault();
-        void shootRef.current();
+        shootCountedRef.current();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [colorOpen, newGroup, togglePause]);
+  }, [colorOpen, newGroup, togglePause, cancelCount]);
 
   // Status bar: kamera, internet, antrean upload rombongan (polling 3 dtk).
   const closed = s.groups.filter((g) => g.closedAt !== null && !g.merged).reverse();
@@ -762,7 +850,13 @@ export function StageRunner({
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <div className="flex items-center justify-between">
-                <span className="text-base font-bold text-text-2">{t.nameLabel}</span>
+                <span className="flex items-center gap-3 text-base font-bold text-text-2">
+                  {t.nameLabel}
+                  <span className="flex items-center gap-2 text-[15px] font-normal text-muted">
+                    <Key>N</Key>
+                    {t.nameKeyHint}
+                  </span>
+                </span>
                 {!!next.length && (
                   <span className="flex items-center gap-2 text-[15px] text-muted">
                     <span className="rounded-md border-[1.5px] border-muted px-[7px] font-mono text-[13px]">
@@ -773,15 +867,19 @@ export function StageRunner({
                 )}
               </div>
               <input
+                ref={nameRef}
                 aria-label={t.namePlaceholder}
                 placeholder={`Tamu · ${hm(cur?.startedAt ?? now)}`}
-                value={cur?.name ?? ""}
+                value={nameDraft.trim() === (cur?.name ?? "") ? nameDraft : (cur?.name ?? "")}
                 disabled={!cur}
-                onChange={(e) =>
-                  cur && dispatch({ type: "RENAME", id: cur.id, name: e.target.value })
-                }
+                onChange={(e) => {
+                  setNameDraft(e.target.value);
+                  if (cur) dispatch({ type: "RENAME", id: cur.id, name: e.target.value });
+                }}
                 onBlur={(e) => cur && rename(cur, e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                onKeyDown={(e) =>
+                  (e.key === "Enter" || e.key === "Escape") && e.currentTarget.blur()
+                }
                 className="h-[76px] w-full rounded-[20px] border-[2.5px] border-ink bg-white px-6 text-[34px] font-extrabold tracking-[-0.02em] outline-none placeholder:text-muted focus:shadow-[0_0_0_4px_var(--mint)]"
               />
             </div>
@@ -1090,16 +1188,27 @@ export function StageRunner({
           <Key>Spasi</Key>
         </button>
         {canShoot && (
-          <button
-            type="button"
-            disabled={shooting}
-            onClick={() => void shoot()}
-            className={`${big} px-[30px] text-[28px] [--under:var(--paper)] bg-white disabled:opacity-60`}
-          >
-            <Camera className="size-8" strokeWidth={2.5} aria-hidden />
-            {shooting ? t.shooting : t.shoot}
-            <Key>J</Key>
-          </button>
+          <>
+            <button
+              type="button"
+              disabled={shooting || count !== null}
+              onClick={shootCounted}
+              className={`${big} px-[30px] text-[28px] [--under:var(--paper)] bg-white disabled:opacity-60`}
+            >
+              <Camera className="size-8" strokeWidth={2.5} aria-hidden />
+              {shooting ? t.shooting : t.shoot}
+              <Key>J</Key>
+            </button>
+            <button
+              type="button"
+              data-testid="stage-countdown"
+              onClick={nextCountdown}
+              title={t.countdownHint}
+              className={`pressable h-16 whitespace-nowrap rounded-full border-[2.5px] border-ink px-5 text-xl font-bold ${countdown ? "bg-lavender" : "bg-white"}`}
+            >
+              {countdown ? t.countdownSec(countdown) : t.countdownOff}
+            </button>
+          </>
         )}
         <div className="flex-1" />
         <span className="whitespace-nowrap text-lg font-bold text-text-3">{t.auto}</span>
@@ -1157,6 +1266,23 @@ export function StageRunner({
         </div>
       )}
 
+      {count !== null && (
+        <button
+          type="button"
+          data-testid="stage-count"
+          aria-label={t.countdownCancel}
+          onClick={cancelCount}
+          className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-ink/40"
+        >
+          <span className="flex size-[320px] items-center justify-center rounded-full border-[4px] border-ink bg-butter font-mono text-[200px] leading-none font-extrabold">
+            {count}
+          </span>
+          <span className="rounded-full border-2 border-ink bg-white px-6 py-2 text-2xl font-bold">
+            {t.countdownCancel}
+          </span>
+        </button>
+      )}
+
       {setupOpen && (
         <StageSetup
           event={event}
@@ -1172,6 +1298,15 @@ export function StageRunner({
           onShoot={canShoot ? () => void shoot() : undefined}
           shooting={shooting}
           lanUrls={status?.lanUrls ?? []}
+          displayMode={stage?.tv.displayMode}
+          print={{
+            choice: printChoice,
+            setChoice: setPrintChoice,
+            designs: stageDesigns(event),
+            printer,
+            testState: testShot && prints[testShot.path]?.st,
+            onTest: testShot ? () => void printShot(null, testShot) : undefined,
+          }}
           colorSummary={[PHOTO_FILTERS.find((f) => f.id === preset.filter)?.label, lut?.name]
             .filter(Boolean)
             .join(" · ")}

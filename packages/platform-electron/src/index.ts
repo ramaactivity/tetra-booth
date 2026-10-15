@@ -6,6 +6,7 @@ import {
   createWebcamCamera,
   type FocusStep,
   type SessionAsset,
+  type StageDisplayMode,
   type StageTvState,
   withMirroredPhotos,
 } from "@tetra/booth-core";
@@ -19,6 +20,7 @@ export type { BoothConfig, TetraBridge } from "./bridge";
  * (Canon) frame JPEG diambil berulang lewat main, satu permintaan pada satu waktu.
  */
 const LIVE_VIEW_IDLE_MS = 60_000;
+type OnFrame = Parameters<BoothCamera["startLiveView"]>[0];
 
 const serviceCamera = (
   bridge: TetraBridge,
@@ -39,51 +41,60 @@ const serviceCamera = (
     void bridge.liveViewStart().catch(() => {});
     hide = setTimeout(() => void bridge.liveViewStop().catch(() => {}), LIVE_VIEW_IDLE_MS);
   };
+  // Layar live view yang sedang terbuka (startLiveView tanpa stopLiveView), untuk disambung lagi sesudah jepret.
+  let active: OnFrame | null = null;
+  const pull = async (onFrame: OnFrame) => {
+    clearTimeout(hide);
+    const me = ++run;
+    await bridge.liveViewStart();
+    void (async () => {
+      while (me === run) {
+        const bytes = await bridge.liveViewFrame().catch(() => null);
+        if (me !== run) break;
+        // Gagal → tunggu lebih lama; kosong = belum ada frame baru → cek lagi 40 ms (maks ±25 permintaan/s).
+        if (!bytes || bytes.length === 0) {
+          await new Promise((r) => setTimeout(r, bytes ? 40 : 300));
+          continue;
+        }
+        const bmp = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" })).catch(
+          () => null,
+        );
+        if (!bmp) continue;
+        if (me === run) onFrame({ source: bmp, width: bmp.width, height: bmp.height });
+        bmp.close();
+      }
+    })();
+  };
   return {
     warm,
     startLiveView: async (onFrame) => {
       if (!liveView) return;
-      clearTimeout(hide);
-      const me = ++run;
-      await bridge.liveViewStart();
-      void (async () => {
-        while (me === run) {
-          const bytes = await bridge.liveViewFrame().catch(() => null);
-          if (me !== run) break;
-          // Gagal → tunggu lebih lama; kosong = belum ada frame baru → cek lagi 40 ms (maks ±25 permintaan/s).
-          if (!bytes || bytes.length === 0) {
-            await new Promise((r) => setTimeout(r, bytes ? 40 : 300));
-            continue;
-          }
-          const bmp = await createImageBitmap(new Blob([bytes], { type: "image/jpeg" })).catch(
-            () => null,
-          );
-          if (!bmp) continue;
-          if (me === run) onFrame({ source: bmp, width: bmp.width, height: bmp.height });
-          bmp.close();
-        }
-      })();
+      active = onFrame;
+      await pull(onFrame);
     },
     stopLiveView: async () => {
       if (!liveView) return;
+      active = null;
       run++;
       clearTimeout(hide);
       hide = setTimeout(() => void bridge.liveViewStop().catch(() => {}), LIVE_VIEW_IDLE_MS);
     },
     // Live view dimatikan dulu: di 700D, jepret saat live view terus dibaca kadang membuat file tidak terkirim
-    // ("EOS capture end" tanpa file) lalu kamera macet (W-031, 2026-09-25). Countdown berikutnya menyalakannya lagi.
+    // ("EOS capture end" tanpa file) lalu kamera macet (W-031, 2026-09-25). Sesudah jepret, layar live view yang
+    // masih terbuka (antar foto sejak #254) disambung lagi; dulu loop frame berhenti → gambar beku mulai foto 2.
     capture: async (req) => {
-      if (liveView) {
-        run++;
-        clearTimeout(hide);
-        await bridge.liveViewStop().catch(() => {});
-        await new Promise((r) => setTimeout(r, 300));
-      }
-      if (!liveView || !rewarmAfterCapture) return bridge.cameraCapture(req);
+      if (!liveView) return bridge.cameraCapture(req);
+      const resume = active;
+      run++;
+      clearTimeout(hide);
+      await bridge.liveViewStop().catch(() => {});
+      await new Promise((r) => setTimeout(r, 300));
+      if (!rewarmAfterCapture) return bridge.cameraCapture(req);
       try {
         return await bridge.cameraCapture(req);
       } finally {
-        warm();
+        if (resume && resume === active) void pull(resume).catch(() => {});
+        else warm();
       }
     },
     reconnect: async () => {
@@ -139,6 +150,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       pair: (code) => bridge.crewPair(code),
       syncEvents: () => bridge.crewSyncEvents(),
       retryUploads: () => bridge.crewRetryUploads(),
+      uploads: () => bridge.crewUploads(),
       runState: (id) => bridge.crewRunState(id),
       eventRun: (id, a) => bridge.crewEventRun(id, a),
       recap: (id) => bridge.crewRecap(id),
@@ -189,6 +201,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       setActive: (id) => bridge.eventsSetActive(id),
       asset: (e, a) => bridge.eventAsset(e, a),
       recentPieces: (e, n, before) => bridge.eventsRecentPieces(e, n, before),
+      unsent: () => bridge.eventsUnsent(),
     },
     payments: {
       create: (req) => bridge.paymentCreate(req),
@@ -219,6 +232,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
               onState: (cb: (st: StageTvState) => void) =>
                 bridge.onStageTv((st) => cb(st as StageTvState)),
               connected: () => bridge.stageTvStatus(),
+              displayMode: (m: StageDisplayMode) => bridge.stageDisplayMode(m),
               onConnected: (cb: (on: boolean) => void) => bridge.onStageTvStatus(cb),
             },
           },

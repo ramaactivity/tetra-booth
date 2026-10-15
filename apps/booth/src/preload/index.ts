@@ -34,6 +34,7 @@ const bridge: TetraBridge = {
   crewPair: (code) => ipcRenderer.invoke("crewPair", code),
   crewSyncEvents: () => ipcRenderer.invoke("crewSyncEvents"),
   crewRetryUploads: () => ipcRenderer.invoke("crewRetryUploads"),
+  crewUploads: () => ipcRenderer.invoke("crewUploads"),
   crewRunState: (id) => ipcRenderer.invoke("crewRunState", id),
   crewEventRun: (id, a) => ipcRenderer.invoke("crewEventRun", id, a),
   crewRecap: (id) => ipcRenderer.invoke("crewRecap", id),
@@ -84,6 +85,7 @@ const bridge: TetraBridge = {
   stageTvPublish: (st) => ipcRenderer.invoke("stageTvPublish", st),
   stageTvLast: () => ipcRenderer.invoke("stageTvLast"),
   stageTvStatus: () => ipcRenderer.invoke("stageTvStatus"),
+  stageDisplayMode: (mode) => ipcRenderer.invoke("stageDisplayMode", mode),
   onStageTv: (cb) => {
     const h = (_e: IpcRendererEvent, st: unknown) => cb(st);
     ipcRenderer.on("stageTv", h);
@@ -113,6 +115,7 @@ const bridge: TetraBridge = {
   eventsActive: () => ipcRenderer.invoke("eventsActive"),
   eventsSetActive: (id) => ipcRenderer.invoke("eventsSetActive", id),
   eventsRecentPieces: (id, n, before) => ipcRenderer.invoke("eventsRecentPieces", id, n, before),
+  eventsUnsent: () => ipcRenderer.invoke("eventsUnsent"),
   eventAsset: (e, a) => ipcRenderer.invoke("eventAsset", e, a),
   paymentCreate: (req) => ipcRenderer.invoke("paymentCreate", req),
   paymentStatus: (id) => ipcRenderer.invoke("paymentStatus", id),

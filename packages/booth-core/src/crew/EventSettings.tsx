@@ -8,8 +8,19 @@ import type { EventOverride, EventSettingsInfo } from "../platform";
 import { btn, Panel, Row } from "./parts";
 
 type Key = keyof EventOverride;
-/** Batas sama dengan EventSettingsSchema; langkah besar untuk detik QR & timer sesi. */
-const FIELDS: { key: Key; min: number; max: number; step: number; photobox?: true }[] = [
+/**
+ * Batas sama dengan EventSettingsSchema; langkah besar untuk detik QR & timer sesi. `photobox` = hanya mode photobox,
+ * `event` = hanya mode event (layar ngaca dilewati di photobox, #256).
+ */
+const FIELDS: {
+  key: Key;
+  min: number;
+  max: number;
+  step: number;
+  photobox?: true;
+  event?: true;
+}[] = [
+  { key: "mirrorSec", min: 0, max: 60, step: 5, event: true },
   { key: "countdownSec", min: 1, max: 10, step: 1 },
   { key: "retakeMax", min: 0, max: 5, step: 1 },
   { key: "maxPrints", min: 1, max: 10, step: 1 },
@@ -50,7 +61,8 @@ export function EventSettings({
     );
   }, [p, event.id, onNote]);
 
-  const fields = FIELDS.filter((f) => !f.photobox || event.photobox);
+  const pb = !!event.photobox;
+  const fields = FIELDS.filter((f) => (f.photobox ? pb : !(f.event && pb)));
   const now = info && { ...info.cloud, ...info.override };
   const changed = !!now && fields.some((f) => draft[f.key] !== now[f.key]);
   const save = (next: EventOverride | null, done: string) => {
@@ -94,25 +106,28 @@ export function EventSettings({
                   </>
                 }
               >
-                <button
-                  type="button"
-                  aria-label={`${copy.crew.setting[key]} −`}
-                  className={stepBtn}
-                  disabled={v <= min}
-                  onClick={() => setDraft((x) => ({ ...x, [key]: Math.max(min, v - step) }))}
-                >
-                  −
-                </button>
-                <span className="w-24 text-center font-mono text-3xl font-bold">{v}</span>
-                <button
-                  type="button"
-                  aria-label={`${copy.crew.setting[key]} +`}
-                  className={stepBtn}
-                  disabled={v >= max}
-                  onClick={() => setDraft((x) => ({ ...x, [key]: Math.min(max, v + step) }))}
-                >
-                  +
-                </button>
+                {/* Dibungkus: Row memberi tombol langsung min-w 240 px; stepper tetap kotak kecil. */}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    aria-label={`${copy.crew.setting[key]} −`}
+                    className={stepBtn}
+                    disabled={v <= min}
+                    onClick={() => setDraft((x) => ({ ...x, [key]: Math.max(min, v - step) }))}
+                  >
+                    −
+                  </button>
+                  <span className="w-24 text-center font-mono text-3xl font-bold">{v}</span>
+                  <button
+                    type="button"
+                    aria-label={`${copy.crew.setting[key]} +`}
+                    className={stepBtn}
+                    disabled={v >= max}
+                    onClick={() => setDraft((x) => ({ ...x, [key]: Math.min(max, v + step) }))}
+                  >
+                    +
+                  </button>
+                </div>
               </Row>
             );
           })}

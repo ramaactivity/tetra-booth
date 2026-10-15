@@ -11,6 +11,8 @@ export const OVERRIDE_KEYS = [
   "maxPrints",
   "qrScreenSec",
   "sessionSec",
+  // Layar "Ngaca dulu" (#254): crew bisa menyingkat/mematikannya di lokasi (0 = mati).
+  "mirrorSec",
 ] as const;
 // Tanpa `.default()` bawaan EventSettingsSchema: field yang tidak diubah harus tetap kosong, bukan nilai default.
 const shape = EventSettingsSchema.shape;
@@ -20,6 +22,7 @@ export const EventOverride = z.object({
   maxPrints: shape.maxPrints.unwrap().optional(),
   qrScreenSec: shape.qrScreenSec.unwrap().optional(),
   sessionSec: shape.sessionSec.unwrap().optional(),
+  mirrorSec: shape.mirrorSec.unwrap().optional(),
 });
 export type EventOverride = z.infer<typeof EventOverride>;
 

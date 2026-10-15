@@ -122,6 +122,7 @@ export async function assignToEvent(
   set("prompts_before", s.promptsBefore.join("\n"));
   set("prompts_after", s.promptsAfter.join("\n"));
   set("stage_groups", s.stageGroups.join("\n"));
+  set("stage_design", tpl.stage);
   for (const cue of SOUND_CUES) {
     const cfg = bundle.success
       ? (bundle.data.config as { sounds?: Record<string, string> }).sounds?.[cue]

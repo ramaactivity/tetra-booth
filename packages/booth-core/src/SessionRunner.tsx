@@ -20,6 +20,7 @@ import {
 } from "./prompts";
 import { Attract } from "./screens/Attract";
 import { Bumper } from "./screens/Bumper";
+import { CancelButton, CancelConfirm } from "./screens/CancelSession";
 import { Capturing } from "./screens/Capturing";
 import { Countdown } from "./screens/Countdown";
 import { FilterSelect } from "./screens/FilterSelect";
@@ -33,7 +34,13 @@ import { PhotoPreview } from "./screens/PhotoPreview";
 import { PrintSelect } from "./screens/PrintSelect";
 import { Qr } from "./screens/Qr";
 import { Review } from "./screens/Review";
-import { initialSession, type Photo, type SessionEvent, sessionReducer } from "./session";
+import {
+  canCancel,
+  initialSession,
+  type Photo,
+  type SessionEvent,
+  sessionReducer,
+} from "./session";
 import { isBlurry, sharpNotes } from "./sharpness";
 
 const RECONNECT_EVERY_MS = 2000;
@@ -115,7 +122,13 @@ export function SessionRunner({
   const [reconnects, setReconnects] = useState(0);
   // Jepret gagal karena kamera sibuk/tidak menjawab → saran AF ke MF untuk crew di layar kamera bermasalah.
   const [afHint, setAfHint] = useState(false);
+  // Konfirmasi "Batalkan sesi?" terbuka; sesi ditahan (HOLD) selama ini.
+  const [asking, setAsking] = useState(false);
   const send = (e: SessionEvent) => () => dispatch(e);
+  const askCancel = () => {
+    dispatch({ type: "HOLD" });
+    setAsking(true);
+  };
   // Galeri tamu (#145): layar di atas attract, bukan fase sesi; selama terbuka tidak ada sesi baru yang mulai.
   const [gallery, setGallery] = useState<{ at?: SessionPiece | undefined } | null>(null);
   useEffect(() => setSoundOverrides(event.sounds), [event.sounds]);
@@ -130,6 +143,13 @@ export function SessionRunner({
   /** Potongan web 2× sesi ini (#133), dirender di latar belakang setelah compose; [sessionId, path]. */
   const webPiece = useRef<Promise<[string, string | null]>>(Promise.resolve(["", null]));
   useEffect(() => {
+    // Sesi dibatalkan (#273) kembali ke layar awal tanpa id sesi: rekaman tamu itu dibuang, jangan sampai ikut
+    // tersambung ke video hitung mundur tamu berikutnya (#279).
+    if (!s.sessionId && recorder.current) {
+      void recorder.current.stop().catch(() => null);
+      recorder.current = null;
+      console.info("[session] video hitung mundur sesi batal dibuang");
+    }
     if (!cfg.countdownVideo || demo || !s.sessionId) return;
     const shooting = s.phase === "countdown" || s.phase === "capture";
     if (shooting) {
@@ -229,17 +249,26 @@ export function SessionRunner({
               deadline: Date.now() + PAID_SEC * 1000 + cfg.sessionSec * 1000,
             })
           : undefined;
+      // `held` (konfirmasi batal / foto diperbesar): timer fase ini berhenti, mulai lagi saat dilepas.
       case "mirror":
-        return after(demo ? tapMs : cfg.mirrorSec * 1000, { type: "MIRROR_DONE" });
+        return s.held
+          ? undefined
+          : after(demo ? tapMs : cfg.mirrorSec * 1000, { type: "MIRROR_DONE" });
       case "preview":
-        return s.paused ? undefined : after(cfg.shotDelaySec * 1000, { type: "PREVIEW_DONE" });
+        return s.paused || s.held
+          ? undefined
+          : after(cfg.shotDelaySec * 1000, { type: "PREVIEW_DONE" });
       case "review":
-        return after(demo ? tapMs : cfg.reviewTimeoutSec * 1000, { type: "CONTINUE" });
+        return s.held
+          ? undefined
+          : after(demo ? tapMs : cfg.reviewTimeoutSec * 1000, { type: "CONTINUE" });
       case "filter":
-        return after(demo ? tapMs : cfg.reviewTimeoutSec * 1000, {
-          type: "FILTER_CHOSEN",
-          filter: "normal",
-        });
+        return s.held
+          ? undefined
+          : after(demo ? tapMs : cfg.reviewTimeoutSec * 1000, {
+              type: "FILTER_CHOSEN",
+              filter: "normal",
+            });
       case "print_select":
         return demo ? after(tapMs, { type: "PRINTS_SELECTED", count: 1 }) : undefined;
       case "qr":
@@ -247,7 +276,7 @@ export function SessionRunner({
       default:
         return undefined;
     }
-  }, [s.phase, s.draftId, s.paused, s.resumes, demo, fast, cfg, event, ev, gallery]);
+  }, [s.phase, s.draftId, s.paused, s.held, s.resumes, demo, fast, cfg, event, ev, gallery]);
 
   // "Tunggu dulu" (#254): lanjut sendiri setelah PAUSE_MAX_MS.
   useEffect(() => {
@@ -255,6 +284,20 @@ export function SessionRunner({
     const t = setTimeout(() => dispatch({ type: "RESUME" }), PAUSE_MAX_MS);
     return () => clearTimeout(t);
   }, [s.paused]);
+
+  // Konfirmasi batal / foto diperbesar ditinggal tamu: lepas sendiri supaya booth tidak tertahan.
+  useEffect(() => {
+    if (!s.held) return;
+    const t = setTimeout(() => {
+      setAsking(false);
+      dispatch({ type: "RELEASE" });
+    }, PAUSE_MAX_MS);
+    return () => clearTimeout(t);
+  }, [s.held]);
+  // Konfirmasi tidak relevan lagi (mis. waktu habis) → tutup.
+  useEffect(() => {
+    if (asking && !canCancel(s)) setAsking(false);
+  }, [asking, s]);
 
   // Timer sesi photobox (FSD §1.5): habis → slot kosong diisi, lanjut compose / cetak 1 lembar.
   useEffect(() => {
@@ -470,6 +513,24 @@ export function SessionRunner({
           paused={s.paused}
           onPause={send({ type: "PAUSE" })}
           onResume={send({ type: "RESUME" })}
+          onCancel={askCancel}
+        />
+      )}
+      {/* Batal sesi (Rama 14 Okt): mode event; saat kamera memotret tombol terlihat tapi nonaktif. */}
+      {!demo && !s.photobox && (canCancel(s) || s.phase === "capture") && !asking && (
+        <CancelButton disabled={s.phase === "capture"} onClick={askCancel} />
+      )}
+      {asking && (
+        <CancelConfirm
+          onYes={() => {
+            console.info(`[session] dibatalkan ${s.sessionId ?? "-"} di ${s.phase}`);
+            setAsking(false);
+            dispatch({ type: "CANCEL" });
+          }}
+          onNo={() => {
+            setAsking(false);
+            dispatch({ type: "RELEASE" });
+          }}
         />
       )}
       {s.deadline !== null && TIMED.has(s.phase) && (
@@ -608,7 +669,7 @@ export function SessionRunner({
           <Countdown
             key={`${s.index}-${s.retakesUsed[s.index]}-${s.resumes}`}
             seconds={cfg.countdownSec}
-            paused={s.paused}
+            paused={s.paused || s.held}
             index={s.index}
             photos={s.photos}
             onDone={send({ type: "COUNTDOWN_DONE" })}
@@ -648,6 +709,7 @@ export function SessionRunner({
             retakeMax={s.retakeMax}
             onRetake={(index) => dispatch({ type: "RETAKE", index })}
             onNext={send({ type: "CONTINUE" })}
+            onZoom={(open) => dispatch({ type: open ? "HOLD" : "RELEASE" })}
           />
         );
       case "compose":

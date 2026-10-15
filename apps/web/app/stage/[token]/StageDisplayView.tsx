@@ -70,6 +70,10 @@ export function StageDisplayView({
     setBrowse(v);
   };
   const picked = browse && browse !== "list" ? d.groups.find((g) => g.id === browse) : undefined;
+  // Perbesar satu foto rombongan (#276): ketuk foto → layar penuh, ketuk lagi = kembali.
+  const [zoom, setZoom] = useState<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: tutup saat rombongan/daftar berganti
+  useEffect(() => setZoom(null), [browse]);
   const url = (id: string) => `${origin}/s/${id}`;
   const galleryUrl = d.event.publicGallery ? `${origin}/l/${token}` : null;
   const reel = d.groups.slice(0, 12).reverse();
@@ -94,7 +98,7 @@ export function StageDisplayView({
       {t.find}
     </button>
   );
-  const mosaic = (g: StageDisplayGroup) => {
+  const mosaic = (g: StageDisplayGroup, onPick?: (src: string) => void) => {
     const shots = g.photos.slice(-5);
     const m = tvMosaic(Math.min(5, shots.length || 1), 1220, 600, 32);
     return (
@@ -107,6 +111,15 @@ export function StageDisplayView({
               key={ph.full}
               className="layered absolute rounded-[20px] border-[3px] border-ink bg-white p-3.5 [--lb:3px] [--lx:10px]"
               style={{ left: b.x, top: b.y, transform: `rotate(${ROTS[i]}deg)` }}
+              {...(onPick && {
+                role: "button",
+                tabIndex: 0,
+                "data-testid": "stage-display-photo",
+                onClick: () => {
+                  setTouchedAt(Date.now());
+                  onPick(ph.full);
+                },
+              })}
             >
               <img
                 src={ph.full}
@@ -274,6 +287,16 @@ export function StageDisplayView({
                 </h1>
                 {!picked && <p className="text-[30px] text-text-3">{t.findSub}</p>}
               </div>
+              {!picked && galleryUrl && (
+                <div className="flex flex-none items-center gap-5 rounded-[24px] border-[2.5px] border-ink bg-sky py-3 pr-6 pl-3">
+                  <div className="rounded-xl border-2 border-ink bg-white p-2">
+                    <QrCode url={galleryUrl} size={120} />
+                  </div>
+                  <span className="text-[26px] leading-[1.15] font-extrabold whitespace-pre-line">
+                    {t.allQr}
+                  </span>
+                </div>
+              )}
               {picked && (
                 <button
                   type="button"
@@ -295,7 +318,10 @@ export function StageDisplayView({
             </div>
             {picked ? (
               <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_480px] gap-16">
-                <div className="flex min-h-0 items-center">{mosaic(picked)}</div>
+                <div className="flex min-h-0 flex-col justify-center gap-4">
+                  {mosaic(picked, setZoom)}
+                  <span className="text-[24px] font-semibold text-text-3">{t.zoomHint}</span>
+                </div>
                 <div className="flex flex-col items-center justify-center gap-6">
                   <div className="layered rounded-[36px] border-[3px] border-ink bg-white p-7 [--lb:3px] [--lx:14px] [--under:var(--butter)]">
                     <QrCode url={url(picked.id)} size={360} />
@@ -330,6 +356,27 @@ export function StageDisplayView({
               </div>
             ) : (
               <p className="text-[40px] font-bold text-text-2">{t.none}</p>
+            )}
+            {zoom && (
+              <button
+                type="button"
+                data-testid="stage-display-zoom"
+                aria-label={t.close}
+                onClick={() => {
+                  setTouchedAt(Date.now());
+                  setZoom(null);
+                }}
+                className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-6 bg-ink/85 p-12"
+              >
+                <img
+                  src={zoom}
+                  alt=""
+                  className="min-h-0 max-w-full flex-1 rounded-2xl border-[3px] border-white object-contain"
+                />
+                <span className="rounded-full border-2 border-ink bg-white px-7 py-2.5 text-[26px] font-bold">
+                  {t.zoomClose}
+                </span>
+              </button>
             )}
           </div>
         )}

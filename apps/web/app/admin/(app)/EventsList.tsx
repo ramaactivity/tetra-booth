@@ -10,6 +10,7 @@ import {
   ReceiptText,
 } from "lucide-react";
 import Link from "next/link";
+import { unsentByEvent } from "@/lib/booth-health";
 import { eventPhase, ymdWib } from "@/lib/events";
 import type { PhotoboxSettings } from "@/lib/payments";
 import { requireMember } from "@/lib/supabase/server";
@@ -128,12 +129,17 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
       db.rpc("event_session_stats", { org: orgId }),
       mode === "photobox" ? db.rpc("event_payment_stats", { org: orgId }) : { data: [] },
       db.rpc("org_period_stats", { org: orgId, d_from: `${month}-01`, d_to: nextMonth }),
-      db.from("devices").select("id, name").eq("organization_id", orgId).order("name"),
+      db
+        .from("devices")
+        .select("id, name, short_code, last_seen_at, status")
+        .eq("organization_id", orgId)
+        .order("name"),
     ]);
   const count = new Map((stats ?? []).map((s) => [s.event_id, s]));
   const paid = new Map((pays ?? []).map((p) => [p.event_id, p]));
   const pm = (period ?? []).find((p) => p.mode === mode);
   const units = unitLabels(data ?? []);
+  const unsent = unsentByEvent(devices ?? []);
 
   const rows = (data ?? []).map((e) => {
     const run = parseRun(e.run);
@@ -147,6 +153,7 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
     return {
       ...e,
       unit: units.get(e.id),
+      unsent: (unsent.get(e.id) ?? []).reduce((a, u) => a + u.sessions, 0),
       phase,
       client: (e.branding as { clientName?: string } | null)?.clientName ?? "",
       runState: rs,
@@ -387,6 +394,15 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
                         className="flex-none rounded-full border-[1.5px] border-ink bg-lavender px-2 py-px text-[11px] font-extrabold whitespace-nowrap"
                       >
                         {e.unit}
+                      </span>
+                    )}
+                    {e.unsent > 0 && (
+                      <span
+                        data-testid="event-unsent"
+                        title="Sesi masih di laptop booth, belum terkirim ke cloud"
+                        className="flex-none rounded-full border-[1.5px] border-ink bg-peach px-2 py-px text-[11px] font-extrabold whitespace-nowrap"
+                      >
+                        {e.unsent} sesi belum terkirim
                       </span>
                     )}
                   </span>

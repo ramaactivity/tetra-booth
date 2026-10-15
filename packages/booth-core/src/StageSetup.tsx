@@ -1,9 +1,10 @@
-import { STAGE_GAP } from "@tetra/shared";
+import { type LayoutSpec, paperLabel, STAGE_GAP } from "@tetra/shared";
 import { Check } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { copy } from "./copy";
 import type { BoothEvent } from "./event";
-import type { StageShot } from "./stage";
+import type { PrinterAlert, StageDisplayMode } from "./platform";
+import type { StagePrintChoice, StageShot } from "./stage";
 
 const t = copy.stage.setup;
 const hms = (ms: number) =>
@@ -24,8 +25,11 @@ const Ok = ({ size = 28 }: { size?: number }) => (
   </span>
 );
 
+const DISPLAY_MODES = ["extend", "clone", "internal", "external"] as const;
+const STEPS = t.steps.length;
+
 /**
- * Persiapan laptop stage (#188, desain A1): 5 langkah sebelum acara. Peran, event, dan jenis kamera dipilih di
+ * Persiapan laptop stage (#188, desain A1; langkah Cetak #274): 6 langkah sebelum acara. Peran, event, dan jenis kamera dipilih di
  * Crew (ganti = aplikasi dibuka ulang), jadi langkah 1 dan kartu kamera hanya menampilkan pilihan yang aktif.
  * Jepretan selama wizard terbuka = foto tes (tidak masuk rombongan).
  */
@@ -46,6 +50,8 @@ export function StageSetup({
   onShoot,
   shooting = false,
   lanUrls = [],
+  displayMode,
+  print,
 }: {
   event: BoothEvent;
   testShot: StageShot | undefined;
@@ -65,11 +71,44 @@ export function StageSetup({
   shooting?: boolean;
   /** Layar WiFi (#205): alamat untuk device kedua. */
   lanUrls?: string[];
+  /** Mode layar laptop + TV (#274); tidak ada = platform tanpa jendela TV. */
+  displayMode?: ((m: StageDisplayMode) => Promise<"switched" | "settings">) | undefined;
+  /** Langkah Cetak (#274): desain cetak + status printer/pusat + tes cetak foto tes. */
+  print: {
+    choice: StagePrintChoice;
+    setChoice: (c: StagePrintChoice) => void;
+    designs: { id: string; name: string; layout: LayoutSpec }[];
+    printer: PrinterAlert;
+    testState: "printing" | "done" | "failed" | undefined;
+    onTest: (() => void) | undefined;
+  };
 }) {
   const [step, setStep] = useState(1);
+  const [displayNote, setDisplayNote] = useState<string | null>(null);
+  const setDisplay = (m: StageDisplayMode) =>
+    displayMode?.(m).then(
+      (r) =>
+        setDisplayNote(
+          m === "settings" || r === "settings"
+            ? t.displaySettings
+            : t.displaySwitched(t.display[m][0]),
+        ),
+      (e: unknown) => setDisplayNote(String(e)),
+    );
+  const choices: [StagePrintChoice, string, string][] = [
+    ["auto", t.auto[0], t.auto[1]],
+    ...print.designs.map((d): [StagePrintChoice, string, string] => [
+      `design:${d.id}`,
+      d.name,
+      `${paperLabel(d.layout.paper, d.layout.canvas)} · ${d.layout.slots.length} foto`,
+    ]),
+    ["arch", t.arch[0], t.arch[1]],
+    ["full", t.full[0], t.full[1]],
+  ];
+  const choiceName = choices.find((c) => c[0] === print.choice)?.[1] ?? t.auto[0];
   const folder = model === "Hot folder";
   const camName = folder ? t.folder[0] : (model ?? t.canon[0]);
-  const next = () => (step === 5 ? onDone() : setStep(step + 1));
+  const next = () => (step === STEPS ? onDone() : setStep(step + 1));
   const [title, subtitle] = t.titles[step - 1] ?? ["", ""];
   const autoOn = gapSec !== null;
   const sec = gapSec ?? STAGE_GAP.default;
@@ -80,11 +119,21 @@ export function StageSetup({
     `${camName}${testShot ? ` · ${t.sumTestOk}` : ""}`,
     t.sumTv(tvOn),
     colorSummary,
+    `${choiceName} · ${print.printer?.message ?? t.printerReady}`,
     t.sumAuto(gapSec),
     t.sumGroups(event.settings.stageGroups.length),
   ];
   // Yang belum siap ditandai peach (bisa tetap mulai): kamera tanpa foto tes, TV belum tersambung.
-  const warn = [false, false, !testShot || !cameraOk, !tvOn, false, false, false];
+  const warn = [
+    false,
+    false,
+    !testShot || !cameraOk,
+    !tvOn,
+    false,
+    !!print.printer && !print.printer.ok,
+    false,
+    false,
+  ];
 
   return (
     <div
@@ -121,7 +170,7 @@ export function StageSetup({
                     {label}
                   </span>
                 </span>
-                {n < 5 && (
+                {n < STEPS && (
                   <span
                     className={`mx-3 w-11 border-t-[2.5px] border-ink ${done ? "border-solid" : "border-dashed"}`}
                   />
@@ -273,6 +322,38 @@ export function StageSetup({
                   <span className={`${pill(on)} ${n === "1" ? "bg-lavender" : ""}`}>{tag}</span>
                 </div>
               ))}
+              {displayMode && (
+                <div className="flex flex-col gap-3" data-testid="stage-display">
+                  <span className="text-[22px] font-extrabold">{t.displayTitle}</span>
+                  <div className="grid grid-cols-4 gap-3">
+                    {DISPLAY_MODES.map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => void setDisplay(m)}
+                        className={`pressable ${card(m === "extend" && tvOn)} flex flex-col gap-1 rounded-[20px] px-4 py-3`}
+                      >
+                        <span className="text-xl font-extrabold">{t.display[m][0]}</span>
+                        <span className="text-[15px] leading-snug text-text-3">
+                          {t.display[m][1]}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => void setDisplay("settings")}
+                      className="pressable h-14 whitespace-nowrap rounded-full border-2 border-ink bg-white px-6 text-lg font-bold"
+                    >
+                      {t.displayMore}
+                    </button>
+                    {displayNote && (
+                      <span className="text-lg font-semibold text-text-2">{displayNote}</span>
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="mt-1.5 flex items-center gap-5">
                 <button
                   type="button"
@@ -327,6 +408,66 @@ export function StageSetup({
         )}
 
         {step === 5 && (
+          <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_600px] gap-10">
+            <div className="flex min-h-0 flex-col gap-[14px]" data-testid="stage-print-design">
+              <span className="text-[22px] font-extrabold">{t.designTitle}</span>
+              <div className="grid min-h-0 grid-cols-2 gap-3 overflow-y-auto pr-2 pb-2">
+                {choices.map(([id, name, info]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={print.choice === id}
+                    onClick={() => print.setChoice(id)}
+                    className={`${card(print.choice === id)} flex items-center gap-4 rounded-3xl px-6 py-4`}
+                  >
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="truncate text-[24px] font-extrabold tracking-[-0.02em]">
+                        {name}
+                      </span>
+                      <span className="text-[17px] leading-[1.4] text-text-3">{info}</span>
+                    </span>
+                    {print.choice === id && <Ok size={34} />}
+                  </button>
+                ))}
+              </div>
+              <span className="text-base text-text-2">{t.designNote}</span>
+            </div>
+            <div className="flex flex-col gap-5 rounded-[28px] border-[2.5px] border-ink bg-white px-[30px] py-[26px]">
+              <span className="text-2xl font-extrabold">{t.printerTitle}</span>
+              <span
+                data-testid="stage-printer"
+                className={`flex items-center gap-3 rounded-2xl border-2 border-ink px-5 py-4 text-xl font-bold ${!print.printer || print.printer.ok ? "bg-mint-soft" : "bg-peach"}`}
+              >
+                {!print.printer || print.printer.ok ? <Ok /> : null}
+                {print.printer?.message ?? t.printerReady}
+              </span>
+              <span className="text-lg leading-[1.45] text-text-3">{t.printerHint}</span>
+              <div className="flex-1" />
+              {print.onTest ? (
+                <button
+                  type="button"
+                  disabled={print.testState === "printing"}
+                  onClick={print.onTest}
+                  className="pressable layered h-20 rounded-[22px] border-[2.5px] border-ink bg-butter px-8 text-2xl font-extrabold disabled:opacity-60 [--lb:2.5px] [--lx:7px]"
+                >
+                  {print.testState === "printing"
+                    ? t.testPrinting
+                    : print.testState === "done"
+                      ? t.testDone
+                      : print.testState === "failed"
+                        ? t.testFailed
+                        : t.testPrint}
+                </button>
+              ) : (
+                <span className="rounded-2xl border-2 border-dashed border-ink bg-sky px-5 py-4 text-lg">
+                  {t.testNeedShot}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {step === 6 && (
           <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_600px] gap-10">
             <div className="flex flex-col gap-[18px]">
               <div className={`${card(autoOn)} flex flex-col gap-[18px] px-[30px] py-[26px]`}>

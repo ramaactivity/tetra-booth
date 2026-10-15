@@ -108,6 +108,18 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
       mimeType: "audio/wav",
       buffer: Buffer.from("RIFF0000WAVEfmt "),
     });
+    // Desain cetak Photo Stage (#274): bebas ukuran, umumnya 4R landscape; masuk bundle sebagai stageLayout.
+    const stageFrame = page.getByRole("group", { name: "Desain cetak Photo Stage" });
+    await stageFrame.getByRole("button", { name: /Pilih desain/ }).click();
+    await picker.getByRole("textbox", { name: "Cari nama desain" }).fill("landscape");
+    await picker.getByRole("button", { name: /^4R Single landscape/ }).click();
+    await picker.getByRole("button", { name: "Pakai desain ini" }).click();
+    await expect(
+      stageFrame.getByRole("img", { name: "Pratinjau 4R Single landscape" }),
+    ).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.locator("#photo-stage").screenshot({ path: "test-results/admin-photo-stage.png" });
     await page.getByLabel("Maks. cetak per sesi").fill("3");
     await page.getByLabel(/Pilih booth/).check();
     await page.getByLabel(dev?.name ?? "").check();
@@ -138,6 +150,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
       settings: { maxPrints: 3 },
       assets: { ov: "overlay.png" },
     });
+    expect(m.config.stageLayout).toMatchObject({ paper: "4R", canvas: { width: 1800 } });
     expect(m.config.layout.slots).toHaveLength(4);
     expect(m.config.sounds).toEqual({ "3": "off", jepret: "snd-jepret" });
     expect(m.config.assets["snd-jepret"]).toBe("snd-jepret.wav");

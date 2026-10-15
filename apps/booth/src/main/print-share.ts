@@ -8,7 +8,7 @@ import { PaperSchema } from "@tetra/shared";
 import { z } from "zod";
 import type { Alerts } from "./alerts";
 import { request, ServiceUnavailable } from "./camera-client";
-import type { BoothDb } from "./db";
+import type { BoothDb, PrintQueueRow } from "./db";
 
 /**
  * Printer bersama lewat WiFi lokal (#261): satu laptop printer (pusat) mencetak untuk beberapa booth/Photo Stage di
@@ -44,6 +44,12 @@ const Found = z.object({
   port: z.number().int(),
 });
 export type FoundHub = { id: string; name: string; url: string };
+/** Jawaban `GET /jobs`: status job kiriman booth di laptop printer (id tanpa awalan `lan-`). */
+const JobStates = z.record(
+  z.string(),
+  z.object({ status: z.string(), error: z.string().nullable() }),
+);
+export type JobStates = z.infer<typeof JobStates>;
 
 const fromHeader = (req: IncomingMessage) => {
   try {
@@ -63,6 +69,8 @@ export function startPrintHub(o: {
   /** Job sudah tercatat (kiriman ulang booth setelah balasan hilang tidak mencetak dua kali). */
   has: (jobId: string) => boolean;
   print: (j: PrintPayload & { from: string }) => Promise<void>;
+  /** Status job `lan-*` di laptop printer (untuk booth pengirim). */
+  jobs: (ids: string[]) => JobStates;
   status: () => Omit<HubStatus, "id" | "name">;
   log: (m: string) => void;
   port?: number;
@@ -81,9 +89,21 @@ export function startPrintHub(o: {
       if (req.headers["x-tetra-key"] !== o.key) return send(403, { error: "kode printer salah" });
       const from = fromHeader(req);
       if (from) peers.set(from, Date.now());
-      const path = new URL(req.url ?? "/", "http://hub").pathname;
+      const u = new URL(req.url ?? "/", "http://hub");
+      const path = u.pathname;
       if (req.method === "GET" && path === "/status")
         return send(200, { id: o.id, name: o.name(), ...o.status() });
+      if (req.method === "GET" && path === "/jobs") {
+        const ids = (u.searchParams.get("ids") ?? "")
+          .split(",")
+          .filter((x) => /^[\w-]{1,56}$/.test(x))
+          .slice(0, 100);
+        const st = o.jobs(ids.map((x) => `lan-${x}`));
+        return send(
+          200,
+          Object.fromEntries(Object.entries(st).map(([k, v]) => [k.replace(/^lan-/, ""), v])),
+        );
+      }
       if (req.method !== "POST" || path !== "/print") return send(404, { error: "not found" });
       const h = Job.safeParse({
         jobId: req.headers["x-tetra-job"],
@@ -238,6 +258,18 @@ export function createHubClient(o: {
     hub: o.hub,
     url: () => url,
     last: () => last,
+    /** Status job yang sudah diterima laptop printer; null = tidak terjangkau. */
+    async jobs(ids: string[]): Promise<JobStates | null> {
+      try {
+        const r = await fetch(`${url}/jobs?ids=${ids.map(encodeURIComponent).join(",")}`, {
+          headers: { "x-tetra-key": o.hub.key, "x-tetra-from": encodeURIComponent(o.from()) },
+          signal: AbortSignal.timeout(4000),
+        });
+        return r.ok ? JobStates.parse(await r.json()) : null;
+      } catch {
+        return null;
+      }
+    },
     async poll(): Promise<HubState> {
       last = await checkHub(url, o.hub.key, o.from());
       if (last === null) await rediscover();
@@ -274,7 +306,7 @@ export type HubClient = ReturnType<typeof createHubClient>;
 
 let client: HubClient | null = null;
 let onSent: (jobId: string) => void = () => {};
-/** Booth ini mencetak lewat laptop printer (dipasang sekali di index). `sent` = job diterima pusat. */
+/** Booth ini mencetak lewat laptop printer (dipasang sekali di index). `sent` = job diterima pusat (belum tercetak). */
 export function printViaHub(c: HubClient, sent: (jobId: string) => void) {
   client = c;
   onSent = sent;
@@ -304,12 +336,20 @@ export type PrintShareInfo =
       key: string;
       urls: string[];
       peers: { name: string; secAgo: number }[];
+      jobs: PrintQueueRow[];
     }
-  | { mode: "remote"; name: string; state: "ok" | "unreachable" | "badkey"; pending: number };
+  | {
+      mode: "remote";
+      name: string;
+      state: "ok" | "unreachable" | "badkey";
+      pending: number;
+      jobs: PrintQueueRow[];
+    };
 
 /** Antrean booth menunggu laptop printer: dikirim ulang urut selama 6 jam (WiFi putus lama tetap tercetak). */
 const REMOTE_WINDOW_MS = 6 * 3600_000;
 const POLL_MS = 5000;
+const since = () => new Date(Date.now() - REMOTE_WINDOW_MS).toISOString();
 
 const lanIps = () =>
   Object.values(networkInterfaces())
@@ -351,7 +391,14 @@ export function setupPrintShare(o: {
       name: o.name,
       inbox: o.inbox,
       has: (j) => o.db.printStatus(j) !== undefined,
-      print: (j) => o.sendPrint({ ...j, sessionId: j.jobId }),
+      print: async (j) => {
+        try {
+          await o.sendPrint({ ...j, sessionId: j.jobId });
+        } finally {
+          if (j.from) o.db.printPeer(j.jobId, j.from);
+        }
+      },
+      jobs: (ids) => o.db.printStates(ids),
       status: () => ({ printer: o.alerts.printer(), paper: o.alerts.paper(), tone: tone() }),
       log: o.log,
     });
@@ -367,6 +414,7 @@ export function setupPrintShare(o: {
             .peers()
             .map((p) => ({ name: p.name, secAgo: Math.round((Date.now() - p.at) / 1000) }))
             .sort((a, b) => a.secAgo - b.secAgo),
+          jobs: o.db.recentPrints(since(), true),
         };
       },
       // Warna cetakan dikalibrasi di laptop printer; booth yang mengirim memakai nilai ini.
@@ -382,13 +430,9 @@ export function setupPrintShare(o: {
   const c = createHubClient({ hub, from: o.name, log: o.log });
   let lastOk: HubStatus | null = null;
   o.alerts.viaHub(() => lastOk?.paper ?? { remaining: 0, capacity: 0 });
-  printViaHub(c, (jobId) => {
-    o.db.printJobResult(jobId, "done");
-    o.alerts.onPrintDone(jobId);
-  });
+  printViaHub(c, (jobId) => o.db.printSent(jobId));
   const flush = async () => {
-    const since = new Date(Date.now() - REMOTE_WINDOW_MS).toISOString();
-    for (const j of o.db.pendingPrints(since, Number.MAX_SAFE_INTEGER)) {
+    for (const j of o.db.pendingPrints(since(), Number.MAX_SAFE_INTEGER)) {
       try {
         await submitPrint({
           jobId: j.id,
@@ -405,20 +449,37 @@ export function setupPrintShare(o: {
       }
     }
   };
+  /** Hasil cetak dari laptop printer: tercetak / gagal (crew bisa Cetak ulang dari booth ini atau dari sana). */
+  const sync = async () => {
+    const ids = o.db.sentPrints(since());
+    if (!ids.length) return;
+    const st = await c.jobs(ids);
+    for (const id of ids) {
+      const s = st?.[id];
+      if (s?.status === "done" || s?.status === "reprinted") {
+        o.db.printJobResult(id, "done");
+        o.alerts.onPrintDone(id);
+      } else if (s?.status === "failed" || s?.status === "dismissed") {
+        const msg = `Gagal di ${hub.name}: ${s.error ?? "printer"}`;
+        o.log(`[print-share] ${id} ${msg}`);
+        o.db.printJobResult(id, "failed", msg);
+        o.alerts.onPrintFailed(id, msg);
+      }
+    }
+  };
   let busy = false;
   const tick = async () => {
     if (busy) return;
     busy = true;
     try {
       const st = await c.poll();
-      if (st === "badkey")
-        o.alerts.onHubStatus("error", `Kode printer ${hub.name} salah, hubungkan ulang`);
-      else if (st === null)
-        o.alerts.onHubStatus("unavailable", `${hub.name} tidak terjangkau, cek WiFi`);
+      if (st === "badkey") o.alerts.onHubStatus("badkey");
+      else if (st === null) o.alerts.onHubStatus("unreachable");
       else {
         lastOk = st;
-        o.alerts.onHubStatus(st.printer.status, st.printer.message);
+        o.alerts.onHubStatus("ok", st.printer);
         await flush();
+        await sync();
       }
     } finally {
       busy = false;
@@ -433,7 +494,8 @@ export function setupPrintShare(o: {
         mode: "remote",
         name: hub.name,
         state: st === "badkey" ? "badkey" : st ? "ok" : "unreachable",
-        pending: o.db.printsInFlight(new Date(Date.now() - REMOTE_WINDOW_MS).toISOString()),
+        pending: o.db.printsInFlight(since()),
+        jobs: o.db.recentPrints(since(), false),
       };
     },
     tone: () => lastOk?.tone ?? null,

@@ -294,3 +294,80 @@ describe("ngaca dulu & jeda (#254)", () => {
     expect(run([start, ...shootAll, { type: "PAUSE" }]).paused).toBe(false);
   });
 });
+
+describe("batalkan sesi & tahan timer (Rama 14 Okt)", () => {
+  const review = run([start, ...shootAll]);
+  const camError: SessionEvent[] = [
+    start,
+    { type: "COUNTDOWN_DONE" },
+    { type: "CAPTURE_FAILED" },
+    { type: "CAPTURE_FAILED" },
+  ];
+  it("batal dari ngaca, hitung mundur, preview, kamera bermasalah, cek foto, filter → layar awal", () => {
+    const states = [
+      run([{ ...start, mirror: true }]),
+      run([start]),
+      run([start, ...shoot(1)]),
+      run(camError),
+      review,
+      run([{ ...start, filters: true }, ...shootAll, { type: "CONTINUE" }]),
+    ];
+    expect(states.map((x) => x.phase)).toEqual([
+      "mirror",
+      "countdown",
+      "preview",
+      "camera_error",
+      "review",
+      "filter",
+    ]);
+    for (const x of states) expect(sessionReducer(x, { type: "CANCEL" })).toEqual(initialSession);
+  });
+  it("tidak bisa batal saat kamera memotret, sesudah dirangkai, atau di photobox", () => {
+    const capturing = run([start, { type: "COUNTDOWN_DONE" }]);
+    const qr = run(
+      [
+        { type: "CONTINUE" },
+        { type: "COMPOSED", strip: { path: "/s/x.jpg", piecePath: "/s/x.jpg", url: "blob:x" } },
+        { type: "PRINTS_SELECTED", count: 0 },
+      ],
+      review,
+    );
+    const paidReview = { ...review, photobox: true };
+    for (const x of [capturing, qr, paidReview]) {
+      expect(sessionReducer(x, { type: "CANCEL" })).toBe(x);
+    }
+  });
+  it("ditahan: hitung mundur & preview tidak jalan; dilepas = mulai lagi dari awal", () => {
+    const held = run([start, { type: "HOLD" }]);
+    expect(held.held).toBe(true);
+    expect(run([{ type: "COUNTDOWN_DONE" }], held).phase).toBe("countdown");
+    const released = run([{ type: "RELEASE" }], held);
+    expect(released).toMatchObject({ held: false, resumes: 1 });
+    expect(run([{ type: "COUNTDOWN_DONE" }], released).phase).toBe("capture");
+    const preview = run([start, ...shoot(1), { type: "HOLD" }, { type: "PREVIEW_DONE" }]);
+    expect(preview.phase).toBe("preview");
+    expect(run([{ type: "RELEASE" }, { type: "PREVIEW_DONE" }], preview).phase).toBe("countdown");
+    const mirror = run([{ ...start, mirror: true }, { type: "HOLD" }, { type: "MIRROR_DONE" }]);
+    expect(mirror.phase).toBe("mirror");
+  });
+  it("cek foto bisa ditahan (foto diperbesar); jeda tamu di cek foto tetap tidak berlaku", () => {
+    expect(run([{ type: "HOLD" }], review).held).toBe(true);
+    expect(run([{ type: "PAUSE" }], review).paused).toBe(false);
+    expect(run([{ type: "HOLD" }, { type: "RETAKE", index: 0 }], review).held).toBe(false);
+    expect(run([{ type: "HOLD" }, { type: "CONTINUE" }], review)).toMatchObject({
+      phase: "compose",
+      held: false,
+    });
+  });
+  it("tahan diabaikan saat memotret & sesudah dirangkai; kamera pulih tetap tertahan", () => {
+    const capturing = run([start, { type: "COUNTDOWN_DONE" }]);
+    expect(run([{ type: "HOLD" }], capturing)).toBe(capturing);
+    const back = run([{ type: "HOLD" }, { type: "CAMERA_READY" }], run(camError));
+    expect(back).toMatchObject({ phase: "countdown", held: true });
+    expect(run([{ type: "COUNTDOWN_DONE" }], back).phase).toBe("countdown");
+  });
+  it("waktu habis (photobox) melepas tahanan", () => {
+    const pb = { ...run([start, { type: "HOLD" }]), photobox: true, deadline: 1 };
+    expect(run([{ type: "TIME_UP" }], pb)).toMatchObject({ phase: "compose", held: false });
+  });
+});

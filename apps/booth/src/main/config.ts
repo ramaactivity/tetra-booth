@@ -236,7 +236,8 @@ export const config: BoothConfig = {
   guestUrl: process.env.TETRA_GUEST_URL ?? "https://booth.tetraphoto.com",
   ...(device.webcamId ? { webcamId: device.webcamId } : {}),
   mirrorLiveView: device.mirrorLiveView ?? true,
-  mirrorPhoto: device.mirrorPhoto ?? false,
+  // Bawaan nyala (Rama 14 Okt): hasil foto sama dengan yang tamu lihat di layar cermin.
+  mirrorPhoto: device.mirrorPhoto ?? true,
   ...(flags.value("role") === "stage" ? { role: "stage" as const } : {}),
   ...(flags.value("role") === "print" ? { role: "print" as const } : {}),
 };
@@ -292,7 +293,7 @@ export const deviceNow: DeviceSettings = {
   camera: config.camera,
   ...(device.webcamId ? { webcamId: device.webcamId } : {}),
   mirrorLiveView: config.mirrorLiveView ?? true,
-  mirrorPhoto: config.mirrorPhoto ?? false,
+  mirrorPhoto: config.mirrorPhoto ?? true,
   afBeforeCapture: !!device.afBeforeCapture,
   ...(config.camera === "hotfolder" && flags.value("hot-folder")
     ? { hotFolder: flags.value("hot-folder") }

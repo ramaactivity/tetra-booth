@@ -79,6 +79,25 @@ export interface BoothDb {
   }): Promise<void>;
 }
 
+/** Satu sesi selesai: `sent` dari `files` sudah di cloud; `error` = alasan percobaan terakhir gagal. */
+export type UploadSession = {
+  id: string;
+  completedAt: string;
+  files: number;
+  sent: number;
+  error: string | null;
+};
+export type UploadEvent = {
+  eventId: string;
+  name: string;
+  sessions: number;
+  sentSessions: number;
+  files: number;
+  sentFiles: number;
+  /** Terbaru dulu, maks. 300. */
+  list: UploadSession[];
+};
+
 export type Unsubscribe = () => void;
 export type CrewStatus = {
   online: boolean;
@@ -153,6 +172,16 @@ export type HubCheck =
     }
   | "badkey"
   | null;
+/** Satu cetakan di antrean printer bersama; `peer` = booth pengirim (hanya di laptop printer). */
+export type PrintQueueJob = {
+  id: string;
+  peer: string | null;
+  copies: number;
+  paper: string;
+  status: "queued" | "sent" | "done" | "failed" | "reprinted" | "dismissed";
+  error: string | null;
+  created_at: string;
+};
 /** Keadaan printer bersama di laptop ini (halaman Printer mode crew). */
 export type PrintShareInfo =
   | { mode: "local" }
@@ -162,8 +191,15 @@ export type PrintShareInfo =
       key: string;
       urls: string[];
       peers: { name: string; secAgo: number }[];
+      jobs: PrintQueueJob[];
     }
-  | { mode: "remote"; name: string; state: "ok" | "unreachable" | "badkey"; pending: number };
+  | {
+      mode: "remote";
+      name: string;
+      state: "ok" | "unreachable" | "badkey";
+      pending: number;
+      jobs: PrintQueueJob[];
+    };
 /** Antrean printer Windows: `offline` = port tidak tersambung (WorkOffline), `port` mis. "USB003". */
 export type PrinterQueue = { offline: boolean; port: string };
 /**
@@ -178,7 +214,10 @@ export type DeviceInfo = {
 };
 /** Field pengaturan event yang boleh diubah crew di booth (DECISIONS #100). */
 export type EventOverride = Partial<
-  Pick<EventSettings, "countdownSec" | "retakeMax" | "maxPrints" | "qrScreenSec" | "sessionSec">
+  Pick<
+    EventSettings,
+    "countdownSec" | "retakeMax" | "maxPrints" | "qrScreenSec" | "sessionSec" | "mirrorSec"
+  >
 >;
 export type EventSettingsInfo = { cloud: EventSettings; override: EventOverride };
 /** File aset baru dari editor desain booth (overlay/latar/font); disimpan di folder lokal event. */
@@ -200,7 +239,8 @@ export type UpdateCheck = {
 export type UpdateResult = { ok: boolean; from: string; to: string; now: string } | null;
 export type FailedPrint = { id: string; copies: number; error: string | null; createdAt: string };
 /** Peringatan kecil untuk crew di pojok layar (printer error, cetak gagal, kertas menipis). */
-export type PrinterAlert = { message: string } | null;
+/** `ok` = kabar baik (titik mint), mis. "Terhubung ke printer pusat" (#261). */
+export type PrinterAlert = { message: string; ok?: true } | null;
 
 /** Sesi lama tanpa potongan web 2× (#140): foto raw urut & potongan 1× tersimpan (null = tidak ada). */
 export type OldSession = { id: string; eventId: string; photos: string[]; piece: string | null };
@@ -254,6 +294,8 @@ export interface BoothCrew {
   galleryLink(eventId: string): Promise<string>;
   /** Unggah antrean sekarang juga, lewati jeda backoff (FSD §1.3 "coba sekarang"). */
   retryUploads(): Promise<void>;
+  /** Status upload per event cloud + per sesi (#271): mana yang sudah terkirim dan mana yang masih di laptop. */
+  uploads(): Promise<UploadEvent[]>;
   device(): Promise<DeviceInfo>;
   /** Simpan pengaturan perangkat; booth dibuka ulang supaya kamera & printer baru dipakai. */
   saveDevice(s: DeviceSettings): Promise<void>;
@@ -325,6 +367,11 @@ export interface BoothEvents {
    * `before` = `completedAt` kartu terakhir halaman sebelumnya.
    */
   recentPieces(eventId: string, limit: number, before?: string): Promise<PiecePage>;
+  /**
+   * Event cloud yang sesinya masih di laptop, belum terkirim (#274): untuk pengingat saat aplikasi dibuka. Tanpa PIN,
+   * isinya hanya nama event & jumlah sesi.
+   */
+  unsent(): Promise<{ name: string; sessions: number }[]>;
 }
 
 /** QRIS photobox lewat cloud (TSD §8). Satu-satunya langkah yang butuh internet; gagal = reject. */
@@ -352,6 +399,8 @@ export type StageStatus = {
   /** Kode 4 digit HP helper (#206), dipasang di alamat `#helper=<kode>`. */
   helperKey?: string;
 };
+/** Mode layar laptop + TV (#274): Perluas / Duplikat / Hanya laptop / Hanya TV, atau buka Pengaturan layar OS. */
+export type StageDisplayMode = "extend" | "clone" | "internal" | "external" | "settings";
 /** Photo Stage (#178): ada hanya di laptop berperan `stage`. */
 export interface BoothStage {
   /** Mulai/berhenti menerima jepretan rana fotografer (Canon, atau folder pantau aplikasi tether). */
@@ -375,6 +424,8 @@ export interface BoothStage {
     /** TV tersambung (jendela TV terbuka). */
     connected(): Promise<boolean>;
     onConnected(cb: (on: boolean) => void): Unsubscribe;
+    /** Ganti mode layar (Windows) atau buka Pengaturan layar OS; "settings" = yang terjadi pengaturan dibuka. */
+    displayMode?(mode: StageDisplayMode): Promise<"switched" | "settings">;
   };
 }
 

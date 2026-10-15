@@ -5,6 +5,7 @@ import type {
   BoothPayments,
   BoothPlatform,
   SessionAsset,
+  StageDisplayMode,
   StageRemote,
   StageStatus,
 } from "@tetra/booth-core";
@@ -75,6 +76,7 @@ export type TetraBridge = {
   crewPair: BoothCrew["pair"];
   crewSyncEvents: BoothCrew["syncEvents"];
   crewRetryUploads: BoothCrew["retryUploads"];
+  crewUploads: BoothCrew["uploads"];
   crewRunState: BoothCrew["runState"];
   crewEventRun: BoothCrew["eventRun"];
   crewRecap: BoothCrew["recap"];
@@ -113,6 +115,7 @@ export type TetraBridge = {
   eventsSetActive: BoothEvents["setActive"];
   eventAsset: BoothEvents["asset"];
   eventsRecentPieces: BoothEvents["recentPieces"];
+  eventsUnsent: BoothEvents["unsent"];
   paymentCreate: BoothPayments["create"];
   paymentStatus: BoothPayments["status"];
   /** Photo Stage (#178). */
@@ -127,6 +130,7 @@ export type TetraBridge = {
   stageTvLast(): Promise<unknown>;
   onStageTv(cb: (state: unknown) => void): () => void;
   stageTvStatus(): Promise<boolean>;
+  stageDisplayMode(mode: StageDisplayMode): Promise<"switched" | "settings">;
   onStageTvStatus(cb: (on: boolean) => void): () => void;
 };
 

@@ -28,6 +28,8 @@ export type EventTemplate = {
   layoutVersion?: number;
   /** Mode event (DECISIONS #99): desain tambahan pilihan tamu, `<preset>` atau `tpl:<layoutId>`; maks. 2 (total 3). */
   extras?: string[];
+  /** Desain cetak Photo Stage (#274): `<preset>` atau `tpl:<layoutId>`; kosong = frame bawaan booth. */
+  stage?: string;
   /** Versi terkunci tiap template editor yang dipakai (utama + tambahan), layoutId → versi. */
   versions?: Record<string, number>;
 };
@@ -94,6 +96,8 @@ export function buildBundle(e: {
   /** Nama template editor utama (kartu pilih desain di booth). */
   customName?: string;
   extras?: ExtraDesign[];
+  /** Desain cetak Photo Stage (#274). */
+  stage?: ExtraDesign | null;
   /** Photobox: versi template editor yang dijual, per layoutId (#108). */
   pbTemplates?: Record<string, { name: string; custom: StoredLayout }>;
   attract?: AttractSettings;
@@ -184,6 +188,12 @@ export function buildBundle(e: {
         const p = prefixed(x.custom, `d${i + 1}-`);
         return { design: design(x.name, p.layout), files: p.files };
       });
+  // Photo Stage (#274): aset template editor berawalan st-.
+  const stage = !e.stage
+    ? null
+    : "preset" in e.stage
+      ? { layout: layoutOf(e.stage.preset), files: [] }
+      : prefixed(e.stage.custom, "st-");
   const main = e.custom
     ? Object.entries(e.custom.files).map(([id, f]) => ({ id, ...f }))
     : e.overlay
@@ -198,6 +208,7 @@ export function buildBundle(e: {
   const all = [
     ...main,
     ...extras.flatMap((x) => x.files),
+    ...(stage?.files ?? []),
     ...pbItems.flatMap((x) => x.files),
     ...bg,
     ...snd,
@@ -224,6 +235,7 @@ export function buildBundle(e: {
         ...extras.map((x) => x.design),
       ],
     }),
+    ...(stage && { stageLayout: stage.layout }),
     ...((e.attract || bg.length) && {
       attract: { ...e.attract, ...(bg.length && { imageAssetId: "attract" }) },
     }),

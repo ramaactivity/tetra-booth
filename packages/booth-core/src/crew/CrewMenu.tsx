@@ -25,6 +25,7 @@ import {
   Printer,
   QrCode as QrCodeIcon,
   Settings,
+  X,
 } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
@@ -61,6 +62,7 @@ import { btn, dot, Panel, Pill, Row, StatusStrip, ToggleRow, type Tone } from ".
 import { Sheet } from "./Sheet";
 import { StartDialog } from "./StartDialog";
 import { testPrint } from "./testPrint";
+import { UploadStatus, uploadReason } from "./UploadStatus";
 
 const PAPER_LOW = 30;
 const DEFAULT_ROLL = 700;
@@ -740,6 +742,23 @@ export function CrewMenu({
     home: (
       <>
         <Journey now={phase} />
+        {/* Foto belum terkirim (#274): crew diingatkan di halaman pertama, terutama saat pulang/di kantor. */}
+        {!!status?.uploadPending && (
+          <div
+            data-testid="home-unsent"
+            className="flex items-center gap-6 rounded-[20px] border-[2.5px] border-ink bg-peach px-6 py-4"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-[26px] leading-tight font-extrabold">
+                {c.unsentNote.home(status.uploadPending)}
+              </p>
+              <p className="text-lg font-semibold">{c.unsentNote.recapBody}</p>
+            </div>
+            <Button variant="secondary" className={btn} onClick={() => setSection("system")}>
+              {c.unsentNote.open}
+            </Button>
+          </div>
+        )}
         <div className="grid grid-cols-[1.05fr_1fr] items-start gap-6 portrait:grid-cols-1">
           <Panel title={`1 · ${c.setup.title}`} hint={c.setup.sub}>
             <ol className="flex flex-col gap-4">
@@ -1063,6 +1082,7 @@ export function CrewMenu({
               )}
             </Row>
           </Panel>
+          <UploadStatus activeId={event.id} />
           <RoleChoice dev={dev} />
           <Panel title={c.sharpen.title} hint={c.sharpen.body}>
             {sharpen && (
@@ -1250,12 +1270,22 @@ export function CrewMenu({
       </div>
 
       {note && (
-        <p
+        // Naik di atas bar Simpan supaya tombol Simpan tidak tertutup; ✕ untuk menutup sebelum 8 dtk.
+        <div
           role="status"
-          className="layered fixed right-8 bottom-8 z-20 max-w-[620px] rounded-[20px] border-[2.5px] border-ink bg-sky px-6 py-4 text-xl font-semibold [--lx:6px]"
+          className={`layered fixed right-8 z-20 flex max-w-[620px] items-start gap-4 rounded-[20px] border-[2.5px] border-ink bg-sky py-4 pr-4 pl-6 text-xl font-semibold [--lx:6px] ${dev.changes.length ? "bottom-36" : "bottom-8"}`}
         >
-          {note}
-        </p>
+          <span className="min-w-0 flex-1 py-1.5">{note}</span>
+          <button
+            type="button"
+            data-testid="crew-note-close"
+            aria-label={c.closeNote}
+            onClick={() => setNoteRaw(undefined)}
+            className="pressable flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-white"
+          >
+            <X size={22} strokeWidth={2.5} />
+          </button>
+        </div>
       )}
 
       {sheet === "roll" && roll !== null && (
@@ -1365,14 +1395,4 @@ export function CrewMenu({
       )}
     </main>
   );
-}
-
-/** Error upload mentah ("/api/booth/sessions: server 404", "fetch failed") → alasan yang dimengerti crew. */
-function uploadReason(raw: string): string {
-  const e = copy.crew.uploadErr;
-  if (/server 401|server 403/.test(raw)) return e.revoked;
-  if (/server 404/.test(raw)) return e.gone;
-  if (/server 5\d\d/.test(raw)) return e.server;
-  if (/fetch failed|offline|ENOTFOUND|ECONN|ETIMEDOUT|network/i.test(raw)) return e.offline;
-  return e.other;
 }

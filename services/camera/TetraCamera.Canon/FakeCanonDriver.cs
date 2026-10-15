@@ -81,7 +81,10 @@ public sealed class FakeCanonDriver(
     public byte[]? LiveViewFrame() =>
         FrameError is { } fe ? throw new CameraFailure("canon_error", $"EDSDK unduh frame live view gagal: {fe}")
         : Silent ? throw new CameraFailure("canon_error", "EDSDK unduh frame live view gagal: 0x00000081")
-        : LiveView && IsOpen ? Jpeg : null;
+        : LiveView && IsOpen ? [.. Jpeg, (byte)++_frameNo] : null;
+    // Byte setelah EOI diabaikan decoder: tiap frame beda seperti kamera asli (main membuang frame identik), jadi
+    // e2e bisa membedakan live view mengalir vs beku (#269).
+    private int _frameNo;
     public void Focus(string step) => FocusSteps.Add(step);
     public void FocusAt(double x, double y) => FocusSteps.Add($"at {x:0.00},{y:0.00}");
 

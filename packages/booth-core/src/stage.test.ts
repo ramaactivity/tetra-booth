@@ -5,6 +5,7 @@ import {
   activeGroup,
   initialStage,
   type StageState,
+  stageDesigns,
   stagePrintLayout,
   stageReducer,
   tvMosaic,
@@ -113,6 +114,30 @@ describe("stagePrintLayout (#183, #194)", () => {
     expect(
       stagePrintLayout(ev(FIXTURES["2x6x2"]), { width: 4000, height: 6000 }).canvas.width,
     ).toBe(1200);
+  });
+});
+
+describe("desain cetak stage pilihan crew (#274)", () => {
+  const strip = FIXTURES["2x6x2"];
+  const stageLayout = {
+    ...FIXTURES["4R"],
+    id: "st-land",
+    canvas: { width: 1800, height: 1200, dpi: 300 as const },
+  };
+  const ev = { layout: strip, name: "Rina & Dimas", date: "12 Desember 2026", stageLayout };
+  const land = { width: 6000, height: 4000 };
+  it("auto = desain Photo Stage admin; pilihan desain/Lengkung/foto penuh dihormati", () => {
+    expect(stagePrintLayout(ev, land)).toBe(stageLayout);
+    expect(stageDesigns(ev).map((d) => d.id)).toEqual(["st-land", strip.id]);
+    expect(stagePrintLayout(ev, land, `design:${strip.id}`)).toBe(strip);
+    expect(stagePrintLayout(ev, land, "arch").id).toBe("stage-lengkung");
+    expect(stagePrintLayout(ev, land, "full").canvas).toEqual({
+      width: 1800,
+      height: 1200,
+      dpi: 300,
+    });
+    // Desain yang sudah dilepas admin: kembali ke auto.
+    expect(stagePrintLayout(ev, land, "design:hilang")).toBe(stageLayout);
   });
 });
 

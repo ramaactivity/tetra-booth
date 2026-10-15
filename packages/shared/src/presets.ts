@@ -188,6 +188,9 @@ export const EVENT_PRESETS = [
   "4r-single",
 ] as const satisfies PresetId[];
 
+/** Preset tambahan khusus desain cetak Photo Stage (#274): umumnya 4R landscape. */
+export const STAGE_PRESETS = ["4rl-single"] as const satisfies PresetId[];
+
 /** Nama ukuran kertas singkat: "2R", "4R", "Polaroid". */
 export const paperShort = (paper: LayoutPaper) => SIZE[paper].label;
 
