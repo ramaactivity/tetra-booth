@@ -129,7 +129,10 @@ FOTO +2344 ms 6740480 byte
 ## Tambahan: GH5 cabut-pasang / mati-nyala dengan booth dev berjalan
 
 - Kamera hilang → `kamera tidak merespons … dianggap terputus` → `tersambung: DC-GH5` dalam ±8 s (14:57:10Z → 14:57:19Z). Lulus.
-- Setelah tersambung, setelan tersimpan (ISO 3200, 1/50, f/1.7, Daylight) **ditolak** (err 0): GH5 belum siap tepat
-  setelah menyala/tersambung. Perbaikan di `LumixDriver.SetProp` saja (Canon tidak disentuh): coba ulang tiap 250 ms
-  selama 6 s pertama setelah Open (tenggat bersama, jauh di bawah `StuckAfter` 20 s). **Belum diuji di kamera asli**
-  (GH5 dipakai Rama).
+- Setelah tersambung, setelan tersimpan (ISO 3200, 1/50, f/1.7, Daylight) **tidak terpasang**: GH5 menanyakan USB mode
+  setiap dinyalakan/disambung, dan sampai crew memilih (bisa lama) setelan ditolak (err 0) atau dijawab "berhasil" tanpa
+  berubah (ISO 8000 tetap 8000). Perbaikan di `LumixDriver` saja (Canon tidak disentuh): selama 2 menit setelah Open,
+  setelan yang dikirim dicatat dan `Pump` (tiap detik) membaca balik lalu memasang ulang sampai cocok; lewat 2 menit =
+  log "atur di kamera". Uji GH5: ISO diubah di kamera, mati-nyala, USB mode dipilih ±20–30 s kemudian → booth kembali ke
+  ISO 3200 / 1/50 / f/1.7 / Daylight. **Lulus.**
+- Tips Lumix: Setup → USB Mode = PC(Tether) (bukan "pilih saat sambung") supaya kamera tidak bertanya tiap dinyalakan.
