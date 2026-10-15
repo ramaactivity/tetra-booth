@@ -52,6 +52,9 @@ public sealed class LumixDriver : ICanonDriver
     public bool IsOpen => _open;
 
     private uint _lastErr;
+    private long _openedAt;
+    /// <summary>Batas coba ulang setelan setelah Open, bersama untuk semua setelan (thread kamera tertahan maks. segini).</summary>
+    private const int ReadyMs = 6000;
 
     private void Check(byte ok, uint err, string what)
     {
@@ -90,6 +93,7 @@ public sealed class LumixDriver : ICanonDriver
         if (LMX_func_api_SetupFilesConfig_Set_Target(TargetPcOnly, out err) != 1)
             Console.Error.WriteLine($"[lumix] simpan ke PC ditolak (0x{err:X8}), foto diambil dari kartu");
         _lost = 0;
+        _openedAt = Environment.TickCount64;
         _open = true;
         return (model, "usb");
     }
@@ -301,13 +305,27 @@ public sealed class LumixDriver : ICanonDriver
             LumixProps.Exposure => LMX_func_api_Exposure_Set_Param,
             _ => throw new CameraFailure("bad_prop", $"setelan Lumix 0x{propId:X8} tidak dikenal"),
         };
-        if (f(value, out var err) == 1) return;
+        if (SetWhenReady(f, value, out var err)) return;
         // GH5 (15 Okt): nilai yang tidak berlaku di mode sekarang ditolak tanpa kode (mis. EV di M dengan ISO manual).
         if (err == 0)
             throw new CameraFailure("prop_rejected", propId == LumixProps.Exposure
                 ? "kamera menolak EV: di mode M dengan ISO manual EV tidak berlaku, pakai ISO Auto atau ubah ISO/shutter"
                 : "kamera menolak nilai ini di mode sekarang; atur di kamera");
         Check(0, err, "ubah setelan");
+    }
+
+    /// <summary>
+    /// GH5 (15 Okt): tepat setelah tersambung / dinyalakan kamera menolak semua setelan tanpa kode beberapa detik, jadi
+    /// setelan tersimpan tidak terpasang. Dalam <see cref="ReadyMs"/> pertama setelah Open: coba ulang sampai kamera siap.
+    /// </summary>
+    private bool SetWhenReady(SetFn f, uint value, out uint err)
+    {
+        while (f(value, out err) != 1)
+        {
+            if (err != 0 || Environment.TickCount64 - _openedAt > ReadyMs) return false;
+            Thread.Sleep(250);
+        }
+        return true;
     }
 
     public void Dispose() => Close();
