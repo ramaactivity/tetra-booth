@@ -63,7 +63,8 @@ export function PauseControl({
     return (
       <Button
         variant="plain"
-        className="absolute bottom-12 left-10 z-20 h-[88px] rounded-[22px] bg-white/85! px-7 text-[26px]"
+        // Di atas pil status printer (bottom-5, BoothApp): dulu menutupinya (Rama 15 Okt).
+        className="absolute bottom-[84px] left-10 z-20 h-[88px] rounded-[22px] bg-white/85! px-7 text-[26px]"
         onClick={onPause}
       >
         <Pause size={26} strokeWidth={2.5} fill="currentColor" />
