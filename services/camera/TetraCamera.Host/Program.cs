@@ -18,6 +18,7 @@ string? canon = null, canonSettings = null;
 // `--sony-probe <wpd|fake|fake-v3>` = diagnostik W-037 lalu keluar; `--sony-force 2|3` memaksa versi protokol;
 // `--sony-settings <file>` = setelan crew yang dipasang ulang tiap sambung (#113, #171).
 string? sony = null, sonyProbe = null, sonyForce = null, sonySettings = null;
+bool sonyShoot = false, sonySet = false; // --sony-shoot: diagnostik jepret di --sony-probe (lapangan 15 Okt)
 // Panasonic Lumix (DECISIONS #214): folder berisi Lmxptpif.dll, atau "fake" (kamera simulasi untuk dev/e2e).
 // `--lumix-probe <folder|fake>` = diagnostik W-043 (jepret satu ke folder kerja) lalu keluar.
 string? lumix = null, lumixProbe = null, lumixSettings = null;
@@ -46,6 +47,8 @@ for (var i = 0; i + 1 < args.Length; i++)
         case "--canon-settings": canonSettings = Path.GetFullPath(args[i + 1]); break;
         case "--sony": sony = args[i + 1]; break;
         case "--sony-probe": sonyProbe = args[i + 1]; break;
+        case "--sony-shoot": sonyShoot = true; break;
+        case "--sony-set": sonySet = true; break;
         case "--sony-force": sonyForce = args[i + 1]; break;
         case "--sony-settings": sonySettings = Path.GetFullPath(args[i + 1]); break;
         case "--lumix": lumix = args[i + 1]; break;
@@ -60,6 +63,8 @@ if (sonyProbe is not null)
 {
     using var t = SonyTransport(sonyProbe);
     if (t is null) return 1;
+    if (sonyShoot) return TetraCamera.Sony.SonyShootProbe.Run(t, Console.Out);
+    if (sonySet) return TetraCamera.Sony.SonySetProbe.Run(t, Console.Out);
     return TetraCamera.Sony.SonyProbe.Run(t, Console.Out,
         sonyForce switch { "2" => TetraCamera.Sony.SonyProfile.V2, "3" => TetraCamera.Sony.SonyProfile.V3, _ => null });
 }
