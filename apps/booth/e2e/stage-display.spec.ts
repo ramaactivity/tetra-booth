@@ -133,15 +133,33 @@ test("layar galeri: cari laptop stage, kode, galeri tamu tampil, sambung ulang s
     // Jepretan fotografer di laptop stage → tampil di layar galeri.
     // Folder pantau belum tentu sudah dibuat aplikasi (runner CI lebih lambat dari Mac): siapkan sendiri.
     mkdirSync(join(stageData, "hot"), { recursive: true });
-    await new Promise((r) => setTimeout(r, 800)); // pemantau folder terpasang sesudah folder dibuat
-    writeFileSync(join(stageData, "hot", "DSC0001.JPG"), await jpeg(stage, 1));
-    await expect(frame.locator('[aria-hidden="false"] img')).toHaveCount(1, { timeout: 20_000 });
+    // Pemantau folder di runner CI bisa baru terpasang beberapa detik kemudian: tulis jepretan baru tiap 3 dtk
+    // sampai satu tampil di layar galeri.
+    let shot = 0;
+    await expect
+      .poll(
+        async () => {
+          shot += 1;
+          writeFileSync(join(stageData, "hot", `A${shot}.JPG`), await jpeg(stage, 1));
+          return frame.locator('[aria-hidden="false"] img').count();
+        },
+        { timeout: 60_000, intervals: [3_000] },
+      )
+      .toBeGreaterThan(0);
     await dw.screenshot({ path: "test-results/stage-display-gallery.png" });
 
     // Mode crew dari dalam galeri (fokus di iframe): Ctrl+Shift+M diteruskan halaman galeri.
-    await dw.mouse.click(1150, 700);
+    await dw.mouse.click(300, 60); // area judul: bukan kartu foto (jumlah foto bisa >1)
     await expect.poll(() => dw.evaluate(() => document.activeElement?.tagName)).toBe("IFRAME");
-    await dw.keyboard.press("Control+Shift+M");
+    // keydown dikirim langsung di dokumen galeri: keyboard.press Playwright ke iframe lain-origin kadang
+    // menggantung di Electron (bukan perilaku aplikasi).
+    await frame
+      .locator("body")
+      .evaluate(() =>
+        window.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "M", ctrlKey: true, shiftKey: true }),
+        ),
+      );
     await typePin(dw, "2468");
     await typePin(dw, "2468");
     await dw.getByTestId("crew-nav-system").click();
