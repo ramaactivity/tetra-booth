@@ -240,6 +240,16 @@ public class SonyCameraTests
         Assert.Equal("camera_error", (await Assert.ThrowsAsync<CameraFailure>(() => cam.CaptureAsync(Dir(), 0))).Code);
     }
 
+    [Fact]
+    public async Task Rasio_selain_3_2_diberi_tahu_di_setelan()
+    {
+        var t = FakeSonyTransport.A7IV();
+        using var cam = await Make(t);
+        Assert.Equal("3:2", (await cam.PropsAsync()).Single(p => p.Name == "aspect").Value);
+        t.SetStatus(AspectRatio, 2); // bawaan ZV-E10
+        Assert.Contains("ubah ke 3:2", (await cam.PropsAsync()).Single(p => p.Name == "aspect").Value);
+    }
+
     // ---------- S3 live view ----------
 
     [Theory]

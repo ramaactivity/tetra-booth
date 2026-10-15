@@ -14,7 +14,7 @@ public static class SonyProps
     public const ushort WhiteBalance = 0x5005, FNumber = 0x5007, ExposureComp = 0x5010, Shutter = 0xD20D,
         FocusIndication = 0xD213, ShootingFileInfo = 0xD215, Battery = 0xD218, Iso = 0xD21E, LiveViewStatus = 0xD221,
         SaveDestination = 0xD222, NearFarEnabled = 0xD235, MediaStatus = 0xD248, MediaShots = 0xD249,
-        Overheating = 0xD251, PositionKey = 0xD25A, LiveViewQuality = 0xD26A, CameraError = 0xD1BB;
+        Overheating = 0xD251, AspectRatio = 0xD211, PositionKey = 0xD25A, LiveViewQuality = 0xD26A, CameraError = 0xD1BB;
 
     // Kontrol (SDIO_ControlDevice). F/EV/shutter/ISO memakai kode yang sama dengan propertinya (v2: langkah notch).
     public const ushort S1 = 0xD2C1, S2 = 0xD2C2, NearFar = 0xD2D1, AfAreaPosition = 0xD2DC;

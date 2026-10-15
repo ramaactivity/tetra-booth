@@ -319,6 +319,7 @@ public sealed class FakeSonyTransport : IPtpTransport
             [LiveViewStatus] = new(0x0002, false, 0x01, [0x00, 0x01, 0x02]),
             [SaveDestination] = new(0x0004, false, SaveToPc, [SaveToPc, SaveToCard, SaveToBoth]),
             [NearFarEnabled] = new(0x0002, false, 0x01, [0x00, 0x01]),
+            [AspectRatio] = new(0x0002, true, 0x01, [0x01, 0x02]),
         };
         if (!v3) return d;
         d[MediaStatus] = new(0x0002, false, 0x01, [0x01, 0x02, 0x03, 0x09]);
