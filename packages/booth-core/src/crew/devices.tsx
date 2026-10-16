@@ -39,12 +39,45 @@ const UNTESTED: Partial<Record<CameraKind, string>> = {
   lumix: copy.crew.lumixUntested,
   nikon: copy.crew.nikonUntested,
 };
-const TIPS: Partial<Record<CameraKind, readonly string[]>> = {
-  canon: d.canonTips,
-  sony: copy.crew.sonyTips,
-  lumix: copy.crew.lumixTips,
-  nikon: copy.crew.nikonTips,
-};
+const TIPS: Partial<Record<CameraKind, readonly { t: string; d: string }[]>> = copy.crew.cameraTips;
+
+/**
+ * Pengingat setelan kamera (Rama 16 Okt: dulu teks panjang bertumpuk dan muncul dua kali). Satu kartu untuk kamera
+ * yang sedang dipilih: poin bernomor, judul pendek + satu kalimat, dua kolom supaya cepat dipindai crew.
+ */
+export function CameraTips({ camera }: { camera: CameraKind }) {
+  const tips = TIPS[camera];
+  if (!tips) return null;
+  return (
+    <section
+      data-testid={`${camera}-reminder`}
+      className="flex flex-col gap-5 rounded-[26px] border-[2.5px] border-ink bg-peach p-7"
+    >
+      <header className="flex flex-col gap-1">
+        <h2 className="text-[26px] leading-tight font-extrabold">
+          {copy.crew.cameraRemindTitle(d.choice[camera].title)}
+        </h2>
+        <p className="text-lg font-medium text-text-2">{copy.crew.cameraRemindHint}</p>
+      </header>
+      <ol className="grid grid-cols-2 gap-4 portrait:grid-cols-1">
+        {tips.map((tip, i) => (
+          <li
+            key={tip.t}
+            className="flex items-start gap-4 rounded-[18px] border-2 border-ink bg-white px-5 py-4"
+          >
+            <span className="flex size-10 flex-none items-center justify-center rounded-full border-2 border-ink bg-butter text-lg font-extrabold">
+              {i + 1}
+            </span>
+            <span className="flex min-w-0 flex-col gap-1">
+              <span className="text-xl leading-snug font-extrabold">{tip.t}</span>
+              <span className="text-lg leading-snug font-medium text-text-2">{tip.d}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
 
 /**
  * Pengaturan perangkat dari mode crew (DECISIONS #85) sebagai draf bersama halaman Kamera, Printer, dan Sistem.
@@ -112,7 +145,7 @@ export function SaveBar({ dev }: { dev: Device }) {
 
 const lockedHint = (on: boolean) => (on ? d.locked : undefined);
 
-/** Halaman Kamera: merek yang dipakai, webcam/hot folder, tips menu kamera. */
+/** Halaman Kamera: merek yang dipakai, webcam/hot folder (tips menu kamera ada di CameraTips). */
 export function CameraChoice({ dev }: { dev: Device }) {
   const [webcams, setWebcams] = useState<MediaDeviceInfo[]>([]);
   useEffect(() => {
@@ -124,7 +157,6 @@ export function CameraChoice({ dev }: { dev: Device }) {
   const camera = dev.draft.camera ?? "webcam";
   const locked = dev.locked("camera");
   const kinds: CameraKind[] = camera === "hotfolder" ? [...CAMERAS, "hotfolder"] : [...CAMERAS];
-  const tips = TIPS[camera];
   return (
     <Panel title={d.cameraTitle} hint={lockedHint(locked) ?? d.cameraHint} testId="camera-choice">
       <div className="grid grid-cols-3 gap-4 portrait:grid-cols-2">
@@ -179,22 +211,6 @@ export function CameraChoice({ dev }: { dev: Device }) {
             </label>
           ))}
         </div>
-      )}
-      {tips && (
-        <details className="group rounded-[18px] border-2 border-ink bg-paper px-5 py-4">
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-xl font-bold">
-            {d.howTo(d.choice[camera].title)}
-            <span className="text-lg font-semibold text-text-2 group-open:hidden">{d.open}</span>
-            <span className="hidden text-lg font-semibold text-text-2 group-open:inline">
-              {d.close}
-            </span>
-          </summary>
-          <ol className="mt-3 flex list-decimal flex-col gap-2 pl-6 text-lg font-medium">
-            {tips.map((t) => (
-              <li key={t}>{t}</li>
-            ))}
-          </ol>
-        </details>
       )}
     </Panel>
   );

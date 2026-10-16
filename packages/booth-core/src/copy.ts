@@ -793,44 +793,96 @@ export const copy = {
     },
     /** Kosong: A7 III (v2) & ZV-E10 (v3) lulus uji kamera asli di B02, 15 Okt (sesi tamu, live view, setelan, cabut-pasang). */
     sonyUntested: "" as string,
-    sonyRemindTitle: "Pengingat setelan kamera Sony",
-    lumixRemindTitle: "Pengingat setelan kamera Lumix",
-    canonRemindTitle: "Pengingat setelan kamera Canon",
-    /** Dari uji lapangan 60D (B04) & 700D (B02), Okt 2026: kamera putus saat sibuk/baterai, dicuri aplikasi lain, AF gagal. */
-    canonRemindTips: [
-      "Putar dial ke M (bukan Auto, A+, atau video). Kualitas JPEG L, bukan RAW atau RAW+JPEG.",
-      "Menu kamera: Auto power off = Disable. Event panjang: baterai dummy + adaptor AC, jangan baterai biasa (kamera bisa putus saat baterai lemah).",
-      "Kabel USB langsung ke laptop, bukan hub. Tutup EOS Utility, LumaBooth, dan digiCamControl sebelum booth dibuka (aplikasi lain merebut kamera).",
-      "Kamera tidak mau memotret, terutama di tempat gelap? Geser saklar lensa AF ke MF, lalu putar ring fokus sampai tajam.",
-      "Kamera sempat putus? Tunggu 10–20 detik, booth menyambung sendiri. Foto yang sudah diambil tetap aman.",
-    ],
-    sonyRemindHint:
-      "Cek di menu kamera sebelum acara. Kalau salah satu tidak sesuai, rana bisa tidak mau jepret.",
-    sonyTips: [
-      "Menu kamera: USB Connection = PC Remote. ZV-E10 / A7 IV ke atas: Network → PC Remote Function → PC Remote = On, sambungan USB. Kalau tidak, laptop melihat kamera sebagai flashdisk.",
-      "Still Img. Save Dest. = PC Only. Kalau PC+Camera: kartu memori wajib terpasang dan tidak penuh (A7 III tidak memberi tahu booth kalau kartu penuh).",
-      "Format file JPEG (RAW+J PC Save Img = JPEG Only), ukuran L, Aspect Ratio 3:2 (16:9 memotong atas-bawah foto di frame).",
-      "Putar dial ke M. Power Save Start Time 30 menit, USB Power Supply On atau baterai dummy.",
-      "Kabel USB langsung ke laptop, bukan hub. Tutup Imaging Edge sebelum booth dibuka.",
-      "Tap to focus hanya ZV-E10 / A7 IV ke atas (Focus Area: Flexible Spot / Expand Flexible Spot).",
-    ],
     /** Kosong: GH5 lulus uji kamera asli di B02, 15 Okt (W-043: jepret, live view, AF/MF, setelan, sesi tamu). */
     lumixUntested: "" as string,
-    lumixTips: [
-      "Menu kamera: Setup → USB Mode = PC(Tether), bukan pilih saat sambung (kalau ditanya tiap menyala, pilih PC(Tether)). Tutup aplikasi LUMIX Tether sebelum booth dibuka.",
-      "Kualitas JPEG Fine (bukan RAW), Aspect Ratio 3:2. Foto dikirim ke laptop, kartu memori tidak wajib.",
-      "Putar dial ke M (bukan mode video: rana tidak jalan). Setup → Economy → Sleep Mode OFF. Event panjang: baterai dummy + adaptor AC.",
-      "Kabel USB-C langsung ke laptop, bukan hub. Tap to focus tidak ada; pakai tombol AF atau AF sebelum jepret. Geser fokus near/far hanya saat tuas fokus di MF.",
-    ],
+    /** Pengingat setelan kamera di halaman Kamera crew (judul pendek + penjelasan). Dari uji kamera asli Okt 2026. */
+    cameraRemindTitle: (brand: string) => `Cek setelan kamera ${brand} sebelum acara`,
+    cameraRemindHint:
+      "Kalau salah satu tidak sesuai, kamera bisa tidak mau jepret atau putus di tengah acara.",
+    cameraTips: {
+      canon: [
+        { t: "Dial di M", d: "Bukan Auto, A+, atau video. Kualitas JPEG L, bukan RAW." },
+        {
+          t: "Auto power off: Disable",
+          d: "Event panjang pakai baterai dummy + adaptor AC. Baterai lemah membuat kamera putus.",
+        },
+        {
+          t: "USB langsung ke laptop",
+          d: "Jangan lewat hub. Tutup EOS Utility, LumaBooth, dan digiCamControl dulu.",
+        },
+        {
+          t: "Tidak mau jepret? Lensa ke MF",
+          d: "Terutama di tempat gelap. Geser saklar lensa AF ke MF, putar ring fokus sampai tajam.",
+        },
+        {
+          t: "Kamera putus? Tunggu sebentar",
+          d: "Booth menyambung sendiri dalam 10–20 detik. Foto yang sudah diambil tetap aman.",
+        },
+      ],
+      sony: [
+        {
+          t: "USB Connection: PC Remote",
+          d: "ZV-E10 / A7 IV ke atas: Network → PC Remote Function → On, sambungan USB. Kalau tidak, kamera terbaca sebagai flashdisk.",
+        },
+        {
+          t: "Save Dest.: PC Only",
+          d: "Kalau PC+Camera, kartu memori wajib ada dan tidak penuh (A7 III tidak memberi tahu kalau penuh).",
+        },
+        {
+          t: "JPEG L, rasio 3:2",
+          d: "RAW+J PC Save Img = JPEG Only. Rasio 16:9 memotong atas-bawah foto di frame.",
+        },
+        {
+          t: "Dial di M, daya aman",
+          d: "Power Save Start Time 30 menit. USB Power Supply On atau baterai dummy.",
+        },
+        { t: "USB langsung ke laptop", d: "Jangan lewat hub. Tutup Imaging Edge dulu." },
+        {
+          t: "Tap to focus",
+          d: "Hanya ZV-E10 / A7 IV ke atas, dengan Focus Area Flexible Spot.",
+        },
+      ],
+      lumix: [
+        {
+          t: "USB Mode: PC(Tether)",
+          d: 'Setup → USB Mode. Jangan "pilih saat sambung" supaya kamera tidak bertanya tiap menyala. Tutup LUMIX Tether.',
+        },
+        {
+          t: "JPEG Fine, rasio 3:2",
+          d: "Bukan RAW. Foto langsung ke laptop, kartu memori tidak wajib.",
+        },
+        {
+          t: "Dial di M",
+          d: "Mode video membuat rana tidak jalan. Setup → Economy → Sleep Mode OFF.",
+        },
+        {
+          t: "USB-C langsung ke laptop",
+          d: "Jangan lewat hub. Event panjang pakai baterai dummy + adaptor AC.",
+        },
+        {
+          t: "Fokus",
+          d: "Tidak ada tap to focus; AF sebelum jepret. Near/far hanya saat tuas fokus di MF.",
+        },
+      ],
+      nikon: [
+        {
+          t: "USB langsung ke laptop",
+          d: "Tutup NX Tether, Camera Control Pro, dan Nikon Transfer dulu.",
+        },
+        { t: "JPEG, bukan RAW", d: "Foto langsung ke laptop, kartu memori tidak wajib." },
+        {
+          t: "Dial di M",
+          d: "Perpanjang timer mati otomatis. Event panjang pakai baterai dummy + adaptor AC.",
+        },
+        {
+          t: "Cek model",
+          d: "Z6III, Zf, Z30, Zfc, Z5II, Z50II, ZR butuh Windows 11. D3200–D3500 belum didukung.",
+        },
+        { t: "Fokus", d: "Tap to focus belum ada; pakai AF sebelum jepret." },
+      ],
+    },
     /** Hapus isinya (jadikan "") setelah W-044 lulus dengan kamera Nikon asli (#216). */
     nikonUntested: "Belum diuji dengan kamera asli" as string,
-    nikonTips: [
-      "Sambungkan lewat USB langsung ke laptop. Tutup NX Tether, Camera Control Pro, dan Nikon Transfer sebelum booth dibuka.",
-      "Kualitas JPEG (bukan RAW). Foto dikirim ke laptop, kartu memori tidak wajib.",
-      "Putar dial ke M. Perpanjang timer mati otomatis; event panjang pakai baterai dummy + adaptor AC.",
-      "Z6III, Zf, Z30, Zfc, Z5II, Z50II, ZR butuh Windows 11. D3200–D3500 belum didukung SDK Nikon.",
-      "Tap to focus belum ada; pakai tombol AF atau AF sebelum jepret.",
-    ],
     /** Alur kerja crew di Ringkasan (perombakan UI crew, Okt 2026): siapkan → selama acara → setelah acara. */
     flow: {
       title: "Alur kerja crew",
@@ -876,7 +928,6 @@ export const copy = {
         hotfolder: { title: "Hot folder", detail: "Diatur teknisi" },
       },
       untestedTag: "Belum diuji",
-      howTo: (brand: string) => `Cara setel kamera ${brand}`,
       open: "Buka",
       close: "Tutup",
       webcamTitle: "Webcam yang dipakai",
@@ -979,11 +1030,6 @@ export const copy = {
         toneRemote: "Warna cetakan ikut laptop printer. Atur dan Tes Cetak di sana.",
         via: (name: string) => `Lewat ${name}`,
       },
-      canonTips: [
-        "Sambungkan kamera lewat USB langsung ke laptop, bukan hub.",
-        "Putar dial ke M, kualitas JPEG. Matikan auto power off atau pakai baterai dummy.",
-        "File pendukung Canon diunduh otomatis saat booth online.",
-      ],
     },
     noWebcam: "Tidak ada webcam terdeteksi.",
     on: "Nyala",
