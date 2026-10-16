@@ -97,6 +97,10 @@ test("canon (EDSDK palsu): setelan ISO dari kamera tampil & bisa diubah di mode 
     await typePin(w, "2468");
     // Setelan eksposur langsung di halaman Kamera (menu samping crew).
     await w.getByTestId("crew-nav-camera").click();
+    // Pengingat setelan Canon (Rama 16 Okt), sama seperti Sony & Lumix.
+    await expect(w.getByTestId("canon-reminder")).toContainText("Pengingat setelan kamera Canon");
+    await expect(w.getByTestId("canon-reminder")).toContainText("Auto power off = Disable");
+    await w.screenshot({ path: "test-results/canon-reminder.png" });
     // Kecerahan monitor (#233): ISO/shutter live view tidak tampil; stepper menggeser ISO live view di balik layar.
     await expect(w.getByTestId("monitor-brightness")).toBeVisible({ timeout: 10_000 });
     await expect(w.getByTestId("camera-prop-iso")).toHaveCount(0);

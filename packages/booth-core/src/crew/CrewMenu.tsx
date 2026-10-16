@@ -880,18 +880,27 @@ export function CrewMenu({
             {c.openCameraCheck}
           </Button>
         </StatusStrip>
-        {(savedCamera === "sony" || savedCamera === "lumix") && (
+        {(savedCamera === "sony" || savedCamera === "lumix" || savedCamera === "canon") && (
           // Uji 15 Okt: A7 III diam saat Save Dest. PC+Camera tanpa kartu / kartu penuh; GH5 diam di mode video.
           <section
             data-testid={`${savedCamera}-reminder`}
             className="flex flex-col gap-3 rounded-[22px] border-[2.5px] border-ink bg-peach px-7 py-5"
           >
             <h2 className="text-2xl font-extrabold">
-              {savedCamera === "sony" ? c.sonyRemindTitle : c.lumixRemindTitle}
+              {savedCamera === "sony"
+                ? c.sonyRemindTitle
+                : savedCamera === "canon"
+                  ? c.canonRemindTitle
+                  : c.lumixRemindTitle}
             </h2>
             <p className="text-lg font-medium">{c.sonyRemindHint}</p>
             <ul className="flex list-disc flex-col gap-1.5 pl-6 text-lg">
-              {(savedCamera === "sony" ? c.sonyTips : c.lumixTips).map((t) => (
+              {(savedCamera === "sony"
+                ? c.sonyTips
+                : savedCamera === "canon"
+                  ? c.canonRemindTips
+                  : c.lumixTips
+              ).map((t) => (
                 <li key={t}>{t}</li>
               ))}
             </ul>

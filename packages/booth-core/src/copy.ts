@@ -795,6 +795,15 @@ export const copy = {
     sonyUntested: "" as string,
     sonyRemindTitle: "Pengingat setelan kamera Sony",
     lumixRemindTitle: "Pengingat setelan kamera Lumix",
+    canonRemindTitle: "Pengingat setelan kamera Canon",
+    /** Dari uji lapangan 60D (B04) & 700D (B02), Okt 2026: kamera putus saat sibuk/baterai, dicuri aplikasi lain, AF gagal. */
+    canonRemindTips: [
+      "Putar dial ke M (bukan Auto, A+, atau video). Kualitas JPEG L, bukan RAW atau RAW+JPEG.",
+      "Menu kamera: Auto power off = Disable. Event panjang: baterai dummy + adaptor AC, jangan baterai biasa (kamera bisa putus saat baterai lemah).",
+      "Kabel USB langsung ke laptop, bukan hub. Tutup EOS Utility, LumaBooth, dan digiCamControl sebelum booth dibuka (aplikasi lain merebut kamera).",
+      "Kamera tidak mau memotret, terutama di tempat gelap? Geser saklar lensa AF ke MF, lalu putar ring fokus sampai tajam.",
+      "Kamera sempat putus? Tunggu 10–20 detik, booth menyambung sendiri. Foto yang sudah diambil tetap aman.",
+    ],
     sonyRemindHint:
       "Cek di menu kamera sebelum acara. Kalau salah satu tidak sesuai, rana bisa tidak mau jepret.",
     sonyTips: [
