@@ -1094,7 +1094,8 @@ export function StageRunner({
               >
                 <Printer className="size-4 flex-none" strokeWidth={2.5} aria-hidden />
                 <span className="truncate">
-                  {t.printDesign}: {designs.find((d) => d[0] === printChoice)?.[1] ?? designs[0]?.[1]}
+                  {t.printDesign}:{" "}
+                  {designs.find((d) => d[0] === printChoice)?.[1] ?? designs[0]?.[1]}
                 </span>
                 <ChevronDown
                   className={`size-4 flex-none transition-transform motion-reduce:transition-none ${designOpen ? "rotate-180" : ""}`}
