@@ -223,6 +223,10 @@ export function BoothApp({
             event={event}
             guestBaseUrl={guestBaseUrl}
             onCrew={() => setCrewOpen(true)}
+            onRefresh={async () => {
+              await p.crew.syncEvents();
+              await reload();
+            }}
           />
         ) : (
           <SessionRunner

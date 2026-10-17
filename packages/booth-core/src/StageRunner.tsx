@@ -100,10 +100,13 @@ export function StageRunner({
   event,
   guestBaseUrl,
   onCrew,
+  onRefresh,
 }: {
   event: BoothEvent;
   guestBaseUrl: string;
   onCrew: () => void;
+  /** Tarik bundle event terbaru dari cloud + muat ulang (desain cetak baru dari admin, 17 Okt). */
+  onRefresh?: (() => Promise<void>) | undefined;
 }) {
   const p = usePlatform();
   const stage = p.stage;
@@ -162,11 +165,16 @@ export function StageRunner({
       return true;
     }
   });
+  // Persiapan dibuka ulang dari layar operator (17 Okt): mulai di langkah Cetak, dan jepretan tetap masuk rombongan
+  // (acara sudah jalan, foto tamu tidak boleh jadi foto tes).
+  const [reopened, setReopened] = useState(false);
   const setupRef = useRef(setupOpen);
+  const testRef = useRef(setupOpen);
   const nameRef = useRef<HTMLInputElement>(null);
   // Ketikan mentah: reducer men-trim tiap ketukan, jadi spasi yang baru diketik hilang ("KeluargaBesar").
   const [nameDraft, setNameDraft] = useState("");
   setupRef.current = setupOpen;
+  testRef.current = setupOpen && !reopened;
   const [testShot, setTestShot] = useState<StageShot>();
   const [tvTest, setTvTest] = useState(false);
   const [shooting, setShooting] = useState(false);
@@ -211,7 +219,7 @@ export function StageRunner({
       .listen(true)
       .catch((e: unknown) => console.error(`[stage] dengar rana gagal: ${errText(e)}`));
     const off = stage.onShot((sh) => {
-      if (setupRef.current) setTestShot({ ...sh, at: Date.now() });
+      if (testRef.current) setTestShot({ ...sh, at: Date.now() });
       else dispatch({ type: "SHOT", shot: { ...sh, at: Date.now() }, id: newSessionId() });
       makeThumb(sh.path);
     });
@@ -438,7 +446,7 @@ export function StageRunner({
         index: (a?.shots.length ?? 0) + 1,
       });
       const shot = { path: r.path, width: r.width, height: r.height, at: Date.now() };
-      if (setupRef.current) setTestShot(shot);
+      if (testRef.current) setTestShot(shot);
       else dispatch({ type: "SHOT", shot, id: newSessionId() });
       makeThumb(r.path);
     } catch (e) {
@@ -831,6 +839,16 @@ export function StageRunner({
           className="pressable h-[52px] flex-none rounded-[14px] border-2 border-ink bg-white px-[22px] text-lg font-bold"
         >
           {t.helper.button}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setReopened(true);
+            setSetupOpen(true);
+          }}
+          className="pressable h-[52px] flex-none rounded-[14px] border-2 border-ink bg-white px-[22px] text-lg font-bold"
+        >
+          {t.setupOpen}
         </button>
         <button
           type="button"
@@ -1391,6 +1409,8 @@ export function StageRunner({
       {setupOpen && (
         <StageSetup
           event={event}
+          startStep={reopened ? 5 : 1}
+          onRefresh={onRefresh}
           testShot={testShot}
           testThumb={testShot && thumbs[testShot.path]}
           cameraOk={cameraOk}
@@ -1437,6 +1457,7 @@ export function StageRunner({
             } catch {}
             setTvTest(false);
             setSetupOpen(false);
+            setReopened(false);
           }}
         />
       )}

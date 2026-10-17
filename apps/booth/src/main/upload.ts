@@ -21,13 +21,26 @@ export function createUploader(o: {
 }) {
   const now = o.now ?? Date.now;
   const iso = (ms: number) => new Date(ms).toISOString();
+  /**
+   * Upsert metadata sesi. Server 404 = event sesi ini sudah dihapus di admin (event mana pun di organisasi diterima,
+   * #259): sesi dilepas dari antrean, bukan dicoba ulang selamanya (Booth Rama 17 Okt: 15 file antre 404).
+   */
+  const upsertMeta = async (id: string) => {
+    try {
+      await o.api("/api/booth/sessions", o.db.sessionMeta(id));
+      o.db.sessionMetaSynced(id);
+      return true;
+    } catch (e) {
+      if ((e as { status?: unknown }).status !== 404) throw e;
+      o.db.uploadDropSession(id);
+      o.log(`[upload] sesi ${id}: event tidak ada di cloud, dilepas dari antrean`);
+      return false;
+    }
+  };
 
   const one = async (u: DueUpload) => {
     try {
-      if (!u.syncedMeta) {
-        await o.api("/api/booth/sessions", o.db.sessionMeta(u.sessionId));
-        o.db.sessionMetaSynced(u.sessionId);
-      }
+      if (!u.syncedMeta && !(await upsertMeta(u.sessionId))) return true;
       const { uploads } = SignResponse.parse(
         await o.api("/api/booth/uploads/sign", {
           sessionId: u.sessionId,
@@ -58,8 +71,7 @@ export function createUploader(o: {
       // Metadata saja (nama grup Photo Stage diganti setelah foto terunggah, #178). Gagal = dicoba di drain berikutnya.
       for (const id of o.db.dueMeta(20)) {
         try {
-          await o.api("/api/booth/sessions", o.db.sessionMeta(id));
-          o.db.sessionMetaSynced(id);
+          await upsertMeta(id);
         } catch (e) {
           o.log(`[upload] metadata ${id} gagal (${e instanceof Error ? e.message : String(e)})`);
           break;

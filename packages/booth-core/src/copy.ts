@@ -364,6 +364,10 @@ export const copy = {
       arch: ["Frame Lengkung", "Bawaan Tetra · 4R landscape dengan nama acara"],
       full: ["Foto penuh", "4R tanpa frame, mengikuti arah foto"],
       designNote: "Desain baru ditambahkan di admin: Pengaturan event → Photo Stage.",
+      refresh: "Ambil desain terbaru",
+      refreshing: "Mengambil…",
+      refreshed: "Desain terbaru sudah diambil",
+      refreshFailed: "Gagal mengambil (cek internet)",
       printerTitle: "Printer",
       printerReady: "Printer siap",
       printerHint:
@@ -545,6 +549,7 @@ export const copy = {
     done: "Selesai",
     noPhoto: "Jepret satu foto tes dulu untuk melihat hasilnya.",
     crew: "Crew",
+    setupOpen: "Persiapan",
     keys: "⏎ rombongan baru · Spasi jeda/lanjut",
     next: "Berikutnya:",
     doneCount: (done: number, all: number) => `${done}/${all} grup sudah`,

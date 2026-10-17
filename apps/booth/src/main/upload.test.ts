@@ -84,4 +84,22 @@ describe("uploader (N4)", () => {
     expect(db.dueUploads(new Date(t).toISOString(), 5)).toHaveLength(1);
     expect(db.dueUploads(new Date(t + BACKOFF_MS[0]!).toISOString(), 5)).toHaveLength(3);
   });
+
+  it("event sudah dihapus di cloud (404) → sesi dilepas dari antrean, tidak dicoba ulang", async () => {
+    const db = setup();
+    const calls: string[] = [];
+    const up = createUploader({
+      db,
+      log: () => {},
+      api: async (path) => {
+        calls.push(path);
+        throw Object.assign(new Error(`${path}: server 404`), { status: 404 });
+      },
+      put: async () => {},
+    });
+    await up.drain();
+    expect(db.uploadPending()).toBe(0);
+    expect(db.dueMeta(5)).toEqual([]);
+    expect(calls.every((c) => c === "/api/booth/sessions")).toBe(true);
+  });
 });

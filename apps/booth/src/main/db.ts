@@ -586,6 +586,18 @@ export function openDb(file: string) {
         ).run(assetId);
       });
     },
+    /**
+     * Event sesi ini sudah tidak ada di cloud (server 404): antrean & metadata sesi dilepas supaya tidak macet
+     * selamanya (status Upload kuning terus, metadata sesi lain tertahan). File lokal tetap ada.
+     */
+    uploadDropSession(sessionId: string) {
+      tx(() => {
+        db.prepare(
+          "delete from upload_queue where asset_id in (select id from assets where session_id = ?)",
+        ).run(sessionId);
+        db.prepare("update sessions set synced_meta = 1 where id = ?").run(sessionId);
+      });
+    },
     uploadFailed(assetId: string, error: string, nextAt: string) {
       db.prepare(
         "update upload_queue set attempts = attempts + 1, last_error = ?, next_attempt_at = ? where asset_id = ?",

@@ -1,10 +1,11 @@
 import { type LayoutSpec, paperLabel, STAGE_GAP } from "@tetra/shared";
 import { Check } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { copy } from "./copy";
 import type { BoothEvent } from "./event";
 import type { PrinterAlert, StageDisplayMode } from "./platform";
-import type { StagePrintChoice, StageShot } from "./stage";
+import { DesignThumb } from "./screens/DesignThumb";
+import { type StagePrintChoice, type StageShot, stageDesigns, stagePrintLayout } from "./stage";
 
 const t = copy.stage.setup;
 
@@ -67,6 +68,8 @@ export function StageSetup({
   lanKey,
   displayMode,
   print,
+  startStep = 1,
+  onRefresh,
 }: {
   event: BoothEvent;
   testShot: StageShot | undefined;
@@ -99,8 +102,27 @@ export function StageSetup({
     testState: "printing" | "done" | "failed" | undefined;
     onTest: (() => void) | undefined;
   };
+  /** Dibuka ulang dari layar operator = langsung ke langkah Cetak (17 Okt). */
+  startStep?: number;
+  /** Tarik desain terbaru dari cloud; dipanggil saat wizard dibuka dan dari tombol di langkah Cetak. */
+  onRefresh?: (() => Promise<void>) | undefined;
 }) {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(startStep);
+  const [sync, setSync] = useState<"busy" | "done" | "failed" | null>(null);
+  const refresh = (quiet: boolean) => {
+    if (!onRefresh) return;
+    if (!quiet) setSync("busy");
+    onRefresh().then(
+      () => !quiet && setSync("done"),
+      (e: unknown) => {
+        console.warn(`[stage] ambil desain terbaru gagal: ${String(e)}`);
+        if (!quiet) setSync("failed");
+      },
+    );
+  };
+  // Desain yang baru diunggah di admin setelah laptop membuka event: ambil saat wizard dibuka (offline = diam).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sekali saat wizard dibuka
+  useEffect(() => refresh(true), []);
   const [displayNote, setDisplayNote] = useState<string | null>(null);
   const setDisplay = (m: StageDisplayMode) =>
     displayMode?.(m).then(
@@ -113,6 +135,17 @@ export function StageSetup({
       (e: unknown) => setDisplayNote(String(e)),
     );
   const choices = printChoices(print.designs);
+  // Pratinjau desain (17 Okt): layout tiap pilihan sekali per event (DesignThumb memuat ulang aset kalau layout berganti).
+  const previews = useMemo(
+    () =>
+      new Map(
+        printChoices(stageDesigns(event)).map(([id]) => [
+          id,
+          stagePrintLayout(event, { width: 3, height: 2 }, id),
+        ]),
+      ),
+    [event],
+  );
   const choiceName = choices.find((c) => c[0] === print.choice)?.[1] ?? t.auto[0];
   const folder = model === "Hot folder";
   const camName = folder ? t.folder[0] : (model ?? t.canon[0]);
@@ -434,8 +467,15 @@ export function StageSetup({
                     type="button"
                     aria-pressed={print.choice === id}
                     onClick={() => print.setChoice(id)}
-                    className={`${card(print.choice === id)} flex items-center gap-4 rounded-3xl px-6 py-4`}
+                    className={`${card(print.choice === id)} flex items-center gap-4 rounded-3xl px-5 py-4`}
                   >
+                    <span className="flex h-[100px] w-[150px] flex-none items-center justify-center">
+                      {previews.get(id) && (
+                        <span className="h-full max-w-full overflow-hidden rounded-lg border-2 border-ink">
+                          <DesignThumb eventId={event.id} layout={previews.get(id) as LayoutSpec} />
+                        </span>
+                      )}
+                    </span>
                     <span className="flex min-w-0 flex-1 flex-col gap-1">
                       <span className="truncate text-[24px] font-extrabold tracking-[-0.02em]">
                         {name}
@@ -446,7 +486,21 @@ export function StageSetup({
                   </button>
                 ))}
               </div>
-              <span className="text-base text-text-2">{t.designNote}</span>
+              <span className="flex flex-wrap items-center gap-3 text-base text-text-2">
+                {t.designNote}
+                {onRefresh && (
+                  <button
+                    type="button"
+                    disabled={sync === "busy"}
+                    onClick={() => refresh(false)}
+                    className="pressable h-11 rounded-full border-2 border-ink bg-white px-4 text-base font-bold text-ink"
+                  >
+                    {sync === "busy" ? t.refreshing : t.refresh}
+                  </button>
+                )}
+                {sync === "done" && <span className="font-bold text-ink">{t.refreshed}</span>}
+                {sync === "failed" && <span className="font-bold text-ink">{t.refreshFailed}</span>}
+              </span>
             </div>
             <div className="flex flex-col gap-5 rounded-[28px] border-[2.5px] border-ink bg-white px-[30px] py-[26px]">
               <span className="text-2xl font-extrabold">{t.printerTitle}</span>
