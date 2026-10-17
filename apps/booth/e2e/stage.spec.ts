@@ -365,7 +365,7 @@ test("stage: jepretan fotografer → rombongan → sesi tersimpan", async () => 
     .getByRole("group", { name: "Desain cetak" })
     .getByRole("button", { name: "Foto penuh" })
     .click();
-  await expect(w.getByTestId("stage-print-design")).toHaveText("Foto penuh");
+  await expect(w.getByTestId("stage-print-design")).toHaveText("Desain cetak: Foto penuh");
   await hist.getByRole("button", { name: "Cetak" }).first().click();
   await expect(hist.getByRole("button", { name: /Dicetak|Gagal/ })).toBeVisible({
     timeout: 15_000,
