@@ -1,20 +1,13 @@
-// Build Windows: Electron (win-x64) + Camera Service (self-contained win-x64)
-// -> installer NSIS `Tetra-Booth-Setup.exe` + zip untuk update.cmd -> upload ke R2 `dev-builds/`. Ikut di-upload: update.cmd & setup-windows-dev.ps1.
-// Jalankan: pnpm dist:dev            (build + upload semua)
-//           pnpm dist:dev --tools    (hanya upload script Windows, tanpa build)
+// Rilis booth (DECISIONS #293): memicu workflow GitHub `booth-installer.yml` — cek kode (Linux) + installer NSIS
+// (Windows) bersamaan, lalu job publish meng-upload installer + blockmap + latest.json langsung ke R2. Laptop tidak
+// mengunduh/meng-upload apa pun, jadi kecepatan internet lokasi tidak berpengaruh. Ikut di-upload dari sini:
+// update.cmd & setup-windows-dev.ps1 (kecil).
+// Jalankan: pnpm dist:dev            (rilis versi di apps/booth/package.json; commit harus sudah di-push)
+//           pnpm dist:dev --tools    (hanya upload script Windows)
 // Butuh R2_* dan NEXT_PUBLIC_MEDIA_URL di apps/web/.env.local.
 
 import { execSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { readFileSync } from "node:fs";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 const need = (k) =>
@@ -48,20 +41,7 @@ const tool = (f) =>
   crlf(readFileSync(`tools/windows/${f}`, "utf8").replaceAll("__MEDIA_URL__", media));
 
 if (!process.argv.includes("--tools")) {
-  const pkg = JSON.parse(readFileSync("apps/booth/package.json", "utf8"));
-  const version = `${pkg.version} (${execSync("git rev-parse --short HEAD").toString().trim()} ${new Date().toISOString().slice(0, 16)})`;
-  const setup = `Tetra-Booth-Setup-${pkg.version}.exe`;
-  rmSync("dist", { recursive: true, force: true });
-  mkdirSync("dist/app", { recursive: true });
-
-  // Camera Service duluan: installer membawanya sebagai resources/camera (package.json build.extraResources).
-  console.log("\n[1/4] Camera Service win-x64 self-contained");
-  sh(
-    "dotnet publish services/camera/TetraCamera.Host -c Release -r win-x64 --self-contained -o dist/camera",
-  );
-
-  // Installer NSIS di-build di Windows (GitHub Actions): uninstaller hasil build macOS rusak (DECISIONS #91).
-  // Commit harus sudah di-push supaya CI membangun kode yang sama.
+  const { version } = JSON.parse(readFileSync("apps/booth/package.json", "utf8"));
   const sha = execSync("git rev-parse HEAD").toString().trim();
   const ref = execSync("git rev-parse --abbrev-ref HEAD").toString().trim();
   // Yang ikut ke installer: booth, packages, Camera Service. Perubahan web/dokumen sesi lain di checkout yang sama
@@ -72,78 +52,36 @@ if (!process.argv.includes("--tools")) {
       .trim()
   )
     throw new Error("ada perubahan booth belum di-commit; commit & push dulu");
+  execSync(`git fetch -q origin ${ref}`);
   if (execSync(`git rev-parse origin/${ref}`).toString().trim() !== sha)
     throw new Error(`HEAD belum di-push ke origin/${ref}`);
+  const started = Date.now();
   console.log(
-    `\n[2/4] Installer NSIS di GitHub Actions (windows-latest, ${ref} ${sha.slice(0, 7)})`,
+    `\n[1/2] Rilis ${version} di GitHub Actions (${ref} ${sha.slice(0, 7)}): cek kode + installer`,
   );
   sh(`gh workflow run booth-installer.yml --ref ${ref}`);
   let run = "";
   for (let i = 0; i < 30 && !run; i++) {
     execSync("sleep 4");
     run = execSync(
-      `gh run list --workflow booth-installer.yml --limit 5 --json databaseId,headSha -q '[.[] | select(.headSha == "${sha}")][0].databaseId // ""'`,
+      `gh run list --workflow booth-installer.yml --limit 5 --json databaseId,headSha,status -q '[.[] | select(.headSha == "${sha}" and .status != "completed")][0].databaseId // ""'`,
     )
       .toString()
       .trim();
   }
-  if (!run) throw new Error("run CI installer tidak ditemukan");
-  console.log("\n[2b/4] Electron win-x64 (zip update.cmd) di Mac, sambil menunggu CI");
-  sh("pnpm --filter booth build");
-  sh("pnpm exec electron-builder --win --x64 --dir --publish never", "apps/booth");
-  cpSync("apps/booth/release/win-unpacked", "dist/app/booth", { recursive: true });
-  sh(`gh run watch ${run} --exit-status`);
-  // Unduhan artifact kadang putus di tengah (timeout jaringan): ulang sampai 3x.
-  for (let i = 1; ; i++) {
-    try {
-      rmSync("dist/installer", { recursive: true, force: true });
-      sh(`gh run download ${run} -n booth-installer -D dist/installer`);
-      break;
-    } catch (e) {
-      if (i === 3) throw e;
-      console.log(`  unduh artifact gagal, ulang (${i}/3)`);
-    }
-  }
+  if (!run) throw new Error("run rilis tidak ditemukan di GitHub Actions");
+  sh(`gh run watch ${run} --exit-status --interval 10`);
 
-  console.log("\n[3/4] Zip (update.cmd)");
-  writeFileSync("dist/app/run.cmd", tool("run.cmd"));
-  writeFileSync("dist/app/VERSION.txt", `${version}\n`);
-  sh("zip -qr ../tetra-booth-dev.zip .", "dist/app");
-  const mb = (f) => `${(statSync(f).size / 1e6).toFixed(0)} MB`;
-  console.log(
-    `  zip ${mb("dist/tetra-booth-dev.zip")}, installer ${mb(`dist/installer/${setup}`)}, build ${version}`,
-  );
-
-  console.log("\n[4/4] Upload ke R2");
-  await put(
-    "dev-builds/tetra-booth-dev.zip",
-    readFileSync("dist/tetra-booth-dev.zip"),
-    "application/zip",
-  );
-  // Nama tetap (link untuk crew) + nama berversi (arsip).
-  const exe = readFileSync(`dist/installer/${setup}`);
-  await put(
-    "dev-builds/Tetra-Booth-Setup.exe",
-    exe,
-    "application/vnd.microsoft.portable-executable",
-  );
-  await put(`dev-builds/${setup}`, exe, "application/vnd.microsoft.portable-executable");
-  // Blockmap electron-builder untuk update diferensial (DECISIONS #139). Tidak ada di artifact = booth unduh penuh.
-  const blockmap = `dist/installer/${setup}.blockmap`;
-  const blockmapKey = existsSync(blockmap) ? `dev-builds/${setup}.blockmap` : undefined;
-  if (blockmapKey) await put(blockmapKey, readFileSync(blockmap), "application/gzip");
-  else console.log("  (blockmap tidak ada di artifact CI: booth akan mengunduh penuh)");
-  // Dibaca /api/booth/update (tombol Update di mode crew) & /download/booth (DECISIONS #80). Ditulis terakhir.
-  const release = {
-    version: pkg.version,
-    key: `dev-builds/${setup}`,
-    sha256: createHash("sha256").update(exe).digest("hex"),
-    size: exe.byteLength,
-    blockmapKey,
-  };
-  await put("dev-builds/latest.json", JSON.stringify(release, null, 2), "application/json");
-  console.log(`  OK: ${media}/dev-builds/tetra-booth-dev.zip`);
-  console.log(`  Installer ${pkg.version}: https://booth.tetraphoto.com/download/booth`);
+  console.log("\n[2/2] Cek latest.json di R2");
+  const latest = await (
+    await fetch(`${media}/dev-builds/latest.json`, { cache: "no-store" })
+  ).json();
+  if (latest.version !== version)
+    throw new Error(
+      `latest.json masih ${latest.version}, harusnya ${version} (cek log job publish)`,
+    );
+  const min = ((Date.now() - started) / 60000).toFixed(1);
+  console.log(`  OK ${version} dalam ${min} menit: https://booth.tetraphoto.com/download/booth`);
 }
 
 await put("dev-builds/update.cmd", tool("update.cmd"), "text/plain");

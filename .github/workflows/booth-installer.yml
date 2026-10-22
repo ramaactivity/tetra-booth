@@ -1,11 +1,30 @@
 name: Booth installer (Windows)
 
-# Installer NSIS dibuat di Windows: uninstaller hasil build macOS rusak (CRC), jadi update gagal
-# (DECISIONS #91). Dipicu dari Mac oleh `pnpm dist:dev`; hasilnya diunduh Mac lalu di-upload ke R2.
+# Rilis booth (DECISIONS #293). Dipicu dari Mac oleh `pnpm dist:dev`. Installer NSIS dibuat di Windows: uninstaller
+# hasil build macOS rusak (CRC), jadi update gagal (DECISIONS #91). Cek kode (Linux) dan build (Windows) jalan
+# bersamaan; kalau keduanya lulus, job publish meng-upload langsung ke R2 dari GitHub — tidak lewat laptop.
 on:
   workflow_dispatch:
 
+concurrency:
+  group: booth-release
+  cancel-in-progress: false
+
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
   installer:
     runs-on: windows-latest
     steps:
@@ -34,3 +53,25 @@ jobs:
             apps/booth/release/Tetra-Booth-Setup-*.exe.blockmap
           if-no-files-found: error
           retention-days: 14
+
+  publish:
+    needs: [check, installer]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v5
+        with:
+          name: booth-installer
+          path: dist/installer
+      - run: node scripts/publish-booth.mjs dist/installer
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
