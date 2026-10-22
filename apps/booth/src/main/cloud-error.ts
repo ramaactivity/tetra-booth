@@ -20,7 +20,7 @@ export function cloudErrorText(e: unknown, offline: string): string {
   const s = e instanceof CloudError ? e.status : undefined;
   if (s === undefined) return offline;
   if (s === 401)
-    return "Booth belum dipasangkan atau perlu dipasangkan ulang. Buka menu crew → Sambungkan ke akun Tetra.";
+    return "Booth belum dipasangkan atau perlu dipasangkan ulang. Buka Backstage → Ringkasan → Sambungkan ke akun Tetra.";
   if (s === 404)
     return "Booth ini tidak ditugaskan ke event ini. Minta admin menugaskan booth ini di Pengaturan event, lalu coba lagi.";
   if (s >= 500) return "Server sedang bermasalah, coba lagi sebentar lagi.";

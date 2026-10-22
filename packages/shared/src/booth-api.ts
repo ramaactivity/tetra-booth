@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { InstagramSchema } from "./guest-cam";
 import { SESSION_ID_PATTERN } from "./ids";
 
 /** Kontrak API booth ↔ cloud (TSD §7). Endpoint lain ditambah di milestone Fase 2 masing-masing. */
@@ -276,6 +277,49 @@ export type AssetsResponse = z.infer<typeof AssetsResponse>;
 /** POST /api/booth/events/{id}/gallery-link: aktifkan link galeri klien event ini (idempotent), balas slug. */
 export const GalleryLinkResponse = z.object({ slug: z.string().regex(/^[\w-]{1,80}$/) });
 export type GalleryLinkResponse = z.infer<typeof GalleryLinkResponse>;
+
+/**
+ * POST /api/booth/events/{id}/cloud-settings (Backstage tahap 2, #295): setelan cloud yang boleh diubah crew dari
+ * booth — link, Guest Cam, lead capture, kartu promo, branding halaman tamu. `patch` kosong/tidak ada = hanya baca.
+ * Harga, mode, nama/tanggal tetap dari admin. Teks kosong = dihapus; `guestColor` null = warna bawaan.
+ */
+export const CloudSettingsPatch = z
+  .object({
+    clientLink: z.boolean(),
+    liveLink: z.boolean(),
+    guestCam: z.boolean(),
+    leadCapture: z.boolean(),
+    promoCard: z.boolean(),
+    tagline: z.string().trim().max(40),
+    clientName: z.string().trim().max(120),
+    clientInstagram: z.array(InstagramSchema).max(6),
+    guestColor: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .nullable(),
+  })
+  .partial()
+  .strict();
+export type CloudSettingsPatch = z.input<typeof CloudSettingsPatch>;
+export const CloudSettingsRequest = z.object({ patch: CloudSettingsPatch.optional() });
+export const CloudSettings = z.object({
+  slug: z.string(),
+  clientLink: z.boolean(),
+  liveLink: z.boolean(),
+  /** Guest Cam aktif = setelan nyala + link /c ada. */
+  guestCam: z.boolean(),
+  /** Path halaman Guest Cam (/c/…) kalau link ada. */
+  guestPath: z.string().nullable(),
+  leadCapture: z.boolean(),
+  /** Field + teks persetujuan sudah diatur di admin; tanpa itu lead capture tidak bisa dinyalakan dari booth. */
+  leadReady: z.boolean(),
+  promoCard: z.boolean(),
+  tagline: z.string(),
+  clientName: z.string(),
+  clientInstagram: z.array(z.string()),
+  guestColor: z.string().nullable(),
+});
+export type CloudSettings = z.infer<typeof CloudSettings>;
 
 /** POST /api/track (publik, rate-limited): analytics halaman tamu (FSD §2). */
 export const TrackRequest = z.object({

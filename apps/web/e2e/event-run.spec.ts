@@ -281,6 +281,50 @@ test("API booth: buka, ulang (idempotent), jeda offline terlambat, selesai", asy
         ?.client_token,
     ).toBe(tok1);
 
+    // Backstage tahap 2 (#295): baca/ubah setelan cloud dari booth.
+    const cloud = (patch?: Record<string, unknown>) =>
+      request.post(`/api/booth/events/${eventId}/cloud-settings`, {
+        headers: auth,
+        data: patch ? { patch } : {},
+      });
+    expect((await request.post(`/api/booth/events/${eventId}/cloud-settings`)).status()).toBe(401);
+    const c0 = await (await cloud()).json();
+    expect(c0).toMatchObject({ slug, clientLink: true, guestCam: false, promoCard: true });
+    const v0 = (await db.from("events").select("bundle_version").eq("id", eventId).single()).data
+      ?.bundle_version;
+    const c1 = await cloud({
+      guestCam: true,
+      tagline: "The Wedding of",
+      clientInstagram: ["rina.dimas"],
+    });
+    expect(c1.status()).toBe(200);
+    expect(await c1.json()).toMatchObject({
+      guestCam: true,
+      tagline: "The Wedding of",
+      clientInstagram: ["rina.dimas"],
+    });
+    const after = (
+      await db
+        .from("events")
+        .select("bundle_version, guest_token, settings, branding")
+        .eq("id", eventId)
+        .single()
+    ).data;
+    expect(after?.bundle_version).toBe((v0 ?? 0) + 1);
+    expect(after?.guest_token).toBeTruthy();
+    expect((after?.settings as { guestCam?: { enabled?: boolean } }).guestCam?.enabled).toBe(true);
+    expect(after?.branding).toMatchObject({ tagline: "The Wedding of" });
+    // Lead capture belum diatur admin → 422; isian tak dikenal / IG rusak → 400.
+    expect((await cloud({ leadCapture: true })).status()).toBe(422);
+    expect((await cloud({ mode: "photobox" })).status()).toBe(400);
+    expect((await cloud({ clientInstagram: ["bukan akun!"] })).status()).toBe(400);
+    const audit = await db
+      .from("audit_logs")
+      .select("action")
+      .eq("target", eventId)
+      .eq("action", "event.settings.booth");
+    expect(audit.data).toHaveLength(1);
+
     const run = (await db.from("events").select("run").eq("id", eventId).single()).data?.run as {
       segments: { start: string; end?: string }[];
       finishedAt?: string;
@@ -347,9 +391,12 @@ test("API booth: booth yang memotret event boleh lapor & bagikan galeri walau ti
       print_count: 1,
       upload_status: "complete",
     });
-    const call = (auth: Record<string, string>, sid: string) =>
-      Promise.all([
+    // Upload sesi terakhir & terpisah: setelah sesi masuk, booth itu dianggap pernah memotret event (#170), jadi
+    // kalau dikirim bersamaan hasil panggilan lain bergantung urutan tiba (tes dulu flaky).
+    const call = async (auth: Record<string, string>, sid: string) => {
+      const event = await Promise.all([
         request.post(`/api/booth/events/${eventId}/gallery-link`, { headers: auth, data: {} }),
+        request.post(`/api/booth/events/${eventId}/cloud-settings`, { headers: auth, data: {} }),
         request.post(`/api/booth/events/${eventId}/storage`, {
           headers: auth,
           data: { bytes: 10, files: 1 },
@@ -358,23 +405,27 @@ test("API booth: booth yang memotret event boleh lapor & bagikan galeri walau ti
           headers: auth,
           data: { id: randomUUID(), action: "start", at: new Date().toISOString() },
         }),
-        request.post("/api/booth/sessions", {
-          headers: auth,
-          data: {
-            id: `as${sid}${tag}a`,
-            eventId,
-            startedAt: new Date().toISOString(),
-            completedAt: new Date().toISOString(),
-            photoCount: 1,
-            retakeCount: 0,
-            printCount: 1,
-            assetCount: 1,
-          },
-        }),
-      ]).then((r) => r.map((x) => x.status()));
-    expect(await call(rama.auth, "r")).toEqual([200, 200, 200, 200]);
-    expect(await call(shot.auth, "s")).toEqual([200, 200, 200, 200]);
-    expect(await call(other.auth, "x")).toEqual([404, 404, 404, 404]);
+      ]);
+      const upload = await request.post("/api/booth/sessions", {
+        headers: auth,
+        data: {
+          id: `as${sid}${tag}a`,
+          eventId,
+          startedAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+          photoCount: 1,
+          retakeCount: 0,
+          printCount: 1,
+          assetCount: 1,
+        },
+      });
+      return [...event, upload].map((x) => x.status());
+    };
+    expect(await call(rama.auth, "r")).toEqual([200, 200, 200, 200, 200]);
+    expect(await call(shot.auth, "s")).toEqual([200, 200, 200, 200, 200]);
+    // Upload sesi diterima dari booth mana pun di organisasi yang sama (a1779c4: event dipindah booth tidak
+    // menahan foto); aksi event lain tetap hanya untuk booth yang ditugaskan / pernah memotret.
+    expect(await call(other.auth, "x")).toEqual([404, 404, 404, 404, 200]);
   } finally {
     await db.from("audit_logs").delete().eq("target", eventId);
     await db.from("sessions").delete().eq("event_id", eventId);

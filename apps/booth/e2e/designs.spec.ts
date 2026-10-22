@@ -150,7 +150,7 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     await w.getByTestId("step-pair").getByRole("button", { name: "Sambungkan" }).click();
     await typePin(w, "123456");
     await expect(w.getByTestId("pair-device")).toContainText("Booth Uji · B08");
-    await w.getByRole("button", { name: "Kembali ke Menu Crew" }).click();
+    await w.getByRole("button", { name: "Kembali ke Backstage" }).click();
     await expect(w.getByTestId("cloud-device")).toHaveText("Booth Uji · B08");
     await w.getByTestId("step-event").getByRole("button").click();
     await w.getByRole("button", { name: /Mode Event/ }).click();

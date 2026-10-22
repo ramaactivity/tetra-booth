@@ -157,6 +157,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
       openEventFolder: (id) => bridge.crewOpenEventFolder(id),
       eventSize: (id) => bridge.crewEventSize(id),
       galleryLink: (id) => bridge.crewGalleryLink(id),
+      cloudSettings: (id, patch) => bridge.crewCloudSettings(id, patch),
       oldSessions: () => bridge.crewOldSessions(),
       reupload: (id, a) => bridge.crewReupload(id, a),
       checkUpdate: () => bridge.crewCheckUpdate(),

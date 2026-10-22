@@ -7,6 +7,8 @@ import {
   type BoothStatus,
   BoothUpdateResponse,
   BundleManifest,
+  CloudSettings,
+  type CloudSettingsPatch,
   EdsdkResponse,
   GalleryLinkResponse,
   GuestPrintClaim,
@@ -294,6 +296,12 @@ export function createCloud(
     async galleryLink(eventId: string) {
       return GalleryLinkResponse.parse(await api(`/api/booth/events/${eventId}/gallery-link`, {}))
         .slug;
+    },
+    /** Setelan cloud event (#295); tanpa patch = hanya baca. Offline/ditolak = Error (CloudError + status). */
+    async cloudSettings(eventId: string, patch?: CloudSettingsPatch) {
+      return CloudSettings.parse(
+        await api(`/api/booth/events/${eventId}/cloud-settings`, patch ? { patch } : {}),
+      );
     },
     /**
      * Cetak tamu Guest Cam (#223): ambil job untuk kertas printer ini + unduh frame-nya. Offline / gagal = Error

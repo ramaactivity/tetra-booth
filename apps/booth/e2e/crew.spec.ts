@@ -294,6 +294,22 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   const storage: { bytes: number; files: number }[] = [];
   let gifHead = "";
   let linkCalls = 0;
+  // Backstage tahap 2 (#295): setelan cloud tiruan + patch yang diterima.
+  const cloudPatches: Record<string, unknown>[] = [];
+  let cloud = {
+    slug: "rina-dimas-2026-10-12",
+    clientLink: false,
+    liveLink: false,
+    guestCam: false,
+    guestPath: null as string | null,
+    leadCapture: false,
+    leadReady: false,
+    promoCard: true,
+    tagline: "",
+    clientName: "",
+    clientInstagram: [] as string[],
+    guestColor: null as string | null,
+  };
   let r2Down = false;
   const EVENT = "7c9e6679-7425-40de-944b-e07fc1f90ae8";
   const pngSha = createHash("sha256").update(PNG).digest("hex");
@@ -333,7 +349,12 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
               ...config,
               id: EVENT,
               name: "Rina & Dimas",
-              info: { scheduledStart: "08:00", scheduledEnd: "11:00", packageHours: 3 },
+              info: {
+                scheduledStart: "08:00",
+                scheduledEnd: "11:00",
+                packageHours: 3,
+                slug: "rina-dimas-2026-10-12",
+              },
               layout: {
                 ...config.layout,
                 slots: [config.layout.slots[0], { ...config.layout.slots[0], id: "b", y: 900 }],
@@ -364,6 +385,13 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
           return;
         }
         res.end(JSON.stringify({ slug: "rina-dimas-2026-10-12" }));
+      } else if (req.url === `/api/booth/events/${EVENT}/cloud-settings`) {
+        const { patch } = JSON.parse(body) as { patch?: Record<string, unknown> };
+        if (patch) {
+          cloudPatches.push(patch);
+          cloud = { ...cloud, ...patch };
+        }
+        res.end(JSON.stringify(cloud));
       } else if (req.url === "/api/booth/sessions") {
         // Upsert boleh terkirim lebih dari sekali (idempotent): simpan satu per id.
         const x = JSON.parse(body);
@@ -451,7 +479,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
     "Booth ini sekarang tersambung sebagai Booth Uji · B07.",
   );
   await w.screenshot({ path: "test-results/pair-success.png" });
-  await w.getByRole("button", { name: "Kembali ke Menu Crew" }).click();
+  await w.getByRole("button", { name: "Kembali ke Backstage" }).click();
   await expect(w.getByTestId("cloud-device")).toHaveText("Booth Uji · B07");
   await expect(w.getByTestId("step-pair")).toHaveAttribute("data-done", "true");
   // Sudah tersambung: sambung ulang = aksi kedua yang dijelaskan, bukan langsung keypad.
@@ -459,7 +487,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await w.getByRole("button", { name: "Ganti booth/akun" }).click();
   await expect(w.getByTestId("pair-device")).toHaveText("Tersambung sebagai Booth Uji · B07");
   await w.screenshot({ path: "test-results/pair-already.png" });
-  await w.getByRole("button", { name: "Kembali ke Menu Crew" }).click();
+  await w.getByRole("button", { name: "Kembali ke Backstage" }).click();
   await w.getByTestId("crew-nav-home").click();
   await expect.poll(() => beats).toContain(`Bearer ${TOKEN}`);
   // Snapshot status untuk pantauan admin (kontrak BoothStatus, field hasil zod tidak dibuang).
@@ -481,6 +509,36 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await expect(w.getByTestId("to-crew")).toBeVisible();
   await w.screenshot({ path: "test-results/start-events-cloud.png" });
   await w.getByRole("button", { name: /Rina & Dimas/ }).click();
+
+  // Backstage tahap 2 (#295): Halaman Tamu & Link di Event & Desain — sakelar langsung tersimpan ke cloud,
+  // mematikan link butuh ketukan kedua, lead capture terkunci sampai diatur admin, teks lewat Simpan.
+  await w.getByTestId("crew-nav-event").click();
+  const cloudPanel = w.getByTestId("cloud-settings");
+  const clientLink = cloudPanel.getByRole("button", { name: "Link galeri klien" });
+  await expect(clientLink).toHaveAttribute("aria-pressed", "false");
+  await expect(cloudPanel.getByRole("button", { name: "Minta data tamu" })).toBeDisabled();
+  await clientLink.click();
+  await expect(clientLink).toHaveAttribute("aria-pressed", "true");
+  await expect(cloudPanel.getByTestId("cloud-clientLink")).toContainText(/\/g\/rina-dimas-2026-10-12/);
+  await clientLink.click();
+  await expect(cloudPanel.getByTestId("cloud-clientLink")).toContainText("Ketuk sekali lagi");
+  expect(cloudPatches).toEqual([{ clientLink: true }]);
+  await clientLink.click();
+  await expect(clientLink).toHaveAttribute("aria-pressed", "false");
+  await cloudPanel.getByLabel("Tagline (juga di layar awal booth)").fill("The Wedding of");
+  await cloudPanel.getByLabel("Instagram klien (maks. 6, pisah spasi)").fill("@rina.dimas @wo.kita");
+  await cloudPanel.getByRole("button", { name: "Simpan", exact: true }).click();
+  await expect.poll(() => cloudPatches.length).toBe(3);
+  expect(cloudPatches[1]).toEqual({ clientLink: false });
+  expect(cloudPatches[2]).toMatchObject({
+    tagline: "The Wedding of",
+    clientInstagram: ["rina.dimas", "wo.kita"],
+    guestColor: null,
+  });
+  await cloudPanel.scrollIntoViewIfNeeded();
+  await w.screenshot({ path: "test-results/crew-cloud-settings.png" });
+  await w.getByTestId("crew-nav-home").click();
+
   // Event cloud belum mulai: Buka untuk Tamu = pop-up Mulai acara / Tes dulu + panduan masuk crew (#152).
   await expect(w.getByTestId("crew-run")).toHaveAttribute("data-state", "idle");
   await w.getByTestId("open-guests").click();

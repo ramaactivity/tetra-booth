@@ -4,6 +4,7 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import {
   AssetKindSchema,
+  CloudSettingsPatch,
   LayoutPaperSchema,
   LayoutSpecSchema,
   newerVersion,
@@ -19,7 +20,7 @@ import { z } from "zod";
 import type { Alerts } from "./alerts";
 import { cameraHealth, liveViewUrl, request, ServiceUnavailable } from "./camera-client";
 import type { Cloud } from "./cloud";
-import { cloudErrorText } from "./cloud-error";
+import { CloudError, cloudErrorText } from "./cloud-error";
 import {
   config,
   DeviceSettings,
@@ -465,6 +466,42 @@ export function registerIpc(
     });
     db.reupload(sessionId, list, new Date().toISOString());
     cloud.kickUpload();
+  });
+  // Backstage tahap 2 (#295): setelan halaman tamu & link di cloud. Berubah → bundle diunduh ulang supaya tagline /
+  // QR Guest Cam di booth ini ikut baru (booth lain menyusul lewat sync berkala).
+  ipcMain.handle("crewCloudSettings", async (_e, id: unknown, patch: unknown) => {
+    crewOnly();
+    const eventId = EventId.parse(id);
+    const p = patch == null ? undefined : CloudSettingsPatch.parse(patch);
+    try {
+      const r = await cloud.cloudSettings(eventId, p);
+      if (p) {
+        console.info(`[cloud] setelan cloud ${eventId} dari Backstage: ${JSON.stringify(p)}`);
+        await cloud
+          .syncEvents(true)
+          .catch((e: unknown) =>
+            console.warn(
+              `[cloud] sync setelah ubah setelan: ${e instanceof Error ? e.message : String(e)}`,
+            ),
+          );
+      }
+      return r;
+    } catch (err) {
+      console.warn(
+        `[cloud] setelan cloud gagal: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      const s = err instanceof CloudError ? err.status : undefined;
+      throw new Error(
+        s === 422
+          ? "Lead capture belum diatur. Isi field & teks persetujuan di admin dulu, baru bisa dinyalakan di sini."
+          : s === 409
+            ? "Setelan event baru saja diubah di admin. Data sudah dimuat ulang, coba lagi."
+            : cloudErrorText(
+                err,
+                "Setelan halaman tamu butuh internet. Sambungkan booth ke internet lalu coba lagi",
+              ),
+      );
+    }
   });
   ipcMain.handle("crewSyncEvents", async () => {
     crewOnly();

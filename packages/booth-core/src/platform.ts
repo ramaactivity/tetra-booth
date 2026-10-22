@@ -1,5 +1,7 @@
 import type {
   AssetKindName,
+  CloudSettings,
+  CloudSettingsPatch,
   CommandResult,
   EventBundle,
   EventInfo,
@@ -317,6 +319,11 @@ export interface BoothCrew {
   openEventFolder(eventId: string): Promise<string>;
   /** Aktifkan link galeri klien & salin alamatnya ke clipboard (#155). Offline = Error berpesan. */
   galleryLink(eventId: string): Promise<string>;
+  /**
+   * Setelan cloud event (Backstage tahap 2, #295): link, Guest Cam, lead capture, promo, branding halaman tamu.
+   * `patch` null = hanya baca. Setelah berubah, bundle event diunduh ulang. Offline/ditolak = Error berpesan.
+   */
+  cloudSettings(eventId: string, patch: CloudSettingsPatch | null): Promise<CloudSettings>;
   /** Unggah antrean sekarang juga, lewati jeda backoff (FSD §1.3 "coba sekarang"). */
   retryUploads(): Promise<void>;
   /** Status upload per event cloud + per sesi (#271): mana yang sudah terkirim dan mana yang masih di laptop. */

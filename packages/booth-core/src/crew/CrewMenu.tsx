@@ -47,6 +47,7 @@ import { sharpNotes } from "../sharpness";
 import { Logo } from "../ui";
 import { BoothRecap } from "./BoothRecap";
 import { CameraProps } from "./CameraProps";
+import { CloudSettings } from "./CloudSettings";
 import {
   CameraChoice,
   CameraTips,
@@ -1062,6 +1063,15 @@ export function CrewMenu({
               {c.designAdmin}
             </Button>
           </Panel>
+          {/* Event cloud saja (slug diisi server saat bundle diunduh). */}
+          {hasEvent && event.slug && (
+            <CloudSettings
+              event={event}
+              guestBaseUrl={guestBaseUrl}
+              onNote={setNote}
+              onSaved={onReloadEvents}
+            />
+          )}
         </div>
       </>
     ),

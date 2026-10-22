@@ -144,7 +144,7 @@ test("photobox: layout → QRIS → foto dengan timer → tambah lembar → QRIS
     await w.getByTestId("step-pair").getByRole("button", { name: "Sambungkan" }).click();
     await typePin(w, "123456");
     await expect(w.getByTestId("pair-device")).toContainText("Booth Mall · B09");
-    await w.getByRole("button", { name: "Kembali ke Menu Crew" }).click();
+    await w.getByRole("button", { name: "Kembali ke Backstage" }).click();
     await expect(w.getByTestId("cloud-device")).toHaveText("Booth Mall · B09");
     // Ganti Event = layar pilih mode (DECISIONS #86) → Photobox → event → checklist crew → Buka untuk Tamu.
     await w.getByTestId("step-event").getByRole("button").click();
