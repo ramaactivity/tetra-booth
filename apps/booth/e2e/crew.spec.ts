@@ -145,6 +145,11 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   const countdown = w.getByTestId("setting-countdownSec");
   await expect(countdown).toContainText("cloud: 5"); // bawaan 5 dtk (Rama 9 Okt)
   await expect(w.getByTestId("setting-sessionSec")).toHaveCount(0);
+  // Cetak ulang galeri mode event: bawaan tidak dibatasi, crew bisa memberi batas.
+  const reprintMax = w.getByTestId("setting-reprintMax");
+  await expect(reprintMax).toContainText("cloud: Bebas");
+  await w.getByRole("button", { name: "Maks. cetak ulang galeri per sesi +" }).click();
+  await expect(reprintMax).toContainText("1");
   await w.getByRole("button", { name: "Hitung mundur (detik) +" }).click();
   await w.getByRole("button", { name: "Hitung mundur (detik) +" }).click();
   await w.getByRole("button", { name: "Simpan", exact: true }).click();

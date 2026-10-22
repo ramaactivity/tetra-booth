@@ -243,14 +243,16 @@ export function registerIpc(
   const Reprint = z.object({
     sessionId: SessionId,
     copies: z.number().int().min(1).max(10),
-    max: z.number().int().min(1).max(10),
+    max: z.number().int().min(1).max(20).nullable(),
+    scope: z.enum(["total", "reprint"]),
     paper: PaperSchema,
   });
   ipcMain.handle("printReprint", async (_e, req: unknown) => {
     const r = Reprint.parse(req);
     const used = db.reprinted(r.sessionId);
     if (used === undefined) throw new Error("sesi belum selesai");
-    if (db.printCount(r.sessionId) + r.copies > r.max) return { jobId: null, reprinted: used };
+    const counted = r.scope === "total" ? db.printCount(r.sessionId) : used;
+    if (r.max !== null && counted + r.copies > r.max) return { jobId: null, reprinted: used };
     const path = join(sessionsRoot(), r.sessionId, "out", "strip.jpg");
     if (!existsSync(path)) throw new Error("lembar cetak sesi tidak ada");
     const jobId = `${r.sessionId}-g${Date.now().toString(36)}`;

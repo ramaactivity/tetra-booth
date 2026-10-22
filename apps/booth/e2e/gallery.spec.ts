@@ -6,7 +6,7 @@ import { _electron as electron, expect, type Page, test } from "@playwright/test
 
 /**
  * Galeri tamu dari layar awal (DECISIONS #145): 2 sesi → "Lihat foto 2 foto" → grid → detail → Scan QR (/s/<id>)
- * → Cetak lagi lewat jalur cetak yang sama (job `<id>-g…`) → batas maxPrints lembar per sesi tercapai.
+ * → Cetak lagi lewat jalur cetak yang sama (job `<id>-g…`) → batas cetak ulang galeri mode event (reprintMax) tercapai.
  * Tanpa Camera Service (--no-spawn): job tetap queued, layar "Sedang mencetak…", log `[gallery] cetak lagi`.
  */
 
@@ -57,7 +57,7 @@ test("galeri tamu: lihat foto, scan QR, cetak lagi sampai batas", async () => {
           },
         ],
       },
-      settings: { countdownSec: 1, shotDelaySec: 0.2, maxPrints: 2 },
+      settings: { countdownSec: 1, shotDelaySec: 0.2, maxPrints: 2, reprintMax: 1 },
       info: { slug: "rina-dimas-2026-10-12", publicGallery: true },
     }),
   );
@@ -148,7 +148,7 @@ test("galeri tamu: lihat foto, scan QR, cetak lagi sampai batas", async () => {
     await reprint("test-results/gallery-printing.png");
     await expect(w.getByText("Sudah dicetak 2 lembar")).toBeVisible();
 
-    // maxPrints = 2 lembar TOTAL per sesi (#255): 1 di sesi + 1 dari galeri → batas tercapai.
+    // Mode event: reprintMax = 1 lembar cetak ulang galeri per sesi → batas tercapai (cetak di sesi tidak dihitung).
     await expect(w.getByText(/Batas cetak ulang tercapai/)).toBeVisible();
     await w.getByRole("button", { name: /Cetak lagi/ }).click();
     await expect(w.getByRole("status")).toContainText("Batas cetak ulang tercapai");

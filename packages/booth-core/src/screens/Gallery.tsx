@@ -39,6 +39,8 @@ type PrintState = { jobId: string; copies: number; state: "pending" | "done" | "
 /** Kartu grid: lebar gambar (px kanvas 1920) menurut bentuk potongan; tinggi baris seragam. */
 const cardWidth = (aspect: number) => (aspect < 0.5 ? 156 : aspect <= 1 ? 212 : 300);
 const SWIPE_PX = 80;
+/** Lembar maks. sekali tekan Cetak lagi (= batas `copies` IPC) saat cetak ulang tidak dibatasi. */
+const MAX_PER_PRESS = 10;
 
 /**
  * Thumbnail tajam (#145): decode penuh sekali, lalu perkecil (resizeQuality high) ke `width` px; file kecil
@@ -400,9 +402,12 @@ function Detail({
   const [n, setN] = useState(1);
   const [print, setPrint] = useState<PrintState | null>(null);
   const [sending, setSending] = useState(false);
-  const max = event.settings.maxPrints;
-  // Total per sesi (#255): lembar yang sudah dicetak di sesi ikut dihitung.
-  const left = reprintLeft(max, piece.printCount);
+  // Photobox: total per sesi (#255), lembar yang sudah dicetak di sesi ikut dihitung. Mode event: hanya cetak ulang
+  // galeri yang dihitung, 0 = tidak dibatasi (crew standby).
+  const pb = !!event.photobox;
+  const max = pb ? event.settings.maxPrints : event.settings.reprintMax || null;
+  const left =
+    max === null ? MAX_PER_PRESS : reprintLeft(max, pb ? piece.printCount : piece.reprinted);
 
   // Ganti sesi: panel kembali ke menu, gambar penuh dimuat ulang (object URL lama dilepas).
   useEffect(() => {
@@ -446,6 +451,7 @@ function Detail({
         sessionId: piece.sessionId,
         copies: n,
         max,
+        scope: pb ? "total" : "reprint",
         paper: printPaper(layout.paper),
       });
       const added = r.reprinted - piece.reprinted;
@@ -559,7 +565,13 @@ function Detail({
                 icon={<Printer size={44} strokeWidth={2.25} />}
                 tint="bg-peach"
                 title={copy.gallery.reprint}
-                body={left > 0 ? copy.gallery.reprintBody(left) : copy.gallery.limit}
+                body={
+                  max === null
+                    ? copy.gallery.reprintAny
+                    : left > 0
+                      ? copy.gallery.reprintBody(left)
+                      : copy.gallery.limit
+                }
                 onClick={() => {
                   setPrint(null);
                   setPanel("print");
@@ -617,7 +629,7 @@ function Detail({
                   </button>
                 </div>
                 <p className="text-[24px] font-medium text-text-2">
-                  {copy.gallery.reprintBody(left)}
+                  {max === null ? copy.gallery.reprintAny : copy.gallery.reprintBody(left)}
                 </p>
                 <Button
                   className="mt-auto h-[112px] rounded-[26px] text-[34px]"

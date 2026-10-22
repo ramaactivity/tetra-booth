@@ -24,9 +24,14 @@ const FIELDS: {
   { key: "countdownSec", min: 1, max: 10, step: 1 },
   { key: "retakeMax", min: 0, max: 5, step: 1 },
   { key: "maxPrints", min: 1, max: 10, step: 1 },
+  // 0 = tidak dibatasi (bawaan mode event: crew standby yang melayani cetak ulang).
+  { key: "reprintMax", min: 0, max: 20, step: 1, event: true },
   { key: "qrScreenSec", min: 10, max: 300, step: 5 },
   { key: "sessionSec", min: 60, max: 900, step: 30, photobox: true },
 ];
+
+/** Batas cetak ulang 0 = tidak dibatasi. */
+const shown = (key: Key, v: number) => (key === "reprintMax" && v === 0 ? copy.crew.unlimited : v);
 
 const stepBtn =
   "pressable size-16 shrink-0 rounded-[14px] border-[2.5px] border-ink bg-white text-3xl font-bold disabled:opacity-30";
@@ -97,7 +102,7 @@ export function EventSettings({
                 label={copy.crew.setting[key]}
                 hint={
                   <>
-                    {copy.crew.cloudValue(info.cloud[key])}
+                    {copy.crew.cloudValue(shown(key, info.cloud[key]))}
                     {local && (
                       <span className="ml-2 rounded-full border-2 border-ink bg-butter px-3 text-base font-bold text-ink">
                         {copy.crew.changedHere}
@@ -117,7 +122,9 @@ export function EventSettings({
                   >
                     −
                   </button>
-                  <span className="w-24 text-center font-mono text-3xl font-bold">{v}</span>
+                  <span className="w-24 text-center font-mono text-3xl font-bold">
+                    {shown(key, v)}
+                  </span>
                   <button
                     type="button"
                     aria-label={`${copy.crew.setting[key]} +`}

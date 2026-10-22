@@ -13,6 +13,8 @@ export const OVERRIDE_KEYS = [
   "sessionSec",
   // Layar "Ngaca dulu" (#254): crew bisa menyingkat/mematikannya di lokasi (0 = mati).
   "mirrorSec",
+  // Batas cetak ulang galeri mode event (0 = tidak dibatasi).
+  "reprintMax",
 ] as const;
 // Tanpa `.default()` bawaan EventSettingsSchema: field yang tidak diubah harus tetap kosong, bukan nilai default.
 const shape = EventSettingsSchema.shape;
@@ -23,6 +25,7 @@ export const EventOverride = z.object({
   qrScreenSec: shape.qrScreenSec.unwrap().optional(),
   sessionSec: shape.sessionSec.unwrap().optional(),
   mirrorSec: shape.mirrorSec.unwrap().optional(),
+  reprintMax: shape.reprintMax.unwrap().optional(),
 });
 export type EventOverride = z.infer<typeof EventOverride>;
 

@@ -28,8 +28,17 @@ export type CaptureRequest = { sessionId: string; index: number };
 /** File foto sudah tersimpan di disk lokal. */
 export type CaptureResult = CommandResult<"capture">;
 export type PrintJob = { jobId: string; path: string; copies: number; paper: Paper };
-/** Cetak lagi dari galeri tamu (#145): lembar cetak sesi (out/strip.jpg), dibatasi `max` lembar per sesi. */
-export type ReprintRequest = { sessionId: string; copies: number; max: number; paper: Paper };
+/**
+ * Cetak lagi dari galeri tamu (#145): lembar cetak sesi (out/strip.jpg). `max` = batas lembar per sesi, null = tidak
+ * dibatasi; `scope` "total" = cetak sesi + galeri (photobox, #255), "reprint" = hanya cetak ulang galeri (mode event).
+ */
+export type ReprintRequest = {
+  sessionId: string;
+  copies: number;
+  max: number | null;
+  scope: "total" | "reprint";
+  paper: Paper;
+};
 /** `jobId` null = batas tercapai, tidak dicetak. `reprinted` = total lembar cetak ulang galeri sesi ini. */
 export type ReprintResult = { jobId: string | null; reprinted: number };
 
@@ -218,7 +227,13 @@ export type DeviceInfo = {
 export type EventOverride = Partial<
   Pick<
     EventSettings,
-    "countdownSec" | "retakeMax" | "maxPrints" | "qrScreenSec" | "sessionSec" | "mirrorSec"
+    | "countdownSec"
+    | "retakeMax"
+    | "maxPrints"
+    | "qrScreenSec"
+    | "sessionSec"
+    | "mirrorSec"
+    | "reprintMax"
   >
 >;
 export type EventSettingsInfo = { cloud: EventSettings; override: EventOverride };

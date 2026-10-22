@@ -11,6 +11,11 @@ export const EventSettingsSchema = z.object({
   shotDelaySec: z.number().min(0).max(10).default(2),
   retakeMax: z.number().int().min(0).max(5).default(2),
   maxPrints: z.number().int().min(1).max(10).default(2),
+  /**
+   * Mode event: batas lembar cetak ulang dari galeri per sesi; 0 = tidak dibatasi (crew standby melayani tamu).
+   * Photobox tidak memakai ini: total cetak sesi + galeri tetap dibatasi `maxPrints` (#255).
+   */
+  reprintMax: z.number().int().min(0).max(20).default(0),
   reviewTimeoutSec: z.number().int().min(5).max(120).default(20),
   qrScreenSec: z.number().int().min(10).max(300).default(45),
   /** Photobox: timer sesi mulai setelah bayar (FSD §1.5). */
