@@ -519,14 +519,18 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await expect(cloudPanel.getByRole("button", { name: "Minta data tamu" })).toBeDisabled();
   await clientLink.click();
   await expect(clientLink).toHaveAttribute("aria-pressed", "true");
-  await expect(cloudPanel.getByTestId("cloud-clientLink")).toContainText(/\/g\/rina-dimas-2026-10-12/);
+  await expect(cloudPanel.getByTestId("cloud-clientLink")).toContainText(
+    /\/g\/rina-dimas-2026-10-12/,
+  );
   await clientLink.click();
   await expect(cloudPanel.getByTestId("cloud-clientLink")).toContainText("Ketuk sekali lagi");
   expect(cloudPatches).toEqual([{ clientLink: true }]);
   await clientLink.click();
   await expect(clientLink).toHaveAttribute("aria-pressed", "false");
   await cloudPanel.getByLabel("Tagline (juga di layar awal booth)").fill("The Wedding of");
-  await cloudPanel.getByLabel("Instagram klien (maks. 6, pisah spasi)").fill("@rina.dimas @wo.kita");
+  await cloudPanel
+    .getByLabel("Instagram klien (maks. 6, pisah spasi)")
+    .fill("@rina.dimas @wo.kita");
   await cloudPanel.getByRole("button", { name: "Simpan", exact: true }).click();
   await expect.poll(() => cloudPatches.length).toBe(3);
   expect(cloudPatches[1]).toEqual({ clientLink: false });

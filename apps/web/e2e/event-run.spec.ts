@@ -312,7 +312,7 @@ test("API booth: buka, ulang (idempotent), jeda offline terlambat, selesai", asy
     ).data;
     expect(after?.bundle_version).toBe((v0 ?? 0) + 1);
     expect(after?.guest_token).toBeTruthy();
-    expect((after?.settings as { guestCam?: { enabled?: boolean } }).guestCam?.enabled).toBe(true);
+    expect(after?.settings).toMatchObject({ guestCam: { enabled: true } });
     expect(after?.branding).toMatchObject({ tagline: "The Wedding of" });
     // Lead capture belum diatur admin → 422; isian tak dikenal / IG rusak → 400.
     expect((await cloud({ leadCapture: true })).status()).toBe(422);
