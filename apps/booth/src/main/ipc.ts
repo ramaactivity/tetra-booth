@@ -125,7 +125,7 @@ export function registerIpc(
     set: (v) => db.kv.set("crew_pin_hash", v),
   });
   const crewOnly = () => {
-    if (!pins.unlocked) throw new Error("mode crew terkunci");
+    if (!pins.unlocked) throw new Error("Backstage terkunci");
   };
   const eventsDir = () => join(app.getPath("userData"), "events");
   let bundles: LoadedBundle[] = [];

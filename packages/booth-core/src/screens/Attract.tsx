@@ -363,7 +363,7 @@ export function Attract({
 
       <button
         type="button"
-        aria-label="logo (tahan untuk mode crew)"
+        aria-label="logo (tahan untuk Backstage)"
         data-testid="crew-logo"
         style={rise(0)}
         className="absolute top-20 left-24 select-none"

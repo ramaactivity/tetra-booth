@@ -39,17 +39,17 @@ export const copy = {
     reconnect: (name: string) => `Menghubungkan ke ${name}…`,
     reconnectHint:
       "Galeri tampil lagi sendiri begitu laptop Photo Stage terjangkau. Cek laptop stage masih menyala dan tersambung ke WiFi yang sama.",
-    crewHint: "Mode Crew: ketuk pojok kanan atas 5× atau Ctrl+Shift+M.",
+    crewHint: "Backstage: ketuk pojok kanan atas 5× atau Ctrl+Shift+M.",
     crewTarget: (name: string) => `Menampilkan galeri ${name}`,
     crewNone: "Belum terhubung ke laptop Photo Stage.",
     change: "Ganti laptop stage",
-    forgotten: "Laptop stage dilupakan. Tutup mode crew untuk menghubungkan lagi.",
+    forgotten: "Laptop stage dilupakan. Tutup Backstage untuk menghubungkan lagi.",
   },
   attract: {
     cta: "Sentuh untuk Mulai",
     // Hanya tampil sebelum PIN crew dibuat (setup pertama), supaya tamu tidak melihatnya saat event.
     crewHint:
-      "Booth belum disiapkan. Nanti Mode Crew dibuka dengan menahan logo 2 detik, ketuk pojok kanan atas 5×, atau Ctrl+Shift+M.",
+      "Booth belum disiapkan. Nanti Backstage dibuka dengan menahan logo 2 detik, ketuk pojok kanan atas 5×, atau Ctrl+Shift+M.",
     setup: "Siapkan Booth",
     gallery: "Lihat foto",
     galleryCount: (n: number) => `${n} foto`,
@@ -270,16 +270,16 @@ export const copy = {
     pickEvent: "pilih event",
     empty:
       "Belum ada event untuk mode ini. Buat event di admin dengan panduan Buat Event, pilih Tampil di booth: Semua booth, lalu tekan Ambil event terbaru.",
-    emptyCrew: "Tombol Ambil event terbaru ada di Mode Crew (kanan atas).",
-    crew: "Mode Crew",
-    backToCrew: "Kembali ke Mode Crew",
+    emptyCrew: "Tombol Ambil event terbaru ada di Backstage (kanan atas).",
+    crew: "Backstage",
+    backToCrew: "Kembali ke Backstage",
   },
   /** Photo Stage (#178): layar operator laptop stage. Tampilan final menyusul dari Claude Design. */
   stage: {
     group: (n: number) => `Rombongan #${n}`,
     // Wizard persiapan A1 (#188).
     setup: {
-      crewMode: "Mode Crew",
+      crewMode: "Backstage",
       steps: ["Peran & event", "Kamera", "TV", "Warna", "Cetak", "Pemisah"],
       titles: [
         ["Laptop ini untuk apa?", "Pilih peran dan event hari ini"],
@@ -372,7 +372,7 @@ export const copy = {
       printerTitle: "Printer",
       printerReady: "Printer siap",
       printerHint:
-        "Printer di laptop ini atau laptop printer pusat (WiFi) diatur di Mode Crew → Printer.",
+        "Printer di laptop ini atau laptop printer pusat (WiFi) diatur di Backstage → Printer.",
       testPrint: "Tes cetak foto tes",
       testPrinting: "Mencetak…",
       testDone: "Terkirim ke printer ✓",
@@ -606,7 +606,7 @@ export const copy = {
       "Edit di booth = hanya booth ini, tanpa internet, langsung dipakai sesi berikutnya. Untuk mengubah desain di cloud (semua booth), buka di admin lalu tekan Ambil event terbaru.",
     cloudTitle: "Cloud & perangkat",
     appTitle: "Aplikasi",
-    title: "Mode Crew",
+    title: "Backstage",
     exit: "Tutup Aplikasi",
     exitConfirm: "Tutup aplikasi booth?",
     exitBody:
@@ -629,7 +629,7 @@ export const copy = {
     updateRetry: "Coba Lagi",
     updateDone: (v: string) => `Update berhasil: Tetra Booth ${v}`,
     updateNotInstalled: (to: string, now: string) =>
-      `Update ke ${to} gagal dipasang, booth masih versi ${now}. Coba lagi dari Mode Crew → Update Aplikasi.`,
+      `Update ke ${to} gagal dipasang, booth masih versi ${now}. Coba lagi dari Backstage → Update Aplikasi.`,
     adminOpened: "Dashboard admin dibuka di browser. Klik Tetra Booth di taskbar untuk kembali.",
     updating: "Mengunduh update… booth akan tertutup lalu terbuka lagi",
     updateProgress: (mb: number, total: number, pct: number, eta: string) =>
@@ -657,7 +657,7 @@ export const copy = {
     retryUpload: "Kirim ulang sekarang",
     sharpen: {
       title: "Tajamkan foto lama",
-      body: "Render ulang foto strip sesi lama jadi 2× lebih tajam di galeri & halaman tamu. Sesi yang desainnya sudah berubah dilewati. Tetap di Mode Crew sampai selesai.",
+      body: "Render ulang foto strip sesi lama jadi 2× lebih tajam di galeri & halaman tamu. Sesi yang desainnya sudah berubah dilewati. Tetap di Backstage sampai selesai.",
       start: "Mulai tajamkan",
       progress: (done: number, total: number, skipped: number) =>
         `${done} / ${total} sesi · ${skipped} dilewati`,
@@ -701,7 +701,7 @@ export const copy = {
     unsentNote: {
       title: "Masih ada foto yang belum terkirim ke cloud",
       line: (name: string, n: number) => `${name}: ${n} sesi`,
-      body: "Sambungkan laptop ke internet dan biarkan aplikasi terbuka, upload lanjut sendiri. Progresnya ada di mode crew → Sistem → Upload per event.",
+      body: "Sambungkan laptop ke internet dan biarkan aplikasi terbuka, upload lanjut sendiri. Progresnya ada di Backstage → Sistem → Upload per event.",
       ok: "Oke",
       recapTitle: (sent: number, total: number) =>
         `Baru ${sent} dari ${total} sesi terkirim ke cloud`,
@@ -782,6 +782,43 @@ export const copy = {
       sessionSec: "Timer sesi photobox (detik)",
       mirrorSec: "Waktu ngaca (detik, 0 = mati)",
       reprintMax: "Maks. cetak ulang galeri per sesi",
+      reviewTimeoutSec: "Layar cek foto lanjut sendiri (detik)",
+    },
+    groups: {
+      session: "Sesi",
+      media: "Suara & video",
+      filters: "Filter pilihan tamu",
+    },
+    flag: {
+      countdownSound: {
+        title: "Putar suara di booth",
+        hint: "Kalimat pemandu, hitung mundur, bunyi jepret.",
+      },
+      countdownVideo: {
+        title: "Rekam video saat hitung mundur",
+        hint: "Muncul di tab Video halaman tamu.",
+      },
+      bumper: { title: "Bumper Tetra", hint: "Video pembuka saat event dibuka." },
+      pairDifferent: {
+        title: "Polaroid & 2R: kiri-kanan beda foto",
+        hint: "Tamu foto 2× lebih banyak. Tidak berlaku untuk desain 4R.",
+      },
+    },
+    filtersHint: "Normal selalu ada. Kosong = tanpa langkah filter.",
+    listEmpty: "kosong",
+    prompts: {
+      promptsBefore: {
+        title: "Kalimat sebelum foto",
+        hint: "Urut per foto; terakhir untuk foto terakhir. Kosong = kalimat bawaan.",
+      },
+      promptsAfter: {
+        title: "Kalimat setelah foto",
+        hint: "Dipilih acak. Kosong = kalimat bawaan.",
+      },
+      placeholder: "Ketik kalimat (maks. 40 huruf)",
+      add: "Tambah",
+      newLabel: (list: string) => `${list} baru`,
+      remove: (t: string) => `Hapus "${t}"`,
     },
     unlimited: "Bebas",
     cloudValue: (v: number | string) => `cloud: ${v}`,
@@ -789,7 +826,7 @@ export const copy = {
     changedHereBadge: "Pengaturan diubah di booth",
     resetToCloud: "Kembalikan ke cloud",
     eventSettingsNote:
-      "Hanya berlaku di booth ini. Ambil event terbaru tidak menimpanya. Template & harga diatur di admin.",
+      "Hanya berlaku di booth ini. Ambil event terbaru tidak menimpanya. Harga, halaman tamu & Guest Cam diatur di admin.",
     eventSettingsSaved: "Pengaturan event disimpan di booth",
     eventSettingsReset: "Pengaturan event kembali ke cloud",
     deviceRole: "Peran laptop",
@@ -913,7 +950,7 @@ export const copy = {
       updateHint: "Cek versi terbaru. Pasang hanya di luar jam acara.",
       checkUpdate: "Cek Update",
       pin: "PIN crew",
-      pinHint: "PIN untuk masuk ke mode crew.",
+      pinHint: "PIN untuk masuk ke Backstage.",
       exitHint: "Booth berhenti sampai aplikasi dibuka lagi.",
       navHint:
         "Layar tamu tampil. Masuk lagi: ketuk pojok kanan atas 5×. Kecilkan booth: Ctrl+Shift+H.",
@@ -999,7 +1036,7 @@ export const copy = {
         code: "Kode printer",
         hubName: (name: string) => `Nama laptop printer: ${name}`,
         howTo: (name: string, key: string) =>
-          `Di tiap booth lain: Mode Crew → Printer → Kirim ke laptop printer → pilih ${name} → ketik kode ${key} → Hubungkan → Simpan.`,
+          `Di tiap booth lain: Backstage → Printer → Kirim ke laptop printer → pilih ${name} → ketik kode ${key} → Hubungkan → Simpan.`,
         peers: "Booth yang tersambung",
         noPeers: "Belum ada booth yang tersambung.",
         ago: (s: number) =>
@@ -1190,15 +1227,15 @@ export const copy = {
       testNote: "Foto tes tidak dihitung dan tidak tampil di galeri.",
       close: "Kembali ke menu crew",
       guide: "Nanti selama acara",
-      enter: "Masuk mode crew",
+      enter: "Masuk Backstage",
       corner: "Ketuk pojok kanan atas 5×",
       hold: "atau tahan logo 2 detik",
       keys: "atau tekan",
       pin: "lalu ketik PIN crew",
       steps: [
-        ["Jeda", "Mode crew → Ringkasan → Jeda Acara"],
-        ["Hentikan", "Mode crew → Ringkasan → Hentikan Acara. Rekap muncul sendiri."],
-        ["Lihat rekap lagi", "Mode crew → Ringkasan → Rekap Acara"],
+        ["Jeda", "Backstage → Ringkasan → Jeda Acara"],
+        ["Hentikan", "Backstage → Ringkasan → Hentikan Acara. Rekap muncul sendiri."],
+        ["Lihat rekap lagi", "Backstage → Ringkasan → Rekap Acara"],
       ],
     },
     /** Kartu rekap acara di booth (#154): dari data laptop ini, jalan offline. */

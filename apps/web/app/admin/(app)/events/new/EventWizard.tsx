@@ -1284,7 +1284,7 @@ function Summary({
 }) {
   const at = (n: number) => (edit ? () => edit(n) : undefined);
   const crew = [
-    "Di laptop booth, buka Mode Crew (tahan logo 2 detik atau Ctrl+Shift+M, lalu PIN).",
+    "Di laptop booth, buka Backstage (tahan logo 2 detik atau Ctrl+Shift+M, lalu PIN).",
     "Buka Ringkasan, lalu tekan Pilih event.",
     "Tekan Ambil event terbaru supaya daftar event diperbarui.",
     `Pilih “${name}”.`,

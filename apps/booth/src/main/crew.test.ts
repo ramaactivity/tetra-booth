@@ -51,7 +51,7 @@ describe("PIN crew", () => {
     expect(() => g.set("12")).toThrow();
     g.set("1234");
     g.lock();
-    expect(() => g.set("5555")).toThrow(/masuk mode crew/);
+    expect(() => g.set("5555")).toThrow(/masuk ke Backstage/);
     g.verify("1234");
     g.set("5555");
     expect(g.verify("5555").ok).toBe(true);

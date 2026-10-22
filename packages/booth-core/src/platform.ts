@@ -234,6 +234,14 @@ export type EventOverride = Partial<
     | "sessionSec"
     | "mirrorSec"
     | "reprintMax"
+    | "reviewTimeoutSec"
+    | "countdownSound"
+    | "countdownVideo"
+    | "bumper"
+    | "pairDifferent"
+    | "filters"
+    | "promptsBefore"
+    | "promptsAfter"
   >
 >;
 export type EventSettingsInfo = { cloud: EventSettings; override: EventOverride };

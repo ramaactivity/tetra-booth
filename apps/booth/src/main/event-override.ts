@@ -15,6 +15,15 @@ export const OVERRIDE_KEYS = [
   "mirrorSec",
   // Batas cetak ulang galeri mode event (0 = tidak dibatasi).
   "reprintMax",
+  // Backstage tahap 1 (#291): setelan yang hanya berlaku di booth ini, dulu cuma dari admin.
+  "reviewTimeoutSec",
+  "countdownSound",
+  "countdownVideo",
+  "bumper",
+  "pairDifferent",
+  "filters",
+  "promptsBefore",
+  "promptsAfter",
 ] as const;
 // Tanpa `.default()` bawaan EventSettingsSchema: field yang tidak diubah harus tetap kosong, bukan nilai default.
 const shape = EventSettingsSchema.shape;
@@ -26,10 +35,21 @@ export const EventOverride = z.object({
   sessionSec: shape.sessionSec.unwrap().optional(),
   mirrorSec: shape.mirrorSec.unwrap().optional(),
   reprintMax: shape.reprintMax.unwrap().optional(),
+  reviewTimeoutSec: shape.reviewTimeoutSec.unwrap().optional(),
+  countdownSound: shape.countdownSound.unwrap().optional(),
+  countdownVideo: shape.countdownVideo.unwrap().optional(),
+  bumper: shape.bumper.unwrap().optional(),
+  pairDifferent: shape.pairDifferent.unwrap().optional(),
+  filters: shape.filters.unwrap().optional(),
+  promptsBefore: shape.promptsBefore.unwrap().optional(),
+  promptsAfter: shape.promptsAfter.unwrap().optional(),
 });
 export type EventOverride = z.infer<typeof EventOverride>;
 
 export const overrideKey = (eventId: string) => `event_override:${eventId}`;
+
+/** Nilai setelan bisa berupa daftar (filter, kalimat): bandingkan isinya, bukan referensinya. */
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 /**
  * Isi kv → override; rusak/kosong = tanpa override (bundle cloud apa adanya). Override menyimpan nilai cloud saat
@@ -48,7 +68,9 @@ export const parseOverride = (
     if (!cloud || !j.base) return r.data;
     const base = j.base;
     return Object.fromEntries(
-      Object.entries(r.data).filter(([k]) => !(k in base) || base[k] === cloud[k as OverrideKey]),
+      Object.entries(r.data).filter(
+        ([k]) => !(k in base) || same(base[k], cloud[k as OverrideKey]),
+      ),
     ) as EventOverride;
   } catch {
     return {};
@@ -69,7 +91,7 @@ export const storeOverride = (cloud: EventBundle["settings"], o: EventOverride):
 export const diffOverride = (cloud: EventBundle["settings"], next: EventOverride): EventOverride =>
   Object.fromEntries(
     OVERRIDE_KEYS.flatMap((k) =>
-      next[k] !== undefined && next[k] !== cloud[k] ? [[k, next[k]]] : [],
+      next[k] !== undefined && !same(next[k], cloud[k]) ? [[k, next[k]]] : [],
     ),
   );
 

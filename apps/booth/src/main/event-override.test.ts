@@ -56,3 +56,27 @@ describe("override vs perubahan admin (#255)", () => {
     });
   });
 });
+
+describe("Backstage tahap 1: sakelar & daftar (#291)", () => {
+  const cloud = { ...DEFAULT_SETTINGS, filters: ["bw" as const], promptsAfter: ["Mantap!"] };
+  it("daftar dibandingkan isinya: sama dengan cloud bukan override", () => {
+    expect(diffOverride(cloud, { filters: ["bw"], promptsAfter: ["Mantap!"] })).toEqual({});
+    expect(diffOverride(cloud, { filters: [], countdownSound: true })).toEqual({
+      filters: [],
+      countdownSound: true,
+    });
+  });
+  it("override daftar bertahan setelah disimpan & dibaca ulang (cloud tidak berubah)", () => {
+    const raw = storeOverride(cloud, { filters: ["warm", "bw"], bumper: false });
+    expect(parseOverride(raw, { ...cloud, filters: ["bw"] })).toEqual({
+      filters: ["warm", "bw"],
+      bumper: false,
+    });
+    // Admin mengganti filter sesudahnya → nilai admin berlaku.
+    expect(parseOverride(raw, { ...cloud, filters: ["vintage"] })).toEqual({ bumper: false });
+  });
+  it("filter tak dikenal / kalimat terlalu panjang ditolak", () => {
+    expect(parseOverride('{"filters":["neon"]}')).toEqual({});
+    expect(parseOverride(`{"promptsBefore":["${"x".repeat(41)}"]}`)).toEqual({});
+  });
+});

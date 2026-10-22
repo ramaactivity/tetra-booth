@@ -49,7 +49,7 @@ export function createPinGuard(
     set(pin: string) {
       if (!PIN_PATTERN.test(pin)) throw new Error("PIN harus 4–6 digit");
       if (store.get() !== null && !unlocked)
-        throw new Error("masuk mode crew dulu untuk mengganti PIN");
+        throw new Error("masuk ke Backstage dulu untuk mengganti PIN");
       store.set(hashPin(pin));
       unlocked = true;
     },

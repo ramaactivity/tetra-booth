@@ -64,7 +64,7 @@ export const copy = {
       ],
       [
         "Kamera profesional",
-        "Canon, Sony, Lumix, dan Nikon lewat SDK resmi, atau webcam. Live view, fokus, dan Tes Jepret dari mode crew.",
+        "Canon, Sony, Lumix, dan Nikon lewat SDK resmi, atau webcam. Live view, fokus, dan Tes Jepret dari Backstage.",
       ],
       [
         "Cetak otomatis",
@@ -737,7 +737,7 @@ export const copy = {
       step3: "Ketik kode di laptop booth",
       boothSteps: [
         "Buka aplikasi Tetra Booth di laptop booth.",
-        "Masuk Mode Crew: tahan logo 2 detik (atau tekan Ctrl+Shift+M), lalu ketik PIN crew.",
+        "Masuk Backstage: tahan logo 2 detik (atau tekan Ctrl+Shift+M), lalu ketik PIN crew.",
         "Di Ringkasan, langkah 1 “Sambungkan ke akun Tetra”, tekan Sambungkan.",
         "Ketik 6 angka kode di atas, lalu tekan OK.",
       ],
@@ -773,7 +773,7 @@ export const copy = {
         ],
         [
           "Ketik kode di laptop booth",
-          "Mode Crew → Ringkasan → Sambungkan ke akun Tetra → ketik kode → OK.",
+          "Backstage → Ringkasan → Sambungkan ke akun Tetra → ketik kode → OK.",
         ],
         ["Pilih event", "Booth muncul di sini. Atur event mana yang tampil di booth itu."],
       ] as const,

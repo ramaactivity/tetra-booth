@@ -86,7 +86,7 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await typePin(w, "2468");
   await expect(w.getByText("Ulangi PIN")).toBeVisible();
   await typePin(w, "2468");
-  await expect(w.getByRole("heading", { name: "Mode crew" })).toBeVisible();
+  await expect(w.getByRole("heading", { name: "Backstage" })).toBeVisible();
   // Langkah 1 = versi aplikasi (#222): belum dipasangkan / offline → versi terpasang + boleh dilewati, tidak memblokir.
   const version = w.getByTestId("step-version");
   await expect(version).toContainText(/Versi \d+\.\d+\.\d+\. Tidak bisa dicek sekarang/);
@@ -152,7 +152,20 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await expect(reprintMax).toContainText("1");
   await w.getByRole("button", { name: "Hitung mundur (detik) +" }).click();
   await w.getByRole("button", { name: "Hitung mundur (detik) +" }).click();
+  // Backstage tahap 1 (#291): sakelar, filter, kalimat — dulu hanya dari admin.
+  const sound = w.getByRole("button", { name: "Putar suara di booth" });
+  await expect(sound).toHaveAttribute("aria-pressed", "false");
+  await sound.click();
+  await w.getByTestId("setting-filters").getByRole("button", { name: "Hitam Putih" }).click();
+  const before = w.getByTestId("setting-promptsBefore");
+  await before.getByRole("textbox").fill("Senyum lebar!");
+  await before.getByRole("textbox").press("Enter");
+  await expect(before.getByRole("listitem")).toHaveText(/Senyum lebar!/);
   await w.getByRole("button", { name: "Simpan", exact: true }).click();
+  await expect(sound).toHaveAttribute("aria-pressed", "true");
+  await expect(w.getByTestId("setting-countdownSound")).toContainText("diubah di booth");
+  await expect(w.getByTestId("setting-filters")).toContainText("diubah di booth");
+  await expect(before).toContainText("diubah di booth");
   await expect(countdown).toContainText("diubah di booth");
   await expect(countdown).toContainText("7");
   await expect(w.getByTestId("settings-local")).toBeVisible();
