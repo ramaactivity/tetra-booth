@@ -52,7 +52,7 @@ import {
   parseOverride,
   storeOverride,
 } from "./event-override";
-import { allowQuit, autoStart, setAutoStart, setKioskOn } from "./kiosk";
+import { allowQuit, autoStart, minimizeBooth, setAutoStart, setKioskOn } from "./kiosk";
 import { submitPrint } from "./print-share";
 import { orderPrinters, queryPrinterQueues } from "./printers";
 import { onPhase } from "./shots";
@@ -729,13 +729,7 @@ export function registerIpc(
       .parse(path ?? undefined);
     const win = BrowserWindow.fromWebContents(e.sender);
     await shell.openExternal(`${config.guestUrl}${p ?? "/admin"}`);
-    if (win?.isKiosk()) {
-      setKioskOn(win, false);
-      win.once("focus", () => {
-        if (!win.isDestroyed()) setKioskOn(win, true);
-      });
-    }
-    win?.minimize();
+    if (win) minimizeBooth(win);
     console.info("[crew] dashboard admin dibuka di browser");
   });
   ipcMain.handle("crewPrinterSettings", async (e) => {

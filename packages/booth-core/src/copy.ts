@@ -915,7 +915,8 @@ export const copy = {
       pin: "PIN crew",
       pinHint: "PIN untuk masuk ke mode crew.",
       exitHint: "Booth berhenti sampai aplikasi dibuka lagi.",
-      navHint: "Layar tamu tampil. Masuk lagi: ketuk pojok kanan atas 5×.",
+      navHint:
+        "Layar tamu tampil. Masuk lagi: ketuk pojok kanan atas 5×. Kecilkan booth: Ctrl+Shift+H.",
     },
     paperShort: (n: number) => `Kertas ±${n}`,
     cameraHelp: "Cek kabel USB & kamera menyala. Kamera salah? Ganti di Kamera yang dipakai.",

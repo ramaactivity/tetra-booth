@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("electron", () => ({ app: {}, powerSaveBlocker: {} }));
-const { isBlockedShortcut, setKioskOn } = await import("./kiosk");
+const { isBlockedShortcut, isMinimizeShortcut, setKioskOn } = await import("./kiosk");
 
 const key = (
   key: string,
@@ -37,6 +37,18 @@ describe("kiosk: shortcut yang diblokir", () => {
       expect(isBlockedShortcut(k)).toBe(false);
     }
     expect(isBlockedShortcut({ ...key("F5"), type: "keyUp" })).toBe(false);
+  });
+});
+
+describe("kiosk: shortcut kecilkan booth", () => {
+  it("Ctrl/Cmd+Shift+H saja; tidak bentrok dengan Ctrl+Shift+M (mode crew)", () => {
+    expect(isMinimizeShortcut(key("H", { control: true, shift: true }))).toBe(true);
+    expect(isMinimizeShortcut(key("h", { meta: true, shift: true }))).toBe(true);
+    expect(isMinimizeShortcut(key("h", { control: true }))).toBe(false);
+    expect(isMinimizeShortcut(key("M", { control: true, shift: true }))).toBe(false);
+    expect(isMinimizeShortcut({ ...key("H", { control: true, shift: true }), type: "keyUp" })).toBe(
+      false,
+    );
   });
 });
 

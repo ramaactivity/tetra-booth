@@ -231,6 +231,29 @@ test("kiosk: tidak bisa ditutup, keluar hanya lewat mode crew", async () => {
   await w.waitForTimeout(500);
   expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
 
+  // Ctrl+Shift+H: crew mengecilkan booth ke taskbar (kiosk lepas); jendela difokus lagi → layar penuh lagi.
+  const state = () =>
+    app.evaluate(({ BrowserWindow }) => {
+      const b = BrowserWindow.getAllWindows()[0];
+      return { kiosk: b?.isKiosk(), top: b?.isAlwaysOnTop() };
+    });
+  // Lewat sendInputEvent (jalur input asli → before-input-event); keyboard Playwright tidak melewatinya.
+  await app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0]?.webContents.sendInputEvent({
+      type: "keyDown",
+      keyCode: "H",
+      modifiers: ["control", "shift"],
+    }),
+  );
+  await expect.poll(state).toEqual({ kiosk: false, top: false });
+  await app.evaluate(({ BrowserWindow }) => {
+    const b = BrowserWindow.getAllWindows()[0];
+    b?.restore();
+    b?.focus();
+    b?.emit("focus");
+  });
+  await expect.poll(state).toEqual({ kiosk: true, top: true });
+
   // Ctrl+Shift+Q di layar awal: PIN crew lalu langsung konfirmasi Tutup Aplikasi.
   await w.keyboard.press("Control+Shift+Q");
   await typePin(w, "1357");

@@ -25,6 +25,12 @@ export function isBlockedShortcut(
   return false;
 }
 
+/** Ctrl+Shift+H (Cmd di Mac): crew menyembunyikan booth ke taskbar, mis. untuk membuka admin di browser. */
+export const isMinimizeShortcut = (
+  i: Pick<Input, "type" | "key" | "control" | "meta" | "shift">,
+): boolean =>
+  i.type === "keyDown" && (i.control || i.meta) && i.shift && i.key.toLowerCase() === "h";
+
 /**
  * Kiosk + selalu di atas: taskbar/aplikasi lain tidak bisa muncul di atas booth saat fokus pindah
  * (uji Windows 2026-09-30). Dilepas bersama kiosk untuk dialog printer / dashboard admin.
@@ -34,11 +40,27 @@ export function setKioskOn(win: BrowserWindow, on: boolean) {
   win.setAlwaysOnTop(on, "screen-saver");
 }
 
+/** Kecilkan booth ke taskbar; kiosk dilepas dan dipasang lagi saat jendela difokus (ikon taskbar diklik). */
+export function minimizeBooth(win: BrowserWindow) {
+  if (win.isKiosk()) {
+    setKioskOn(win, false);
+    win.once("focus", () => {
+      if (!win.isDestroyed()) setKioskOn(win, true);
+    });
+  }
+  win.minimize();
+}
+
 export function applyKiosk(win: BrowserWindow, log: (m: string) => void) {
   setKioskOn(win, true);
   win.setMenu(null);
   win.webContents.on("before-input-event", (e, input) => {
     if (isBlockedShortcut(input)) e.preventDefault();
+    else if (isMinimizeShortcut(input)) {
+      e.preventDefault();
+      minimizeBooth(win);
+      log("[kiosk] booth dikecilkan ke taskbar (Ctrl+Shift+H)");
+    }
   });
   win.on("close", (e) => {
     if (!quitAllowed) {
