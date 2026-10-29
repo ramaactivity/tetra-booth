@@ -162,10 +162,13 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     await expect(ed.getByText("Foto 1", { exact: true })).toBeVisible();
     // Cetak desain yang sedang diedit (foto contoh) lewat jalur cetak booth → sessions/<id>/out/test_design.jpg.
     await ed.getByRole("button", { name: "Cetak", exact: true }).click();
-    const printed = () =>
-      readdirSync(join(data, "sessions")).some((id) =>
-        existsSync(join(data, "sessions", id, "out", "test_design.jpg")),
+    const printed = () => {
+      const root = join(data, "sessions");
+      return (
+        existsSync(root) &&
+        readdirSync(root).some((id) => existsSync(join(root, id, "out", "test_design.jpg")))
       );
+    };
     await expect.poll(printed, { timeout: 20_000 }).toBe(true);
     // Semua slot boleh dihapus; Simpan menolak desain tanpa slot, urungkan mengembalikannya.
     await ed.getByRole("button", { name: "Hapus semua slot" }).click();
