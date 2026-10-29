@@ -465,6 +465,18 @@ export const copy = {
     saveAllStage: "Simpan Semua Foto",
     saving: "Menyimpan…",
     saveOne: "Simpan foto ini",
+    saveEverything: (n: number) => (n > 1 ? `Simpan semua (${n}) ke galeri` : "Simpan ke galeri"),
+    saveThis: (kind: string) =>
+      kind === "strip_web"
+        ? "Simpan strip ini"
+        : kind === "animation"
+          ? "Simpan animasi ini"
+          : kind === "video"
+            ? "Simpan video ini"
+            : "Simpan foto ini",
+    photoN: (i: number) => `Foto ${i}`,
+    tapHint: "Ketuk foto untuk lihat & simpan satuan",
+    tapAgain: "Ketuk sekali lagi untuk menyimpan",
     viewerClose: "Tutup",
     viewerPrev: "Foto sebelumnya",
     viewerNext: "Foto berikutnya",

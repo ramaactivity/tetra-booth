@@ -35,12 +35,12 @@ function Header({ event, ready }: { event?: GuestEvent | undefined; ready?: bool
   const bg = event?.color;
   return (
     <header
-      className="border-b-[1.5px] border-dashed border-ink px-5 pt-6 pb-6"
+      className="border-b-[1.5px] border-dashed border-ink px-4 pt-4 pb-4"
       style={bg ? { background: bg, color: onColor(bg), borderStyle: "solid" } : undefined}
     >
       <div className="animate-rise flex items-center justify-between gap-3">
         {event?.logoUrl ? (
-          <img src={event.logoUrl} alt="" className="h-10 max-w-[140px] object-contain" />
+          <img src={event.logoUrl} alt="" className="h-8 max-w-[120px] object-contain" />
         ) : (
           <span className="flex items-center gap-2 text-sm font-extrabold tracking-[-0.02em]">
             <span className="flex size-8 items-center justify-center rounded-[9px] border-[1.5px] border-ink bg-mint text-sm font-extrabold text-ink">
@@ -59,21 +59,21 @@ function Header({ event, ready }: { event?: GuestEvent | undefined; ready?: bool
       {event?.tagline && (
         <p
           style={{ "--d": "60ms" } as CSSProperties}
-          className="animate-rise mt-6 w-fit rounded-full border-[1.5px] border-current px-3 py-0.5 text-xs font-bold"
+          className="animate-rise mt-3 w-fit rounded-full border-[1.5px] border-current px-2.5 py-0.5 text-[11px] font-bold"
         >
           {event.tagline}
         </p>
       )}
       <h1
         style={{ "--d": "100ms" } as CSSProperties}
-        className={`animate-rise text-[34px] leading-[0.98] font-extrabold tracking-[-0.045em] text-balance ${event?.tagline ? "mt-2.5" : "mt-6"}`}
+        className={`animate-rise text-[26px] leading-[1.02] font-extrabold tracking-[-0.04em] text-balance ${event?.tagline ? "mt-1.5" : "mt-3"}`}
       >
         {event?.name ?? "Tetra Photobooth"}
       </h1>
       {event && (
         <p
           style={{ "--d": "140ms" } as CSSProperties}
-          className={`animate-rise mt-2 font-mono text-xs ${bg ? "opacity-75" : "text-text-2"}`}
+          className={`animate-rise mt-1 font-mono text-[11px] ${bg ? "opacity-75" : "text-text-2"}`}
         >
           {longDate(event.date)}
         </p>
@@ -264,7 +264,6 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
           eventName={g.event.name}
           assets={g.assets}
           expiresAt={g.expiresAt ? shortDate(g.expiresAt) : null}
-          stage={!!g.group}
         />
         {g.publicGallery && (
           <a

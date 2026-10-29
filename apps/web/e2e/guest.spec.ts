@@ -112,37 +112,52 @@ test("pending: header event, langkah pengiriman", async ({ page }) => {
   await expect(page.getByText("1 dari 5 file sudah sampai")).toBeVisible();
 });
 
-test("ready: strip, tab original, simpan, masa berlaku", async ({ page }) => {
+test("ready: semua hasil satu halaman, pratinjau, simpan semua & satuan, masa berlaku", async ({
+  page,
+}) => {
   await page.goto(`/s/${ids.ready}`);
   const strip = page.locator("img").first();
   await expect(strip).toHaveJSProperty("complete", true);
   expect(await strip.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
   await expect(page.getByText("11 Nov 2026")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Simpan ke Galeri HP" })).toBeEnabled();
-  await page.screenshot({ path: "test-results/guest-ready.png" });
-  await page.getByRole("tab", { name: "Animasi" }).click();
-  await expect(page.getByRole("button", { name: "Simpan GIF ke HP" })).toBeEnabled();
-  // Video hitung mundur (#117).
-  await page.getByRole("tab", { name: "Video" }).click();
+  // Revisi 29 Okt: tanpa tab; satu tombol menyimpan semua (strip + 3 foto + animasi + video).
+  await expect(page.getByRole("tab")).toHaveCount(0);
+  const saveAll = page.getByRole("button", { name: "Simpan semua (6) ke galeri" });
+  await expect(saveAll).toBeEnabled();
+  for (const name of ["Foto 1", "Foto 2", "Foto 3", "Animasi", "Video"])
+    await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
   await expect(page.locator("video")).toHaveAttribute("src", /video_0/);
-  await expect(page.getByRole("button", { name: "Simpan Video ke HP" })).toBeEnabled();
-  await page.getByRole("tab", { name: "Strip" }).click();
-  await page.getByRole("tab", { name: "Original" }).click();
-  await expect(page.getByRole("button", { name: "Original 1" })).toBeVisible();
+  // Foto asli tidak dipotong: rasio tampil = rasio berkas.
+  const ratio = await page
+    .getByRole("button", { name: "Foto 1", exact: true })
+    .locator("img")
+    .evaluate((i: HTMLImageElement) => [
+      i.naturalWidth / i.naturalHeight,
+      i.getBoundingClientRect().width / i.getBoundingClientRect().height,
+    ]);
+  expect(Math.abs((ratio[0] ?? 0) - (ratio[1] ?? 0))).toBeLessThan(0.02);
+  // Strip muat di layar di atas tombol simpan (dulu tertutup).
+  const stripBottom = await strip.evaluate((i) => i.getBoundingClientRect().bottom);
+  const footerTop = await page
+    .locator("footer")
+    .first()
+    .evaluate((f) => f.getBoundingClientRect().top);
+  expect(stripBottom).toBeLessThanOrEqual(footerTop);
+  await page.screenshot({ path: "test-results/guest-ready.png" });
 
-  // Penampil foto: tap foto → dialog layar penuh, panah/strip thumbnail, Esc & back menutup.
-  await page.getByRole("button", { name: "Original 1" }).click();
+  // Penampil: ketuk foto → layar penuh berisi semua 6 item, simpan satuan.
+  await page.getByRole("button", { name: "Foto 1", exact: true }).click();
   const viewer = page.getByRole("dialog");
   await expect(viewer).toBeVisible();
-  await expect(viewer.getByText("1 / 3")).toBeVisible();
+  await expect(viewer.getByText("2 / 6")).toBeVisible();
   await viewer.getByRole("button", { name: "Foto berikutnya" }).click();
-  await expect(viewer.getByText("2 / 3")).toBeVisible();
-  await expect(viewer.getByRole("button", { name: /^Foto \d dari 3$/ })).toHaveCount(3);
-  await expect(viewer.getByRole("button", { name: "Foto 2 dari 3" })).toHaveAttribute(
+  await expect(viewer.getByText("3 / 6")).toBeVisible();
+  await expect(viewer.getByRole("button", { name: /^Foto \d dari 6$/ })).toHaveCount(6);
+  await expect(viewer.getByRole("button", { name: "Foto 3 dari 6" })).toHaveAttribute(
     "aria-current",
     "true",
   );
-  await expect(viewer.getByRole("img", { name: "Foto 2 dari 3" })).toBeVisible();
+  await expect(viewer.getByRole("img", { name: "Foto 3 dari 6" })).toBeVisible();
   await expect(viewer.getByRole("button", { name: "Simpan foto ini" })).toBeEnabled();
   await page.screenshot({ path: "test-results/guest-viewer.png", animations: "disabled" });
   // Zoom: klik dua kali → foto membesar; ganti foto → foto berikutnya 1×.
@@ -151,37 +166,83 @@ test("ready: strip, tab original, simpan, masa berlaku", async ({ page }) => {
       const t = getComputedStyle(el).transform;
       return t === "none" ? 1 : new DOMMatrix(t).a;
     });
-  await viewer.getByRole("img", { name: "Foto 2 dari 3" }).dblclick();
-  await expect.poll(() => scale("Foto 2 dari 3")).toBeGreaterThan(1);
+  await viewer.getByRole("img", { name: "Foto 3 dari 6" }).dblclick();
+  await expect.poll(() => scale("Foto 3 dari 6")).toBeGreaterThan(1);
   await page.keyboard.press("ArrowRight");
-  await expect(viewer.getByText("3 / 3")).toBeVisible();
-  expect(await scale("Foto 3 dari 3")).toBe(1);
+  await expect(viewer.getByText("4 / 6")).toBeVisible();
+  expect(await scale("Foto 4 dari 6")).toBe(1);
   // Geser ke kanan (swipe) → foto sebelumnya.
   await page.mouse.move(80, 422);
   await page.mouse.down();
   await page.mouse.move(280, 422, { steps: 8 });
   await page.mouse.up();
-  await expect(viewer.getByText("2 / 3")).toBeVisible();
+  await expect(viewer.getByText("3 / 6")).toBeVisible();
+  // Video ikut bisa dipratinjau & disimpan satuan.
+  await viewer.getByRole("button", { name: "Foto 6 dari 6" }).click();
+  await expect(viewer.getByRole("button", { name: "Simpan video ini" })).toBeEnabled();
   await page.keyboard.press("Escape");
   await expect(viewer).toBeHidden();
-  await expect(page.getByRole("button", { name: "Original 1" })).toBeFocused();
   await expect(page).toHaveURL(new RegExp(`/s/${ids.ready}$`));
   // Tombol back browser menutup penampil, tetap di halaman.
-  await page.getByRole("button", { name: "Original 2" }).click();
-  await expect(viewer.getByText("2 / 3")).toBeVisible();
+  await page.getByRole("button", { name: "Foto 2", exact: true }).click();
+  await expect(viewer.getByText("3 / 6")).toBeVisible();
   await page.goBack();
   await expect(viewer).toBeHidden();
-  await expect(page.getByRole("button", { name: "Original 2" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Foto 2", exact: true })).toBeVisible();
 
-  // N7: qr_open saat buka, save saat simpan → analytics_events.
-  await page.getByRole("button", { name: "Simpan ke Galeri HP" }).click();
+  // Simpan semua (Android/desktop): 6 unduhan langsung, nama rapi, bukan zip.
+  const downloads: string[] = [];
+  page.on("download", (d) => downloads.push(d.suggestedFilename()));
+  await saveAll.click();
+  await expect.poll(() => downloads.length, { timeout: 15_000 }).toBe(6);
+  expect(downloads.sort()).toEqual(
+    ["strip.jpg", "foto-1.jpg", "foto-2.jpg", "foto-3.jpg", "animasi.gif", "video.mp4"]
+      .map((f) => `andi-sari-${ids.ready.slice(0, 4)}-${f}`)
+      .sort(),
+  );
+  // N7: qr_open saat buka, save_all saat simpan semua → analytics_events.
   await expect
     .poll(async () =>
       ((await db.from("analytics_events").select("type").eq("session_id", ids.ready)).data ?? [])
         .map((r) => r.type)
         .sort(),
     )
-    .toEqual(["qr_open", "save"]);
+    .toEqual(["qr_open", "save_all"]);
+});
+
+test("ready di iPhone: simpan semua lewat share sheet (masuk app Foto), satuan juga", async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  // Share sheet Safari tiruan: catat file yang dibagikan.
+  await ctx.addInitScript(() => {
+    const w = window as unknown as { shared: string[][] };
+    w.shared = [];
+    Object.assign(navigator, {
+      canShare: (d: { files?: File[] }) => !!d.files?.length,
+      share: async (d: { files: File[] }) => {
+        w.shared.push(d.files.map((f) => f.name));
+      },
+    });
+  });
+  const page = await ctx.newPage();
+  await page.goto(`/s/${ids.ready}`);
+  await page.getByRole("button", { name: "Simpan semua (6) ke galeri" }).click();
+  const shared = () => page.evaluate(() => (window as unknown as { shared: string[][] }).shared);
+  await expect.poll(async () => (await shared())[0]?.length).toBe(6);
+  await expect(page.getByText("Tersimpan, cek galeri HP-mu")).toBeVisible();
+  await page.getByRole("button", { name: "Animasi", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Simpan animasi ini" }).click();
+  await expect
+    .poll(async () => (await shared())[1])
+    .toEqual([`andi-sari-${ids.ready.slice(0, 4)}-animasi.gif`]);
+  await ctx.close();
 });
 
 test("removed & expired: foto tidak tersedia + ajakan kontak", async ({ page }) => {

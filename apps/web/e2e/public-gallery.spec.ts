@@ -60,7 +60,9 @@ test("animasi di galeri, toggle galeri publik, tamu melihat read-only", async ({
     const guestUrl = `/s/${ids[0]}`;
     const guest = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await guest.goto(guestUrl);
-    await expect(guest.getByRole("button", { name: "Simpan ke Galeri HP" })).toBeVisible();
+    await expect(
+      guest.getByRole("button", { name: /^Simpan (semua \(\d+\) )?ke galeri$/ }),
+    ).toBeVisible();
     await expect(guest.getByRole("link", { name: /Lihat galeri acara/ })).toHaveCount(0);
     await guest.goto(`${guestUrl}/galeri`);
     await expect(guest.getByRole("heading", { name: "Galeri acara tidak tersedia" })).toBeVisible();

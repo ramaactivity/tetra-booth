@@ -246,7 +246,9 @@ test("kartu promosi: WA → bukti ulasan → kode, Hermes menarik lead, promo ma
     // Promo dimatikan untuk event ini → kartu hilang.
     await db.from("events").update({ promo_off: true }).eq("id", eventId);
     await page.reload();
-    await expect(page.getByRole("button", { name: "Simpan ke Galeri HP" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^Simpan (semua \(\d+\) )?ke galeri$/ }),
+    ).toBeVisible();
     await expect(page.getByTestId("guest-promo")).toHaveCount(0);
   } finally {
     await db

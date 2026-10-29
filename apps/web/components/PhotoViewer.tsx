@@ -4,7 +4,8 @@ import { type PointerEvent, type ReactNode, useEffect, useRef, useState } from "
 import { copy } from "@/lib/copy";
 
 const t = copy.guest;
-export type ViewerItem = { src: string; thumb: string };
+/** `video` = putar sebagai video (tanpa zoom), mis. video hitung mundur di halaman tamu. */
+export type ViewerItem = { src: string; thumb: string; video?: boolean };
 const HINT_KEY = "tetra.viewerZoomHint";
 
 type Zoom = { s: number; x: number; y: number };
@@ -343,18 +344,32 @@ export function PhotoViewer({
                 className={`absolute inset-0 m-auto max-h-full max-w-[calc(100%-2rem)] rounded-lg object-contain sm:max-w-[calc(100%-10rem)] ${fade} ${ready ? "opacity-0" : "opacity-100"}`}
               />
             )}
-            {cur && (
-              // biome-ignore lint/performance/noImgElement: URL R2 bertanda tangan
-              <img
+            {cur?.video ? (
+              <video
                 key={index}
-                ref={img}
                 src={cur.src}
-                alt={t.photoOf(index + 1, n)}
-                draggable={false}
-                onLoad={() => setReady(true)}
-                onError={() => setReady(true)}
-                className={`relative max-h-full max-w-full origin-top-left rounded-lg object-contain ${fade} ${ready || !old ? "opacity-100" : "opacity-0"}`}
+                autoPlay
+                muted
+                loop
+                playsInline
+                aria-label={t.photoOf(index + 1, n)}
+                onLoadedData={() => setReady(true)}
+                className="relative max-h-full max-w-full rounded-lg object-contain"
               />
+            ) : (
+              cur && (
+                // biome-ignore lint/performance/noImgElement: URL R2 bertanda tangan
+                <img
+                  key={index}
+                  ref={img}
+                  src={cur.src}
+                  alt={t.photoOf(index + 1, n)}
+                  draggable={false}
+                  onLoad={() => setReady(true)}
+                  onError={() => setReady(true)}
+                  className={`relative max-h-full max-w-full origin-top-left rounded-lg object-contain ${fade} ${ready || !old ? "opacity-100" : "opacity-0"}`}
+                />
+              )
             )}
           </div>
         </div>
@@ -397,7 +412,17 @@ export function PhotoViewer({
               onClick={() => go(i)}
               className={`h-12 w-[72px] flex-none overflow-hidden rounded-md border-[1.5px] ${i === index ? "border-ink outline-[2.5px] outline-offset-0 outline-mint" : "border-transparent opacity-55"}`}
             >
-              <img src={it.thumb} alt="" loading="lazy" className="size-full object-cover" />
+              {it.video ? (
+                <video
+                  src={it.thumb}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="size-full object-cover"
+                />
+              ) : (
+                <img src={it.thumb} alt="" loading="lazy" className="size-full object-cover" />
+              )}
             </button>
           ))}
         </div>

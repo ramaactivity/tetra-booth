@@ -88,7 +88,9 @@ test.describe("tamu (HP)", () => {
     await expect(page.getByRole("alert").filter({ hasText: "Periksa lagi" })).toBeVisible();
     await page.getByLabel("Nomor WhatsApp").fill("0812-3456-7890");
     await page.getByRole("button", { name: "Lihat Fotoku" }).click();
-    await expect(page.getByRole("button", { name: "Simpan ke Galeri HP" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^Simpan (semua \(\d+\) )?ke galeri$/ }),
+    ).toBeVisible();
     await expect(page.getByRole("heading", { name: "Satu langkah lagi" })).toHaveCount(0);
 
     const { data } = await db
@@ -99,7 +101,9 @@ test.describe("tamu (HP)", () => {
       { data: { name: "Sari Wulandari", whatsapp: "6281234567890" }, consent_version: "v-e2e" },
     ]);
     await page.reload();
-    await expect(page.getByRole("button", { name: "Simpan ke Galeri HP" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^Simpan (semua \(\d+\) )?ke galeri$/ }),
+    ).toBeVisible();
   });
 
   test("optional: foto langsung ada, Lewati menutup form dan diingat", async ({ page }) => {
@@ -109,7 +113,9 @@ test.describe("tamu (HP)", () => {
     await page.getByRole("button", { name: "Lewati" }).click();
     await expect(page.getByRole("heading", { name: "Satu langkah lagi" })).toHaveCount(0);
     await page.reload();
-    await expect(page.getByRole("button", { name: "Simpan ke Galeri HP" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /^Simpan (semua \(\d+\) )?ke galeri$/ }),
+    ).toBeVisible();
     await expect(page.getByRole("heading", { name: "Satu langkah lagi" })).toHaveCount(0);
   });
 });
