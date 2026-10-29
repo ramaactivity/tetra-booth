@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
@@ -130,15 +130,10 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
   const port = (server.address() as { port: number }).port;
   const env: NodeJS.ProcessEnv = { ...process.env, TETRA_GUEST_URL: `http://127.0.0.1:${port}` };
   delete env.ELECTRON_RUN_AS_NODE;
+  const data = mkdtempSync(join(tmpdir(), "tb-ds-"));
   const app = await electron.launch({
     executablePath: electronPath,
-    args: [
-      appDir,
-      "--camera=simulated",
-      "--no-spawn",
-      `--data=${mkdtempSync(join(tmpdir(), "tb-ds-"))}`,
-      "--use-mock-keychain",
-    ],
+    args: [appDir, "--camera=simulated", "--no-spawn", `--data=${data}`, "--use-mock-keychain"],
     env: env as Record<string, string>,
   });
   try {
@@ -164,6 +159,21 @@ test("mode event multi desain: pilih desain → foto sesuai desain, tanpa bayar"
     await expect(row).toContainText("Sama dengan cloud");
     await row.getByRole("button", { name: "Edit desain" }).click();
     const ed = w.getByTestId("design-editor");
+    await expect(ed.getByText("Foto 1", { exact: true })).toBeVisible();
+    // Cetak desain yang sedang diedit (foto contoh) lewat jalur cetak booth → sessions/<id>/out/test_design.jpg.
+    await ed.getByRole("button", { name: "Cetak", exact: true }).click();
+    const printed = () =>
+      readdirSync(join(data, "sessions")).some((id) =>
+        existsSync(join(data, "sessions", id, "out", "test_design.jpg")),
+      );
+    await expect.poll(printed, { timeout: 20_000 }).toBe(true);
+    // Semua slot boleh dihapus; Simpan menolak desain tanpa slot, urungkan mengembalikannya.
+    await ed.getByRole("button", { name: "Hapus semua slot" }).click();
+    await expect(ed.getByText("Foto 1", { exact: true })).toHaveCount(0);
+    await expect(ed.getByRole("button", { name: "Cetak", exact: true })).toBeDisabled();
+    await ed.getByRole("button", { name: "Simpan", exact: true }).click();
+    await expect(ed.getByText("Tambahkan minimal 1 slot foto sebelum menyimpan.")).toBeVisible();
+    await ed.getByRole("button", { name: "Urungkan" }).click();
     await expect(ed.getByText("Foto 1", { exact: true })).toBeVisible();
     await ed.getByRole("button", { name: "Unggahan" }).click();
     await ed

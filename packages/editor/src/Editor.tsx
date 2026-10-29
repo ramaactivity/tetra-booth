@@ -448,15 +448,20 @@ function useEditorApi(p: TemplateEditorProps) {
 
   const remove = () => {
     if (!sel.length) return;
-    const keepOne = layout.slots.length - selSlots.length < 1;
+    // Semua slot boleh dihapus (kanvas kosong untuk mulai ulang); Simpan menolak desain tanpa slot.
     commit(({ overlay, qr, ...l }) => ({
       ...l,
       ...(overlay && !sel.includes(OVERLAY) ? { overlay } : {}),
       ...(qr && !sel.includes(QR) ? { qr } : {}),
-      slots: keepOne ? l.slots : l.slots.filter((s) => !sel.includes(slotKey(s))),
+      slots: l.slots.filter((s) => !sel.includes(slotKey(s))),
       texts: l.texts.filter((t) => !sel.includes(textKey(t))),
     }));
     setSel([]);
+  };
+  const clearSlots = () => {
+    if (!layout.slots.length) return;
+    commit((l) => ({ ...l, slots: [] }));
+    setSel((v) => v.filter((k) => !layout.slots.some((s) => slotKey(s) === k)));
   };
   const clipboard = useRef<{ slots: LayoutSlot[]; texts: LayoutText[] } | null>(null);
   const copy = () => {
@@ -586,6 +591,7 @@ function useEditorApi(p: TemplateEditorProps) {
     arrangeOne: (l: LayoutSpec, k: Key, how: Arrange) => arrangeLayers(l, [k], how),
     reorder,
     remove,
+    clearSlots,
     copy,
     paste,
     duplicate,
@@ -642,6 +648,10 @@ export function TemplateEditor(props: TemplateEditorProps) {
 
   const save = async () => {
     if (saving) return;
+    if (!ed.layout.slots.length) {
+      setR({ ok: false, message: "Tambahkan minimal 1 slot foto sebelum menyimpan." });
+      return;
+    }
     const input = { layout: ed.layout, name, pendingFiles: ed.pending };
     setSaving(true);
     const res = await onSave(input).catch(

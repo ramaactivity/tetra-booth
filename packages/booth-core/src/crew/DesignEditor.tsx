@@ -1,12 +1,15 @@
-import { TemplateEditor } from "@tetra/editor";
-import type { EventBundle } from "@tetra/shared";
+import { GEIST, samplePhoto, TemplateEditor, VARS } from "@tetra/editor";
+import { type EventBundle, type LayoutSpec, newSessionId, printPaper } from "@tetra/shared";
+import { browserContext, type ImageLike, render } from "@tetra/template-engine";
+import { Printer } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { copy } from "../copy";
 import { type DesignEntry, type EditorOpen, fromEditor, toEditor } from "../designEdit";
 import { crewText } from "../errors";
 import { usePlatform } from "../PlatformContext";
-import type { DesignFile } from "../platform";
+import type { BoothPlatform, DesignFile } from "../platform";
+import { toneForPrint } from "../printTone";
 
 const MIME: Record<string, string> = {
   png: "image/png",
@@ -18,6 +21,83 @@ const MIME: Record<string, string> = {
   woff2: "font/woff2",
 };
 const extOf = (name: string) => name.split(".").pop()?.toLowerCase() ?? "";
+
+/**
+ * Cetak desain yang sedang diedit (belum perlu disimpan) dengan foto contoh bernomor, lewat jalur cetak booth yang
+ * sama dengan sesi (koreksi warna printer, printer lokal / printer bersama). File `test_*` di folder sesi sendiri.
+ */
+async function printDesign(
+  p: BoothPlatform,
+  layout: LayoutSpec,
+  images: Record<string, ImageLike>,
+  fontFamily: (id: string) => string,
+) {
+  const sheet = render(
+    layout,
+    {
+      photos: layout.slots.map((s, i) =>
+        samplePhoto(Math.max(1, Math.round(s.w)), Math.max(1, Math.round(s.h)), i),
+      ),
+      assets: images,
+      vars: VARS,
+    },
+    { ...browserContext(GEIST), fontFamily },
+  ) as unknown as OffscreenCanvas;
+  const blob = await toneForPrint(sheet).convertToBlob({ type: "image/jpeg", quality: 0.95 });
+  const id = newSessionId();
+  const path = `${await p.storage.sessionDir(id)}/out/test_design.jpg`;
+  await p.storage.writeFile(path, new Uint8Array(await blob.arrayBuffer()));
+  await p.printer.submit({ jobId: `test-${id}`, path, copies: 1, paper: printPaper(layout.paper) });
+}
+
+function PrintButton(props: {
+  layout: LayoutSpec;
+  images: Record<string, ImageLike>;
+  fontFamily: (id: string) => string;
+}) {
+  const p = usePlatform();
+  const [state, setState] = useState<"idle" | "busy" | "sent">("idle");
+  const [note, setNote] = useState<string>();
+  const empty = !props.layout.slots.length;
+  const print = async () => {
+    setState("busy");
+    setNote(undefined);
+    try {
+      await printDesign(p, props.layout, props.images, props.fontFamily);
+      setState("sent");
+      setTimeout(() => setState("idle"), 2500);
+    } catch (e) {
+      setState("idle");
+      setNote(crewText(e));
+    }
+  };
+  return (
+    <>
+      {note && (
+        <span
+          role="alert"
+          className="max-w-[260px] truncate text-[12px] font-semibold text-coral-strong"
+        >
+          {note}
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={print}
+        disabled={state === "busy" || empty}
+        title={empty ? copy.crew.designNoSlot : undefined}
+        className="flex h-9 items-center gap-1.5 rounded-[10px] border-[1.5px] border-ink bg-white px-3 text-[13px] font-bold disabled:opacity-50"
+      >
+        <Printer className="size-4" />
+        {state === "busy"
+          ? copy.crew.designPrinting
+          : state === "sent"
+            ? copy.crew.designPrinted
+            : copy.crew.designPrint}
+      </button>
+    </>
+  );
+}
 
 /**
  * Editor desain lengkap di booth (DECISIONS #128/#131): `@tetra/editor` yang sama dengan admin. Simpan = override
@@ -122,6 +202,7 @@ export function DesignEditor({
       onSavePreset={async () => ({ ok: false, message: copy.crew.presetsAdminOnly })}
       onDeletePreset={async () => false}
       onBack={() => onBack(saved.current)}
+      actions={(a) => <PrintButton {...a} />}
     />
   );
   return createPortal(

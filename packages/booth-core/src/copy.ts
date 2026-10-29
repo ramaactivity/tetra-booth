@@ -602,6 +602,10 @@ export const copy = {
     designLoading: "Membuka desain…",
     designReset: (name: string) => `${name} dikembalikan ke versi cloud`,
     presetsAdminOnly: "Tata letak saya hanya bisa disimpan dari admin",
+    designPrint: "Cetak",
+    designPrinting: "Mencetak…",
+    designPrinted: "Terkirim ke printer",
+    designNoSlot: "Tambahkan slot foto dulu",
     designNote:
       "Edit di booth = hanya booth ini, tanpa internet, langsung dipakai sesi berikutnya. Untuk mengubah desain di cloud (semua booth), buka di admin lalu tekan Ambil event terbaru.",
     cloudTitle: "Cloud & perangkat",

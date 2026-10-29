@@ -610,6 +610,14 @@ export function Panels({
                 <p className={small}>
                   Nomor slot = urutan foto saat sesi. Ubah di toolbar "Foto ke-".
                 </p>
+                <button
+                  type="button"
+                  onClick={ed.clearSlots}
+                  disabled={!ed.layout.slots.length}
+                  className="flex h-10 items-center justify-center gap-1.5 rounded-[12px] border-[1.5px] border-dashed border-ink bg-white text-[13px] font-bold hover:bg-paper disabled:opacity-40"
+                >
+                  <Trash2 className="size-4" /> Hapus semua slot
+                </button>
               </Section>
               <MyLayouts ed={ed} />
               <Section title="Tata letak cepat">

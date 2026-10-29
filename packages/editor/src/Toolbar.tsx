@@ -71,7 +71,6 @@ export function Toolbar({
         title="Hapus (Delete)"
         className={btn}
         onClick={ed.remove}
-        disabled={ed.selSlots.length >= ed.layout.slots.length && ed.selTexts.length === 0}
       >
         <Trash2 className="size-4" />
       </button>
