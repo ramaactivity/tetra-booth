@@ -7,6 +7,8 @@ on:
     paths-ignore: ["docs/**", "**/*.md"]
   pull_request:
     paths-ignore: ["docs/**", "**/*.md"]
+  # Jalankan ulang manual (Actions → CI → Run workflow): push 332f6be tidak memicu CI sama sekali.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
