@@ -1,4 +1,5 @@
-import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { fileURLToPath } from "node:url";
+import { createCanvas, GlobalFonts, loadImage } from "@napi-rs/canvas";
 import { filterCss, type LayoutSpec, PHOTO_FILTERS } from "@tetra/shared";
 import {
   FIXTURES,
@@ -10,9 +11,13 @@ import {
 import { describe, expect, it } from "vitest";
 import { MATCH_MAX, matchThumb, thumbDiff } from "../src/rerender";
 
+// Font dari repo, bukan "sans-serif" sistem: runner ubuntu-26.04 tidak punya font sistem, teks tidak tergambar
+// dan "teks lain → tidak cocok" gagal (CI 25 Nov 2026).
+const FONT = "../../../apps/booth/src/renderer/public/fonts/plus-jakarta-sans-500-normal.woff2";
+GlobalFonts.registerFromPath(fileURLToPath(new URL(FONT, import.meta.url)), "TestSans");
 const ctx: RenderContext = {
   createCanvas: (w, h) => createCanvas(w, h),
-  fontFamily: () => "sans-serif",
+  fontFamily: () => "TestSans",
 };
 const spec: LayoutSpec = {
   ...FIXTURES["2x6x2"],
