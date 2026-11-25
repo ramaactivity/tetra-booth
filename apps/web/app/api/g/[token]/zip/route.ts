@@ -1,12 +1,14 @@
 import { SESSION_ID_PATTERN } from "@tetra/shared";
-import { downloadZip } from "client-zip";
+import { downloadZip, predictLength } from "client-zip";
 import { apiError, clientIp, rateOk } from "@/lib/booth";
 import { guestPhotosVisible } from "@/lib/events";
 import { eventByClientToken } from "@/lib/gallery";
-import { getStream } from "@/lib/r2";
+import { getStream, objectBytes } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
-export const maxDuration = 60;
+// Batas Vercel Hobby + Fluid (300 dtk). Dulu 60 dtk: di koneksi lambat stream diputus di tengah dan klien
+// menerima ZIP setengah tanpa tanda gagal (Wedding Iqbal & Ceca, 129 dari 144 MB).
+export const maxDuration = 300;
 
 const KINDS = {
   strip: ["strip_web"],
@@ -17,7 +19,9 @@ const KINDS = {
 
 /**
  * Unduh semua foto galeri klien sebagai ZIP (FSD §3 "Download semua", TSD §7), di-stream langsung dari R2
- * tanpa kompresi (JPEG). ponytail: dibatasi durasi function Vercel; event sangat besar → worker ZIP terpisah.
+ * tanpa kompresi (JPEG). Content-Length dihitung di depan (HEAD tiap objek + predictLength), jadi kalau unduhan
+ * terputus browser menandainya GAGAL, bukan menyimpan ZIP rusak. ponytail: masih dibatasi durasi function
+ * Vercel (300 dtk ≈ 600 MB di 2 MB/dtk); event lebih besar dari itu → ZIP dibuat di background ke R2.
  */
 export async function GET(req: Request, ctx: { params: Promise<{ token: string }> }) {
   if (!(await rateOk(`zip:${clientIp(req)}`, 600, 10))) return apiError("rate_limited", 429);
@@ -42,28 +46,42 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
     .is("review_status", null)
     .eq("sessions.event_id", ev.id)
     .eq("sessions.source", kind === "stage" || kind === "guest" ? kind : "booth")
+    // Sesi uji crew tidak tampil di galeri, jadi tidak ikut ZIP juga (sama dengan galleryOf).
+    .eq("sessions.is_test", false)
     .is("sessions.hidden_at", null)
     .is("sessions.deleted_at", null)
     .limit(5000);
   if (one) sel = sel.eq("sessions.id", one);
   const { data } = await sel;
-  const rows = (data ?? []).sort((a, b) =>
+  const sorted = (data ?? []).sort((a, b) =>
     a.sessions.started_at.localeCompare(b.sessions.started_at),
   );
+  // Ukuran tiap objek di depan (untuk Content-Length). Objek yang hilang (belum terunggah / dibersihkan)
+  // dilewati di sini, bukan di tengah stream (#253) — kalau dilewati di tengah, Content-Length meleset.
+  const r2Key = (k: string) => k.split("#")[0] ?? k;
+  const sizes: (number | null)[] = [];
+  for (let i = 0; i < sorted.length; i += 32)
+    sizes.push(
+      ...(await Promise.all(sorted.slice(i, i + 32).map((a) => objectBytes(r2Key(a.r2_key))))),
+    );
+  const rows = sorted.flatMap((a, i) => {
+    const size = sizes[i];
+    return size == null ? [] : [{ ...a, size }];
+  });
+  const meta = rows.map((a, n) => ({
+    name:
+      kind === "stage" || kind === "guest"
+        ? `${String(n + 1).padStart(4, "0")}-${(a.sessions.group_name ?? "Tamu").replace(/[^\w .-]+/g, "").slice(0, 60)}-${kind === "guest" ? (a.kind === "strip_web" ? "strip-" : "foto-") : ""}${a.idx}.jpg`
+        : `${String(n + 1).padStart(4, "0")}-${a.sessions.id}${kind === "original" ? `-${a.idx}` : ""}.jpg`,
+    lastModified: new Date(a.sessions.started_at),
+    size: a.size,
+  }));
   async function* files() {
-    for (const [n, a] of rows.entries()) {
-      // Satu objek hilang (belum terunggah / dibersihkan) dulu memutus seluruh ZIP di tengah unduhan
-      // ("failed to pipe response: NoSuchKey"); sekarang dilewati, sisanya tetap terunduh (#253).
-      const input = await getStream(a.r2_key.split("#")[0] ?? a.r2_key).catch(() => null);
-      if (!input) continue;
-      yield {
-        name:
-          kind === "stage" || kind === "guest"
-            ? `${String(n + 1).padStart(4, "0")}-${(a.sessions.group_name ?? "Tamu").replace(/[^\w .-]+/g, "").slice(0, 60)}-${kind === "guest" ? (a.kind === "strip_web" ? "strip-" : "foto-") : ""}${a.idx}.jpg`
-            : `${String(n + 1).padStart(4, "0")}-${a.sessions.id}${kind === "original" ? `-${a.idx}` : ""}.jpg`,
-        lastModified: new Date(a.sessions.started_at),
-        input,
-      };
+    for (const [n, m] of meta.entries()) {
+      // Objek sudah dicek ada; gagal di sini = stream error → browser menandai unduhan gagal.
+      const input = await getStream(r2Key(rows[n]?.r2_key ?? ""));
+      if (!input) throw new Error(`zip: objek kosong ${rows[n]?.r2_key}`);
+      yield { ...m, input };
     }
   }
   const slug =
@@ -74,6 +92,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   return new Response(downloadZip(files()).body, {
     headers: {
       "content-type": "application/zip",
+      "content-length": String(predictLength(meta)),
       "content-disposition": `attachment; filename="${slug}-${kind}${one ? `-${one}` : ""}.zip"`,
     },
   });
