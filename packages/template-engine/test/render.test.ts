@@ -1,12 +1,16 @@
-import { createCanvas } from "@napi-rs/canvas";
+import { fileURLToPath } from "node:url";
+import { createCanvas, GlobalFonts } from "@napi-rs/canvas";
 import { LAYOUT_PRESETS } from "@tetra/shared";
 import { describe, expect, it } from "vitest";
 import type { RenderContext } from "../src";
 import { FIXTURES, makeFixtureInputs, pixelHash, render, renderPiece, toSheet } from "../src";
 
+// Font dari repo, bukan "sans-serif" sistem: runner ubuntu-26.04 tidak punya font sistem (CI 25 Nov 2026).
+const FONT = "../../../apps/booth/src/renderer/public/fonts/plus-jakarta-sans-500-normal.woff2";
+GlobalFonts.registerFromPath(fileURLToPath(new URL(FONT, import.meta.url)), "TestSans");
 const ctx: RenderContext = {
   createCanvas: (w, h) => createCanvas(w, h),
-  fontFamily: () => "sans-serif",
+  fontFamily: () => "TestSans",
 };
 
 describe("template engine", () => {
