@@ -197,7 +197,8 @@ export function GalleryView({
   };
   const share = async (p: GalleryPhoto) => {
     try {
-      const blob = await (await fetch(p.full)).blob();
+      // no-store: cache <img> tanpa header CORS membuat fetch gagal → jatuh ke unduhan (sama dengan #297 di /s).
+      const blob = await (await fetch(p.full, { cache: "no-store" })).blob();
       const file = new File([blob], `tetra-${p.sessionId}.${ext(p)}`, {
         type: p.kind === "animation" ? "image/gif" : "image/jpeg",
       });

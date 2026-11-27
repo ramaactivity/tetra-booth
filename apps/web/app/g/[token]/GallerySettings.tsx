@@ -29,16 +29,16 @@ export function GallerySettings({
         onClick={() => ref.current?.showModal()}
         className="pressable h-11 flex-none rounded-[10px] border-[1.5px] border-ink bg-white px-3.5 text-[13px] font-bold"
       >
-        ⚙ Pengaturan
+        Bagikan ke tamu
       </button>
       <dialog
         ref={ref}
-        aria-label="Pengaturan Galeri"
+        aria-label="Bagikan ke tamu"
         className="mx-auto mt-auto mb-3 w-[calc(100vw-24px)] max-w-[480px] rounded-[28px] border-[1.5px] border-ink bg-white p-5 backdrop:bg-ink/40 md:m-auto"
       >
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-[22px] font-extrabold tracking-[-0.02em]">Pengaturan Galeri</h2>
+            <h2 className="text-[22px] font-extrabold tracking-[-0.02em]">Bagikan ke tamu</h2>
             <button
               type="button"
               aria-label="Tutup"

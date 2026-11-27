@@ -189,7 +189,8 @@ async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gall
             "original",
             "thumb_original",
             "animation",
-            "audio",
+            // Ucapan suara tamu hanya untuk klien, bukan galeri publik (audit 27 Nov: pesan pribadi ke pengantin).
+            ...(withFavorites ? ["audio"] : []),
           ])
           .is("hidden_at", null)
           // Moderasi Guest Cam: hanya yang disetujui (booth/stage selalu null).

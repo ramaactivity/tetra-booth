@@ -25,13 +25,15 @@ export async function loadLive(token: string, limit = 24) {
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, organization_id, name, event_date, branding, purged_at, public_gallery, settings, run, guest_revealed_at, guest_token, guest_link",
+      "id, organization_id, name, event_date, branding, purged_at, public_gallery, settings, run, guest_revealed_at, guest_token, guest_link, guest_expires_at, client_expires_at",
     )
     .or(byLink("live_token", token))
     .not("live_token", "is", null)
     .limit(1)
     .maybeSingle();
-  if (!ev || ev.purged_at) return null;
+  // Masa simpan habis = slideshow ikut berhenti (audit 27 Nov: dulu 24 strip terakhir tetap tampil).
+  const until = ev?.guest_expires_at ?? ev?.client_expires_at;
+  if (!ev || ev.purged_at || (until && new Date(until) <= new Date())) return null;
   const { data: rows } = await db
     .from("sessions")
     .select("id, started_at, source, group_name, assets!inner(kind, idx, r2_key)")

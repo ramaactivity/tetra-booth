@@ -31,6 +31,8 @@ export function LiveView({
   const [strips, setStrips] = useState(initial);
   const [i, setI] = useState(0);
   const [scale, setScale] = useState(1);
+  // Strip tampil melebar (landscape): tata letak foto di bawah judul.
+  const [wide, setWide] = useState(false);
   const [, setSlides] = useState(0);
   const [invite, setInvite] = useState(false);
 
@@ -153,7 +155,11 @@ export function LiveView({
             <span className="font-mono text-2xl text-text-2">{date}</span>
           </div>
           {cur ? (
-            <div className="relative ml-[260px] h-[810px]">
+            // Strip landscape (4R/polaroid melebar) diletakkan di bawah judul; strip tegak di kanan judul
+            // (audit 27 Nov: foto 4R menutupi nama acara).
+            <div
+              className={`relative ${wide && !cur.by ? "mt-[250px] flex h-[700px] max-w-[1340px] items-center" : "ml-[260px] h-[810px]"}`}
+            >
               {fresh && (
                 <div className="absolute -top-[30px] -right-10 z-10 rotate-6 rounded-full border-[3px] border-ink bg-butter px-7 py-3 text-[32px] font-extrabold whitespace-nowrap">
                   Baru!
@@ -194,7 +200,10 @@ export function LiveView({
                   src={cur.url}
                   alt=""
                   data-testid="live-main"
-                  className="layered h-full rounded-xl border-[3px] border-ink bg-white [--lb:3px] [--lx:16px] [--under:#fff]"
+                  onLoad={(e) =>
+                    setWide(e.currentTarget.naturalWidth > e.currentTarget.naturalHeight)
+                  }
+                  className={`layered ${wide ? "max-h-full max-w-full" : "h-full"} rounded-xl border-[3px] border-ink bg-white [--lb:3px] [--lx:16px] [--under:#fff]`}
                 />
               )}
             </div>

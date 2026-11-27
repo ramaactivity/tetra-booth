@@ -80,7 +80,7 @@ test("animasi di galeri, toggle galeri publik, tamu melihat read-only", async ({
     await page.goto(`/g/${token}`);
     await page.getByRole("button", { name: "Animasi" }).click();
     await expect(page.getByTestId("gallery-photo")).toHaveCount(2);
-    await page.getByRole("button", { name: "⚙ Pengaturan" }).click();
+    await page.getByRole("button", { name: "Bagikan ke tamu" }).click();
     await expect(page.getByText("Semua foto akan dihapus pada")).toBeVisible();
     await page.getByText("Galeri publik", { exact: true }).click();
     await expect(page.getByRole("switch")).toBeChecked({ timeout: 20_000 }); // compile pertama route di dev

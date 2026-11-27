@@ -75,7 +75,7 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
     const guest = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await guest.goto(path);
     await expect(guest.getByRole("heading", { name: `e2e galeri ${tag}` })).toBeVisible();
-    await expect(guest.getByTestId("photo-count")).toHaveText("4 foto");
+    await expect(guest.getByTestId("photo-count")).toHaveText("2 sesi foto");
     await expect(guest.getByTestId("gallery-photo")).toHaveCount(2);
     await guest.screenshot({ path: "test-results/gallery-mobile.png", fullPage: true });
     // Link token lama (sebelum #147) tetap membuka galeri yang sama.

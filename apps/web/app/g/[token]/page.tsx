@@ -64,7 +64,8 @@ export default async function GalleryPage({ params }: { params: Promise<{ token:
   const left = g.expiresAt
     ? Math.max(0, Math.ceil((new Date(g.expiresAt).getTime() - Date.now()) / 86_400_000))
     : null;
-  const count = g.photos.length.toLocaleString("id-ID");
+  // Jumlah sesi foto, bukan jumlah file (dulu "178 foto" di atas vs "89 foto" di toolbar, audit 27 Nov).
+  const count = new Set(g.photos.map((p) => p.sessionId)).size.toLocaleString("id-ID");
   return (
     <main className="mx-auto flex min-h-dvh max-w-[1440px] flex-col gap-4 bg-paper px-3.5 pt-4 pb-16 md:gap-5 md:px-12 md:pt-6">
       <header className="hidden items-center justify-between md:flex">
@@ -107,19 +108,19 @@ export default async function GalleryPage({ params }: { params: Promise<{ token:
               {g.location && ` · ${g.location}`}
             </span>
             <span className="font-mono text-ink" data-testid="photo-count">
-              {count} foto
+              {count} sesi foto
             </span>
           </p>
         </div>
         <div className="col-span-2 flex items-center gap-2 md:col-span-1 md:w-[300px] md:flex-col md:items-stretch md:self-stretch md:justify-center">
           {left !== null && g.daysTotal && (
             <div className="flex min-w-0 flex-1 flex-col gap-2 rounded-[14px] border-[1.5px] border-dashed border-ink bg-peach px-3.5 py-2.5 md:flex-none">
-              <div className="flex justify-between text-xs font-bold">
+              <div className="flex justify-between gap-2 text-xs font-bold">
                 <span>Tersedia {left} hari lagi</span>
-                {/* Event belum lewat: sisa hari > masa simpan, pecahan "60/49" membingungkan. */}
-                {left <= g.daysTotal && (
-                  <span className="font-mono font-normal">
-                    {left}/{g.daysTotal}
+                {/* Tanggal akhir, bukan pecahan "89/90" yang terbaca seperti progres unduhan (audit 27 Nov). */}
+                {g.expiresAt && (
+                  <span className="font-normal whitespace-nowrap">
+                    s/d {shortDate(g.expiresAt)}
                   </span>
                 )}
               </div>
