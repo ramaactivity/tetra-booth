@@ -23,6 +23,8 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
       event_date: "2026-10-12",
       location: "Gedung Kirana",
       branding: { tagline: "The Wedding of" },
+      // Kartu promo (#215) bisa muncul menutupi foto besar; diuji di promo.spec.
+      promo_off: true,
       client_expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString(),
     })
     .select("id, slug")
@@ -80,7 +82,7 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
     await expect(guest.getByRole("heading", { name: `e2e galeri ${tag}` })).toBeVisible();
     await guest.goto(path);
     await guest.getByTestId("gallery-photo").first().click();
-    await expect(guest.getByRole("dialog")).toContainText("1 / 2");
+    await expect(guest.getByRole("dialog", { name: /^Foto / })).toContainText("1 / 2");
     await guest.getByRole("button", { name: "♡ Favorit" }).click();
     await expect(guest.getByRole("button", { name: "♥ Favorit" })).toBeVisible();
     await guest.getByRole("button", { name: "Tutup" }).click();
@@ -99,8 +101,10 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
     expect((await dl).suggestedFilename()).toMatch(/^tetra-.+\.jpg$/);
     await guest.getByRole("button", { name: "Tutup" }).click();
     await guest.getByRole("button", { name: "▶ Putar Slideshow" }).click();
-    await expect(guest.getByRole("dialog")).toContainText("1 / 2");
-    await expect(guest.getByRole("dialog")).toContainText("2 / 2", { timeout: 6000 });
+    await expect(guest.getByRole("dialog", { name: /^Foto / })).toContainText("1 / 2");
+    await expect(guest.getByRole("dialog", { name: /^Foto / })).toContainText("2 / 2", {
+      timeout: 6000,
+    });
     await guest.getByRole("button", { name: "Tutup" }).click();
     const zip = await guest.request.get(`/api/g/${path.split("/").pop()}/zip?kind=original`);
     expect(zip.headers()["content-type"]).toBe("application/zip");
@@ -108,8 +112,9 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
     expect(bytes.subarray(0, 2).toString()).toBe("PK");
     expect(bytes.length).toBeGreaterThan(2000);
 
-    page.once("dialog", (d) => d.accept());
+    // Cabut = dua ketukan (tanpa confirm bawaan browser).
     await page.getByRole("button", { name: "Cabut", exact: true }).first().click();
+    await page.getByRole("button", { name: "Yakin cabut?" }).click();
     await expect(page.getByTestId("link-client")).toContainText("Link belum aktif");
     await guest.goto(path);
     await expect(guest.getByRole("heading", { name: "Galeri tidak tersedia" })).toBeVisible();

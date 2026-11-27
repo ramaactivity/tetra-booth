@@ -1,10 +1,12 @@
 "use client";
-import { useState, useTransition } from "react";
+import { MessageCircle } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
 import { setLink } from "./links";
 
 /**
  * Link galeri klien & slideshow (bagian "Galeri klien" E3): `/g/<slug>` dan `/live/<slug>` (nama event, #147).
- * Buat Link = aktifkan, Cabut = matikan (link slug & token lama tidak bisa dibuka).
+ * Buat Link = aktifkan, Cabut = matikan (link slug & token lama tidak bisa dibuka; ketuk dua kali).
+ * Ringkasan event juga memberi `waText` (Kirim ke WA, owner sendiri yang menekan kirim) dan `clientSeen`.
  */
 export function LinksPanel({
   eventId,
@@ -12,23 +14,35 @@ export function LinksPanel({
   slug,
   clientOn,
   liveOn,
+  waText,
+  clientSeen,
 }: {
   eventId: string;
   origin: string;
   slug: string;
   clientOn?: boolean;
   liveOn?: boolean;
+  waText?: string;
+  clientSeen?: string;
 }) {
   const [pending, start] = useTransition();
   const [copied, setCopied] = useState<string | null>(null);
+  // Cabut butuh ketukan kedua (link yang sudah dibagikan langsung mati); lepas sendiri setelah 4 dtk.
+  const [armed, setArmed] = useState<string | null>(null);
+  useEffect(() => {
+    if (!armed) return;
+    const t = setTimeout(() => setArmed(null), 4000);
+    return () => clearTimeout(t);
+  }, [armed]);
   const row = (kind: "client" | "live", label: string, path: string, on: boolean) => {
     const url = on ? `${origin}/${path}/${slug}` : null;
-    const run = (a: "new" | "revoke") => () =>
+    const run = (a: "new" | "revoke") => () => {
+      if (a === "revoke" && armed !== kind) return setArmed(kind);
+      setArmed(null);
       start(async () => {
-        if (a === "revoke" && !confirm(`Cabut ${label}? Link ini langsung tidak bisa dibuka.`))
-          return;
         await setLink(eventId, kind, a);
       });
+    };
     return (
       <div className="flex flex-col gap-1.5">
         <span className="text-[13px] font-bold">{label}</span>
@@ -73,17 +87,33 @@ export function LinksPanel({
               Buat Link
             </button>
           )}
+          {on && kind === "client" && waText && (
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(waText)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-[42px] items-center gap-1.5 rounded-[11px] border-[1.5px] border-ink bg-mint-soft px-3 text-xs font-bold no-underline"
+            >
+              <MessageCircle aria-hidden className="size-4" strokeWidth={2} />
+              Kirim ke WA
+            </a>
+          )}
           {on && (
             <button
               type="button"
               disabled={pending}
               onClick={run("revoke")}
-              className="h-[42px] rounded-[11px] border-[1.5px] border-ink bg-coral px-3 text-xs font-bold"
+              className={`h-[42px] rounded-[11px] border-[1.5px] border-ink px-3 text-xs font-bold ${armed === kind ? "bg-coral-strong" : "bg-coral"}`}
             >
-              Cabut
+              {armed === kind ? "Yakin cabut?" : "Cabut"}
             </button>
           )}
         </div>
+        {on && kind === "client" && clientSeen && (
+          <span className="text-xs text-text-2" data-testid="client-seen">
+            {clientSeen}
+          </span>
+        )}
       </div>
     );
   };

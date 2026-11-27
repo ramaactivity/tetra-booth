@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { after } from "next/server";
 import { GuestPromo } from "@/components/GuestPromo";
+import { isBot, trackClient } from "@/lib/client-track";
 import { loadGallery } from "@/lib/gallery";
 import { shortDate } from "@/lib/guest";
 import { loadPromo } from "@/lib/promo";
+import { createUserClient } from "@/lib/supabase/server";
 import { GallerySettings } from "./GallerySettings";
 import { GalleryView } from "./GalleryView";
 
@@ -37,6 +41,11 @@ export default async function GalleryPage({ params }: { params: Promise<{ token:
         </p>
       </main>
     );
+  // "Dibuka klien" di ringkasan event: bukan robot pratinjau link, bukan tim yang sedang login admin.
+  if (!isBot((await headers()).get("user-agent"))) {
+    const { data } = await (await createUserClient()).auth.getUser();
+    if (!data.user) after(() => trackClient(g.eventId, "gallery_open"));
+  }
   // Cover lebar = foto original (2400 px), bukan strip sempit yang di-crop & diperbesar (buram, Rama 30 Sep).
   // Foto tamu Guest Cam (#203) bukan sampul: bisa buram/acak; booth & Photo Stage dulu.
   const own = g.photos.filter((p) => p.source !== "guest");

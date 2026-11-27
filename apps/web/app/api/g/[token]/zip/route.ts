@@ -1,6 +1,8 @@
 import { SESSION_ID_PATTERN } from "@tetra/shared";
 import { downloadZip, predictLength } from "client-zip";
+import { after } from "next/server";
 import { apiError, clientIp, rateOk } from "@/lib/booth";
+import { isBot, trackClient } from "@/lib/client-track";
 import { guestPhotosVisible } from "@/lib/events";
 import { eventByClientToken } from "@/lib/gallery";
 import { getStream, objectBytes } from "@/lib/r2";
@@ -35,6 +37,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   // Unduh satu rombongan (#191): `session` = ID sesi stage di event ini.
   const one = new URL(req.url).searchParams.get("session");
   if (one && !SESSION_ID_PATTERN.test(one)) return apiError("bad_request", 400);
+  // "Unduh semua" klien (ringkasan event): hanya unduhan seluruh galeri, bukan per rombongan.
+  if (!one && !isBot(req.headers.get("user-agent"))) after(() => trackClient(ev.id, "zip"));
   let sel = createServiceClient()
     .from("assets")
     .select(

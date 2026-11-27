@@ -144,7 +144,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
       .limit(5000),
     db
       .from("analytics_events")
-      .select("session_id, type")
+      .select("session_id, type, created_at")
       .eq("event_id", ev.id)
       .eq("organization_id", orgId)
       .limit(50000),
@@ -201,6 +201,13 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     );
   const opened = hitIds((t) => t === "qr_open");
   const saved = hitIds((t) => t !== "qr_open");
+  // Serah terima ke klien: galeri dibuka & unduh semua (bukan robot pratinjau / tim, lib/client-track).
+  const galleryOpens = (hits ?? []).filter((h) => h.type === "gallery_open");
+  const zips = (hits ?? []).filter((h) => h.type === "zip").length;
+  const lastOpen = galleryOpens.reduce<string | null>(
+    (m, h) => (!m || h.created_at > m ? h.created_at : m),
+    null,
+  );
   const total = list.length;
   const pct = (n: number) => (total ? `${Math.round((n / total) * 100)}%` : "0%");
   const prints = list.reduce((a, s) => a + s.print_count, 0);
@@ -362,6 +369,16 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   ];
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
+  const clientSeen = lastOpen
+    ? `Dibuka klien ${galleryOpens.length}× · terakhir ${new Intl.DateTimeFormat("id-ID", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", ...WIB }).format(new Date(lastOpen))}${zips ? ` · unduh semua ${zips}×` : ""}`
+    : "Belum dibuka klien";
+  // Pesan untuk klien (dikirim sendiri oleh owner lewat WA, bukan otomatis).
+  const waText = [
+    `Halo Kak${branding.clientName ? ` ${branding.clientName}` : ""}, ini galeri foto photobooth ${ev.name}:`,
+    `${origin}/g/${ev.slug}`,
+    "",
+    `Semua foto bisa dilihat dan diunduh sekaligus lewat tombol Unduh semua.${ev.client_expires_at ? ` Link aktif sampai ${day(ev.client_expires_at)}.` : ""}`,
+  ].join("\n");
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -539,6 +556,8 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
             slug={ev.slug}
             clientOn={!!ev.client_token}
             liveOn={!!ev.live_token}
+            waText={waText}
+            clientSeen={clientSeen}
           />
           {cam.enabled && (
             <GuestLinkPanel
