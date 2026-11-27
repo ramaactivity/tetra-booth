@@ -121,28 +121,48 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
   const per = month === thisMonth ? "bulan ini" : monthName(month);
   const [y = 0, m = 0] = month.split("-").map(Number);
   const nextMonth = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`;
-  const [{ data }, { data: stats }, { data: pays }, { data: period }, { data: devices }] =
-    await Promise.all([
-      db
-        .from("events")
-        .select(
-          "id, slug, name, status, event_date, purge_at, all_devices, location, branding, settings, package_name, package_hours, scheduled_start, scheduled_end, run, local_bytes, ops_project_id, ops_sync, paper:bundle->config->layout->paper, event_devices(device_id, devices(name))",
-        )
-        .eq("organization_id", orgId)
-        .eq("mode", mode)
-        .order("event_date", { ascending: false }),
-      db.rpc("event_session_stats", { org: orgId }),
-      mode === "photobox" ? db.rpc("event_payment_stats", { org: orgId }) : { data: [] },
-      db.rpc("org_period_stats", { org: orgId, d_from: `${month}-01`, d_to: nextMonth }),
-      db
-        .from("devices")
-        .select("id, name, short_code, last_seen_at, status")
-        .eq("organization_id", orgId)
-        .order("name"),
-    ]);
+  const [
+    { data },
+    { data: stats },
+    { data: pays },
+    { data: period },
+    { data: devices },
+    { data: perBooth },
+  ] = await Promise.all([
+    db
+      .from("events")
+      .select(
+        "id, slug, name, status, event_date, purge_at, all_devices, location, branding, settings, package_name, package_hours, scheduled_start, scheduled_end, run, local_bytes, ops_project_id, ops_sync, paper:bundle->config->layout->paper, event_devices(device_id, devices(name))",
+      )
+      .eq("organization_id", orgId)
+      .eq("mode", mode)
+      .order("event_date", { ascending: false }),
+    db.rpc("event_session_stats", { org: orgId }),
+    mode === "photobox" ? db.rpc("event_payment_stats", { org: orgId }) : { data: [] },
+    db.rpc("org_period_stats", { org: orgId, d_from: `${month}-01`, d_to: nextMonth }),
+    db
+      .from("devices")
+      .select("id, name, short_code, last_seen_at, status")
+      .eq("organization_id", orgId)
+      .order("name"),
+    db.rpc("org_month_booths", { org: orgId, m: mode, d_from: `${month}-01`, d_to: nextMonth }),
+  ]);
   const count = new Map((stats ?? []).map((s) => [s.event_id, s]));
   const paid = new Map((pays ?? []).map((p) => [p.event_id, p]));
   const pm = (period ?? []).find((p) => p.mode === mode);
+  // Rekap per booth bulan ini (audit 27 Nov): event, sesi, lembar, % sesi yang QR-nya dibuka tamu.
+  const pctOf = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "–");
+  const booths = (perBooth ?? [])
+    .map((b) => {
+      const d = (devices ?? []).find((x) => x.id === b.device_id);
+      return { ...b, name: d ? `${d.name} · ${d.short_code}` : "Booth yang sudah dihapus" };
+    })
+    .sort((a, b) => b.sessions - a.sessions);
+  const boothSessions = booths.reduce((a, b) => a + b.sessions, 0);
+  const qrPct = pctOf(
+    booths.reduce((a, b) => a + b.qr_sessions, 0),
+    boothSessions,
+  );
   const units = unitLabels((data ?? []).filter((e) => e.status !== "archived"));
   const unsent = unsentByEvent(devices ?? []);
 
@@ -230,7 +250,13 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
             bg: "var(--lavender)",
           },
           { l: "Berlangsung sekarang", v: live, I: Radio, bg: "var(--mint-soft)" },
-          { l: `Sesi ${per}`, v: pm?.sessions ?? 0, I: Images, bg: "var(--peach)" },
+          {
+            l: `Sesi ${per}`,
+            v: pm?.sessions ?? 0,
+            ...(boothSessions > 0 && { sub: `QR dibuka ${qrPct}` }),
+            I: Images,
+            bg: "var(--peach)",
+          },
           {
             l: `Dicetak ${per}`,
             v: pm?.prints ?? 0,
@@ -319,6 +345,57 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
           </div>
         ))}
       </section>
+
+      {booths.length > 0 && (
+        <section
+          aria-label={`Per booth ${monthName(month)}`}
+          className="overflow-x-auto rounded-2xl border-[1.5px] border-ink bg-white"
+        >
+          <table className="w-full min-w-[520px] text-sm tabular-nums">
+            <caption className="px-5 pt-3.5 pb-1 text-left text-[15px] font-extrabold">
+              Per booth · {per}
+            </caption>
+            <thead>
+              <tr className="text-xs font-semibold text-text-2">
+                <th scope="col" className="px-5 py-2 text-left font-semibold">
+                  Booth
+                </th>
+                <th scope="col" className="px-3 py-2 text-right font-semibold">
+                  Event
+                </th>
+                <th scope="col" className="px-3 py-2 text-right font-semibold">
+                  Sesi
+                </th>
+                <th scope="col" className="px-3 py-2 text-right font-semibold">
+                  Lembar
+                </th>
+                <th scope="col" className="px-5 py-2 text-right font-semibold">
+                  QR dibuka tamu
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {booths.map((b) => (
+                <tr
+                  key={b.device_id}
+                  data-testid="booth-month"
+                  className="border-t-[1.5px] border-dashed border-line-soft"
+                >
+                  <th scope="row" className="px-5 py-2.5 text-left font-bold">
+                    {b.name}
+                  </th>
+                  <td className="px-3 py-2.5 text-right">{b.events.toLocaleString("id-ID")}</td>
+                  <td className="px-3 py-2.5 text-right">{b.sessions.toLocaleString("id-ID")}</td>
+                  <td className="px-3 py-2.5 text-right">{b.prints.toLocaleString("id-ID")}</td>
+                  <td className="px-5 py-2.5 text-right font-bold">
+                    {pctOf(b.qr_sessions, b.sessions)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">

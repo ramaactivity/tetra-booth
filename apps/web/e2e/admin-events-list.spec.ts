@@ -144,6 +144,13 @@ test("daftar event & photobox, filter URL, sesi tes tidak dihitung", async ({ pa
     // Ringkasan ikut filter Bulan (rekap bulanan): label & angka bulan yang dipilih, bukan bulan berjalan.
     await expect(page.getByTestId("list-stat-Sesi Oktober 2026")).toBeVisible();
     await expect(page.getByTestId("list-stat-Sesi bulan ini")).toHaveCount(0);
+    // Rekap per booth bulan itu + % QR dibuka tamu (audit 27 Nov).
+    const perBooth = page.getByRole("region", { name: "Per booth Oktober 2026" });
+    await expect(
+      perBooth.getByTestId("booth-month").filter({ hasText: device?.name ?? "" }),
+    ).toContainText(/\d+%|–/);
+    await expect(page.getByText(/^QR dibuka (\d+%|–)$/)).toBeVisible();
+    await page.screenshot({ path: "test-results/list-per-booth.png", fullPage: true });
     await page.screenshot({ path: "test-results/admin-events-list-month.png" });
     await page.goto(`/admin?q=${encodeURIComponent(pbName)}`);
     await expect(page.getByTestId("event-row")).toHaveCount(0);

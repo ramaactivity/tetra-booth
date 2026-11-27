@@ -1185,6 +1185,16 @@ export type Database = {
           sessions: number
         }[]
       }
+      org_month_booths: {
+        Args: { d_from: string; d_to: string; m: string; org: string }
+        Returns: {
+          device_id: string
+          events: number
+          prints: number
+          qr_sessions: number
+          sessions: number
+        }[]
+      }
       org_period_stats: {
         Args: { d_from: string; d_to: string; org: string }
         Returns: {
