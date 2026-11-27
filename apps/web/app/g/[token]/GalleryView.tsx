@@ -27,22 +27,12 @@ const hh = (h: number) => `${String(h).padStart(2, "0")}.00`;
 
 /**
  * Grid seragam per jenis: seluruh foto terlihat utuh (object-contain) dalam kotak berukuran tetap,
- * satu strip utuh muat di layar tanpa scroll. `sizes` mengikuti lebar kolom agar browser memilih
- * thumb (480 px sisi panjang) di layar 1x dan `full` di layar retina.
+ * satu strip utuh muat di layar tanpa scroll. Grid memakai thumb; ukuran penuh hanya di penampil & unduhan.
  */
 const GRID = {
-  strip: {
-    cols: "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8",
-    sizes: "(min-width:1280px) 160px, (min-width:1024px) 16vw, (min-width:768px) 19vw, 31vw",
-  },
-  photo: {
-    cols: "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5",
-    sizes: "(min-width:1280px) 260px, (min-width:1024px) 24vw, (min-width:768px) 32vw, 48vw",
-  },
+  strip: { cols: "grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8" },
+  photo: { cols: "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" },
 };
-// Lebar minimum untuk srcSet (sesi lama): thumb strip 160×480, strip_web 600; thumb original 480, original 2400.
-// Sesi baru (#133) 2× lebih besar; deskriptor yang terlalu kecil aman (hasilnya hanya lebih tajam).
-const W = { strip: [160, 600], original: [480, 2400] } as const;
 
 /** Unduh langsung lewat URL attachment (R2 mengirim Content-Disposition), tidak membuka tab gambar. */
 function download(p: GalleryPhoto) {
@@ -277,7 +267,7 @@ export function GalleryView({
         {idx.map((i) => {
           const p = shown[i];
           if (!p) return null;
-          const w = p.kind === "original" || p.kind === "strip" ? W[p.kind] : null;
+          const w = p.kind === "original" || p.kind === "strip";
           // Kotak = bentuk asli gambar (dulu dipaksa 1:3 untuk semua strip, polaroid jadi kecil di kotak abu).
           const ar = ratio[p.id] ?? (p.kind === "strip" ? stripRatio : 3 / 2);
           return (
@@ -293,10 +283,10 @@ export function GalleryView({
                 className="block w-full overflow-hidden rounded-lg bg-neutral"
                 style={{ aspectRatio: String(ar) }}
               >
+                {/* Grid selalu gambar kecil (thumb 960 px, ±170 KB). Dulu srcSet menganggap thumb 160 px sehingga HP
+                    memilih strip_web 3600 px (±2 MB per kotak, ±85 MB satu layar galeri, audit 27 Nov). */}
                 <img
                   src={w ? p.thumb : p.full}
-                  srcSet={w ? `${p.thumb} ${w[0]}w, ${p.full} ${w[1]}w` : undefined}
-                  sizes={w ? grid.sizes : undefined}
                   alt=""
                   loading="lazy"
                   decoding="async"
