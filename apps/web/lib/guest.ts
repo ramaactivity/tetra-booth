@@ -38,6 +38,8 @@ export type GuestState =
       assets: GuestAsset[];
       expiresAt: string | null;
       lead: GuestLead | null;
+      /** Tamu menyembunyikan fotonya dari galeri publik & TV live (audit 27 Nov). */
+      private: boolean;
       /** Klien mengaktifkan galeri publik → link "Lihat galeri acara". */
       publicGallery: boolean;
       /** Photo Stage (#180): nama rombongan (sesi fotografer pelaminan); null = sesi booth. */
@@ -51,7 +53,7 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
   const { data: s, error } = await db
     .from("sessions")
     .select(
-      "id, organization_id, started_at, upload_status, asset_count, hidden_at, deleted_at, source, group_name, events!inner(name, event_date, guest_expires_at, client_expires_at, purged_at, lead_capture, public_gallery, branding)",
+      "id, organization_id, started_at, upload_status, asset_count, hidden_at, deleted_at, private_at, source, group_name, events!inner(name, event_date, guest_expires_at, client_expires_at, purged_at, lead_capture, public_gallery, branding)",
     )
     .eq("id", sessionId)
     .maybeSingle();
@@ -133,6 +135,7 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
     publicGallery: e.public_gallery,
     group,
     startedAt: s.started_at,
+    private: !!s.private_at,
   };
 }
 

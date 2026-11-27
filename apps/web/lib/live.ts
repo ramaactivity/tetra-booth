@@ -42,6 +42,8 @@ export async function loadLive(token: string, limit = 24) {
     .eq("is_test", false)
     .is("hidden_at", null)
     .is("deleted_at", null)
+    // Tamu yang menyembunyikan fotonya sendiri (audit 27 Nov) tidak tampil di layar TV.
+    .is("private_at", null)
     // Booth: strip; Photo Stage (#180): foto pertama rombongan.
     .in("assets.kind", ["strip_web", "original"])
     .is("assets.hidden_at", null)

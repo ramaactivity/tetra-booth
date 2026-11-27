@@ -516,6 +516,10 @@ export const copy = {
     removedBody:
       "Foto ini sudah dihapus oleh penyelenggara acara. Kalau menurutmu ini keliru, chat kami ya.",
     help: "Tanya Tetra lewat WhatsApp",
+    privateTitle: "Sembunyikan fotoku dari galeri acara",
+    privateBody:
+      "Fotomu tetap ada di halaman ini dan galeri penyelenggara, tapi tidak tampil untuk tamu lain dan di layar TV.",
+    privateOn: "Disembunyikan dari tamu lain",
     helpText: (url: string) =>
       `Halo Kak, saya mau tanya foto photobooth saya. Link-nya ${url} belum/tidak bisa dibuka.`,
     stuckTitle: "Mohon maaf, fotonya belum juga sampai",

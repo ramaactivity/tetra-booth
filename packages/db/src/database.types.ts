@@ -1045,6 +1045,7 @@ export type Database = {
           payment_id: string | null
           photo_count: number
           print_count: number
+          private_at: string | null
           retake_count: number
           source: string
           started_at: string
@@ -1067,6 +1068,7 @@ export type Database = {
           payment_id?: string | null
           photo_count?: number
           print_count?: number
+          private_at?: string | null
           retake_count?: number
           source?: string
           started_at: string
@@ -1089,6 +1091,7 @@ export type Database = {
           payment_id?: string | null
           photo_count?: number
           print_count?: number
+          private_at?: string | null
           retake_count?: number
           source?: string
           started_at?: string

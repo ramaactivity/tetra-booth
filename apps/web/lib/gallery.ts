@@ -154,8 +154,8 @@ export async function loadPublicGalleryByLive(token: string): Promise<Gallery> {
 
 async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gallery> {
   const db = createServiceClient();
-  const sessions = await allRows((from, to) =>
-    db
+  const sessions = await allRows((from, to) => {
+    const q = db
       .from("sessions")
       .select("id, started_at, source, group_name")
       .eq("event_id", ev.id)
@@ -164,11 +164,13 @@ async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gall
       .is("hidden_at", null)
       .is("deleted_at", null)
       // Guest Cam (#197): mode "setelah acara" tertutup sampai acara selesai / dibuka owner.
-      .in("source", guestPhotosVisible(ev) ? ["booth", "stage", "guest"] : ["booth", "stage"])
+      .in("source", guestPhotosVisible(ev) ? ["booth", "stage", "guest"] : ["booth", "stage"]);
+    // Galeri publik: tanpa foto yang disembunyikan tamunya sendiri (klien tetap melihat semua, audit 27 Nov).
+    return (withFavorites ? q : q.is("private_at", null))
       .order("started_at")
       .order("id")
-      .range(from, to),
-  );
+      .range(from, to);
+  });
   const started = new Map((sessions ?? []).map((s) => [s.id, s.started_at]));
   const meta = new Map((sessions ?? []).map((s) => [s.id, s]));
   const ids = [...started.keys()];

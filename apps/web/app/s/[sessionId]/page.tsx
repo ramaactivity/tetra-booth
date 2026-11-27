@@ -9,6 +9,7 @@ import { GuestReady } from "./GuestReady";
 import { HelpLink } from "./HelpLink";
 import { InAppHint } from "./InAppHint";
 import { LeadSheet } from "./LeadSheet";
+import { PrivateToggle } from "./PrivateToggle";
 import { StageGuest } from "./StageGuest";
 import { TrackOpen } from "./TrackOpen";
 import { WaitHelp } from "./WaitHelp";
@@ -271,6 +272,7 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
           assets={g.assets}
           expiresAt={g.expiresAt ? shortDate(g.expiresAt) : null}
         />
+        <PrivateToggle sessionId={sessionId} on={g.private} />
         {g.publicGallery && (
           <a
             href={`/s/${sessionId}/galeri`}

@@ -111,6 +111,20 @@ test("animasi di galeri, toggle galeri publik, tamu melihat read-only", async ({
     await expect(guest.getByRole("dialog")).toContainText("1 / 2");
     await expect(guest.getByRole("button", { name: /Favorit/ })).toHaveCount(0);
     await guest.screenshot({ path: "test-results/gallery-public.png" });
+
+    // Tamu kedua menyembunyikan fotonya (audit 27 Nov): hilang dari galeri publik, tetap di galeri klien & halamannya.
+    const other = await browser.newPage();
+    await other.goto(`/s/${ids[1]}`);
+    const hide = other.getByRole("switch", { name: "Sembunyikan fotoku dari galeri acara" });
+    await expect(hide).toHaveAttribute("aria-checked", "false");
+    await hide.click();
+    await expect(hide).toHaveAttribute("aria-checked", "true");
+    await expect(other.getByText("Disembunyikan dari tamu lain")).toBeVisible();
+    await guest.goto(`${guestUrl}/galeri`);
+    await expect(guest.getByTestId("gallery-photo")).toHaveCount(1);
+    await page.goto(`/g/${token}`);
+    await expect(page.getByTestId("gallery-photo")).toHaveCount(2);
+    await other.close();
   } finally {
     await db
       .from("events")
