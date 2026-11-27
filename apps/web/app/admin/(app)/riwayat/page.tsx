@@ -67,9 +67,13 @@ export default async function HistoryPage() {
 
   // Catatan yang event/booth-nya sudah tidak ada (sisa uji otomatis: event & akun uji dihapus) tidak ditampilkan.
   const shown = rows.filter((r) =>
-    r.action.startsWith("device.")
-      ? dev.has(r.target ?? "")
-      : ev.has(r.action.startsWith("session.") ? String(meta(r).eventId ?? "") : (r.target ?? "")),
+    r.action.startsWith("release.")
+      ? true // rilis booth: bukan milik event/booth tertentu
+      : r.action.startsWith("device.")
+        ? dev.has(r.target ?? "")
+        : ev.has(
+            r.action.startsWith("session.") ? String(meta(r).eventId ?? "") : (r.target ?? ""),
+          ),
   );
   const groups: { day: string; items: typeof rows }[] = [];
   for (const r of shown) {
