@@ -3,6 +3,8 @@ import { SESSION_ID_PATTERN } from "@tetra/shared";
 import { guestPhotosVisible } from "@/lib/events";
 import { presignDownload, presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
+import { allRows } from "./all-rows";
+import { CLIENT_CODE, clientPath, LEGACY_SLUG_BEFORE } from "./guest-link";
 
 /**
  * Galeri klien `/g/{token}` dan galeri publik tamu `/s/{id}/galeri` (FSD §3, DECISIONS #72): data event + foto yang
@@ -63,22 +65,36 @@ const clockWib = (ts: string) =>
  * Link publik galeri/live (DECISIONS #147): `/g/<slug-event>` atau token acak lama. Link aktif = kolom token terisi
  * ("Cabut" mengosongkannya, jadi slug & token lama ikut mati). Nilai sudah lolos `LINK`, aman untuk filter `or`.
  */
-export const LINK = /^[\w-]{1,80}$/;
+export const LINK = /^[\w-]{1,100}$/;
 export const byLink = (col: "client_token" | "live_token", v: string) =>
   `${col}.eq.${v},slug.eq.${v}`;
 
-/** Event dari link klien (slug atau token); kedaluwarsa/purge/link dicabut → gone. */
+/**
+ * Event dari link klien: token lengkap, `<slug>-<kode>` (clientPath), atau slug saja hanya untuk acara sebelum
+ * LEGACY_SLUG_BEFORE. Kedaluwarsa/purge/link dicabut → gone.
+ */
 export async function eventByClientToken(token: string) {
   if (!LINK.test(token)) return null;
-  const { data } = await createServiceClient()
+  // Kode selalu CLIENT_CODE huruf (boleh berisi "-"), jadi slug = token tanpa "-kode" di ujung.
+  const slug = token.slice(0, -(CLIENT_CODE + 1));
+  const { data: rows, error } = await createServiceClient()
     .from("events")
     .select(
-      "id, organization_id, name, event_date, location, branding, client_expires_at, purged_at, public_gallery, settings, run, guest_revealed_at",
+      "id, organization_id, name, event_date, location, branding, client_expires_at, purged_at, public_gallery, settings, run, guest_revealed_at, slug, client_token",
     )
-    .or(byLink("client_token", token))
+    .or(
+      `client_token.eq.${token},slug.eq.${token}${slug && LINK.test(slug) ? `,slug.eq.${slug}` : ""}`,
+    )
     .not("client_token", "is", null)
-    .limit(1)
-    .maybeSingle();
+    .limit(5);
+  if (error) throw error;
+  const data =
+    rows?.find(
+      (e) =>
+        e.client_token === token ||
+        (e.client_token && clientPath({ slug: e.slug, client_token: e.client_token }) === token) ||
+        (e.slug === token && e.event_date < LEGACY_SLUG_BEFORE),
+    ) ?? null;
   if (
     !data ||
     data.purged_at ||
@@ -88,7 +104,10 @@ export async function eventByClientToken(token: string) {
   return data;
 }
 
-type GalleryEvent = NonNullable<Awaited<ReturnType<typeof eventByClientToken>>>;
+type GalleryEvent = Omit<
+  NonNullable<Awaited<ReturnType<typeof eventByClientToken>>>,
+  "slug" | "client_token"
+>;
 
 export async function loadGallery(token: string): Promise<Gallery> {
   const ev = await eventByClientToken(token);
@@ -133,38 +152,60 @@ export async function loadPublicGalleryByLive(token: string): Promise<Gallery> {
 
 async function galleryOf(ev: GalleryEvent, withFavorites: boolean): Promise<Gallery> {
   const db = createServiceClient();
-  const { data: sessions } = await db
-    .from("sessions")
-    .select("id, started_at, source, group_name")
-    .eq("event_id", ev.id)
-    .eq("organization_id", ev.organization_id)
-    .eq("is_test", false)
-    .is("hidden_at", null)
-    .is("deleted_at", null)
-    // Guest Cam (#197): mode "setelah acara" tertutup sampai acara selesai / dibuka owner.
-    .in("source", guestPhotosVisible(ev) ? ["booth", "stage", "guest"] : ["booth", "stage"])
-    .order("started_at")
-    .limit(10000);
+  const sessions = await allRows((from, to) =>
+    db
+      .from("sessions")
+      .select("id, started_at, source, group_name")
+      .eq("event_id", ev.id)
+      .eq("organization_id", ev.organization_id)
+      .eq("is_test", false)
+      .is("hidden_at", null)
+      .is("deleted_at", null)
+      // Guest Cam (#197): mode "setelah acara" tertutup sampai acara selesai / dibuka owner.
+      .in("source", guestPhotosVisible(ev) ? ["booth", "stage", "guest"] : ["booth", "stage"])
+      .order("started_at")
+      .order("id")
+      .range(from, to),
+  );
   const started = new Map((sessions ?? []).map((s) => [s.id, s.started_at]));
   const meta = new Map((sessions ?? []).map((s) => [s.id, s]));
   const ids = [...started.keys()];
   const assets: { id: string; session_id: string; kind: string; idx: number; r2_key: string }[] =
     [];
-  for (let i = 0; i < ids.length; i += 200) {
-    const { data } = await db
-      .from("assets")
-      .select("id, session_id, kind, idx, r2_key")
-      .eq("organization_id", ev.organization_id)
-      .in("session_id", ids.slice(i, i + 200))
-      .in("kind", ["strip_web", "thumb_strip", "original", "thumb_original", "animation", "audio"])
-      .is("hidden_at", null)
-      // Moderasi Guest Cam: hanya yang disetujui (booth/stage selalu null).
-      .is("review_status", null);
-    assets.push(...(data ?? []));
-  }
-  const { data: favs } = withFavorites
-    ? await db.from("favorites").select("asset_id").eq("event_id", ev.id)
-    : { data: [] };
+  // 200 sesi per query (panjang URL `in`), tiap query diambil per halaman: 200 sesi × ±11 aset > 1000 baris.
+  for (let i = 0; i < ids.length; i += 200)
+    assets.push(
+      ...(await allRows((from, to) =>
+        db
+          .from("assets")
+          .select("id, session_id, kind, idx, r2_key")
+          .eq("organization_id", ev.organization_id)
+          .in("session_id", ids.slice(i, i + 200))
+          .in("kind", [
+            "strip_web",
+            "thumb_strip",
+            "original",
+            "thumb_original",
+            "animation",
+            "audio",
+          ])
+          .is("hidden_at", null)
+          // Moderasi Guest Cam: hanya yang disetujui (booth/stage selalu null).
+          .is("review_status", null)
+          .order("id")
+          .range(from, to),
+      )),
+    );
+  const favs = withFavorites
+    ? await allRows((from, to) =>
+        db
+          .from("favorites")
+          .select("asset_id")
+          .eq("event_id", ev.id)
+          .order("asset_id")
+          .range(from, to),
+      )
+    : [];
   const fav = new Set((favs ?? []).map((f) => f.asset_id));
   const byKey = new Map(assets.map((a) => [`${a.session_id}:${a.kind}:${a.idx}`, a]));
   const KIND = {

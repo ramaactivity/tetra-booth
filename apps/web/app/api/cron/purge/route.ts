@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { allRows } from "@/lib/all-rows";
 import { deleteObjects, listKeys } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -30,14 +31,16 @@ export async function GET(req: Request) {
         return r;
       };
       await deleteObjects(await listKeys(`${ev.organization_id}/${ev.id}/`));
-      const { data: sessions } = ok(
-        await db
+      const sessions = await allRows((from, to) =>
+        db
           .from("sessions")
           .select("id")
           .eq("event_id", ev.id)
-          .eq("organization_id", ev.organization_id),
+          .eq("organization_id", ev.organization_id)
+          .order("id")
+          .range(from, to),
       );
-      const ids = (sessions ?? []).map((s) => s.id);
+      const ids = sessions.map((s) => s.id);
       for (let i = 0; i < ids.length; i += 200)
         ok(
           await db

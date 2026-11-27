@@ -10,7 +10,7 @@ import {
   type EventTemplate,
 } from "@/lib/event-bundle";
 import { eventKey } from "@/lib/events";
-import { guestPath } from "@/lib/guest-link";
+import { clientPath, guestPath } from "@/lib/guest-link";
 import type { PhotoboxSettings } from "@/lib/payments";
 import { photoboxKey } from "@/lib/payments";
 import { presignGet } from "@/lib/r2";
@@ -219,6 +219,11 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
             origin={origin}
             slug={ev.slug}
             clientOn={!!ev.client_token}
+            clientPath={
+              ev.client_token
+                ? clientPath({ slug: ev.slug, client_token: ev.client_token })
+                : undefined
+            }
             liveOn={!!ev.live_token}
           />
         }

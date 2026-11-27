@@ -125,8 +125,12 @@ test("admin: setelan Guest Cam → tamu unggah → setujui → galeri klien", as
     await page.goto(`/admin/events/${slug}/settings#link-klien`);
     await page.locator("#link-klien").getByRole("button", { name: "Buat Link" }).first().click();
     await expect(page.getByTestId("link-client")).toContainText("/g/");
+    // Alamat galeri klien = slug + kode (audit 27 Nov), dibaca dari panel link.
+    const gallery = new URL(
+      (await page.getByTestId("link-client").locator("span.truncate").textContent()) ?? "",
+    ).pathname;
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`/g/${slug}`);
+    await page.goto(gallery);
     await page.getByRole("button", { name: /^Snapbook/ }).click();
     await expect(page.getByText("1 tamu")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Sari" })).toBeVisible();

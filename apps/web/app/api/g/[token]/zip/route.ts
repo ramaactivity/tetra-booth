@@ -1,6 +1,7 @@
 import { SESSION_ID_PATTERN } from "@tetra/shared";
 import { downloadZip, predictLength } from "client-zip";
 import { after } from "next/server";
+import { allRows } from "@/lib/all-rows";
 import { apiError, clientIp, rateOk } from "@/lib/booth";
 import { isBot, trackClient } from "@/lib/client-track";
 import { guestPhotosVisible } from "@/lib/events";
@@ -39,27 +40,28 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   if (one && !SESSION_ID_PATTERN.test(one)) return apiError("bad_request", 400);
   // "Unduh semua" klien (ringkasan event): hanya unduhan seluruh galeri, bukan per rombongan.
   if (!one && !isBot(req.headers.get("user-agent"))) after(() => trackClient(ev.id, "zip"));
-  let sel = createServiceClient()
-    .from("assets")
-    .select(
-      "kind, idx, r2_key, sessions!inner(id, event_id, started_at, hidden_at, deleted_at, source, group_name)",
-    )
-    .eq("organization_id", ev.organization_id)
-    .in("kind", KINDS[kind])
-    .is("hidden_at", null)
-    .is("review_status", null)
-    .eq("sessions.event_id", ev.id)
-    .eq("sessions.source", kind === "stage" || kind === "guest" ? kind : "booth")
-    // Sesi uji crew tidak tampil di galeri, jadi tidak ikut ZIP juga (sama dengan galleryOf).
-    .eq("sessions.is_test", false)
-    .is("sessions.hidden_at", null)
-    .is("sessions.deleted_at", null)
-    .limit(5000);
-  if (one) sel = sel.eq("sessions.id", one);
-  const { data } = await sel;
-  const sorted = (data ?? []).sort((a, b) =>
-    a.sessions.started_at.localeCompare(b.sessions.started_at),
+  const db = createServiceClient();
+  const query = () =>
+    db
+      .from("assets")
+      .select(
+        "kind, idx, r2_key, sessions!inner(id, event_id, started_at, hidden_at, deleted_at, source, group_name)",
+      )
+      .eq("organization_id", ev.organization_id)
+      .in("kind", KINDS[kind])
+      .is("hidden_at", null)
+      .is("review_status", null)
+      .eq("sessions.event_id", ev.id)
+      .eq("sessions.source", kind === "stage" || kind === "guest" ? kind : "booth")
+      // Sesi uji crew tidak tampil di galeri, jadi tidak ikut ZIP juga (sama dengan galleryOf).
+      .eq("sessions.is_test", false)
+      .is("sessions.hidden_at", null)
+      .is("sessions.deleted_at", null);
+  // Semua baris, bukan 1000 pertama (max_rows PostgREST, audit 27 Nov: ZIP acara besar terpotong).
+  const data = await allRows((from, to) =>
+    (one ? query().eq("sessions.id", one) : query()).order("id").range(from, to),
   );
+  const sorted = data.sort((a, b) => a.sessions.started_at.localeCompare(b.sessions.started_at));
   // Ukuran tiap objek di depan (untuk Content-Length). Objek yang hilang (belum terunggah / dibersihkan)
   // dilewati di sini, bukan di tengah stream (#253) — kalau dilewati di tengah, Content-Length meleset.
   const r2Key = (k: string) => k.split("#")[0] ?? k;

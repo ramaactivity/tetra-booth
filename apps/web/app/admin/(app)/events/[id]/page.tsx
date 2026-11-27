@@ -21,10 +21,11 @@ import {
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { allRows } from "@/lib/all-rows";
 import { copy } from "@/lib/copy";
 import { DEFAULT_TEMPLATE, type EventBranding, type EventTemplate } from "@/lib/event-bundle";
 import { eventKey } from "@/lib/events";
-import { guestPath } from "@/lib/guest-link";
+import { clientPath, guestPath } from "@/lib/guest-link";
 import type { OpsSync } from "@/lib/ops-sync";
 import { presignDownload, presignGet } from "@/lib/r2";
 import type { RecapData } from "@/lib/recap";
@@ -132,22 +133,29 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     { count: photoCount },
     { data: cloudSize },
   ] = await Promise.all([
-    db
-      .from("sessions")
-      .select("id, started_at, print_count, upload_status, hidden_at, device_id, is_test")
-      .eq("event_id", ev.id)
-      .eq("organization_id", orgId)
-      // Guest Cam (#197) punya hitungan & moderasi sendiri (GuestCamPanel).
-      .neq("source", "guest")
-      .is("deleted_at", null)
-      .order("started_at", { ascending: false })
-      .limit(5000),
-    db
-      .from("analytics_events")
-      .select("session_id, type, created_at")
-      .eq("event_id", ev.id)
-      .eq("organization_id", orgId)
-      .limit(50000),
+    // Semua baris (max_rows PostgREST 1000, audit 27 Nov): statistik acara besar dulu terpotong.
+    allRows((from, to) =>
+      db
+        .from("sessions")
+        .select("id, started_at, print_count, upload_status, hidden_at, device_id, is_test")
+        .eq("event_id", ev.id)
+        .eq("organization_id", orgId)
+        // Guest Cam (#197) punya hitungan & moderasi sendiri (GuestCamPanel).
+        .neq("source", "guest")
+        .is("deleted_at", null)
+        .order("started_at", { ascending: false })
+        .order("id")
+        .range(from, to),
+    ).then((data) => ({ data })),
+    allRows((from, to) =>
+      db
+        .from("analytics_events")
+        .select("session_id, type, created_at")
+        .eq("event_id", ev.id)
+        .eq("organization_id", orgId)
+        .order("id")
+        .range(from, to),
+    ).then((data) => ({ data })),
     db
       .from("leads")
       .select("id", { count: "exact", head: true })
@@ -375,7 +383,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   // Pesan untuk klien (dikirim sendiri oleh owner lewat WA, bukan otomatis).
   const waText = [
     `Halo Kak${branding.clientName ? ` ${branding.clientName}` : ""}, ini galeri foto photobooth ${ev.name}:`,
-    `${origin}/g/${ev.slug}`,
+    `${origin}/g/${ev.client_token ? clientPath({ slug: ev.slug, client_token: ev.client_token }) : ev.slug}`,
     "",
     `Semua foto bisa dilihat dan diunduh sekaligus lewat tombol Unduh semua.${ev.client_expires_at ? ` Link aktif sampai ${day(ev.client_expires_at)}.` : ""}`,
   ].join("\n");
@@ -555,6 +563,11 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
             origin={origin}
             slug={ev.slug}
             clientOn={!!ev.client_token}
+            clientPath={
+              ev.client_token
+                ? clientPath({ slug: ev.slug, client_token: ev.client_token })
+                : undefined
+            }
             liveOn={!!ev.live_token}
             waText={waText}
             clientSeen={clientSeen}

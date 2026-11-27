@@ -1,6 +1,7 @@
 import { type GalleryLinkResponse, newAccessToken } from "@tetra/shared";
 import { z } from "zod";
 import { apiError, authDevice, deviceMayUseEvent } from "@/lib/booth";
+import { clientPath } from "@/lib/guest-link";
 import { createServiceClient } from "@/lib/supabase/service";
 
 /**
@@ -21,10 +22,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     .eq("organization_id", device.organizationId)
     .maybeSingle();
   if (!ev) return apiError("not_found", 404);
-  if (!ev.client_token) {
+  let token = ev.client_token;
+  if (!token) {
+    token = newAccessToken();
     const { error } = await db
       .from("events")
-      .update({ client_token: newAccessToken() })
+      .update({ client_token: token })
       .eq("id", eventId)
       .eq("organization_id", device.organizationId)
       .is("client_token", null);
@@ -36,5 +39,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       meta: { device: device.id },
     });
   }
-  return Response.json({ slug: ev.slug } satisfies GalleryLinkResponse);
+  // Simpan bersamaan dari tempat lain (update di atas tidak kena): pakai token yang benar-benar tersimpan.
+  const { data: saved } = await db
+    .from("events")
+    .select("client_token")
+    .eq("id", eventId)
+    .maybeSingle();
+  token = saved?.client_token ?? token;
+  // `slug` = segmen path galeri klien (sekarang `<slug>-<kode>`, audit 27 Nov); booth lama tetap membentuk /g/<slug>.
+  return Response.json({
+    slug: clientPath({ slug: ev.slug, client_token: token }),
+  } satisfies GalleryLinkResponse);
 }

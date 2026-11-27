@@ -28,6 +28,16 @@ export function readableLink(name: string) {
   return GUEST_LINK.test(out) ? out : "snapbook";
 }
 
+/**
+ * Alamat galeri klien (audit 27 Nov): `<slug>-<6 huruf awal client_token>`. Dulu `/g/<slug>` saja (#147), padahal
+ * slug ikut tersebar ke tamu lewat QR TV `/l/<slug>` → siapa pun bisa membuka galeri privat klien.
+ */
+export const CLIENT_CODE = 6;
+export const clientPath = (ev: { slug: string; client_token: string }) =>
+  `${ev.slug}-${ev.client_token.slice(0, CLIENT_CODE)}`;
+/** Acara sebelum tanggal ini tetap boleh dibuka dengan slug saja (link lama yang sudah dikirim ke klien). */
+export const LEGACY_SLUG_BEFORE = "2026-11-28";
+
 /** Path tamu: alamat rapi kalau ada, kalau tidak token. */
 export const guestPath = (ev: { guest_link: string | null; guest_token: string | null }) =>
   `/c/${ev.guest_link ?? ev.guest_token}`;

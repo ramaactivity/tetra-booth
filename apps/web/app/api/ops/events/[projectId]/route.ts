@@ -1,6 +1,7 @@
 import { parseRun, runState } from "@tetra/shared";
 import { boothSummary, boothsOfEvent } from "@/lib/booth-health";
 import { eventPhase, ymdWib } from "@/lib/events";
+import { clientPath } from "@/lib/guest-link";
 import { bearerOk, opsOrgId } from "@/lib/ops-sync";
 import { presignGet } from "@/lib/r2";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -124,7 +125,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ projectId: stri
       event_date: e.event_date,
       status: e.status,
       phase: PHASE[eventPhase(e.event_date, runState(parseRun(e.run)), today)],
-      gallery_url: e.client_token && !e.purged_at ? `${origin}/g/${e.slug}` : null,
+      gallery_url:
+        e.client_token && !e.purged_at
+          ? `${origin}/g/${clientPath({ slug: e.slug, client_token: e.client_token })}`
+          : null,
       client_expires_at: e.client_expires_at,
       // Galeri publik tamu (#248, untuk bot CS lewat Ops): null kalau dimatikan, link live kosong, atau kedaluwarsa.
       guest_gallery_url:

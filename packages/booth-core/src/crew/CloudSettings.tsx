@@ -86,7 +86,7 @@ export function CloudSettings({
   const url = (path: string) => `${guestBaseUrl.replace(/^https?:\/\//, "")}${path}`;
   const flagHint = (k: Flag, s: Cloud) =>
     k === "clientLink"
-      ? url(`/g/${s.slug}`)
+      ? url(`/g/${s.clientPath ?? s.slug}`)
       : k === "liveLink"
         ? url(`/live/${s.slug}`)
         : k === "guestCam"

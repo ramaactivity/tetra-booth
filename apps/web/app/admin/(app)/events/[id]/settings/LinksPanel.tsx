@@ -13,6 +13,7 @@ export function LinksPanel({
   origin,
   slug,
   clientOn,
+  clientPath,
   liveOn,
   waText,
   clientSeen,
@@ -21,6 +22,8 @@ export function LinksPanel({
   origin: string;
   slug: string;
   clientOn?: boolean;
+  /** Segmen path galeri klien `<slug>-<kode>` (audit 27 Nov); kosong = slug (link belum aktif). */
+  clientPath?: string | undefined;
   liveOn?: boolean;
   waText?: string;
   clientSeen?: string;
@@ -35,7 +38,7 @@ export function LinksPanel({
     return () => clearTimeout(t);
   }, [armed]);
   const row = (kind: "client" | "live", label: string, path: string, on: boolean) => {
-    const url = on ? `${origin}/${path}/${slug}` : null;
+    const url = on ? `${origin}/${path}/${kind === "client" ? (clientPath ?? slug) : slug}` : null;
     const run = (a: "new" | "revoke") => () => {
       if (a === "revoke" && armed !== kind) return setArmed(kind);
       setArmed(null);

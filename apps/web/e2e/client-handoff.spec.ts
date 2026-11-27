@@ -36,7 +36,7 @@ test("kirim galeri ke WA klien, galeri dibuka klien tercatat, cabut dua ketukan"
     expect(href.origin + href.pathname).toBe("https://wa.me/");
     const text = href.searchParams.get("text") ?? "";
     expect(text).toContain("Halo Kak Rina & Dimas");
-    expect(text).toContain(`/g/${ev?.slug}`);
+    expect(text).toMatch(new RegExp(`/g/${ev?.slug}-[\\w-]{6}`));
 
     // Tim yang login membuka galeri (tombol Buka): tidak dihitung.
     await page.goto(`/g/${ev?.slug}`);
@@ -76,6 +76,45 @@ test("kirim galeri ke WA klien, galeri dibuka klien tercatat, cabut dua ketukan"
   } finally {
     await db.from("audit_logs").delete().eq("target", eventId);
     await db.from("events").delete().eq("id", eventId);
+    await u.cleanup();
+  }
+});
+
+test("galeri klien acara baru: slug saja ditolak, slug + kode dan token lama dibuka", async ({
+  request,
+}) => {
+  const u = await makeUser(null);
+  const tag = String(Date.now()).slice(-6);
+  const token = `e2ekode${tag}xxxxxxxxxxxxxx`;
+  const { data: ev } = await db
+    .from("events")
+    .insert({
+      organization_id: u.org,
+      name: `e2e kode ${tag}`,
+      mode: "event",
+      event_date: "2026-12-05",
+      client_token: token,
+    })
+    .select("id, slug")
+    .single();
+  try {
+    const status = async (p: string) =>
+      (await request.get(p, { headers: { "user-agent": "HeadlessChrome e2e" } })).text();
+    expect(await status(`/g/${ev?.slug}`)).toContain("Galeri tidak tersedia");
+    expect(await status(`/g/${ev?.slug}-${token.slice(0, 6)}`)).not.toContain(
+      "Galeri tidak tersedia",
+    );
+    expect(await status(`/g/${ev?.slug}-xxxxxx`)).toContain("Galeri tidak tersedia");
+    expect(await status(`/g/${token}`)).not.toContain("Galeri tidak tersedia");
+    const zip = await request.get(`/api/g/${ev?.slug}/zip?kind=strip`, {
+      headers: { "user-agent": "HeadlessChrome e2e" },
+    });
+    expect(zip.ok()).toBe(false);
+  } finally {
+    await db
+      .from("events")
+      .delete()
+      .eq("id", ev?.id ?? "");
     await u.cleanup();
   }
 });

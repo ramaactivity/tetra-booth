@@ -65,7 +65,8 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
     const url =
       (await page.getByTestId("link-client").locator("span.truncate").textContent()) ?? "";
     const path = new URL(url).pathname;
-    expect(path).toBe(`/g/${ev?.slug}`);
+    // Alamat baru: slug + 6 huruf kode (audit 27 Nov); acara lama (12 Okt) masih bisa dibuka dengan slug saja.
+    expect(path).toMatch(new RegExp(`^/g/${ev?.slug}-[\\w-]{6}$`));
     const token =
       (await db.from("events").select("client_token").eq("id", eventId).single()).data
         ?.client_token ?? "";

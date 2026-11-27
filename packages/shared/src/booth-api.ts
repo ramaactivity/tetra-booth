@@ -275,7 +275,7 @@ export const AssetsResponse = z.object({
 export type AssetsResponse = z.infer<typeof AssetsResponse>;
 
 /** POST /api/booth/events/{id}/gallery-link: aktifkan link galeri klien event ini (idempotent), balas slug. */
-export const GalleryLinkResponse = z.object({ slug: z.string().regex(/^[\w-]{1,80}$/) });
+export const GalleryLinkResponse = z.object({ slug: z.string().regex(/^[\w-]{1,100}$/) });
 export type GalleryLinkResponse = z.infer<typeof GalleryLinkResponse>;
 
 /**
@@ -304,6 +304,8 @@ export type CloudSettingsPatch = z.input<typeof CloudSettingsPatch>;
 export const CloudSettingsRequest = z.object({ patch: CloudSettingsPatch.optional() });
 export const CloudSettings = z.object({
   slug: z.string(),
+  /** Segmen path galeri klien `/g/<clientPath>` (slug + kode, audit 27 Nov); null = link klien belum aktif. */
+  clientPath: z.string().nullish(),
   clientLink: z.boolean(),
   liveLink: z.boolean(),
   /** Guest Cam aktif = setelan nyala + link /c ada. */

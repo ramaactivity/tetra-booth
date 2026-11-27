@@ -1,6 +1,6 @@
 import type { Database } from "@tetra/db";
 import type { CloudSettings, CloudSettingsPatch } from "@tetra/shared";
-import { guestPath } from "./guest-link";
+import { clientPath, guestPath } from "./guest-link";
 
 /** Warna header bawaan halaman tamu: tidak disimpan di branding (sama dengan Simpan Pengaturan admin). */
 export const PAPER = "#f8f7f4";
@@ -34,6 +34,9 @@ export function cloudSettingsOf(ev: CloudRow): CloudSettings {
   const link = ev.guest_token ? guestPath(ev) : null;
   return {
     slug: ev.slug,
+    clientPath: ev.client_token
+      ? clientPath({ slug: ev.slug, client_token: ev.client_token })
+      : null,
     clientLink: !!ev.client_token,
     liveLink: !!ev.live_token,
     guestCam: !!link && obj(obj(ev.settings).guestCam).enabled === true,
