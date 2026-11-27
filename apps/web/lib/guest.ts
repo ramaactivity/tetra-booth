@@ -48,13 +48,15 @@ export type GuestState =
 export async function loadGuest(sessionId: string, now = new Date()): Promise<GuestState> {
   if (!SESSION_ID_PATTERN.test(sessionId)) return { state: "unknown" };
   const db = createServiceClient();
-  const { data: s } = await db
+  const { data: s, error } = await db
     .from("sessions")
     .select(
       "id, organization_id, started_at, upload_status, asset_count, hidden_at, deleted_at, source, group_name, events!inner(name, event_date, guest_expires_at, client_expires_at, purged_at, lead_capture, public_gallery, branding)",
     )
     .eq("id", sessionId)
     .maybeSingle();
+  // Gangguan database ≠ "foto belum sampai": dilempar ke error.tsx + Sentry (audit 27 Nov).
+  if (error) throw error;
   if (!s) return { state: "unknown" };
   const e = s.events;
   const b = (e.branding ?? {}) as EventBranding;
@@ -84,13 +86,14 @@ export async function loadGuest(sessionId: string, now = new Date()): Promise<Gu
   // Mode gate: URL foto tidak pernah dikirim sebelum lead masuk (bukan sekadar disembunyikan di browser).
   const locked = lead?.mode === "gate";
 
-  const { data: rows } = await db
+  const { data: rows, error: rowsError } = await db
     .from("assets")
     .select("kind, idx, r2_key, hidden_at")
     .eq("session_id", s.id)
     .eq("organization_id", s.organization_id)
     .order("kind")
     .order("idx");
+  if (rowsError) throw rowsError;
   // Photo Stage (#195): rombongan yang semua fotonya disembunyikan (mis. digabung ke rombongan lain) = dihapus.
   if (
     rows?.length &&

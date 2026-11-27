@@ -94,7 +94,23 @@ test.afterAll(async () => {
 test("unknown: ID belum sampai, refresh otomatis", async ({ page }) => {
   await page.goto("/s/zzzzzzzzzz");
   await expect(page.getByRole("heading", { name: "Foto kamu belum sampai" })).toBeVisible();
+  await expect(page.getByTestId("wait-help")).toHaveCount(0);
   await page.screenshot({ path: "test-results/guest-unknown.png" });
+  // Sudah menunggu > 10 menit di HP ini (audit 27 Nov): bantuan + tombol WA berisi kode foto & link.
+  await page.evaluate(() =>
+    localStorage.setItem("tetra:wait:zzzzzzzzzz", String(Date.now() - 11 * 60_000)),
+  );
+  await page.reload();
+  const help = page.getByTestId("wait-help");
+  await expect(help).toContainText("fotonya belum juga sampai");
+  await expect(help).toContainText("zzzzzzzzzz");
+  const wa = new URL(
+    (await help.getByRole("link", { name: "Tanya Tetra lewat WhatsApp" }).getAttribute("href")) ??
+      "",
+  );
+  expect(wa.pathname).toBe("/6285213526630");
+  expect(wa.searchParams.get("text")).toContain("/s/zzzzzzzzzz");
+  await page.screenshot({ path: "test-results/guest-unknown-help.png", fullPage: true });
 });
 
 test("pending: header event, langkah pengiriman", async ({ page }) => {

@@ -100,12 +100,12 @@ test("galeri klien acara baru: slug saja ditolak, slug + kode dan token lama dib
   try {
     const status = async (p: string) =>
       (await request.get(p, { headers: { "user-agent": "HeadlessChrome e2e" } })).text();
-    expect(await status(`/g/${ev?.slug}`)).toContain("Galeri tidak tersedia");
+    expect(await status(`/g/${ev?.slug}`)).toContain("galeri ini sudah tidak tersedia");
     expect(await status(`/g/${ev?.slug}-${token.slice(0, 6)}`)).not.toContain(
-      "Galeri tidak tersedia",
+      "galeri ini sudah tidak tersedia",
     );
-    expect(await status(`/g/${ev?.slug}-xxxxxx`)).toContain("Galeri tidak tersedia");
-    expect(await status(`/g/${token}`)).not.toContain("Galeri tidak tersedia");
+    expect(await status(`/g/${ev?.slug}-xxxxxx`)).toContain("galeri ini sudah tidak tersedia");
+    expect(await status(`/g/${token}`)).not.toContain("galeri ini sudah tidak tersedia");
     const zip = await request.get(`/api/g/${ev?.slug}/zip?kind=strip`, {
       headers: { "user-agent": "HeadlessChrome e2e" },
     });

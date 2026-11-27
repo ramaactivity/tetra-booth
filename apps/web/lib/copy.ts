@@ -172,8 +172,9 @@ export const copy = {
     link: "Lihat galeri acara",
     title: "Galeri acara",
     back: "‹ Foto kamu",
-    gone: "Galeri acara tidak tersedia",
-    goneBody: "Penyelenggara belum membuka galeri ini, atau masa simpannya sudah berakhir.",
+    gone: "Mohon maaf, galeri acara tidak tersedia",
+    goneBody:
+      "Penyelenggara belum membuka galeri ini, atau masa simpannya sudah berakhir. Fotomu sendiri tetap bisa dibuka dari link fotomu.",
   },
   /** Guest Cam (#197): kamera HP tamu di /c/{slug}, desain G5 (docs/design/guest-cam, DECISIONS #203). */
   guestCam: {
@@ -509,9 +510,22 @@ export const copy = {
     stepHere: "Muncul di sini",
     stepHereBody: "Otomatis",
     keepLink: "Simpan link ini, bisa dibuka lagi nanti",
-    goneTitle: "Foto ini sudah tidak tersedia",
-    expiredBody: (d: string) => `Masa simpan foto sesi ini sudah berakhir pada ${d}`,
-    removedBody: "Foto ini sudah dihapus oleh penyelenggara acara",
+    goneTitle: "Mohon maaf, foto ini sudah tidak tersedia",
+    expiredBody: (d: string) =>
+      `Masa simpan foto sesi ini sudah berakhir pada ${d}. Kalau masih butuh fotonya, chat kami, nanti kami bantu cek.`,
+    removedBody:
+      "Foto ini sudah dihapus oleh penyelenggara acara. Kalau menurutmu ini keliru, chat kami ya.",
+    help: "Tanya Tetra lewat WhatsApp",
+    helpText: (url: string) =>
+      `Halo Kak, saya mau tanya foto photobooth saya. Link-nya ${url} belum/tidak bisa dibuka.`,
+    stuckTitle: "Mohon maaf, fotonya belum juga sampai",
+    stuckBody: (id: string) =>
+      `Biasanya booth sedang tidak terhubung internet. Tanya crew di booth, atau chat kami dan sebutkan kode foto ${id}.`,
+    stuckPaused: "Halaman berhenti memeriksa otomatis. Muat ulang untuk cek lagi.",
+    reload: "Muat ulang",
+    troubleTitle: "Mohon maaf, halaman ini sedang gangguan",
+    troubleBody: "Fotomu aman. Coba lagi sebentar lagi, atau chat kami kalau masih belum bisa.",
+    retry: "Coba lagi",
     ctaTitle: "Mau photobooth di acaramu?",
     cta: "Hubungi Tetra Photobooth",
   },

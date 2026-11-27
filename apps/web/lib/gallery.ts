@@ -117,13 +117,14 @@ export async function loadGallery(token: string): Promise<Gallery> {
 /** Galeri publik dari halaman tamu: hanya kalau klien mengaktifkannya dan halaman tamu masih berlaku. */
 export async function loadPublicGallery(sessionId: string): Promise<Gallery> {
   if (!SESSION_ID_PATTERN.test(sessionId)) return { state: "gone" };
-  const { data: s } = await createServiceClient()
+  const { data: s, error: sError } = await createServiceClient()
     .from("sessions")
     .select(
       "hidden_at, deleted_at, events!inner(id, organization_id, name, event_date, location, branding, client_expires_at, guest_expires_at, purged_at, public_gallery, settings, run, guest_revealed_at)",
     )
     .eq("id", sessionId)
     .maybeSingle();
+  if (sError) throw sError;
   const ev = s?.events;
   const until = ev?.guest_expires_at ?? ev?.client_expires_at;
   if (!s || !ev?.public_gallery || ev.purged_at || s.hidden_at || s.deleted_at)
@@ -135,7 +136,7 @@ export async function loadPublicGallery(sessionId: string): Promise<Gallery> {
 /** Galeri publik dari QR live slideshow (`/l/{slug atau liveToken}`): syarat sama dengan dari halaman tamu. */
 export async function loadPublicGalleryByLive(token: string): Promise<Gallery> {
   if (!LINK.test(token)) return { state: "gone" };
-  const { data: ev } = await createServiceClient()
+  const { data: ev, error: evError } = await createServiceClient()
     .from("events")
     .select(
       "id, organization_id, name, event_date, location, branding, client_expires_at, guest_expires_at, purged_at, public_gallery, settings, run, guest_revealed_at",
@@ -144,6 +145,7 @@ export async function loadPublicGalleryByLive(token: string): Promise<Gallery> {
     .not("live_token", "is", null)
     .limit(1)
     .maybeSingle();
+  if (evError) throw evError;
   const until = ev?.guest_expires_at ?? ev?.client_expires_at;
   if (!ev?.public_gallery || ev.purged_at || (until && new Date(until) <= new Date()))
     return { state: "gone" };

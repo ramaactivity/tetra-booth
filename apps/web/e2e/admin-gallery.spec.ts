@@ -118,9 +118,13 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
     await page.getByRole("button", { name: "Yakin cabut?" }).click();
     await expect(page.getByTestId("link-client")).toContainText("Link belum aktif");
     await guest.goto(path);
-    await expect(guest.getByRole("heading", { name: "Galeri tidak tersedia" })).toBeVisible();
+    await expect(
+      guest.getByRole("heading", { name: "galeri ini sudah tidak tersedia" }),
+    ).toBeVisible();
     await guest.goto(`/g/${token}`);
-    await expect(guest.getByRole("heading", { name: "Galeri tidak tersedia" })).toBeVisible();
+    await expect(
+      guest.getByRole("heading", { name: "galeri ini sudah tidak tersedia" }),
+    ).toBeVisible();
     expect((await guest.request.get(`/api/g/${ev?.slug}/zip?kind=original`)).ok()).toBe(false);
 
     // Live slideshow: /live/<slug> hanya saat linknya aktif.

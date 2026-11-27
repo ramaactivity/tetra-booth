@@ -12,12 +12,12 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { TetraMark } from "@/components/guest-cam/ui";
+import { waLink } from "@/lib/contact";
 import { copy } from "@/lib/copy";
 
 const t = copy.landing;
 const BOOKING = "https://booking.tetraphoto.com/";
-const WA = "6285213526630";
-const wa = (text: string) => `https://wa.me/${WA}?text=${encodeURIComponent(text)}`;
+const wa = waLink;
 
 export const metadata: Metadata = {
   title: t.meta.title,

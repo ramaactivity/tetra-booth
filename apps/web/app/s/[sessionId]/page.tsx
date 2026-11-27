@@ -6,10 +6,12 @@ import { clock, type GuestEvent, loadGuest, longDate, shortDate } from "@/lib/gu
 import { loadPromoForSession } from "@/lib/promo";
 import { AutoRefresh } from "./AutoRefresh";
 import { GuestReady } from "./GuestReady";
+import { HelpLink } from "./HelpLink";
 import { InAppHint } from "./InAppHint";
 import { LeadSheet } from "./LeadSheet";
 import { StageGuest } from "./StageGuest";
 import { TrackOpen } from "./TrackOpen";
+import { WaitHelp } from "./WaitHelp";
 
 /** Halaman tamu dari QR booth (FSD §2, desain v2 B1–B3). Mobile-first 390 px. */
 export const metadata: Metadata = {
@@ -330,6 +332,7 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
               <Step mark="" bg="bg-white" title={t.stepHere} body={t.stepHereBody} last />
             </div>
           )}
+          <WaitHelp sessionId={sessionId} />
           <p className="mt-auto rounded-xl border-[1.5px] border-dashed border-ink bg-sky px-3.5 py-3 text-center text-[13px] font-semibold">
             {t.keepLink}
           </p>
@@ -349,6 +352,7 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
         <p className="text-sm leading-[1.55] text-pretty text-text-2">
           {g.state === "expired" ? t.expiredBody(shortDate(g.expiredAt)) : t.removedBody}
         </p>
+        <HelpLink className="w-full max-w-xs" />
       </div>
       <section className="mx-5 mb-7 flex flex-col gap-3.5 rounded-[18px] border-[1.5px] border-dashed border-ink bg-peach p-[18px]">
         <div className="flex items-center gap-3">

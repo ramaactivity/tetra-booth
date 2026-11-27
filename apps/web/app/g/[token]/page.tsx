@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { after } from "next/server";
+import { HelpLink } from "@/app/s/[sessionId]/HelpLink";
 import { GuestPromo } from "@/components/GuestPromo";
 import { isBot, trackClient } from "@/lib/client-track";
 import { loadGallery } from "@/lib/gallery";
@@ -32,13 +33,20 @@ export default async function GalleryPage({ params }: { params: Promise<{ token:
   if (g.state === "gone")
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-paper px-8 text-center">
-        <span className="flex size-20 items-center justify-center rounded-[22px] border-[1.5px] border-dashed border-ink bg-peach text-[34px] font-extrabold">
-          !
+        <span className="flex items-center gap-2.5">
+          <span className="flex size-[34px] items-center justify-center rounded-[9px] border-[1.5px] border-ink bg-mint text-[15px] font-extrabold">
+            T
+          </span>
+          <span className="text-lg font-extrabold tracking-[-0.02em]">tetra</span>
         </span>
-        <h1 className="text-2xl font-extrabold tracking-[-0.025em]">Galeri tidak tersedia</h1>
-        <p className="max-w-sm text-sm text-text-2">
-          Link sudah dicabut atau masa simpan galeri sudah berakhir. Hubungi penyelenggara acara.
+        <h1 className="text-2xl font-extrabold tracking-[-0.025em] text-balance">
+          Mohon maaf, galeri ini sudah tidak tersedia
+        </h1>
+        <p className="max-w-sm text-sm leading-[1.55] text-pretty text-text-2">
+          Link-nya sudah dicabut, atau masa simpan galeri sudah berakhir. Kalau masih butuh fotonya,
+          chat kami, nanti kami bantu cek.
         </p>
+        <HelpLink className="w-full max-w-xs" />
       </main>
     );
   // "Dibuka klien" di ringkasan event: bukan robot pratinjau link, bukan tim yang sedang login admin.
