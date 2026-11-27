@@ -147,11 +147,12 @@ test("daftar event & photobox, filter URL, sesi tes tidak dihitung", async ({ pa
     // Filter bulan & status lewat URL.
     await page.goto(`/admin?q=${encodeURIComponent(name)}&bulan=2026-11`);
     await expect(page.getByTestId("event-row")).toHaveCount(0);
-    await page.goto(`/admin?q=${encodeURIComponent(name)}&tab=selesai`);
+    // 20 Okt 2026 sudah lewat (dulu uji ini mengandalkan "Mendatang" dan rusak begitu tanggalnya lewat).
+    await page.goto(`/admin?q=${encodeURIComponent(name)}&tab=mendatang`);
     await expect(page.getByTestId("event-row")).toHaveCount(0);
     await page.goto(`/admin?q=${encodeURIComponent(name)}`);
-    await page.getByRole("link", { name: "Mendatang", exact: true }).click();
-    await expect(page).toHaveURL(/tab=mendatang/);
+    await page.getByRole("link", { name: "Selesai", exact: true }).click();
+    await expect(page).toHaveURL(/tab=selesai/);
     await expect(page).toHaveURL(/q=/);
     await expect(page.getByTestId("event-row")).toHaveCount(1);
     // Bulan lewat dropdown Tetra (bukan select bawaan).
@@ -160,7 +161,7 @@ test("daftar event & photobox, filter URL, sesi tes tidak dihitung", async ({ pa
     await expect(page).toHaveURL(/bulan=2026-10/);
     await expect(page.getByTestId("event-row")).toHaveCount(1);
     await page.getByRole("button", { name: "Hapus filter" }).click();
-    await expect(page).toHaveURL(/\/admin\?tab=mendatang$/);
+    await expect(page).toHaveURL(/\/admin\?tab=selesai$/);
 
     // Daftar Photobox: kolom harga & transaksi lunas, terpisah dari Event.
     await page.getByRole("link", { name: "Photobox", exact: true }).click();
