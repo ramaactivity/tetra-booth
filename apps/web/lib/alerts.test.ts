@@ -43,7 +43,7 @@ describe("boothAlerts", () => {
       event_date: "2026-11-25",
       run: { segments: [] },
       client_token: "x",
-      client_expires_at: "2026-11-29T00:00:00+07:00",
+      client_expires_at: "2026-12-03T00:00:00+07:00", // H-6
     });
     const d = dev({
       status: { activeEvent: "e9", uploadsByEvent: [{ eventId: "e1", sessions: 3, files: 9 }] },
@@ -54,6 +54,15 @@ describe("boothAlerts", () => {
     expect(day.find((x) => x.kind === "gallery_expiring")?.text).toContain(
       "belum pernah membukanya",
     );
+    // Sudah dibuka tapi belum diunduh: tetap diingatkan; sudah diunduh semua: tidak.
+    expect(
+      boothAlerts([d], [done], T, new Set(["e1"])).find((x) => x.kind === "gallery_expiring")?.text,
+    ).toContain("belum mengunduh semua foto");
+    expect(
+      boothAlerts([d], [done], T, new Set(["e1"]), new Set(["e1"])).some(
+        (x) => x.kind === "gallery_expiring",
+      ),
+    ).toBe(false);
     const night = Date.parse("2026-11-27T22:30:00+07:00");
     expect(boothAlerts([d], [done], night)).toEqual([]);
   });

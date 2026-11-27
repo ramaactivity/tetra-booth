@@ -59,6 +59,8 @@ export function boothAlerts(
   now: number,
   /** Event yang galeri kliennya pernah dibuka klien (gallery_open). */
   opened: Set<string> = new Set(),
+  /** Event yang galerinya sudah diunduh semua oleh klien (zip). */
+  zipped: Set<string> = new Set(),
 ): Alert[] {
   const out: Alert[] = [];
   const at = new Date(now).toISOString();
@@ -115,11 +117,12 @@ export function boothAlerts(
       });
     }
     const exp = e.client_token && e.client_expires_at ? Date.parse(e.client_expires_at) : 0;
-    if (exp > now && exp - now <= 3 * DAY)
+    // H-7 dan klien belum mengunduh semua foto (audit 27 Nov); sudah diunduh = tidak perlu diingatkan.
+    if (exp > now && exp - now <= 7 * DAY && !zipped.has(e.id))
       out.push({
         id: `gallery_expiring:${e.id}:${e.client_expires_at}`,
         kind: "gallery_expiring",
-        text: `*Galeri klien hampir berakhir* · ${e.name}: link galeri berhenti ${day(exp)}. ${opened.has(e.id) ? "Ingatkan" : "Klien belum pernah membukanya, ingatkan"} klien untuk mengunduh semua foto.`,
+        text: `*Galeri klien hampir berakhir* · ${e.name}: link galeri berhenti ${day(exp)}. ${opened.has(e.id) ? "Klien belum mengunduh semua foto," : "Klien belum pernah membukanya,"} ingatkan klien untuk mengunduh sebelum terhapus.`,
         at,
         eventName: e.name,
       });

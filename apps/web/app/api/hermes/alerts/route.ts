@@ -41,8 +41,8 @@ export async function GET(req: Request) {
   const { data: opens } = expiring.length
     ? await db
         .from("analytics_events")
-        .select("event_id")
-        .eq("type", "gallery_open")
+        .select("event_id, type")
+        .in("type", ["gallery_open", "zip"])
         .in(
           "event_id",
           expiring.map((e) => e.id),
@@ -53,7 +53,8 @@ export async function GET(req: Request) {
     devices.data ?? [],
     events.data ?? [],
     now,
-    new Set((opens ?? []).map((o) => o.event_id)),
+    new Set((opens ?? []).filter((o) => o.type === "gallery_open").map((o) => o.event_id)),
+    new Set((opens ?? []).filter((o) => o.type === "zip").map((o) => o.event_id)),
   ).filter((a) => !done.has(a.id));
   return Response.json({ alerts });
 }
