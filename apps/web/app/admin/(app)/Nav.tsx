@@ -74,7 +74,8 @@ const items = [
 ];
 
 export function Nav({ role }: { role: string }) {
-  const path = usePathname();
+  // `?? ""`: adanya pages/api (ZIP) membuat tipe usePathname bisa null.
+  const path = usePathname() ?? "";
   const inOps = path === "/admin" || path === "/admin/photobox" || path.startsWith("/admin/events");
   return (
     <nav className="flex flex-col gap-1.5">

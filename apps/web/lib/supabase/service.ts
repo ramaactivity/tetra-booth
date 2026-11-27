@@ -1,4 +1,4 @@
-import "server-only";
+import "../server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@tetra/db";
 

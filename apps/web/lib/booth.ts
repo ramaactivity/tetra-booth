@@ -1,4 +1,4 @@
-import "server-only";
+import "./server-only";
 import { createHash } from "node:crypto";
 import { type AssetKindName, assetFile, type BoothApiError } from "@tetra/shared";
 import type { ZodType } from "zod";

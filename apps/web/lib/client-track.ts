@@ -1,4 +1,4 @@
-import "server-only";
+import "./server-only";
 import { createServiceClient } from "./supabase/service";
 
 /** Robot pratinjau link (WA, IG, Telegram, …) dan alat otomatis: bukan klien yang membuka. */

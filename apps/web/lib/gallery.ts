@@ -1,4 +1,4 @@
-import "server-only";
+import "./server-only";
 import { SESSION_ID_PATTERN } from "@tetra/shared";
 import { guestPhotosVisible } from "@/lib/events";
 import { presignDownload, presignGet } from "@/lib/r2";

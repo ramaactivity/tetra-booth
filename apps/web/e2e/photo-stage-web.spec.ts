@@ -169,7 +169,8 @@ test("Photo Stage di galeri klien, halaman tamu, dan live", async ({ browser, re
     ).events;
     expect(ops?.modules).toEqual(["photobooth", "photo_stage"]);
     expect(ops?.thumbs.map((x) => x.kind)).toEqual(["original", "original", "strip"]);
-    expect(ops?.thumbs[0]?.url).toMatch(/thumb_original_1\.jpg\?.*X-Amz-Expires=86400/);
+    // 24 jam + 1 jam pembulatan tanda tangan (#321).
+    expect(ops?.thumbs[0]?.url).toMatch(/thumb_original_1\.jpg\?.*X-Amz-Expires=90000/);
     expect(ops?.cover_url).toMatch(/original_1\.jpg\?/);
     // #248: link galeri tamu untuk bot CS; null selama galeri publik event ini tidak aktif.
     expect(ops).toHaveProperty("guest_gallery_url");

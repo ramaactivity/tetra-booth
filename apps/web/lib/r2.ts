@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import "server-only";
+import "./server-only";
 import {
   DeleteObjectsCommand,
   GetObjectCommand,
