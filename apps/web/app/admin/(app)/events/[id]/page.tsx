@@ -1,4 +1,5 @@
 import {
+  EventSettingsSchema,
   hhmm,
   LAYOUT_PRESETS,
   type LayoutPaper,
@@ -12,7 +13,6 @@ import {
   ChevronLeft,
   CloudUpload,
   Download,
-  ExternalLink,
   Images,
   Printer,
   QrCode,
@@ -22,8 +22,9 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { copy } from "@/lib/copy";
-import { DEFAULT_TEMPLATE, type EventTemplate } from "@/lib/event-bundle";
+import { DEFAULT_TEMPLATE, type EventBranding, type EventTemplate } from "@/lib/event-bundle";
 import { eventKey } from "@/lib/events";
+import { guestPath } from "@/lib/guest-link";
 import type { OpsSync } from "@/lib/ops-sync";
 import { presignDownload, presignGet } from "@/lib/r2";
 import type { RecapData } from "@/lib/recap";
@@ -41,9 +42,11 @@ import {
 import { GuestCamSection } from "./GuestCamSection";
 import { OpsDesignInstall } from "./OpsDesignInstall";
 import { OpsUnits, type UnitRow } from "./OpsUnits";
+import { QuickPanel } from "./QuickPanel";
 import { RecapDialog } from "./RecapDialog";
 import { RunPanel } from "./RunPanel";
 import { SessionTile } from "./SessionTile";
+import { GuestLinkPanel } from "./settings/GuestLinkPanel";
 import { LinksPanel } from "./settings/LinksPanel";
 import { UnsentBanner } from "./UnsentBanner";
 
@@ -115,7 +118,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, slug, name, event_date, location, mode, settings, client_token, live_token, run, package_name, package_hours, scheduled_start, scheduled_end, local_bytes, local_files, created_at, ops_sync, ops_project_id, guest_revealed_at",
+      "id, slug, name, event_date, location, mode, settings, client_token, live_token, run, package_name, package_hours, scheduled_start, scheduled_end, local_bytes, local_files, created_at, ops_sync, ops_project_id, guest_revealed_at, branding, all_devices, lead_capture, promo_off, bundle_version, guest_expires_at, client_expires_at, guest_token, guest_link, event_devices(device_id)",
     )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
@@ -263,9 +266,12 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
 
   // Rekap event (#148): booth yang memotret sesi event ini, sesi pertama/terakhir.
   const deviceIds = [...new Set(list.flatMap((s) => (s.device_id ? [s.device_id] : [])))];
-  const { data: boothRows } = deviceIds.length
-    ? await db.from("devices").select("id, name").eq("organization_id", orgId).in("id", deviceIds)
+  const assignedIds = ev.event_devices.map((d) => d.device_id);
+  const allIds = [...new Set([...deviceIds, ...assignedIds])];
+  const { data: deviceRows } = allIds.length
+    ? await db.from("devices").select("id, name").eq("organization_id", orgId).in("id", allIds)
     : { data: [] };
+  const boothRows = (deviceRows ?? []).filter((d) => deviceIds.includes(d.id));
   const run = parseRun(ev.run);
   const recap: RecapData = {
     name: ev.name,
@@ -273,7 +279,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     venue: ev.location,
     packageName: ev.package_name,
     packageHours: ev.package_hours,
-    booths: (boothRows ?? []).map((d) => d.name).sort(),
+    booths: boothRows.map((d) => d.name).sort(),
     designs: designs.map((d) => `${d.name} (${d.paper})`),
     sessions: total,
     prints,
@@ -321,6 +327,39 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
     const list = drift.fields.map((f) => `${t.field[f.field]} ${val(f)}`).join(", ");
     opsNotes.push({ text: `${t.changed} ${list}. ${t.fix}`, bg: "bg-peach" });
   }
+  const cam = EventSettingsSchema.parse(ev.settings ?? {}).guestCam;
+  const branding = (ev.branding ?? {}) as EventBranding;
+  const day = (ts: string | null) =>
+    ts
+      ? new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", ...WIB }).format(new Date(ts))
+      : "";
+  const start = hhmm(ev.scheduled_start);
+  const end = hhmm(ev.scheduled_end);
+  const assignedNames = (deviceRows ?? [])
+    .filter((d) => assignedIds.includes(d.id))
+    .map((d) => d.name)
+    .sort();
+  const details: [string, string][] = [
+    ["Jadwal", start ? `${start}${end ? `–${end}` : ""} WIB` : ""],
+    ["Lokasi", ev.location ?? ""],
+    [
+      "Paket",
+      [ev.package_name, ev.package_hours && `${ev.package_hours} jam`].filter(Boolean).join(" · "),
+    ],
+    ["Klien", branding.clientName ?? ""],
+    ["Booth", ev.all_devices ? "Semua booth" : assignedNames.join(", ")],
+    ["Booking Tetra Ops", ev.ops_project_id ?? ""],
+    [
+      "Masa simpan",
+      [
+        ev.guest_expires_at && `Foto tamu s/d ${day(ev.guest_expires_at)}`,
+        ev.client_expires_at && `galeri klien s/d ${day(ev.client_expires_at)}`,
+      ]
+        .filter(Boolean)
+        .join(", "),
+    ],
+    ["Versi pengaturan booth", `v${ev.bundle_version}`],
+  ];
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
   return (
@@ -354,28 +393,6 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
             <a href={`/admin/events/${ev.slug}/leads`} className={`${btn} bg-white`}>
               <Download aria-hidden className="size-4" strokeWidth={2} />
               Export Lead ({leadCount})
-            </a>
-          )}
-          {ev.client_token && (
-            <a
-              href={`/g/${ev.slug}`}
-              target="_blank"
-              rel="noreferrer"
-              className={`${btn} bg-white`}
-            >
-              Buka Galeri Klien
-              <ExternalLink aria-hidden className="size-4 text-text-2" strokeWidth={2} />
-            </a>
-          )}
-          {ev.live_token && (
-            <a
-              href={`/live/${ev.slug}`}
-              target="_blank"
-              rel="noreferrer"
-              className={`${btn} bg-white`}
-            >
-              Buka Slideshow
-              <ExternalLink aria-hidden className="size-4 text-text-2" strokeWidth={2} />
             </a>
           )}
           <Link href={`/admin/events/${ev.slug}/settings`} className={`${btn} bg-ink text-white`}>
@@ -419,45 +436,92 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
         canEdit={role !== "crew"}
       />
 
-      <section
-        aria-label="Desain frame"
-        className="flex flex-wrap items-center gap-3 rounded-2xl border-[1.5px] border-ink bg-white px-5 py-4"
+      <div
+        className={`grid grid-cols-1 items-start gap-4 ${ev.mode === "event" ? "xl:grid-cols-[1.35fr_1fr]" : ""}`}
       >
-        <span className="text-[15px] font-extrabold">Desain frame</span>
-        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          {designs.map((d, i) => (
-            <span
-              key={d.key}
-              className="flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-sky py-1 pr-1.5 pl-3 text-[13px] font-bold"
-            >
-              {d.name}
-              <span className="font-mono text-[11px] font-semibold text-text-2">{d.paper}</span>
-              {i === 0 && designs.length > 1 && (
-                <span className="rounded-full bg-butter px-2 text-[11px]">Utama</span>
-              )}
-              {d.id && role !== "crew" && (
-                <Link
-                  href={`/admin/templates/${d.id}`}
-                  aria-label={`Edit desain ${d.name}`}
-                  className="rounded-full border-[1.5px] border-ink bg-white px-2.5 py-0.5 text-[11px] no-underline hover:bg-butter"
+        <section
+          aria-label="Detail event"
+          className="flex flex-col rounded-2xl border-[1.5px] border-ink bg-white px-5 py-4"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[15px] font-extrabold">Detail event</span>
+            {role !== "crew" && (
+              <Link
+                href={`/admin/events/${ev.slug}/settings#informasi`}
+                className="text-xs font-bold text-text-2 underline hover:text-ink"
+              >
+                Ubah
+              </Link>
+            )}
+          </div>
+          <dl className="mt-2 grid grid-cols-1 gap-x-6 sm:grid-cols-2">
+            {details.map(([k, val]) => (
+              <div
+                key={k}
+                className="flex flex-col gap-0.5 border-b-[1.5px] border-dashed border-line-soft py-2.5"
+              >
+                <dt className="text-xs text-text-2">{k}</dt>
+                <dd className={`text-sm font-bold ${val ? "" : "font-semibold text-text-3"}`}>
+                  {val || "Belum diisi"}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <section aria-label="Desain frame" className="flex flex-wrap items-center gap-3 pt-3">
+            <span className="text-xs text-text-2">Desain frame</span>
+            <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+              {designs.map((d, i) => (
+                <span
+                  key={d.key}
+                  className="flex items-center gap-2 rounded-full border-[1.5px] border-ink bg-sky py-1 pr-1.5 pl-3 text-[13px] font-bold"
                 >
-                  Edit desain
-                </Link>
-              )}
+                  {d.name}
+                  <span className="font-mono text-[11px] font-semibold text-text-2">{d.paper}</span>
+                  {i === 0 && designs.length > 1 && (
+                    <span className="rounded-full bg-butter px-2 text-[11px]">Utama</span>
+                  )}
+                  {d.id && role !== "crew" && (
+                    <Link
+                      href={`/admin/templates/${d.id}`}
+                      aria-label={`Edit desain ${d.name}`}
+                      className="rounded-full border-[1.5px] border-ink bg-white px-2.5 py-0.5 text-[11px] no-underline hover:bg-butter"
+                    >
+                      Edit desain
+                    </Link>
+                  )}
+                </span>
+              ))}
+              {!designs.length && <span className="text-sm text-text-2">Belum ada desain</span>}
             </span>
-          ))}
-          {!designs.length && <span className="text-sm text-text-2">Belum ada desain</span>}
-        </span>
-        {role !== "crew" && (
-          <Link href={`/admin/events/${ev.slug}/settings#template`} className={`${btn} bg-white`}>
-            Ganti desain
-          </Link>
+            {role !== "crew" && (
+              <Link
+                href={`/admin/events/${ev.slug}/settings#template`}
+                className={`${btn} bg-white`}
+              >
+                Ganti desain
+              </Link>
+            )}
+          </section>
+        </section>
+        {ev.mode === "event" && (
+          <QuickPanel
+            eventId={ev.id}
+            slug={ev.slug}
+            canEdit={role !== "crew"}
+            values={{
+              enabled: cam.enabled,
+              approval: cam.approval,
+              reveal: cam.reveal,
+              print: cam.print,
+              voice: cam.voice,
+              promo: !ev.promo_off,
+              lead: !!(ev.lead_capture as { enabled?: boolean } | null)?.enabled,
+            }}
+          />
         )}
-      </section>
+      </div>
 
-      <GuestCamSection db={db} orgId={orgId} ev={ev} canEdit={role !== "crew"} />
-
-      {/* Link untuk dibagikan ke klien (galeri & slideshow) tanpa membuka Pengaturan. */}
+      {/* Link untuk dibagikan ke klien & tamu (galeri, slideshow, Snapbook) tanpa membuka Pengaturan. */}
       {role !== "crew" && (
         <section
           aria-label="Link untuk dibagikan"
@@ -476,9 +540,22 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
             clientOn={!!ev.client_token}
             liveOn={!!ev.live_token}
           />
+          {cam.enabled && (
+            <GuestLinkPanel
+              eventId={ev.id}
+              origin={origin}
+              path={ev.guest_token ? guestPath(ev) : null}
+            />
+          )}
         </section>
       )}
 
+      <GuestCamSection db={db} orgId={orgId} ev={ev} canEdit={role !== "crew"} />
+
+      <div className="flex items-center gap-3">
+        <h2 className="text-lg font-extrabold tracking-[-0.02em]">Booth</h2>
+        <span className="flex-1 border-t-[1.5px] border-dashed border-ink" />
+      </div>
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {stats.map((s) => (
           <div

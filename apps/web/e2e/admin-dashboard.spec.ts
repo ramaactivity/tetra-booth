@@ -72,6 +72,24 @@ test("statistik, sembunyikan, hapus, audit", async ({ page }) => {
     await expect(page.getByTestId("stat-QR dibuka")).toHaveText("1 33%");
     await page.screenshot({ path: "test-results/admin-dashboard.png", fullPage: true });
 
+    // Akses cepat: Snapbook dinyalakan & persetujuan manual tanpa membuka Pengaturan.
+    await expect(page.getByRole("region", { name: "Detail event" })).toContainText("Semua booth");
+    const quick = page.getByRole("region", { name: "Akses cepat" });
+    await quick.getByLabel("Snapbook aktif").check();
+    await quick.getByText("Manual", { exact: true }).click();
+    await expect
+      .poll(
+        async () =>
+          (await db.from("events").select("settings").eq("id", eventId).single()).data?.settings,
+      )
+      .toMatchObject({ guestCam: { enabled: true, approval: "manual" } });
+    // Snapbook dinyalakan dari sini membuat link /c juga (aturan sama dengan Backstage #295).
+    const snap = (await db.from("events").select("guest_token, guest_link").eq("id", eventId).single())
+      .data;
+    expect(snap?.guest_token).toBeTruthy();
+    expect(snap?.guest_link).toMatch(/^e2e-dash/);
+    await expect(page.getByTestId("link-guest")).toBeVisible();
+
     const tile = (id: string) => page.getByTestId("session-tile").filter({ hasText: id });
     // Link untuk dibagikan langsung di ringkasan event; Bagikan per sesi menyalin link halaman tamu.
     await expect(page.getByRole("region", { name: "Link untuk dibagikan" })).toBeVisible();
@@ -103,7 +121,7 @@ test("statistik, sembunyikan, hapus, audit", async ({ page }) => {
     expect(audit.map((a) => a.action).sort()).toEqual(["session.delete", "session.hide"]);
     expect((await db.from("assets").select("id").eq("session_id", ids[2])).data).toEqual([]);
   } finally {
-    await db.from("audit_logs").delete().in("target", ids);
+    await db.from("audit_logs").delete().in("target", [...ids, eventId]);
     await db.from("events").delete().eq("id", eventId);
     await u.cleanup();
   }

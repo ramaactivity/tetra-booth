@@ -7,7 +7,9 @@ export const PAPER = "#f8f7f4";
 
 type Json = Record<string, unknown>;
 type EventUpdate = Database["public"]["Tables"]["events"]["Update"];
-/** Kolom events yang dibaca/diubah Backstage tahap 2 (#295). */
+/** Kolom events yang dibaca/diubah Backstage tahap 2 (#295) dan Akses cepat admin (#244). */
+export const CLOUD_COLS =
+  "slug, client_token, live_token, guest_token, guest_link, settings, lead_capture, promo_off, branding, client_instagram, bundle, bundle_version";
 export type CloudRow = {
   slug: string;
   client_token: string | null;
@@ -123,4 +125,29 @@ export function cloudSettingsUpdate(
   }
   // Isi JSON berasal dari kolom yang sama (sudah JSON); tipe Json Supabase lebih sempit dari Record<string, unknown>.
   return { update: u as EventUpdate };
+}
+
+/**
+ * Satu setelan Guest Cam di luar sakelar utama (persetujuan, album, cetak dari HP, ucapan suara) dari Akses cepat
+ * admin (#244). Ditulis ke `settings` dan bundle (booth membaca `guestCam.print` & QR Print Station), versi naik.
+ */
+export function guestCamFieldUpdate(
+  ev: CloudRow,
+  key: "approval" | "reveal" | "print" | "voice",
+  value: string | boolean,
+): EventUpdate {
+  const settings = obj(ev.settings);
+  const bundle = obj(ev.bundle);
+  const config = obj(bundle.config);
+  const cs = obj(config.settings);
+  const u: Json = {
+    settings: { ...settings, guestCam: { ...obj(settings.guestCam), [key]: value } },
+    bundle_version: ev.bundle_version + 1,
+  };
+  if (bundle.config)
+    u.bundle = {
+      ...bundle,
+      config: { ...config, settings: { ...cs, guestCam: { ...obj(cs.guestCam), [key]: value } } },
+    };
+  return u as EventUpdate;
 }

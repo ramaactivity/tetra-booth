@@ -1,12 +1,14 @@
 import { CloudSettingsRequest, newAccessToken } from "@tetra/shared";
 import { z } from "zod";
 import { apiError, authDevice, deviceMayUseEvent, parseBody } from "@/lib/booth";
-import { type CloudRow, cloudSettingsOf, cloudSettingsUpdate } from "@/lib/cloud-settings";
+import {
+  type CloudRow,
+  CLOUD_COLS as COLS,
+  cloudSettingsOf,
+  cloudSettingsUpdate,
+} from "@/lib/cloud-settings";
 import { freeGuestLink } from "@/lib/guest-link-db";
 import { createServiceClient } from "@/lib/supabase/service";
-
-const COLS =
-  "slug, client_token, live_token, guest_token, guest_link, settings, lead_capture, promo_off, branding, client_instagram, bundle, bundle_version";
 
 /**
  * Backstage tahap 2 (#295): crew membaca/mengubah setelan cloud event yang ditugaskan ke booth ini — link galeri

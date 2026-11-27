@@ -37,9 +37,19 @@ export function LinksPanel({
             className="flex h-[42px] min-w-0 flex-1 items-center justify-between gap-2 rounded-[11px] border-[1.5px] border-ink bg-white px-3 font-mono text-[13px]"
             data-testid={`link-${kind}`}
           >
-            <span className={`truncate ${url ? "" : "font-sans text-text-2"}`}>
+            <span className={`min-w-0 flex-1 truncate ${url ? "" : "font-sans text-text-2"}`}>
               {url ?? "Link belum aktif"}
             </span>
+            {url && (
+              <a
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                className="font-sans text-xs font-bold underline"
+              >
+                Buka
+              </a>
+            )}
             {url && (
               <button
                 type="button"

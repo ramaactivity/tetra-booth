@@ -195,7 +195,7 @@ function GcChoice({
   );
 }
 
-function Switch(p: InputHTMLAttributes<HTMLInputElement>) {
+export function Switch(p: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <span className="relative inline-flex h-[26px] w-[46px] flex-none">
       <input

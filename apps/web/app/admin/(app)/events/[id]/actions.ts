@@ -1,7 +1,14 @@
 "use server";
-import { applyRun, type EventRun, RUN_ACTIONS, setRunTimes } from "@tetra/shared";
+import { applyRun, type EventRun, newAccessToken, RUN_ACTIONS, setRunTimes } from "@tetra/shared";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import {
+  CLOUD_COLS,
+  type CloudRow,
+  cloudSettingsUpdate,
+  guestCamFieldUpdate,
+} from "@/lib/cloud-settings";
+import { freeGuestLink } from "@/lib/guest-link-db";
 import { deleteObjects } from "@/lib/r2";
 import { updateRun } from "@/lib/run";
 import { requireMember } from "@/lib/supabase/server";
@@ -164,4 +171,71 @@ export async function revealGuest(eventId: string) {
     target: eventId,
   });
   revalidatePath("/admin/(app)/events/[id]", "layout");
+}
+
+const Quick = z.discriminatedUnion("key", [
+  z.object({ key: z.enum(["enabled", "print", "voice"]), value: z.boolean() }),
+  z.object({ key: z.literal("approval"), value: z.enum(["auto", "manual"]) }),
+  z.object({ key: z.literal("reveal"), value: z.enum(["live", "after"]) }),
+  z.object({ key: z.enum(["promo", "lead"]), value: z.boolean() }),
+]);
+export type QuickSet = z.infer<typeof Quick>;
+
+/**
+ * Akses cepat di ringkasan event (#244): satu setelan tanpa membuka Pengaturan. Sakelar Snapbook, form data tamu, dan
+ * kartu promo memakai aturan yang sama dengan Backstage (#295): Snapbook nyala → link dibuat kalau belum ada, form data
+ * tamu hanya kalau field + persetujuan sudah diatur. Versi bundle jadi kunci supaya simpan bersamaan tidak tertimpa.
+ */
+export async function quickSet(eventId: string, input: QuickSet): Promise<string | null> {
+  const { db, orgId, user } = await requireMember(["owner", "admin"]);
+  const q = Quick.safeParse(input);
+  if (!q.success || !z.uuid().safeParse(eventId).success) return "Setelan tidak valid";
+  const { data: ev } = await db
+    .from("events")
+    .select(CLOUD_COLS)
+    .eq("id", eventId)
+    .eq("organization_id", orgId)
+    .maybeSingle<CloudRow>();
+  if (!ev) return "Event tidak ditemukan";
+  const { key, value } = q.data;
+  let update: ReturnType<typeof guestCamFieldUpdate>;
+  if (key === "enabled" || key === "promo" || key === "lead") {
+    const on = value as boolean;
+    const r = cloudSettingsUpdate(
+      ev,
+      key === "enabled"
+        ? { guestCam: on }
+        : key === "promo"
+          ? { promoCard: on }
+          : { leadCapture: on },
+      {
+        token: newAccessToken,
+        guestLink:
+          key === "enabled" && on && !ev.guest_token
+            ? await freeGuestLink(db, eventId, orgId)
+            : null,
+      },
+    );
+    if (r.error) return "Atur field & teks persetujuan form data tamu di Pengaturan dulu";
+    update = r.update;
+  } else update = guestCamFieldUpdate(ev, key, value);
+  const { data: saved, error } = await db
+    .from("events")
+    .update(update)
+    .eq("id", eventId)
+    .eq("organization_id", orgId)
+    .eq("bundle_version", ev.bundle_version)
+    .select("id")
+    .maybeSingle();
+  if (error) return "Gagal menyimpan, coba lagi";
+  if (!saved) return "Setelan baru saja diubah di tempat lain. Muat ulang halaman.";
+  await db.from("audit_logs").insert({
+    organization_id: orgId,
+    actor_user_id: user.id,
+    action: `event.quick.${key}`,
+    target: eventId,
+    meta: { value },
+  });
+  revalidatePath("/admin/(app)/events/[id]", "layout");
+  return null;
 }
