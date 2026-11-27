@@ -1,6 +1,7 @@
 "use client";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { type PointerEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { useResignOnError } from "@/components/useResignOnError";
 import { copy } from "@/lib/copy";
 
 const t = copy.guest;
@@ -78,6 +79,7 @@ export function PhotoViewer({
   onClose: () => void;
   children?: ReactNode;
 }) {
+  const resign = useResignOnError();
   const box = useRef<HTMLDivElement>(null);
   const closeBtn = useRef<HTMLButtonElement>(null);
   const thumbs = useRef<HTMLDivElement>(null);
@@ -337,6 +339,7 @@ export function PhotoViewer({
             {old && (
               // biome-ignore lint/performance/noImgElement: URL R2 bertanda tangan
               <img
+                onError={resign}
                 src={old.src}
                 alt=""
                 aria-hidden
@@ -366,7 +369,10 @@ export function PhotoViewer({
                   alt={t.photoOf(index + 1, n)}
                   draggable={false}
                   onLoad={() => setReady(true)}
-                  onError={() => setReady(true)}
+                  onError={() => {
+                    setReady(true);
+                    resign();
+                  }}
                   className={`relative max-h-full max-w-full origin-top-left rounded-lg object-contain ${fade} ${ready || !old ? "opacity-100" : "opacity-0"}`}
                 />
               )

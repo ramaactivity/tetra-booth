@@ -39,14 +39,26 @@ export const presignPut = (key: string, contentType: string) =>
   );
 
 /**
+ * Tanda tangan dibulatkan ke awal jam (audit 27 Nov): URL yang sama selama satu jam → browser & TV live memakai
+ * cache, bukan mengunduh ulang tiap polling. Masa berlaku ditambah 1 jam supaya tetap ≥ `expiresIn` dari sekarang.
+ */
+const HOUR = 3_600_000;
+export const stableSign = (expiresIn: number, now = Date.now()) => ({
+  signingDate: new Date(Math.floor(now / HOUR) * HOUR),
+  expiresIn: Math.min(expiresIn + 3600, 7 * 86_400),
+});
+
+/**
  * URL GET bertanda tangan ke endpoint S3 R2 (`*.r2.cloudflarestorage.com`). Dipakai untuk semua baca publik
  * karena `*.r2.dev` diblokir Internet Positif di ISP Indonesia (W-026, DECISIONS #63).
  * ponytail: tanpa cache CDN; ganti ke custom domain media.* setelah DNS pindah ke Cloudflare.
  */
 export const presignGet = (key: string, expiresIn = 60 * 60) =>
-  getSignedUrl(client(), new GetObjectCommand({ Bucket: env("R2_BUCKET"), Key: key }), {
-    expiresIn,
-  });
+  getSignedUrl(
+    client(),
+    new GetObjectCommand({ Bucket: env("R2_BUCKET"), Key: key }),
+    stableSign(expiresIn),
+  );
 
 /**
  * URL GET bertanda tangan yang memaksa browser MENGUNDUH (Content-Disposition: attachment), bukan membuka gambar.
@@ -60,7 +72,7 @@ export const presignDownload = (key: string, filename: string, expiresIn = 60 * 
       Key: key,
       ResponseContentDisposition: `attachment; filename="${filename.replace(/[^\w.-]/g, "_")}"`,
     }),
-    { expiresIn },
+    stableSign(expiresIn),
   );
 
 /** Tulis objek dari server (overlay template admin). `cache` = Cache-Control (bawaan: isi tidak pernah berubah). */

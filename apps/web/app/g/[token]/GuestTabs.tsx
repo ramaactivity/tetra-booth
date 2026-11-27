@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useResignOnError } from "@/components/useResignOnError";
 import type { GalleryPhoto } from "@/lib/gallery";
 
 const mmss = (s: number) =>
@@ -22,6 +23,7 @@ export function GuestRows({
   readOnly: boolean;
   onOpen: (i: number) => void;
 }) {
+  const resign = useResignOnError();
   const guests = useMemo(() => {
     const m = new Map<string, { name: string; idx: number[] }>();
     for (const [i, p] of shown.entries()) {
@@ -87,6 +89,7 @@ export function GuestRows({
                   >
                     {/* biome-ignore lint/performance/noImgElement: URL R2 bertanda tangan */}
                     <img
+                      onError={resign}
                       src={p.thumb}
                       alt=""
                       loading="lazy"

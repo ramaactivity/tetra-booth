@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { PROMO_SAVED } from "@/components/GuestPromo";
 import { PhotoViewer } from "@/components/PhotoViewer";
+import { useResignOnError } from "@/components/useResignOnError";
 import type { GalleryPhoto } from "@/lib/gallery";
 import { GuestRows, VoiceList } from "./GuestTabs";
 
@@ -62,6 +63,7 @@ export function GalleryView({
   /** Lebar ÷ tinggi desain strip event (polaroid 3:4, strip 1:3); kotak menyesuaikan sebelum gambar termuat. */
   stripRatio?: number;
 }) {
+  const resign = useResignOnError();
   // Rasio asli tiap gambar setelah termuat (sesi beda desain / foto potret-lanskap), menggantikan perkiraan.
   const [ratio, setRatio] = useState<Record<string, number>>({});
   const [photos, setPhotos] = useState(initial);
@@ -286,6 +288,7 @@ export function GalleryView({
                 {/* Grid selalu gambar kecil (thumb 960 px, ±170 KB). Dulu srcSet menganggap thumb 160 px sehingga HP
                     memilih strip_web 3600 px (±2 MB per kotak, ±85 MB satu layar galeri, audit 27 Nov). */}
                 <img
+                  onError={resign}
                   src={w ? p.thumb : p.full}
                   alt=""
                   loading="lazy"

@@ -2,6 +2,7 @@
 import { Check, Share2 } from "lucide-react";
 import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { PhotoViewer } from "@/components/PhotoViewer";
+import { useResignOnError } from "@/components/useResignOnError";
 import { copy } from "@/lib/copy";
 import type { GuestAsset } from "@/lib/guest";
 import { isApple, prefetch, saveToPhone } from "./save";
@@ -68,6 +69,7 @@ export function GuestReady({
   assets: GuestAsset[];
   expiresAt: string | null;
 }) {
+  const resign = useResignOnError();
   const items = assets
     .filter((a) => ORDER.includes(a.kind))
     .sort((x, y) => ORDER.indexOf(x.kind) - ORDER.indexOf(y.kind) || x.idx - y.idx);
@@ -128,6 +130,7 @@ export function GuestReady({
             className="animate-rise pressable mx-auto block"
           >
             <img
+              onError={resign}
               src={strip.url}
               alt=""
               fetchPriority="high"
@@ -162,6 +165,7 @@ export function GuestReady({
                   />
                 ) : (
                   <img
+                    onError={resign}
                     src={a.kind === "original" ? thumbOf(a) : a.url}
                     alt=""
                     loading={i < 4 ? "eager" : "lazy"}
