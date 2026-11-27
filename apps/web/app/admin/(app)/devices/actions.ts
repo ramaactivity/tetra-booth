@@ -3,6 +3,7 @@ import { randomInt } from "node:crypto";
 import { emergencyPin, wibDay } from "@tetra/shared";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { promoteBoothRelease } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 
 const PAIR_MS = 10 * 60_000;
@@ -114,4 +115,35 @@ export async function emergencyCode(
     target: deviceId,
   });
   return { code: await emergencyPin(data.token_hash, wibDay()) };
+}
+
+/** Rilis bertahap: booth pilot menerima rilis terbaru lebih dulu (owner/admin, tercatat di Riwayat). */
+export async function setPilot(deviceId: string, on: boolean) {
+  const { db, orgId, user } = await requireMember(["owner", "admin"]);
+  if (!DeviceId.safeParse(deviceId).success) return;
+  await db.from("devices").update({ pilot: on }).eq("id", deviceId).eq("organization_id", orgId);
+  await db.from("audit_logs").insert({
+    organization_id: orgId,
+    actor_user_id: user.id,
+    action: "device.pilot",
+    target: deviceId,
+    meta: { on },
+  });
+  revalidatePath("/admin/devices");
+}
+
+/** Rilis terbaru (sudah lolos di booth pilot) dibuka untuk semua booth. Hanya owner. */
+export async function promoteRelease(): Promise<string | null> {
+  const { db, orgId, user } = await requireMember(["owner"]);
+  const version = await promoteBoothRelease();
+  if (!version) return "Rilis terbaru tidak ditemukan";
+  await db.from("audit_logs").insert({
+    organization_id: orgId,
+    actor_user_id: user.id,
+    action: "release.general",
+    target: version,
+    meta: { version },
+  });
+  revalidatePath("/admin/devices");
+  return null;
 }

@@ -63,15 +63,20 @@ export const presignDownload = (key: string, filename: string, expiresIn = 60 * 
     { expiresIn },
   );
 
-/** Tulis objek dari server (overlay template admin). */
-export const putObject = (key: string, body: Uint8Array, contentType: string) =>
+/** Tulis objek dari server (overlay template admin). `cache` = Cache-Control (bawaan: isi tidak pernah berubah). */
+export const putObject = (
+  key: string,
+  body: Uint8Array,
+  contentType: string,
+  cache = "public, max-age=31536000, immutable",
+) =>
   client().send(
     new PutObjectCommand({
       Bucket: env("R2_BUCKET"),
       Key: key,
       Body: body,
       ContentType: contentType,
-      CacheControl: "public, max-age=31536000, immutable",
+      CacheControl: cache,
     }),
   );
 
@@ -131,10 +136,32 @@ export const edsdkPrefix = (kit: "edsdk" | "lumix" | "nikon" | "nikonz") =>
  * Rilis booth di R2: `latest` = versi terbaru (DECISIONS #80); `stable` = versi yang ditandai owner terbukti stabil,
  * disimpan tiap laptop untuk "Kembali ke versi stabil" tanpa internet (`pnpm booth:stable <versi>`).
  */
-export async function boothRelease(channel: "latest" | "stable" = "latest") {
+export async function boothRelease(channel: "latest" | "stable" | "general" = "latest") {
   const stream = await getStream(`dev-builds/${channel}.json`).catch(() => undefined);
   if (!stream) return null;
   const r = BoothRelease.safeParse(await new Response(stream).json().catch(() => null));
   return r.success ? r.data : null;
 }
 export const latestBoothRelease = () => boothRelease("latest");
+
+/**
+ * Rilis bertahap (audit 27 Nov): `latest.json` = rilis terbaru (booth pilot), `general.json` = versi untuk semua
+ * booth, dinaikkan owner lewat "Rilis ke semua booth". Belum ada general.json = semua booth dapat latest (perilaku lama).
+ */
+export async function boothReleases() {
+  const [latest, general] = await Promise.all([boothRelease("latest"), boothRelease("general")]);
+  return { latest, general: general ?? latest };
+}
+
+/** Naikkan versi semua booth ke rilis terbaru (salin latest.json → general.json). */
+export async function promoteBoothRelease() {
+  const latest = await boothRelease("latest");
+  if (!latest) return null;
+  await putObject(
+    "dev-builds/general.json",
+    new TextEncoder().encode(JSON.stringify(latest)),
+    "application/json",
+    "no-cache",
+  );
+  return latest.version;
+}

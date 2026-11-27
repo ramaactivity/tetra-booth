@@ -779,6 +779,15 @@ export const copy = {
       ],
       deactivateYes: "Ya, nonaktifkan",
       forgotPin: "Lupa PIN",
+      pilot: "Booth pilot",
+      pilotHint: "Dapat versi baru duluan sebelum semua booth",
+      releases: (latest: string, general: string) =>
+        latest === general
+          ? `rilis terbaru v${latest} (semua booth)`
+          : `rilis terbaru v${latest} (booth pilot) · semua booth v${general}`,
+      promote: (v: string) => `Rilis v${v} ke semua booth`,
+      promoteSure: (v: string) => `Yakin? Semua booth bisa update ke v${v}`,
+      promoted: (v: string) => `v${v} sekarang untuk semua booth`,
       forgotPinTitle: (n: string) => `Kode darurat PIN · ${n}`,
       forgotPinBody: (n: string) => [
         "Di booth: tahan logo 2 detik (atau Ctrl+Shift+M), lalu ketik kode ini di layar PIN.",

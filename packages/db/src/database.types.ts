@@ -163,6 +163,7 @@ export type Database = {
           organization_id: string
           pairing_code: string | null
           pairing_expires_at: string | null
+          pilot: boolean
           revoked_at: string | null
           screen_height: number | null
           screen_width: number | null
@@ -179,6 +180,7 @@ export type Database = {
           organization_id: string
           pairing_code?: string | null
           pairing_expires_at?: string | null
+          pilot?: boolean
           revoked_at?: string | null
           screen_height?: number | null
           screen_width?: number | null
@@ -195,6 +197,7 @@ export type Database = {
           organization_id?: string
           pairing_code?: string | null
           pairing_expires_at?: string | null
+          pilot?: boolean
           revoked_at?: string | null
           screen_height?: number | null
           screen_width?: number | null

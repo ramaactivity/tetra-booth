@@ -55,6 +55,10 @@ export function auditText(action: string, meta: Meta): string {
     return `mengubah ${QUICK[b]} jadi ${VALUE[String(m.value)] ?? String(m.value)} (Akses cepat)`;
   if (action === "event.settings")
     return `menyimpan Pengaturan event${m.bundleVersion ? ` (versi booth v${m.bundleVersion})` : ""}`;
+  if (action === "device.pilot")
+    return m.on ? "menjadikan booth pilot (dapat versi baru duluan)" : "melepas status pilot booth";
+  if (action === "release.general")
+    return `merilis Tetra Booth ${String(m.version)} ke semua booth`;
   if (action === "event.settings.booth")
     return "mengubah setelan halaman tamu & link dari Backstage";
   return PLAIN[action] ?? action;

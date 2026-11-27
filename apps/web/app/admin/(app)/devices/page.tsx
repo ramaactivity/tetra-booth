@@ -11,10 +11,10 @@ import {
 } from "@/lib/booth-health";
 import { copy } from "@/lib/copy";
 import { ago, isOnline } from "@/lib/format";
-import { latestBoothRelease } from "@/lib/r2";
+import { boothReleases } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 import { unitLabels } from "@/lib/tetra-ops";
-import { AddDevice, AutoRefresh, DeviceActions } from "./PairPanel";
+import { AddDevice, AutoRefresh, DeviceActions, PilotToggle, PromoteRelease } from "./PairPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -26,22 +26,24 @@ export default async function DevicesPage() {
   const { db, orgId, role } = await requireMember();
   const canManage = role !== "crew";
   const t = copy.admin.devices;
-  const [{ data: devices }, latest] = await Promise.all([
+  const [{ data: devices }, rel] = await Promise.all([
     db
       .from("devices")
-      .select("id, name, short_code, app_version, last_seen_at, status, token_hash")
+      .select("id, name, short_code, app_version, last_seen_at, status, token_hash, pilot")
       .eq("organization_id", orgId)
       .is("revoked_at", null),
-    latestBoothRelease().catch(() => null),
+    boothReleases().catch(() => null),
   ]);
   const now = Date.now();
   const rows = (devices ?? []).map((d) => {
     const st = BoothStatus.catch({}).parse(d.status);
     const online = isOnline(d.last_seen_at, now);
     const paired = !!d.token_hash;
+    // Versi yang seharusnya didapat booth ini: pilot = rilis terbaru, lainnya = versi semua booth.
+    const target = d.pilot ? rel?.latest : rel?.general;
     const outdated =
-      latest && d.app_version && /^\d+\.\d+\.\d+$/.test(d.app_version)
-        ? newerVersion(latest.version, d.app_version)
+      target && d.app_version && /^\d+\.\d+\.\d+$/.test(d.app_version)
+        ? newerVersion(target.version, d.app_version)
         : false;
     return {
       d,
@@ -91,10 +93,20 @@ export default async function DevicesPage() {
           <h1 className="text-[30px] font-extrabold tracking-[-0.03em]">Booth</h1>
           <p className="mt-1 text-[13px] text-text-2">
             Diperbarui otomatis tiap {REFRESH_S} dtk
-            {latest ? ` · rilis terbaru v${latest.version}` : ""}
+            {rel?.latest && rel.general
+              ? ` · ${t.releases(rel.latest.version, rel.general.version)}`
+              : ""}
           </p>
         </div>
-        {canManage && <AddDevice />}
+        <div className="flex flex-wrap items-start gap-3">
+          {role === "owner" &&
+            rel?.latest &&
+            rel.general &&
+            newerVersion(rel.latest.version, rel.general.version) && (
+              <PromoteRelease version={rel.latest.version} />
+            )}
+          {canManage && <AddDevice />}
+        </div>
       </div>
       <AutoRefresh seconds={REFRESH_S} />
       {rows.length === 0 && (
@@ -254,6 +266,15 @@ export default async function DevicesPage() {
                     </li>
                   ))}
                 </ul>
+              )}
+              {canManage && (
+                <div className="mx-[18px] mb-3 flex items-center justify-between gap-3 rounded-[11px] border-[1.5px] border-dashed border-ink px-3 py-2 text-[13px]">
+                  <span className="min-w-0">
+                    <b>{t.pilot}</b>
+                    <span className="block text-xs text-text-2">{t.pilotHint}</span>
+                  </span>
+                  <PilotToggle id={d.id} on={d.pilot} />
+                </div>
               )}
               {canManage && <DeviceActions id={d.id} name={d.name} paired={paired} />}
             </article>

@@ -105,6 +105,18 @@ test("tambah booth bertahap, tersambung, status online, sambung ulang, nonaktifk
     });
     expect(stale.status()).toBe(401);
 
+    // Rilis bertahap: sakelar booth pilot tersimpan & tercatat.
+    const pilot = card.getByRole("switch", { name: "Booth pilot" });
+    await expect(pilot).toHaveAttribute("aria-checked", "false");
+    await pilot.click();
+    await expect(pilot).toHaveAttribute("aria-checked", "true");
+    await expect
+      .poll(
+        async () =>
+          (await db.from("devices").select("pilot").eq("name", name).single()).data?.pilot,
+      )
+      .toBe(true);
+
     // Lupa PIN: kode darurat yang tampil = kode yang dihitung booth dari token-nya (tanpa internet).
     await card.getByRole("button", { name: "Lupa PIN" }).click();
     const pin = page.getByRole("dialog", { name: `Kode darurat PIN · ${name}` });

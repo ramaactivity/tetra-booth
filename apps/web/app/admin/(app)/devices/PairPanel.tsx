@@ -10,7 +10,9 @@ import {
   newPairingCode,
   type PairResult,
   pairStatus,
+  promoteRelease,
   revokeDevice,
+  setPilot,
 } from "./actions";
 
 const t = copy.admin.devices;
@@ -446,6 +448,63 @@ export function DeviceActions({ id, name, paired }: { id: string; name: string; 
         </div>
       </Modal>
     </>
+  );
+}
+
+/** Rilis bertahap: sakelar booth pilot di kartu booth. */
+export function PilotToggle({ id, on }: { id: string; on: boolean }) {
+  const [v, setV] = useState(on);
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={v}
+      aria-label={t.pilot}
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        setV(!v);
+        await setPilot(id, !v);
+        setBusy(false);
+      }}
+      className={`relative h-[26px] w-[46px] flex-none rounded-full border-[1.5px] border-ink transition-colors ${v ? "bg-mint" : "bg-white"}`}
+    >
+      <span
+        aria-hidden
+        className={`absolute top-[2px] size-[19px] rounded-full border-[1.5px] border-ink bg-white transition-[left] ${v ? "left-[21px]" : "left-[2px]"}`}
+      />
+    </button>
+  );
+}
+
+/** Owner: buka rilis terbaru untuk semua booth (dua ketukan). */
+export function PromoteRelease({ version }: { version: string }) {
+  const [ask, setAsk] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        disabled={busy}
+        className={ask ? `${btn} bg-coral-strong text-white` : secondary}
+        onClick={async () => {
+          if (!ask) return setAsk(true);
+          setBusy(true);
+          setMsg((await promoteRelease()) ?? t.promoted(version));
+          setBusy(false);
+          setAsk(false);
+        }}
+      >
+        {ask ? t.promoteSure(version) : t.promote(version)}
+      </button>
+      {msg && (
+        <span role="status" className="text-xs font-bold text-text-2">
+          {msg}
+        </span>
+      )}
+    </div>
   );
 }
 

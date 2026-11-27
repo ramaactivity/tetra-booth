@@ -1,4 +1,4 @@
-import { latestBoothRelease, presignGet } from "@/lib/r2";
+import { boothReleases, presignGet } from "@/lib/r2";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,8 @@ export async function GET(req: Request) {
       302,
     );
   }
-  const r = await latestBoothRelease();
+  // Laptop baru dapat versi semua booth (yang sudah lolos pilot), bukan rilis pilot.
+  const r = (await boothReleases()).general;
   if (!r) return new Response("Installer belum tersedia", { status: 404 });
   return Response.redirect(await presignGet(r.key, 60 * 60), 302);
 }
