@@ -103,7 +103,7 @@ Pesan cepat Mac ↔ Windows lewat **issue #1 "Kanal Mac ↔ Windows (Claude)"** 
 - **Kalibrasi posisi** (`--print-offset "x,y"`, 1/100 in, koordinat halaman (6x4) melebar; y = sumbu kiri-kanan strip karena gambar diputar 90°). Default tanpa flag = tengah (`7.335,6.665`). Nilai laptop booth Rama: `7.335,6.70`.
   1. Cetak target kalibrasi (pita abu 0–4,5 mm, garis hitam 5 mm & merah 10 mm dari tepi gambar, garis biru putus di tengah) sebagai 2x6x2 dengan potong 2 inci aktif; beri kode besar per lembar (K1, K2, …) supaya mudah dilacak.
   2. Baca: garis biru jatuh di potongan kiri → naikkan y; di potongan kanan → turunkan y. Pita abu kiri lebih sempit → naikkan y. 1/100 in = 0,254 mm; di bawah ±0,1 mm sudah batas ketelitian printer.
-  3. Set `--print-offset` di config booth; ulangi 1 lembar untuk verifikasi.
+  3. Set lewat Backstage → Printer → *Posisi cetak kiri–kanan* (0,01 in per ketukan, #313), atau `--print-offset` di config booth (menang atas Backstage); ulangi 1 lembar untuk verifikasi.
 
 ## 5. Perintah umum
 

@@ -140,6 +140,18 @@ test("mode crew: PIN, pilih event, kertas, peringatan, kunci", async () => {
   await expect(saveBar).toHaveCount(0);
   await expect(mirrorPhoto).toHaveAttribute("aria-pressed", "true");
 
+  // Kalibrasi posisi DNP dari Backstage (audit 27 Nov, dulu --print-offset di file): 0,25 mm per ketukan.
+  await w.getByTestId("crew-nav-printer").click();
+  const offset = w.getByTestId("print-offset");
+  await expect(offset).toContainText("Tengah");
+  await offset.getByRole("button", { name: "Kanan →" }).click();
+  await offset.getByRole("button", { name: "Kanan →" }).click();
+  await expect(offset).toContainText("0,51 mm ke kanan");
+  await expect(saveBar).toContainText("Posisi cetak");
+  await w.screenshot({ path: "test-results/crew-print-offset.png" });
+  await saveBar.getByRole("button", { name: "Batal" }).click();
+  await expect(offset).toContainText("Tengah");
+
   // Pengaturan event di booth (DECISIONS #100), langsung di halaman Event & Desain: override lokal, kembalikan.
   await w.getByTestId("crew-nav-event").click();
   const countdown = w.getByTestId("setting-countdownSec");

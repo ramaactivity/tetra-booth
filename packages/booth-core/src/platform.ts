@@ -163,6 +163,8 @@ export type DeviceSettings = {
   hotFolder?: string;
   hotFolderTrigger?: string;
   printer?: string;
+  /** Kalibrasi posisi DNP kiri–kanan (inci; 6.665 = tengah). */
+  printOffsetY?: number;
   /** Peran laptop (#178): `stage` = Photo Stage, `display` = Layar galeri (#281); bawaan booth. */
   role?: "booth" | "stage" | "print" | "display";
   /** Printer bersama lewat WiFi (#261): printer di laptop ini / laptop printer (pusat) / kirim ke laptop printer. */

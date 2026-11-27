@@ -23,7 +23,10 @@ type CameraKind = NonNullable<DeviceSettings["camera"]>;
 const SDK: readonly CameraKind[] = ["canon", "nikon", "sony", "lumix"];
 
 /** Nilai bawaan tiap setelan (sama dengan main), supaya "belum diisi" tidak dianggap perubahan. */
+/** Tengah halaman 4×6 DNP (inci); langkah 0,01 in = 0,254 mm. */
+const OFFSET_MID = 6.665;
 const DEFAULTS: DeviceSettings = {
+  printOffsetY: OFFSET_MID,
   mirrorLiveView: true,
   mirrorPhoto: true,
   afBeforeCapture: false,
@@ -296,6 +299,7 @@ export function PrinterChoice({
           })}
         </div>
       )}
+      <OffsetRow dev={dev} />
       <Row label={d.cutTitle} hint={paper === "2x6x2" ? copy.crew.cutOn : copy.crew.cutOff}>
         <Button
           variant="secondary"
@@ -307,6 +311,47 @@ export function PrinterChoice({
         </Button>
       </Row>
     </Panel>
+  );
+}
+
+/** Kalibrasi posisi DNP kiri–kanan (audit 27 Nov): dulu `--print-offset` di file tersembunyi Windows. */
+function OffsetRow({ dev }: { dev: Device }) {
+  const locked = dev.locked("printOffsetY");
+  const y = dev.draft.printOffsetY ?? OFFSET_MID;
+  const mm = Math.round((y - OFFSET_MID) * 25.4 * 100) / 100;
+  const step = (dy: number) => () =>
+    dev.set({ printOffsetY: Math.min(7, Math.max(6.3, Math.round((y + dy) * 1000) / 1000)) });
+  // Tombol di bawah teks (bukan di samping seperti Row): empat tombol + nilai tidak muat sebaris dengan keterangan.
+  return (
+    <div className="flex flex-col gap-3 border-t-2 border-dashed border-line-soft pt-4">
+      <div className="flex flex-col gap-1">
+        <span className="text-xl font-bold">{d.offsetTitle}</span>
+        <span className="text-lg font-medium text-text-2">
+          {lockedHint(locked) ?? d.offsetHint}
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-3 pr-1.5 pb-1.5" data-testid="print-offset">
+        <Button variant="secondary" className={btn} disabled={locked} onClick={step(-0.01)}>
+          {d.offsetLeft}
+        </Button>
+        <span className="min-w-[190px] text-center text-xl font-bold tabular-nums">
+          {d.offsetNow(mm)}
+        </span>
+        <Button variant="secondary" className={btn} disabled={locked} onClick={step(0.01)}>
+          {d.offsetRight}
+        </Button>
+        {mm !== 0 && (
+          <Button
+            variant="secondary"
+            className={btn}
+            disabled={locked}
+            onClick={() => dev.set({ printOffsetY: OFFSET_MID })}
+          >
+            {d.offsetCenter}
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 

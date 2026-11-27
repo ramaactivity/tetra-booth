@@ -93,7 +93,7 @@ Nama menu dari dokumen Sony & manual; bisa beda per firmware. Bagian ini dirapik
 
 ## E. Sekali per laptop: `booth-flags.txt` (hanya untuk setelan yang tidak ada di mode crew)
 
-Kamera & printer diatur dari mode crew → **Kamera & Printer** (DECISIONS #85). Setelan lain (offset kalibrasi DNP, nama kertas) ditulis di file (DECISIONS #83):
+Kamera & printer diatur dari mode crew → **Kamera & Printer** (DECISIONS #85). Sejak 0.6.48 posisi cetak kiri–kanan DNP juga di Backstage → **Printer** → *Posisi cetak kiri–kanan* (#313); file di bawah hanya untuk nama kertas atau laptop lama yang sudah dikalibrasi lewat file (nilai file menang, Backstage menampilkannya terkunci). Setelan lain ditulis di file (DECISIONS #83):
 
 1. Tekan **Win + R**, ketik `%APPDATA%\TetraBooth`, Enter (folder data booth, ada setelah booth pernah dibuka sekali).
 2. Buat file teks bernama **`booth-flags.txt`** (pastikan bukan `booth-flags.txt.txt`), isi:

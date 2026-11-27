@@ -30,6 +30,7 @@ import {
   deviceNow,
   lockedByArgv,
   printerName,
+  printOffsetLocked,
   RESUME_KEY,
   SDK_CAMERAS,
   UPDATE_PENDING_KEY,
@@ -775,6 +776,8 @@ export function registerIpc(
     const locked = ["camera", "printer", "hot-folder", "hot-folder-trigger", "role"].filter(
       lockedByArgv,
     );
+    // Kalibrasi lewat --print-offset (argv atau booth-flags.txt) menang atas Backstage.
+    if (printOffsetLocked) locked.push("printOffsetY");
     return { now: deviceNow, locked, printers, printerQueues };
   });
   ipcMain.handle("crewSaveDevice", async (_e, s: unknown) => {

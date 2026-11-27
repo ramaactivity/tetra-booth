@@ -86,6 +86,11 @@ export const DeviceSettings = z.object({
   hotFolderTrigger: z.url().max(512).optional(),
   printer: z.string().min(1).max(256).optional(),
   /**
+   * Kalibrasi posisi DNP kiri–kanan (inci, sumbu y `--print-offset`, audit 27 Nov): dari Backstage, bukan file.
+   * Bawaan 6.665 = tengah. `--print-offset` di flag/file tetap menang (laptop yang sudah dikalibrasi tidak berubah).
+   */
+  printOffsetY: z.number().min(6.3).max(7.0).optional(),
+  /**
    * Peran laptop (#178): `stage` = Photo Stage, `print` = Print Station (#224), `display` = Layar galeri (#281,
    * menampilkan galeri tamu laptop stage `stageTarget`). Bawaan booth.
    */
@@ -293,6 +298,9 @@ export const cameraServiceFlags = {
     return v ? [`--${k}`, v] : [];
   }),
 };
+// Kalibrasi dari Backstage (x tetap bawaan tengah 7.335; yang berbeda antar-laptop hanya y, docs/WINDOWS.md 4b).
+if (!flags.value("print-offset") && device.printOffsetY !== undefined)
+  cameraServiceFlags.args.push("--print-offset", `7.335,${device.printOffsetY.toFixed(3)}`);
 if (canon) cameraServiceFlags.args.push("--canon", canon);
 if (sony) cameraServiceFlags.args.push("--sony", sony);
 if (lumix) cameraServiceFlags.args.push("--lumix", lumix);
@@ -300,6 +308,14 @@ if (nikon) cameraServiceFlags.args.push("--nikon", nikon);
 
 /** Antrean printer utama (`--printer`), untuk membuka dialog Printing Preferences dari menu crew. */
 export const printerName = flags.value("printer");
+
+/** `--print-offset` diatur lewat flag/file: Backstage hanya menampilkan, tidak bisa mengubah. */
+export const printOffsetLocked = !!flags.value("print-offset");
+/** Posisi cetak kiri–kanan yang dipakai: dari `--print-offset "x,y"` kalau ada, kalau tidak dari Backstage. */
+const printOffsetY = (() => {
+  const y = Number(flags.value("print-offset")?.split(",")[1]);
+  return Number.isFinite(y) && y > 0 ? y : device.printOffsetY;
+})();
 
 /** Nilai yang sedang dipakai (untuk sheet Kamera & Printer di mode crew). */
 export const deviceNow: DeviceSettings = {
@@ -315,6 +331,7 @@ export const deviceNow: DeviceSettings = {
     ? { hotFolderTrigger: flags.value("hot-folder-trigger") }
     : {}),
   ...(printerName ? { printer: printerName } : {}),
+  ...(printOffsetY !== undefined ? { printOffsetY } : {}),
   role: config.role ?? "booth",
   ...(device.printShare ? { printShare: device.printShare } : {}),
   ...(device.printHub ? { printHub: device.printHub } : {}),

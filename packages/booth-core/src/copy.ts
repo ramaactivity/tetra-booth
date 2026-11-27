@@ -1040,6 +1040,16 @@ export const copy = {
       printerTitle: "Printer yang dipakai",
       printerHint: "Printer yang sudah terpasang di Windows.",
       cutTitle: "Potong 2 inci",
+      offsetTitle: "Posisi cetak kiri–kanan",
+      offsetHint:
+        "Strip 2×6: kalau dua strip hasil potong tidak sama lebar, geser 0,25 mm per ketukan lalu Tes Cetak lagi. Strip kiri lebih sempit → geser kanan.",
+      offsetNow: (mm: number) =>
+        mm === 0
+          ? "Tengah"
+          : `${Math.abs(mm).toFixed(2).replace(".", ",")} mm ke ${mm > 0 ? "kanan" : "kiri"}`,
+      offsetLeft: "← Kiri",
+      offsetRight: "Kanan →",
+      offsetCenter: "Tengah",
       roleHint: "Pilih sekali saat setup. Ganti peran = booth dibuka ulang.",
       roleDetail: {
         booth: "Tamu berfoto sendiri di booth ini",
@@ -1058,6 +1068,7 @@ export const copy = {
         mirrorPhoto: "Cermin di hasil foto",
         afBeforeCapture: "AF sebelum jepret",
         printer: "Printer",
+        printOffsetY: "Posisi cetak",
         role: "Peran laptop",
         printShare: "Printer bersama",
         printHub: "Laptop printer tujuan",
