@@ -222,3 +222,54 @@ test("daftar event & photobox, filter URL, sesi tes tidak dihitung", async ({ pa
     await u.cleanup();
   }
 });
+
+test("arsip event: hilang dari daftar & tab lain, muncul di tab Arsip, bisa dikembalikan", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  const u = await makeUser("owner");
+  const name = `e2e arsip ${String(Date.now()).slice(-6)}`;
+  const { data: ev } = await db
+    .from("events")
+    .insert({ organization_id: u.org, name, mode: "event", event_date: "2026-10-22" })
+    .select("id, slug")
+    .single();
+  try {
+    await login(page, u);
+    const row = page.getByTestId("event-row").filter({ hasText: name });
+    await page.goto("/admin");
+    await expect(row).toHaveCount(1);
+
+    await page.goto(`/admin/events/${ev?.slug}/settings`);
+    const panel = page.getByTestId("archive-panel");
+    await panel.getByRole("button", { name: "Arsipkan" }).click();
+    await panel.getByRole("button", { name: "Ya, arsipkan" }).click();
+    await expect(panel.getByText("Event ini ada di arsip")).toBeVisible();
+    await panel.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "test-results/archive-panel.png" });
+
+    await page.goto("/admin");
+    await expect(row).toHaveCount(0);
+    await page.goto("/admin?tab=arsip");
+    await expect(row).toHaveCount(1);
+    await page.screenshot({ path: "test-results/archive-tab.png" });
+
+    await row.click();
+    await page.goto(`/admin/events/${ev?.slug}/settings`);
+    await panel.getByRole("button", { name: "Kembalikan dari arsip" }).click();
+    await panel.getByRole("button", { name: "Ya, kembalikan" }).click();
+    await expect(panel.getByText("Arsipkan event")).toBeVisible();
+    await page.goto("/admin");
+    await expect(row).toHaveCount(1);
+  } finally {
+    await db
+      .from("audit_logs")
+      .delete()
+      .eq("target", ev?.id ?? "");
+    await db
+      .from("events")
+      .delete()
+      .eq("id", ev?.id ?? "");
+    await u.cleanup();
+  }
+});

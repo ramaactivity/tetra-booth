@@ -16,6 +16,7 @@ import { photoboxKey } from "@/lib/payments";
 import { presignGet } from "@/lib/r2";
 import { requireMember } from "@/lib/supabase/server";
 import { opsBookingNow, opsInstagram, unitLabels } from "@/lib/tetra-ops";
+import { ArchivePanel } from "./ArchivePanel";
 import { loadDesignOptions } from "./design-options";
 import { GuestLinkPanel } from "./GuestLinkPanel";
 import { LinksPanel } from "./LinksPanel";
@@ -30,7 +31,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const { data: ev } = await db
     .from("events")
     .select(
-      "id, slug, name, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, guest_token, guest_link, all_devices, package_name, package_hours, ops_frame_size, scheduled_start, scheduled_end, ops_project_id, ops_sync, client_instagram, promo_off, event_devices(device_id)",
+      "id, slug, name, status, mode, lead_capture, event_date, location, settings, branding, bundle, client_token, live_token, guest_token, guest_link, all_devices, package_name, package_hours, ops_frame_size, scheduled_start, scheduled_end, ops_project_id, ops_sync, client_instagram, promo_off, event_devices(device_id)",
     )
     .eq(eventKey(id), id)
     .eq("organization_id", orgId)
@@ -222,6 +223,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           />
         }
       />
+      <ArchivePanel eventId={ev.id} archived={ev.status === "archived"} />
     </>
   );
 }

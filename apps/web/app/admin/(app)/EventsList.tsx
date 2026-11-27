@@ -22,9 +22,11 @@ const TABS = [
   ["mendatang", "Mendatang"],
   ["berlangsung", "Berlangsung"],
   ["selesai", "Selesai"],
+  // Event dobel / uji yang diarsip di Pengaturan event: tersembunyi dari tab lain & booth, foto tidak dihapus.
+  ["arsip", "Arsip"],
 ] as const;
 type Tab = (typeof TABS)[number][0];
-type Phase = Exclude<Tab, "semua">;
+type Phase = Exclude<Tab, "semua" | "arsip">;
 type Mode = "event" | "photobox";
 export type ListParams = {
   tab?: string;
@@ -120,11 +122,10 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
       db
         .from("events")
         .select(
-          "id, slug, name, event_date, purge_at, all_devices, location, branding, settings, package_name, package_hours, scheduled_start, scheduled_end, run, local_bytes, ops_project_id, ops_sync, paper:bundle->config->layout->paper, event_devices(device_id, devices(name))",
+          "id, slug, name, status, event_date, purge_at, all_devices, location, branding, settings, package_name, package_hours, scheduled_start, scheduled_end, run, local_bytes, ops_project_id, ops_sync, paper:bundle->config->layout->paper, event_devices(device_id, devices(name))",
         )
         .eq("organization_id", orgId)
         .eq("mode", mode)
-        .neq("status", "archived")
         .order("event_date", { ascending: false }),
       db.rpc("event_session_stats", { org: orgId }),
       mode === "photobox" ? db.rpc("event_payment_stats", { org: orgId }) : { data: [] },
@@ -138,10 +139,10 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
   const count = new Map((stats ?? []).map((s) => [s.event_id, s]));
   const paid = new Map((pays ?? []).map((p) => [p.event_id, p]));
   const pm = (period ?? []).find((p) => p.mode === mode);
-  const units = unitLabels(data ?? []);
+  const units = unitLabels((data ?? []).filter((e) => e.status !== "archived"));
   const unsent = unsentByEvent(devices ?? []);
 
-  const rows = (data ?? []).map((e) => {
+  const allRows = (data ?? []).map((e) => {
     const run = parseRun(e.run);
     const rs = runState(run);
     const phase: Phase = eventPhase(e.event_date, rs, today);
@@ -152,6 +153,7 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
     const hi = Math.max(...prices);
     return {
       ...e,
+      archived: e.status === "archived",
       unit: units.get(e.id),
       unsent: (unsent.get(e.id) ?? []).reduce((a, u) => a + u.sessions, 0),
       phase,
@@ -175,16 +177,18 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
     };
   });
 
+  // Ringkasan, bulan, dan tab biasa hanya dari event aktif; tab Arsip menampilkan sisanya.
+  const rows = allRows.filter((e) => !e.archived);
   const q = (sp.q ?? "").trim().toLowerCase();
   const bulan = /^\d{4}-\d{2}$/.test(sp.bulan ?? "") ? (sp.bulan as string) : "";
   const booth = (devices ?? []).some((d) => d.id === sp.booth) ? (sp.booth as string) : "";
   const urut = sp.urut === "terdekat" ? "terdekat" : "terbaru";
   const dayMs = (d: string) => Date.parse(`${d}T00:00:00Z`);
   const t0 = dayMs(today);
-  const events = rows
+  const events = (tab === "arsip" ? allRows.filter((e) => e.archived) : rows)
     .filter(
       (e) =>
-        (tab === "semua" || e.phase === tab) &&
+        (tab === "semua" || tab === "arsip" || e.phase === tab) &&
         (!bulan || e.event_date.startsWith(bulan)) &&
         (!booth || e.all_devices || e.event_devices.some((d) => d.device_id === booth)) &&
         (!q || `${e.name} ${e.location ?? ""} ${e.client}`.toLowerCase().includes(q)),
@@ -358,7 +362,7 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
           ))}
         </div>
         {events.map((e) => {
-          const [label, bg] = STATUS[e.phase];
+          const [label, bg] = e.archived ? ["Arsip", "bg-white"] : STATUS[e.phase];
           const dt = dateParts(e.event_date);
           const thisYear = dt.year === today.slice(0, 4);
           const sub = [e.location, e.client].filter(Boolean).join(" · ");
