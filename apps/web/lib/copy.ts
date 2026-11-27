@@ -644,6 +644,7 @@ export const copy = {
       devices: "Booth",
       transactions: "Transaksi",
       promo: "Promosi",
+      history: "Riwayat",
       team: "Tim",
     },
     forgot: "Lupa kata sandi?",

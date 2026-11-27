@@ -169,7 +169,7 @@ export async function applySettings(
   eventId: string,
   form: FormData,
 ): Promise<NonNullable<SaveResult>> {
-  const { db, orgId } = await requireMember(["owner", "admin"]);
+  const { db, orgId, user } = await requireMember(["owner", "admin"]);
   const p = Form.safeParse(Object.fromEntries(form));
   if (!p.success) return { ok: false, message: "Periksa lagi isian yang ditandai" };
   const f = p.data;
@@ -523,6 +523,14 @@ export async function applySettings(
     await db
       .from("event_devices")
       .upsert(want.map((device_id) => ({ organization_id: orgId, event_id: eventId, device_id })));
+  // Riwayat perubahan (/admin/riwayat): siapa menyimpan Pengaturan kapan.
+  await db.from("audit_logs").insert({
+    organization_id: orgId,
+    actor_user_id: user.id,
+    action: "event.settings",
+    target: eventId,
+    meta: { bundleVersion: ev.bundle_version + 1 },
+  });
 
   revalidatePath("/admin/(app)/events/[id]", "layout");
   revalidatePath("/admin");

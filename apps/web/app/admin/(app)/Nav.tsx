@@ -3,6 +3,7 @@ import {
   Activity,
   Briefcase,
   CalendarDays,
+  History,
   Laptop,
   LayoutTemplate,
   Megaphone,
@@ -54,6 +55,13 @@ const items = [
     t: copy.admin.nav.promo,
     I: Megaphone,
     match: (p: string) => p.startsWith("/admin/promo"),
+    roles: ["owner", "admin"],
+  },
+  {
+    href: "/admin/riwayat",
+    t: copy.admin.nav.history,
+    I: History,
+    match: (p: string) => p.startsWith("/admin/riwayat"),
     roles: ["owner", "admin"],
   },
   {
