@@ -1,5 +1,5 @@
 import { BoothStatus } from "@tetra/shared";
-import { isOnline } from "@/lib/format";
+import { isOnline } from "./format";
 
 /**
  * Kesehatan booth dari heartbeat (tiap 60 dtk): satu sumber aturan untuk halaman Device dan Tetra Assistant (#264).

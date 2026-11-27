@@ -10,6 +10,32 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      alert_acks: {
+        Row: {
+          acked_at: string
+          id: string
+          organization_id: string
+        }
+        Insert: {
+          acked_at?: string
+          id: string
+          organization_id: string
+        }
+        Update: {
+          acked_at?: string
+          id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_acks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics_events: {
         Row: {
           created_at: string
