@@ -591,6 +591,11 @@ export function openDb(file: string) {
      * selamanya (status Upload kuning terus, metadata sesi lain tertahan). File lokal tetap ada.
      */
     uploadDropSession(sessionId: string) {
+      // Server 404 = event sesi ini tidak ada lagi di cloud: Backstage memperingatkan crew (event aktif, 27 Nov).
+      const ev = db.prepare("select event_id e from sessions where id = ?").get(sessionId) as
+        | { e: string }
+        | undefined;
+      if (ev) kv.set(`event_gone:${ev.e}`, "1");
       tx(() => {
         db.prepare(
           "delete from upload_queue where asset_id in (select id from assets where session_id = ?)",

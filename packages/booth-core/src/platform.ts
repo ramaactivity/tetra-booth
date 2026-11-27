@@ -122,6 +122,8 @@ export type CrewStatus = {
   camera?: boolean | undefined;
   /** Booth di cloud (Fase 2), null = belum dipasangkan. */
   device: CloudDevice | null;
+  /** Event aktif sudah tidak ada di cloud untuk booth ini: foto tamu tidak akan sampai ke galeri. */
+  eventGone?: boolean;
 };
 
 /** `revoked` = server menolak token (booth dicabut/dihapus di admin): harus dipasangkan ulang. */

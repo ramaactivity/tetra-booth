@@ -326,6 +326,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   };
   let r2Down = false;
   let updateOn = false;
+  let eventGone = false;
   const EVENT = "7c9e6679-7425-40de-944b-e07fc1f90ae8";
   const pngSha = createHash("sha256").update(PNG).digest("hex");
   const config = JSON.parse(
@@ -364,7 +365,11 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
           }),
         );
       } else if (req.url === "/api/booth/events") {
-        res.end(JSON.stringify({ events: [{ id: EVENT, name: "Cloud", bundleVersion: 3 }] }));
+        res.end(
+          JSON.stringify({
+            events: eventGone ? [] : [{ id: EVENT, name: "Cloud", bundleVersion: 3 }],
+          }),
+        );
       } else if (req.url === `/api/booth/events/${EVENT}/bundle`) {
         res.end(
           JSON.stringify({
@@ -780,6 +785,23 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await typePin(w, "1357");
   await typePin(w, "1357");
   await expect(w.getByRole("heading", { name: "Backstage" })).toBeVisible();
+
+  // Event aktif dihapus di admin (27 Nov): setelah sinkron, Backstage memperingatkan dengan kartu merah.
+  await w.getByTestId("crew-nav-home").click();
+  await expect(w.getByTestId("home-event-gone")).toHaveCount(0);
+  eventGone = true;
+  await w.getByTestId("step-event").getByRole("button").click();
+  await w.getByRole("button", { name: /Mode Event/ }).click();
+  await w.getByRole("button", { name: "Ambil event terbaru" }).click();
+  await w.getByTestId("to-crew").click();
+  if (await w.getByText("Masukkan PIN crew").isVisible()) await typePin(w, "1357");
+  await w.getByTestId("crew-nav-home").click();
+  await expect(w.getByTestId("home-event-gone")).toContainText(
+    "Event ini sudah tidak ada di cloud",
+    { timeout: 15_000 },
+  );
+  await w.screenshot({ path: "test-results/crew-event-gone.png" });
+  eventGone = false;
 
   // Kunci update di tengah acara (audit 27 Nov): tamu baru saja berfoto → Pasang Sekarang ditahan, bisa dipaksa.
   updateOn = true;

@@ -720,6 +720,11 @@ export const copy = {
       more: (n: number) => `+${n} sesi lain`,
     },
     /** Pengingat foto belum terkirim (#274): saat aplikasi dibuka, di Rekap Acara, dan di Ringkasan. */
+    eventGone: {
+      title: "Event ini sudah tidak ada di cloud",
+      body: "Dihapus, diarsip, atau booth ini tidak ditugaskan lagi di admin. Foto tamu tidak akan masuk galeri dan QR-nya tidak bisa dibuka. Pilih event lain.",
+      action: "Pilih Event",
+    },
     unsentNote: {
       title: "Masih ada foto yang belum terkirim ke cloud",
       line: (name: string, n: number) => `${name}: ${n} sesi`,

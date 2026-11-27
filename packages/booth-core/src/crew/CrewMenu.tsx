@@ -767,6 +767,22 @@ export function CrewMenu({
     home: (
       <>
         <Journey now={phase} />
+        {/* Event aktif dihapus/diarsip di admin (27 Nov): tamu dapat QR yang tidak pernah terbuka kalau crew tidak tahu. */}
+        {status?.eventGone && (
+          <div
+            data-testid="home-event-gone"
+            role="alert"
+            className="flex items-center gap-6 rounded-[20px] border-[2.5px] border-ink bg-coral-strong px-6 py-4 text-white"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-[26px] leading-tight font-extrabold">{c.eventGone.title}</p>
+              <p className="text-lg font-semibold">{c.eventGone.body}</p>
+            </div>
+            <Button variant="secondary" className={btn} onClick={() => setSection("event")}>
+              {c.eventGone.action}
+            </Button>
+          </div>
+        )}
         {/* Foto belum terkirim (#274): crew diingatkan di halaman pertama, terutama saat pulang/di kantor. */}
         {!!status?.uploadPending && (
           <div

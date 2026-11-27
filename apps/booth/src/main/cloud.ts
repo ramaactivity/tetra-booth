@@ -221,6 +221,10 @@ export function createCloud(
       const t = token();
       if (!t) return 0;
       const { events } = BoothEventsResponse.parse(await get("/api/booth/events", t));
+      // Daftar event cloud untuk booth ini: event aktif yang hilang dari daftar diperingatkan di Backstage.
+      db.kv.set("cloud_event_ids", JSON.stringify(events.map((e) => e.id)));
+      for (const e of events)
+        if (db.kv.get(`event_gone:${e.id}`) === "1") db.kv.set(`event_gone:${e.id}`, "0");
       let updated = 0;
       const broken: string[] = [];
       for (const e of events) {
@@ -254,8 +258,20 @@ export function createCloud(
       log(`[cloud] sync event gagal: ${e instanceof Error ? e.message : String(e)}`),
     );
 
+  /**
+   * Event cloud ini tidak ada lagi untuk booth ini (dihapus/diarsip/tidak ditugaskan): hilang dari daftar sinkron
+   * terakhir, atau upload sesinya ditolak server (404). Foto tamu tidak akan sampai ke galeri.
+   */
+  const eventGone = (eventId: string) => {
+    if (!cloudEvent(eventId)) return false;
+    if (db.kv.get(`event_gone:${eventId}`) === "1") return true;
+    const ids = db.kv.get("cloud_event_ids");
+    return !!ids && !(JSON.parse(ids) as string[]).includes(eventId);
+  };
+
   return {
     device,
+    eventGone,
     syncEvents,
     /** Sesi baru selesai: langsung coba unggah (tanpa menunggu putaran 15 dtk). */
     kickUpload: uploadQuiet,

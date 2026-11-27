@@ -307,6 +307,7 @@ export function registerIpc(
       cameraService,
       camera,
       device: cloud.device(),
+      eventGone: cloud.eventGone(db.kv.get("active_event_id") ?? ""),
     };
   });
   // Timer event (#149): Buka untuk Tamu / Jeda / Lanjutkan / Selesai → antrean ke cloud, jam saat ditekan.
