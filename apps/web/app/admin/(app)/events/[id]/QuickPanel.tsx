@@ -106,12 +106,12 @@ export function QuickPanel({
           : "Hanya owner/admin yang bisa mengubah."}
       </p>
 
-      {head("Guest Cam · Snapbook")}
+      {head("Guest Cam")}
       <div className="divide-y-[1.5px] divide-dashed divide-line-soft">
         {row(
-          "Snapbook aktif",
-          "Tamu memotret & kirim ucapan dari HP lewat QR meja.",
-          toggle("enabled", "Snapbook aktif"),
+          "Guest Cam aktif",
+          "Tamu memotret & kirim ucapan dari HP lewat QR meja (di HP tamu bernama Snapbook).",
+          toggle("enabled", "Guest Cam aktif"),
         )}
         {v.enabled && (
           <>

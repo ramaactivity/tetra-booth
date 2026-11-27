@@ -75,7 +75,7 @@ test("statistik, sembunyikan, hapus, audit", async ({ page }) => {
     // Akses cepat: Snapbook dinyalakan & persetujuan manual tanpa membuka Pengaturan.
     await expect(page.getByRole("region", { name: "Detail event" })).toContainText("Semua booth");
     const quick = page.getByRole("region", { name: "Akses cepat" });
-    await quick.getByLabel("Snapbook aktif").check();
+    await quick.getByLabel("Guest Cam aktif").check();
     await quick.getByText("Manual", { exact: true }).click();
     await expect
       .poll(

@@ -280,7 +280,7 @@ export async function applySettings(
   if (leadOn && (!leadFields.length || !f.consent_text))
     return {
       ok: false,
-      message: "Lead capture: pilih minimal satu field dan isi teks persetujuan",
+      message: "Form data tamu: pilih minimal satu field dan isi teks persetujuan",
     };
   const lead_capture = {
     enabled: leadOn,

@@ -600,7 +600,7 @@ export function SettingsForm({
       label: "Tamu & data",
       items: [
         ["halaman-tamu", "Halaman tamu", "opsional"],
-        ["lead", "Lead", leadOn ? "ok" : "opsional"],
+        ["lead", "Data tamu", leadOn ? "ok" : "opsional"],
         ["masa-simpan", "Masa simpan", "ok"],
         ["link-klien", "Link klien", v.hasClientLink ? "ok" : "opsional"],
       ],
@@ -1618,7 +1618,7 @@ export function SettingsForm({
 
           <Section
             id="lead"
-            title="Lead capture"
+            title="Form data tamu"
             badge={leadOn ? "ok" : "opsional"}
             desc="Minta data tamu (nama, WhatsApp, email) di halaman tamu sebelum atau saat melihat foto."
           >

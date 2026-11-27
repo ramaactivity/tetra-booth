@@ -125,7 +125,7 @@ test("admin: export lead CSV tercatat di audit log", async ({ page }) => {
   try {
     await login(page, owner);
     await page.goto(`/admin/events/${events[0]}`);
-    const link = page.getByRole("link", { name: "Export Lead (1)" });
+    const link = page.getByRole("link", { name: "Unduh data tamu (1)" });
     await expect(link).toBeVisible();
     const csv = await (await page.request.get((await link.getAttribute("href")) ?? "")).text();
     expect(csv.split("\n")[0]).toBe("waktu,sesi,nama,whatsapp,email,versi_persetujuan,setuju_pada");

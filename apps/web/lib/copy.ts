@@ -636,12 +636,12 @@ export const copy = {
       actual: "Nyata",
     },
     nav: {
-      assistant: "Assistant",
+      assistant: "Asisten",
       ops: "Operasional",
       events: "Event",
       photobox: "Photobox",
       templates: "Template",
-      devices: "Device",
+      devices: "Booth",
       transactions: "Transaksi",
       promo: "Promosi",
       team: "Tim",
@@ -721,11 +721,11 @@ export const copy = {
       /** Sama dengan yang ditegakkan halaman/RLS (requireMember per halaman & aksi). */
       matrix: [
         ["Event", "Penuh", "Penuh", "Lihat"],
-        ["Device", "Penuh", "Penuh", "Lihat"],
+        ["Booth", "Penuh", "Penuh", "Lihat"],
         ["Template", "Penuh", "Penuh", "Tidak"],
         ["Transaksi", "Penuh", "Penuh", "Tidak"],
         ["Moderasi foto", "Penuh", "Penuh", "Tidak"],
-        ["Export lead", "Penuh", "Penuh", "Tidak"],
+        ["Unduh data tamu", "Penuh", "Penuh", "Tidak"],
         ["Tim", "Penuh", "Tidak", "Tidak"],
       ],
     },
@@ -772,7 +772,7 @@ export const copy = {
       deactivate: "Nonaktifkan",
       deactivateTitle: (n: string) => `Nonaktifkan ${n}?`,
       deactivateBody: [
-        "Booth ini langsung berhenti mengirim foto dan status ke akun ini, dan hilang dari daftar Device.",
+        "Booth ini langsung berhenti mengirim foto dan status ke akun ini, dan hilang dari daftar Booth.",
         "Foto dan sesi yang sudah terunggah tetap aman.",
         "Untuk memakai laptop itu lagi, tambah booth baru lalu sambungkan dengan kode baru.",
       ],

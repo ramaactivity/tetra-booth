@@ -88,7 +88,7 @@ export default async function DevicesPage() {
     <>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-[30px] font-extrabold tracking-[-0.03em]">Device</h1>
+          <h1 className="text-[30px] font-extrabold tracking-[-0.03em]">Booth</h1>
           <p className="mt-1 text-[13px] text-text-2">
             Diperbarui otomatis tiap {REFRESH_S} dtk
             {latest ? ` · rilis terbaru v${latest.version}` : ""}

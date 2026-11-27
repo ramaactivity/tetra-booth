@@ -392,7 +392,7 @@ export default async function EventDashboard({ params }: { params: Promise<{ id:
           {!!leadCount && role !== "crew" && (
             <a href={`/admin/events/${ev.slug}/leads`} className={`${btn} bg-white`}>
               <Download aria-hidden className="size-4" strokeWidth={2} />
-              Export Lead ({leadCount})
+              Unduh data tamu ({leadCount})
             </a>
           )}
           <Link href={`/admin/events/${ev.slug}/settings`} className={`${btn} bg-ink text-white`}>

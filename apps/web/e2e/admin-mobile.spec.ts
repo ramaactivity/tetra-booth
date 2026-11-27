@@ -29,11 +29,11 @@ test("drawer: buka, navigasi, tutup (Esc, scrim, tautan)", async ({ page }) => {
     await expect(drawer).toBeHidden();
 
     await menu.click();
-    await drawer.getByRole("link", { name: "Device" }).click();
+    await drawer.getByRole("link", { name: "Booth" }).click();
     await expect(drawer).toBeHidden();
     await expect(page).toHaveURL(/\/admin\/devices$/);
     await menu.click();
-    await expect(drawer.getByRole("link", { name: "Device" })).toHaveAttribute(
+    await expect(drawer.getByRole("link", { name: "Booth" })).toHaveAttribute(
       "aria-current",
       "page",
     );

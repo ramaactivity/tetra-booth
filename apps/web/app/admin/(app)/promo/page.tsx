@@ -16,7 +16,7 @@ const time = new Intl.DateTimeFormat("id-ID", {
 });
 const STATUS: Record<string, { t: string; c: string }> = {
   new: { t: "Baru", c: "bg-butter" },
-  queued: { t: "Antre Hermes", c: "bg-sky" },
+  queued: { t: "Antre dichat", c: "bg-sky" },
   sent: { t: "Sudah dichat", c: "bg-lavender" },
   replied: { t: "Membalas", c: "bg-mint-soft" },
   converted: { t: "Booking", c: "bg-mint" },
@@ -34,7 +34,7 @@ const VERDICT: Record<ProofCheck["verdict"], { t: string; c: string }> = {
   unchecked: { t: "Belum dicek", c: "border-dashed" },
   rejected: { t: "Ditolak", c: "bg-coral" },
 };
-const BY: Record<ProofCheck["by"], string> = { ai: "AI", bruno: "Bruno", owner: "Owner" };
+const BY: Record<ProofCheck["by"], string> = { ai: "AI", bruno: "Tim sales", owner: "Owner" };
 const PROOF: Record<string, string> = { instagram: "Story IG", review: "Ulasan Google" };
 
 /**

@@ -82,9 +82,7 @@ export default async function AssistantPage() {
           now,
         )}
       </p>
-      <h1 className="mt-1 text-[28px] leading-tight font-extrabold tracking-[-0.03em]">
-        Assistant
-      </h1>
+      <h1 className="mt-1 text-[28px] leading-tight font-extrabold tracking-[-0.03em]">Asisten</h1>
       <p className="mt-1 text-sm text-text-2">
         Kondisi semua booth di acara hari ini. Diperbarui sendiri tiap {REFRESH_S} detik.
       </p>
