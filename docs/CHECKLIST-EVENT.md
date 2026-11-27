@@ -14,6 +14,7 @@ LumaBooth disiapkan sebagai cadangan, tapi **jangan dipakai kecuali booth benar-
 
 ### Laptop booth
 - [ ] Aplikasi versi terbaru: mode crew → **Update Aplikasi**, atau pasang dari **https://booth.tetraphoto.com/download/booth** (SmartScreen: *More info → Run anyway*).
+- [ ] Di lembar **Update Aplikasi** tertulis tombol **Kembali ke versi stabil …** (atau "Booth memakai versi stabil"): artinya installer cadangan sudah tersimpan di laptop. Belum ada? Buka booth di rumah dengan internet dan kartu Koneksi **0 file**; ±2 menit kemudian versi stabil mulai diunduh di latar belakang (beberapa MB, atau ±160 MB kalau booth dulu dipasang manual). Cek lagi setelah ±10 menit.
 - [ ] Mode crew → **Kamera & Printer**: kamera **Kamera DSLR Canon**, printer **DS-RX1** → Simpan & Mulai Ulang (sekali per laptop, tersimpan). File pendukung Canon (EDSDK) diunduh sendiri saat booth online pertama kali.
 - [ ] Offset kalibrasi DNP: file `booth-flags.txt` (bagian E), sekali per laptop.
 - [ ] Booth sudah dipasangkan (mode crew → kartu Koneksi menunjukkan nama booth, bukan "Belum dipasangkan").
@@ -77,6 +78,8 @@ Nama menu dari dokumen Sony & manual; bisa beda per firmware. Bagian ini dirapik
 - **Cetak gagal** → mode crew → kartu Cetak gagal → **Cetak ulang**.
 - Layar "kamera sedang disiapkan ulang": cek kamera menyala dan baterai tidak habis. Kalau perlu, cabut-colok kabel USB kamera. Booth pulih sendiri (±30 detik).
 - Internet putus: **biarkan**, booth tetap jalan, foto dikirim otomatis saat online lagi.
+- **Versi baru bermasalah parah** (macet terus, cetak/foto rusak, tidak pulih setelah buka ulang): mode crew → **Update Aplikasi** → **Kembali ke versi stabil …** → ketuk sekali lagi untuk yakin. Tidak perlu internet; booth tertutup lalu terbuka lagi sendiri (±1 menit). Foto & cetakan antre tetap aman. Laporkan ke Rama versi mana yang bermasalah.
+- Crew masuk mode crew di tengah sesi tamu (mis. dari layar kamera bermasalah): foto yang sudah diambil tetap tersimpan ke galeri klien; tamu cukup foto ulang.
 - Jangan menutup aplikasi selain lewat mode crew. Jangan update apa pun.
 - Catat di HP: jam mulai/selesai, masalah + jamnya, apakah sempat pindah ke LumaBooth.
 
