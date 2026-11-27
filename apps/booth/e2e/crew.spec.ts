@@ -11,7 +11,7 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { _electron as electron, expect, type Page, test } from "@playwright/test";
-import { HeartbeatRequest } from "@tetra/shared";
+import { emergencyPin, HeartbeatRequest, tokenHash } from "@tetra/shared";
 
 /** Mode crew (M6) end-to-end: hotspot → PIN → event bundle → kertas → peringatan → kunci PIN. */
 
@@ -747,6 +747,16 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await expect(ev).toContainText("Semua terkirim", { timeout: 30_000 });
   await expect(ev).toContainText("3/3 sesi terkirim");
   await w.screenshot({ path: "test-results/crew-upload-done.png" });
+
+  // Lupa PIN: kode darurat harian dari admin (dihitung dari token device, tanpa internet) → buat PIN baru.
+  await w.reload();
+  await openCrew(w);
+  await expect(w.getByText("Masukkan PIN crew")).toBeVisible();
+  await typePin(w, await emergencyPin(await tokenHash(TOKEN)));
+  await expect(w.getByText("Buat PIN crew")).toBeVisible();
+  await typePin(w, "1357");
+  await typePin(w, "1357");
+  await expect(w.getByRole("heading", { name: "Backstage" })).toBeVisible();
 
   await app.close();
   server.close();

@@ -273,7 +273,9 @@ export function SessionRunner({
       case "print_select":
         return demo ? after(tapMs, { type: "PRINTS_SELECTED", count: 1 }) : undefined;
       case "qr":
-        return after(demo ? tapMs : cfg.qrScreenSec * 1000, { type: "FINISH" });
+        return s.held
+          ? undefined
+          : after(demo ? tapMs : cfg.qrScreenSec * 1000, { type: "FINISH" });
       default:
         return undefined;
     }
@@ -754,10 +756,11 @@ export function SessionRunner({
             url={`${guestBaseUrl}/s/${s.sessionId}`}
             stripUrl={s.strip?.url}
             sheets={s.prints}
-            counting={s.phase === "qr"}
+            counting={s.phase === "qr" && !s.held}
             seconds={cfg.qrScreenSec}
             print={s.print}
             brand={event.attract?.brand}
+            onZoom={(open) => dispatch({ type: open ? "HOLD" : "RELEASE" })}
             onDone={send({ type: "FINISH" })}
           />
         );

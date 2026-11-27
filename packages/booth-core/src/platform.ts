@@ -279,7 +279,8 @@ export type PrintUpdate = { jobId: string; ok: boolean; message?: string };
 /** Mode crew (FSD §1.3). Selain PIN, semua aksi ditolak shell kalau crew belum masuk. */
 export interface BoothCrew {
   pinStatus(): Promise<{ hasPin: boolean; lockedUntil: number | null }>;
-  verifyPin(pin: string): Promise<{ ok: boolean; lockedUntil: number | null }>;
+  /** `reset` = masuk dengan kode darurat admin (lupa PIN): crew langsung diminta membuat PIN baru. */
+  verifyPin(pin: string): Promise<{ ok: boolean; lockedUntil: number | null; reset?: boolean }>;
   setPin(pin: string): Promise<void>;
   lock(): Promise<void>;
   status(): Promise<CrewStatus>;

@@ -18,7 +18,7 @@ export function StripZoom({
   className: string;
   /** Kelas tambahan tombol pembungkus, mis. `portrait:h-full` supaya `max-h-full` gambar tetap terhitung. */
   frameClass?: string;
-  onZoom?: (open: boolean) => void;
+  onZoom?: ((open: boolean) => void) | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const toggle = (v: boolean) => {

@@ -5,6 +5,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import {
   AssetKindSchema,
   CloudSettingsPatch,
+  isEmergencyPin,
   LayoutPaperSchema,
   LayoutSpecSchema,
   newerVersion,
@@ -121,10 +122,23 @@ export function registerIpc(
   /** Setelah pairing berhasil (#198): mis. unduh DLL Canon yang belum ada lalu buka ulang booth. */
   onPaired: () => void = () => {},
 ) {
-  const pins = createPinGuard({
-    get: () => db.kv.get("crew_pin_hash"),
-    set: (v) => db.kv.set("crew_pin_hash", v),
-  });
+  const pins = createPinGuard(
+    {
+      get: () => db.kv.get("crew_pin_hash"),
+      set: (v) => db.kv.set("crew_pin_hash", v),
+    },
+    undefined,
+    // Kode darurat dari admin → Booth → Lupa PIN; hanya booth yang tersambung cloud (butuh token device).
+    async (pin) => {
+      const token = cloud.token();
+      const ok = !!token && (await isEmergencyPin(token, pin));
+      if (ok)
+        console.warn(
+          "[crew] masuk dengan kode darurat admin (lupa PIN), crew diminta membuat PIN baru",
+        );
+      return ok;
+    },
+  );
   const crewOnly = () => {
     if (!pins.unlocked) throw new Error("Backstage terkunci");
   };

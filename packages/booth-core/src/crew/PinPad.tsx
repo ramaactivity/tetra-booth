@@ -11,7 +11,8 @@ export function PinPad({
   onCancel,
 }: {
   create: boolean;
-  onDone: () => void;
+  /** `reset`: masuk dengan kode darurat admin, minta PIN baru. */
+  onDone: (reset?: boolean) => void;
   onCancel: () => void;
 }) {
   const { crew } = usePlatform();
@@ -52,7 +53,7 @@ export function PinPad({
       }
       const r = await crew.verifyPin(pin);
       setPin("");
-      if (r.ok) onDone();
+      if (r.ok) onDone(r.reset);
       else {
         setLockedUntil(r.lockedUntil);
         setMsg(copy.crew.pinWrong);

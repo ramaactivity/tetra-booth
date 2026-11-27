@@ -66,7 +66,8 @@ export function CrewMode({
         <PinPad
           key={view}
           create={view !== "pin"}
-          onDone={() => {
+          onDone={(reset) => {
+            if (reset) return setView("change");
             if (openAdmin && view === "pin") void crew.openAdmin().catch(() => {});
             setView("menu");
           }}

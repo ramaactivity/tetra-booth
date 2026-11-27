@@ -1,5 +1,6 @@
 "use server";
 import { randomInt } from "node:crypto";
+import { emergencyPin, wibDay } from "@tetra/shared";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireMember } from "@/lib/supabase/server";
@@ -87,4 +88,30 @@ export async function revokeDevice(deviceId: string) {
     .eq("id", deviceId)
     .eq("organization_id", orgId);
   revalidatePath("/admin/devices");
+}
+
+/**
+ * Kode darurat PIN crew hari ini (crew lupa PIN di lokasi). Booth menghitung kode yang sama dari token-nya sendiri,
+ * jadi jalan walau booth offline. Owner/admin; tiap kode yang dibuka tercatat di audit log.
+ */
+export async function emergencyCode(
+  deviceId: string,
+): Promise<{ code: string } | { error: string }> {
+  const { db, orgId, user } = await requireMember(["owner", "admin"]);
+  if (!DeviceId.safeParse(deviceId).success) return { error: "Booth tidak ditemukan" };
+  const { data } = await db
+    .from("devices")
+    .select("token_hash")
+    .eq("id", deviceId)
+    .eq("organization_id", orgId)
+    .is("revoked_at", null)
+    .maybeSingle();
+  if (!data?.token_hash) return { error: "Booth ini belum tersambung ke cloud" };
+  await db.from("audit_logs").insert({
+    organization_id: orgId,
+    actor_user_id: user.id,
+    action: "device.emergency_pin",
+    target: deviceId,
+  });
+  return { code: await emergencyPin(data.token_hash, wibDay()) };
 }

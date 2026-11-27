@@ -777,6 +777,13 @@ export const copy = {
         "Untuk memakai laptop itu lagi, tambah booth baru lalu sambungkan dengan kode baru.",
       ],
       deactivateYes: "Ya, nonaktifkan",
+      forgotPin: "Lupa PIN",
+      forgotPinTitle: (n: string) => `Kode darurat PIN · ${n}`,
+      forgotPinBody: (n: string) => [
+        "Di booth: tahan logo 2 detik (atau Ctrl+Shift+M), lalu ketik kode ini di layar PIN.",
+        "Booth langsung minta crew membuat PIN baru. Tetap jalan walau booth sedang offline.",
+        `Kode berganti tiap hari (WIB) dan hanya berlaku untuk ${n}.`,
+      ],
       cancel: "Batal",
       notConnected: "Belum tersambung",
       emptyTitle: "Belum ada booth",

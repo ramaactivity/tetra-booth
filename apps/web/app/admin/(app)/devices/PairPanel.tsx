@@ -4,7 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { copy } from "@/lib/copy";
-import { addDevice, newPairingCode, type PairResult, pairStatus, revokeDevice } from "./actions";
+import {
+  addDevice,
+  emergencyCode,
+  newPairingCode,
+  type PairResult,
+  pairStatus,
+  revokeDevice,
+} from "./actions";
 
 const t = copy.admin.devices;
 /** Cek tiap 3 dtk apakah laptop booth sudah memakai kode (langkah 4). */
@@ -369,7 +376,7 @@ export function AddDevice() {
 }
 
 export function DeviceActions({ id, name, paired }: { id: string; name: string; paired: boolean }) {
-  const [open, setOpen] = useState<"pair" | "revoke" | null>(null);
+  const [open, setOpen] = useState<"pair" | "revoke" | "pin" | null>(null);
   const [busy, setBusy] = useState(false);
   const close = () => setOpen(null);
   return (
@@ -382,6 +389,15 @@ export function DeviceActions({ id, name, paired }: { id: string; name: string; 
         >
           {paired ? t.reconnect : t.connect}
         </button>
+        {paired && (
+          <button
+            type="button"
+            className="h-11 flex-1 border-l-[1.5px] border-ink text-[13px] font-bold"
+            onClick={() => setOpen("pin")}
+          >
+            {t.forgotPin}
+          </button>
+        )}
         <button
           type="button"
           className="h-11 flex-1 border-l-[1.5px] border-ink bg-coral text-[13px] font-bold"
@@ -396,6 +412,10 @@ export function DeviceActions({ id, name, paired }: { id: string; name: string; 
         label={paired ? t.repairTitle(name) : t.connect}
       >
         <PairGuide device={{ id, name }} reconnect={paired} onClose={close} />
+      </Modal>
+      <Modal open={open === "pin"} onClose={close} label={t.forgotPinTitle(name)}>
+        <Header title={t.forgotPinTitle(name)} onClose={close} />
+        <EmergencyPin id={id} name={name} />
       </Modal>
       <Modal open={open === "revoke"} onClose={close} label={t.deactivateTitle(name)}>
         <Header title={t.deactivateTitle(name)} onClose={close} />
@@ -426,6 +446,36 @@ export function DeviceActions({ id, name, paired }: { id: string; name: string; 
         </div>
       </Modal>
     </>
+  );
+}
+
+/** Kode darurat PIN crew hari ini; diambil saat dialog dibuka (Modal memasang isi hanya saat terbuka). */
+function EmergencyPin({ id, name }: { id: string; name: string }) {
+  const [r, setR] = useState<{ code: string } | { error: string } | null>(null);
+  useEffect(() => {
+    emergencyCode(id).then(setR, () => setR({ error: "Gagal membuka kode, coba lagi" }));
+  }, [id]);
+  return (
+    <div className="flex flex-col gap-5 px-6 py-5">
+      <p
+        data-testid="emergency-pin"
+        aria-live="polite"
+        className="rounded-2xl border-[1.5px] border-ink bg-butter py-5 text-center font-mono text-[40px] font-bold tracking-[0.2em] tabular-nums"
+      >
+        {!r ? (
+          "······"
+        ) : "code" in r ? (
+          r.code
+        ) : (
+          <span className="font-sans text-sm">{r.error}</span>
+        )}
+      </p>
+      <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm leading-normal font-medium text-text-3">
+        {t.forgotPinBody(name).map((s) => (
+          <li key={s}>{s}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

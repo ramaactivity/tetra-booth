@@ -241,7 +241,10 @@ export function sessionReducer(s: SessionState, e: SessionEvent): SessionState {
     case "RESUME":
       return s.paused ? { ...s, paused: false, resumes: s.resumes + 1 } : s;
     case "HOLD":
-      return HOLDABLE.has(s.phase) ? { ...s, held: true } : s;
+      // Cetak/QR: hanya foto diperbesar (bukan batal) — waktu kembali ke awal berhenti selama dilihat.
+      return HOLDABLE.has(s.phase) || s.phase === "printing" || s.phase === "qr"
+        ? { ...s, held: true }
+        : s;
     case "RELEASE":
       // Timer fase ini mulai lagi dari awal (hitung mundur penuh), sama seperti Lanjut.
       return s.held ? { ...s, held: false, resumes: s.resumes + 1 } : s;

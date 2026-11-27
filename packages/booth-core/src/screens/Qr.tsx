@@ -20,6 +20,7 @@ export function Qr({
   print,
   onDone,
   brand,
+  onZoom,
 }: {
   url: string;
   /** Tanpa strip (compose gagal) = tanpa cetak, hanya QR. */
@@ -32,6 +33,8 @@ export function Qr({
   onDone: () => void;
   /** Brand label event (#115), mis. "@tetraphoto". */
   brand?: string | undefined;
+  /** Foto diperbesar dibuka/ditutup: sesi ditahan supaya tidak kembali ke awal saat tamu melihat. */
+  onZoom?: (open: boolean) => void;
 }) {
   const [left, setLeft] = useState(seconds);
   useEffect(() => {
@@ -86,6 +89,7 @@ export function Qr({
         <section className="flex min-h-0 flex-col items-center justify-center gap-10 border-r-[2.5px] border-ink bg-peach px-20 py-16 portrait:flex-row portrait:border-r-0 portrait:border-b-[2.5px] portrait:p-12">
           <StripZoom
             src={stripUrl}
+            onZoom={onZoom}
             className="layered max-h-[600px] max-w-[440px] min-h-0 rounded-[10px] border-[2.5px] border-ink bg-white object-contain [--lx:10px] [--under:#fff] portrait:max-h-[420px] portrait:max-w-[280px]"
           />
           {printing ? (

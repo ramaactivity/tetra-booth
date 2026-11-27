@@ -34,27 +34,47 @@ describe("PIN crew", () => {
     expect(hashPin("1234")).not.toBe(h); // salt acak
   });
 
-  it(`${MAX_PIN_FAILURES}x salah → terkunci ${LOCK_MS / 1000} detik, PIN benar pun ditolak saat terkunci`, () => {
+  it(`${MAX_PIN_FAILURES}x salah → terkunci ${LOCK_MS / 1000} detik, PIN benar pun ditolak saat terkunci`, async () => {
     let t = 0;
     const g = createPinGuard(memStore(), () => t);
     g.set("2468");
     g.lock();
-    for (let i = 0; i < MAX_PIN_FAILURES - 1; i++) expect(g.verify("0000").lockedUntil).toBeNull();
-    expect(g.verify("0000").lockedUntil).toBe(LOCK_MS);
-    expect(g.verify("2468").ok).toBe(false);
+    for (let i = 0; i < MAX_PIN_FAILURES - 1; i++)
+      expect((await g.verify("0000")).lockedUntil).toBeNull();
+    expect((await g.verify("0000")).lockedUntil).toBe(LOCK_MS);
+    expect((await g.verify("2468")).ok).toBe(false);
     t = LOCK_MS;
-    expect(g.verify("2468")).toEqual({ ok: true, lockedUntil: null });
+    expect(await g.verify("2468")).toEqual({ ok: true, lockedUntil: null, reset: false });
   });
 
-  it("ganti PIN hanya setelah masuk; format 4–6 digit", () => {
+  it("ganti PIN hanya setelah masuk; format 4–6 digit", async () => {
     const g = createPinGuard(memStore());
     expect(() => g.set("12")).toThrow();
     g.set("1234");
     g.lock();
     expect(() => g.set("5555")).toThrow(/masuk ke Backstage/);
-    g.verify("1234");
+    await g.verify("1234");
     g.set("5555");
-    expect(g.verify("5555").ok).toBe(true);
+    expect((await g.verify("5555")).ok).toBe(true);
+  });
+
+  it("kode darurat admin: masuk dengan reset, PIN lama tetap; ikut batas 5x salah", async () => {
+    const t = 0;
+    const g = createPinGuard(
+      memStore(),
+      () => t,
+      async (pin) => pin === "987654",
+    );
+    g.set("2468");
+    g.lock();
+    expect(await g.verify("987654")).toEqual({ ok: true, lockedUntil: null, reset: true });
+    expect(g.unlocked).toBe(true);
+    g.set("1357"); // crew langsung membuat PIN baru
+    g.lock();
+    expect(await g.verify("1357")).toEqual({ ok: true, lockedUntil: null, reset: false });
+    g.lock();
+    for (let i = 0; i < MAX_PIN_FAILURES; i++) await g.verify("111111");
+    expect((await g.verify("987654")).ok).toBe(false); // terkunci: kode darurat pun ditolak
   });
 });
 

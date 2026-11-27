@@ -35,6 +35,17 @@ test("ketuk hasil foto berframe di pilih cetak & QR → layar penuh, Tutup = kem
     };
     await zoom("print-select-zoom");
     await w.getByRole("button", { name: /cetak sekarang/i }).click();
+    // Selama foto diperbesar di layar QR, hitung mundur kembali ke awal berhenti; ditutup = mulai lagi penuh.
+    const left = () =>
+      w
+        .getByText(/Kembali ke awal dalam/)
+        .locator("span")
+        .textContent();
+    await expect.poll(left, { timeout: 15_000 }).toMatch(/^\d+$/);
+    await w.getByRole("button", { name: "Perbesar hasil foto" }).click();
+    await w.waitForTimeout(4000);
+    await w.getByRole("button", { name: "Tutup", exact: true }).click();
+    expect(Number(await left())).toBe(45);
     await zoom("qr-zoom");
     await w.screenshot({ path: "test-results/qr-strip.png" });
     await w.getByRole("button", { name: "Selesai" }).click();

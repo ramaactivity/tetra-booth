@@ -366,6 +366,26 @@ describe("batalkan sesi & tahan timer (Rama 14 Okt)", () => {
     expect(back).toMatchObject({ phase: "countdown", held: true });
     expect(run([{ type: "COUNTDOWN_DONE" }], back).phase).toBe("countdown");
   });
+  it("layar cetak/QR: foto diperbesar menahan waktu kembali ke awal, tapi sesi tetap tidak bisa dibatalkan", () => {
+    const composed = run(
+      [
+        { type: "CONTINUE" },
+        { type: "COMPOSED", strip: { path: "/s/x.jpg", piecePath: "/s/x.jpg", url: "blob:x" } },
+      ],
+      review,
+    );
+    const printing = run([{ type: "PRINTS_SELECTED", count: 1 }, { type: "HOLD" }], composed);
+    expect(printing).toMatchObject({ phase: "printing", held: true });
+    // Cetak selesai saat foto masih diperbesar: QR tetap tertahan.
+    expect(run([{ type: "PRINT_DONE", ok: true }], printing)).toMatchObject({
+      phase: "qr",
+      held: true,
+    });
+    const qr = run([{ type: "PRINTS_SELECTED", count: 0 }, { type: "HOLD" }], composed);
+    expect(qr).toMatchObject({ phase: "qr", held: true });
+    expect(sessionReducer(qr, { type: "CANCEL" })).toBe(qr);
+    expect(run([{ type: "RELEASE" }], qr)).toMatchObject({ phase: "qr", held: false, resumes: 1 });
+  });
   it("waktu habis (photobox) melepas tahanan", () => {
     const pb = { ...run([start, { type: "HOLD" }]), photobox: true, deadline: 1 };
     expect(run([{ type: "TIME_UP" }], pb)).toMatchObject({ phase: "compose", held: false });

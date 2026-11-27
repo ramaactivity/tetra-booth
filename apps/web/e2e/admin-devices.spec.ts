@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { isEmergencyPin } from "@tetra/shared";
 import { db, hasDb, login, makeUser } from "./admin-helpers";
 
 /**
@@ -104,6 +105,23 @@ test("tambah booth bertahap, tersambung, status online, sambung ulang, nonaktifk
     });
     expect(stale.status()).toBe(401);
 
+    // Lupa PIN: kode darurat yang tampil = kode yang dihitung booth dari token-nya (tanpa internet).
+    await card.getByRole("button", { name: "Lupa PIN" }).click();
+    const pin = page.getByRole("dialog", { name: `Kode darurat PIN · ${name}` });
+    await expect(pin.getByTestId("emergency-pin")).toHaveText(/^\d{6}$/);
+    const shown = (await pin.getByTestId("emergency-pin").textContent()) ?? "";
+    expect(await isEmergencyPin(token, shown)).toBe(true);
+    expect(await isEmergencyPin(old, shown)).toBe(false);
+    await page.screenshot({ path: "test-results/admin-emergency-pin.png" });
+    await pin.getByRole("button", { name: "Tutup" }).click();
+    const audit = await db
+      .from("audit_logs")
+      .select("action")
+      .eq("action", "device.emergency_pin")
+      .eq("organization_id", u.org);
+    // ≥1: React dev (StrictMode) memanggil efek dua kali; produksi sekali.
+    expect(audit.data?.length).toBeGreaterThanOrEqual(1);
+
     await card.getByRole("button", { name: "Nonaktifkan" }).click();
     const confirm = page.getByRole("dialog", { name: `Nonaktifkan ${name}?` });
     await expect(confirm).toContainText("Foto dan sesi yang sudah terunggah tetap aman");
@@ -116,6 +134,14 @@ test("tambah booth bertahap, tersambung, status online, sambung ulang, nonaktifk
     });
     expect(hb.status()).toBe(401);
   } finally {
+    const { data: mine } = await db.from("devices").select("id").eq("name", name);
+    await db
+      .from("audit_logs")
+      .delete()
+      .in(
+        "target",
+        (mine ?? []).map((d) => d.id),
+      );
     await db.from("devices").delete().eq("name", name);
     await u.cleanup();
   }

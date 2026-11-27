@@ -21,10 +21,14 @@ export const checkPin = (pin: string, stored: string): boolean => {
   return timingSafeEqual(actual, expected);
 };
 
-/** Penjaga PIN dengan kunci sementara setelah 5x salah. Jam disuntik supaya bisa dites. */
+/**
+ * Penjaga PIN dengan kunci sementara setelah 5x salah. Jam disuntik supaya bisa dites. `emergency` = kode darurat
+ * harian dari admin (crew lupa PIN): ikut batas 5x salah, dan setelah masuk crew diminta membuat PIN baru.
+ */
 export function createPinGuard(
   store: { get(): string | null; set(v: string): void },
   now = () => Date.now(),
+  emergency: (pin: string) => Promise<boolean> = async () => false,
 ) {
   let failures = 0;
   let lockedUntil = 0;
@@ -32,10 +36,12 @@ export function createPinGuard(
   const locked = () => (now() < lockedUntil ? lockedUntil : null);
   return {
     status: () => ({ hasPin: store.get() !== null, lockedUntil: locked() }),
-    verify(pin: string) {
-      if (locked()) return { ok: false, lockedUntil: locked() };
+    async verify(pin: string) {
+      if (locked()) return { ok: false, lockedUntil: locked(), reset: false };
       const stored = store.get();
-      const ok = stored !== null && PIN_PATTERN.test(pin) && checkPin(pin, stored);
+      const pinOk = stored !== null && PIN_PATTERN.test(pin) && checkPin(pin, stored);
+      const reset = !pinOk && PIN_PATTERN.test(pin) && (await emergency(pin));
+      const ok = pinOk || reset;
       if (ok) {
         failures = 0;
         unlocked = true;
@@ -43,7 +49,7 @@ export function createPinGuard(
         failures = 0;
         lockedUntil = now() + LOCK_MS;
       }
-      return { ok, lockedUntil: locked() };
+      return { ok, lockedUntil: locked(), reset };
     },
     /** Buat PIN pertama kali, atau ganti setelah crew masuk. */
     set(pin: string) {
