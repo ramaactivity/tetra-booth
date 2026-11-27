@@ -94,7 +94,8 @@ export async function buildOutputs(
   storage: BoothStorage,
   sessionId: string,
   photos: Photo[],
-  strip: Strip,
+  /** Tanpa strip (compose gagal / sesi diselamatkan saat crew masuk): hanya foto asli & animasi. */
+  strip: Strip | null | undefined,
   filter?: string,
   /** SessionRunner sudah menulis `out/video.mp4` untuk sesi ini (#117). */
   withVideo = false,
@@ -108,10 +109,11 @@ export async function buildOutputs(
   };
   const load = async (path: string) => createImageBitmap(new Blob([await storage.readFile(path)]));
 
-  const stripBytes = await storage.readFile(strip.path);
-  assets.push({ kind: "strip", idx: 0, path: strip.path, bytes: stripBytes.byteLength });
-
-  assets.push(...(await encodeWebPiece(storage, dir, strip.piecePath)));
+  if (strip) {
+    const stripBytes = await storage.readFile(strip.path);
+    assets.push({ kind: "strip", idx: 0, path: strip.path, bytes: stripBytes.byteLength });
+    assets.push(...(await encodeWebPiece(storage, dir, strip.piecePath)));
+  }
 
   const frames: ImageData[] = [];
   for (const [i, p] of photos.entries()) {

@@ -39,6 +39,7 @@ import {
   initialSession,
   type Photo,
   type SessionEvent,
+  type SessionState,
   sessionReducer,
 } from "./session";
 import { isBlurry, sharpNotes } from "./sharpness";
@@ -390,17 +391,23 @@ export function SessionRunner({
       .catch((e: unknown) => console.error(`[session] gagal mencatat sesi: ${errText(e)}`));
   }, [p, s.sessionId, s.paymentId, ev]);
 
-  // QR tampil = sesi selesai. Output upload & catatan DB dibuat di belakang layar; tamu tidak menunggu.
-  useEffect(() => {
-    if (s.phase !== "qr" || !s.sessionId) return;
-    const id = s.sessionId;
-    const photos = s.photos.filter((x): x is Photo => x !== null);
+  /**
+   * Catat sesi selesai + buat output upload di belakang layar (tamu tidak menunggu). Dipanggil saat QR tampil, dan saat
+   * crew masuk mode crew di tengah sesi: mode crew melepas SessionRunner, jadi foto yang sudah diambil diselamatkan
+   * dulu (tanpa strip) supaya tetap ada di galeri — dulu hilang (audit 27 Nov). Sekali per sesi.
+   */
+  const finished = useRef<string | null>(null);
+  const finish = (st: SessionState, printed: number) => {
+    const id = st.sessionId;
+    const photos = st.photos.filter((x): x is Photo => x !== null);
+    if (!id || finished.current === id || !photos.length) return;
+    finished.current = id;
     const done = {
       id,
       completedAt: new Date().toISOString(),
       photoCount: photos.length,
-      retakeCount: s.retakesUsed.reduce((a, b) => a + b, 0),
-      printCount: s.strip ? s.prints : 0,
+      retakeCount: st.retakesUsed.reduce((a, b) => a + b, 0),
+      printCount: printed,
     };
     // Pengingat foto buram (#88): catat skor & apakah sesi ini punya foto yang mungkin buram.
     const ref = sharpNotes.reference(ev.id);
@@ -409,20 +416,19 @@ export function SessionRunner({
       photos.some((x) => isBlurry(x.sharp, ref)),
     );
     const t0 = performance.now();
-    const strip = s.strip;
-    (strip
-      ? Promise.all([videoSaved.current, webPiece.current]).then(([vid, [webId, web]]) =>
-          buildOutputs(
-            p.storage,
-            id,
-            photos,
-            webId === id && web ? { ...strip, piecePath: web } : strip,
-            filterCss(s.filter),
-            vid === id,
-          ),
-        )
-      : Promise.resolve([])
-    )
+    const strip = st.strip;
+    // Compose gagal = tanpa strip: foto asli tetap diunggah, halaman tamu tidak tertahan di "lagi dikirim".
+    Promise.all([videoSaved.current, webPiece.current])
+      .then(([vid, [webId, web]]) =>
+        buildOutputs(
+          p.storage,
+          id,
+          photos,
+          strip && webId === id && web ? { ...strip, piecePath: web } : strip,
+          filterCss(st.filter),
+          vid === id,
+        ),
+      )
       .then((assets) => p.db.sessionCompleted({ ...done, assets }).then(() => assets.length))
       .then((n) =>
         console.info(
@@ -430,7 +436,17 @@ export function SessionRunner({
         ),
       )
       .catch((e: unknown) => console.error(`[session] gagal menyelesaikan ${id}: ${errText(e)}`));
-  }, [p, s.phase, s.sessionId, s.photos, s.retakesUsed, s.strip, s.prints, s.filter, ev.id]);
+  };
+  const crew = (intent?: "exit") => {
+    if (s.phase !== "qr") finish(s, s.phase === "printing" && s.strip ? s.prints : 0);
+    onCrew?.(intent);
+  };
+
+  // QR tampil = sesi selesai.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: dijalankan sekali saat masuk fase qr; `finish` membaca state terbaru
+  useEffect(() => {
+    if (s.phase === "qr") finish(s, s.strip ? s.prints : 0);
+  }, [s.phase]);
 
   // Compose strip.
   useEffect(() => {
@@ -602,7 +618,7 @@ export function SessionRunner({
                     : startEvent(event),
               );
             }}
-            onCrew={onCrew}
+            onCrew={crew}
           />
         );
       case "layout_select":
@@ -691,7 +707,7 @@ export function SessionRunner({
           <PhotoPreview url={photo.url} index={s.index} total={s.slots} cheer={cheer.text} />
         ) : null;
       case "camera_error":
-        return <CameraError attempt={reconnects + 1} onCrew={onCrew} afHint={afHint} />;
+        return <CameraError attempt={reconnects + 1} onCrew={crew} afHint={afHint} />;
       case "filter":
         return (
           <FilterSelect
