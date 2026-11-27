@@ -1,0 +1,70 @@
+name: Uji pulih backup database
+# Backup yang belum pernah dipulihkan = belum terbukti (audit 27 Nov 2026). Tiap tanggal 1, 04.00 WIB (dan manual):
+# unduh backup terbaru dari R2 → dekripsi → pg_restore ke Postgres 17 kosong → bandingkan jumlah baris tabel inti
+# dengan produksi (baris yang sudah ada saat backup dibuat). Gagal = backup tidak bisa dipakai, cek log.
+# Hanya membaca produksi (SELECT count); tidak menulis apa pun ke Supabase atau R2.
+on:
+  schedule:
+    - cron: "0 21 1 * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      pg:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: pw
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - name: Pasang klien Postgres 17 (sama dengan pg_dump backup)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+      - name: Unduh, dekripsi, pulihkan, bandingkan
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+        run: |
+          set -euo pipefail
+          bin=/usr/lib/postgresql/17/bin
+          f=$(aws s3 ls "s3://$R2_BUCKET/backups/db/" --endpoint-url "$R2_ENDPOINT" | awk '{print $4}' | sort | tail -n 1)
+          [ -n "$f" ] || { echo "::error::Tidak ada backup di backups/db/"; exit 1; }
+          aws s3 cp "s3://$R2_BUCKET/backups/db/$f" b.enc --endpoint-url "$R2_ENDPOINT" --only-show-errors
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:BACKUP_PASSPHRASE -in b.enc -out b.dump
+          # Nama file: tetra-db-YYYYMMDD-HHMM-<acak>.dump.enc (UTC) = saat backup dibuat.
+          ts=$(sed -E 's/^tetra-db-([0-9]{4})([0-9]{2})([0-9]{2})-([0-9]{2})([0-9]{2}).*/\1-\2-\3 \4:\5:00+00/' <<<"$f")
+          echo "Backup: $f (dibuat $ts)"
+          T=postgresql://postgres:pw@localhost:5432/postgres
+          # Peran bawaan Supabase yang dirujuk kebijakan RLS & fungsi; tanpa ini sebagian objek gagal dibuat.
+          for r in anon authenticated service_role supabase_auth_admin authenticator; do
+            "$bin/psql" -q "$T" -c "create role $r" 2>/dev/null || true
+          done
+          # Objek khusus Supabase (ekstensi, trigger auth) boleh gagal; yang diuji: data tabel inti kembali.
+          "$bin/pg_restore" --no-owner --no-privileges -d "$T" b.dump 2> restore.log || true
+          echo "Pesan error pg_restore (wajar untuk objek khusus Supabase): $(grep -c 'error:' restore.log || true)"
+          fail=0
+          for t in public.events public.sessions public.assets public.layouts auth.users; do
+            r=$("$bin/psql" -tA "$T" -c "select count(*) from $t")
+            p=$("$bin/psql" -tA "$SUPABASE_DB_URL" -c "select count(*) from $t where created_at <= '$ts'")
+            echo "$t: backup=$r, produksi saat backup=$p"
+            # Purge setelah backup menghapus baris di produksi, jadi backup boleh lebih banyak; tidak boleh jauh lebih sedikit.
+            if [ "$r" -eq 0 ] || [ $((r * 100)) -lt $((p * 95)) ]; then echo "::error::$t tidak pulih lengkap"; fail=1; fi
+          done
+          rm -f b.enc b.dump
+          [ "$fail" -eq 0 ] && echo "Backup bisa dipulihkan."
+          exit "$fail"
