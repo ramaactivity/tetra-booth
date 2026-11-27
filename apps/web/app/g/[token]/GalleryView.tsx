@@ -228,20 +228,17 @@ export function GalleryView({
           ▶ Putar Slideshow
         </button>
       )}
-      {!readOnly &&
-        filter !== "animation" &&
-        filter !== "favorit" &&
-        filter !== "ucapan" &&
-        shown.length > 0 &&
-        !q && (
-          <a href={`/api/g/${token}/zip?kind=${filter}`} className={`${btn} bg-sky`}>
-            {filter === "stage"
-              ? "Unduh semua Photo Stage"
-              : filter === "guest"
-                ? "Unduh Snapbook"
+      {!readOnly && filter !== "animation" && filter !== "ucapan" && shown.length > 0 && !q && (
+        <a href={`/api/g/${token}/zip?kind=${filter}`} className={`${btn} bg-sky`}>
+          {filter === "stage"
+            ? "Unduh semua Photo Stage"
+            : filter === "guest"
+              ? "Unduh Snapbook"
+              : filter === "favorit"
+                ? `↓ Unduh favorit (${favCount})`
                 : "↓ Download Semua"}
-          </a>
-        )}
+        </a>
+      )}
     </div>
   );
 

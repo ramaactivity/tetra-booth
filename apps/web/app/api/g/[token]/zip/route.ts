@@ -18,6 +18,8 @@ const KINDS = {
   original: ["original"],
   stage: ["original"],
   guest: ["original", "strip_web"],
+  // Foto yang ditandai favorit klien (audit 27 Nov), dari sumber mana pun.
+  favorit: ["strip_web", "original"],
 } as const;
 
 /**
@@ -32,7 +34,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   if (!ev) return apiError("not_found", 404);
   const q = new URL(req.url).searchParams.get("kind");
   // Photo Stage (#180): foto fotografer pelaminan terpisah dari original booth.
-  const kind = q === "original" || q === "stage" || q === "guest" ? q : "strip";
+  const kind = q === "original" || q === "stage" || q === "guest" || q === "favorit" ? q : "strip";
   // Guest Cam (#197): tertutup selama mode "setelah acara" belum dibuka.
   if (kind === "guest" && !guestPhotosVisible(ev)) return apiError("not_found", 404);
   // Unduh satu rombongan (#191): `session` = ID sesi stage di event ini.
@@ -41,7 +43,21 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   // "Unduh semua" klien (ringkasan event): hanya unduhan seluruh galeri, bukan per rombongan.
   if (!one && !isBot(req.headers.get("user-agent"))) after(() => trackClient(ev.id, "zip"));
   const db = createServiceClient();
-  const query = () =>
+  const favIds =
+    kind === "favorit"
+      ? (
+          await allRows((from, to) =>
+            db
+              .from("favorites")
+              .select("asset_id")
+              .eq("event_id", ev.id)
+              .order("asset_id")
+              .range(from, to),
+          )
+        ).map((f) => f.asset_id)
+      : [];
+  if (kind === "favorit" && !favIds.length) return apiError("not_found", 404);
+  const base = () =>
     db
       .from("assets")
       .select(
@@ -52,15 +68,32 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
       .is("hidden_at", null)
       .is("review_status", null)
       .eq("sessions.event_id", ev.id)
-      .eq("sessions.source", kind === "stage" || kind === "guest" ? kind : "booth")
       // Sesi uji crew tidak tampil di galeri, jadi tidak ikut ZIP juga (sama dengan galleryOf).
       .eq("sessions.is_test", false)
       .is("sessions.hidden_at", null)
       .is("sessions.deleted_at", null);
+  const query = () =>
+    kind === "favorit"
+      ? base()
+      : base().eq("sessions.source", kind === "stage" || kind === "guest" ? kind : "booth");
   // Semua baris, bukan 1000 pertama (max_rows PostgREST, audit 27 Nov: ZIP acara besar terpotong).
-  const data = await allRows((from, to) =>
-    (one ? query().eq("sessions.id", one) : query()).order("id").range(from, to),
-  );
+  const data =
+    kind === "favorit"
+      ? (
+          await Promise.all(
+            Array.from({ length: Math.ceil(favIds.length / 200) }, (_, i) =>
+              allRows((from, to) =>
+                query()
+                  .in("id", favIds.slice(i * 200, i * 200 + 200))
+                  .order("id")
+                  .range(from, to),
+              ),
+            ),
+          )
+        ).flat()
+      : await allRows((from, to) =>
+          (one ? query().eq("sessions.id", one) : query()).order("id").range(from, to),
+        );
   const sorted = data.sort((a, b) => a.sessions.started_at.localeCompare(b.sessions.started_at));
   // Ukuran tiap objek di depan (untuk Content-Length). Objek yang hilang (belum terunggah / dibersihkan)
   // dilewati di sini, bukan di tengah stream (#253) — kalau dilewati di tengah, Content-Length meleset.
@@ -78,7 +111,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
     name:
       kind === "stage" || kind === "guest"
         ? `${String(n + 1).padStart(4, "0")}-${(a.sessions.group_name ?? "Tamu").replace(/[^\w .-]+/g, "").slice(0, 60)}-${kind === "guest" ? (a.kind === "strip_web" ? "strip-" : "foto-") : ""}${a.idx}.jpg`
-        : `${String(n + 1).padStart(4, "0")}-${a.sessions.id}${kind === "original" ? `-${a.idx}` : ""}.jpg`,
+        : kind === "favorit"
+          ? `${String(n + 1).padStart(4, "0")}-${a.sessions.id}-${a.kind === "strip_web" ? "strip" : `foto-${a.idx}`}.jpg`
+          : `${String(n + 1).padStart(4, "0")}-${a.sessions.id}${kind === "original" ? `-${a.idx}` : ""}.jpg`,
     lastModified: new Date(a.sessions.started_at),
     size: a.size,
   }));

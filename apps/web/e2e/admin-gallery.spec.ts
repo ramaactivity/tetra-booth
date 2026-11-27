@@ -89,6 +89,13 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
     await guest.getByRole("button", { name: "Tutup" }).click();
     await guest.getByRole("button", { name: "♥ Favorit (1)" }).click();
     await expect(guest.getByTestId("gallery-photo")).toHaveCount(1);
+    // Unduh favorit (audit 27 Nov): ZIP berisi foto yang ditandai saja.
+    const favLink = guest.getByRole("link", { name: "↓ Unduh favorit (1)" });
+    const favZip = await guest.request.get((await favLink.getAttribute("href")) ?? "");
+    expect(favZip.headers()["content-type"]).toBe("application/zip");
+    const favBytes = await favZip.body();
+    expect(favBytes.subarray(0, 2).toString()).toBe("PK");
+    expect(favBytes.toString("latin1").match(/-strip\.jpg/g)?.length).toBe(2); // local header + central directory
     await guest.getByRole("button", { name: "Original" }).click();
     await expect(guest.getByTestId("gallery-photo")).toHaveCount(2);
     expect(
