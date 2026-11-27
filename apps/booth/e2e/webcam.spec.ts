@@ -16,7 +16,8 @@ const electronPath = createRequire(__filename)("electron") as unknown as string;
 type G = { streams: MediaStream[]; fail: boolean; sawError: boolean };
 const start = async (w: Page) => {
   const b = w.getByRole("button", { name: /sentuh untuk mulai/i });
-  await expect(b).toBeVisible();
+  // Kembali ke layar awal setelah sesi bisa > 5 dtk di runner CI yang sibuk (27 Nov, dua kali menahan deploy).
+  await expect(b).toBeVisible({ timeout: 30_000 });
   await w.waitForTimeout(1000); // START_GUARD_MS
   await b.click();
 };
