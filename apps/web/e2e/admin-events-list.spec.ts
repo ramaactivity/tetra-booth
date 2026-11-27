@@ -141,6 +141,10 @@ test("daftar event & photobox, filter URL, sesi tes tidak dihitung", async ({ pa
     await expect(page.getByTestId("event-row").filter({ hasText: name })).toHaveCount(1);
     // Rata-rata ukuran folder event di laptop (#166) atas event yang cocok filter.
     await expect(page.getByTestId("list-stat-Rata-rata ukuran per event")).toHaveText("2 GB");
+    // Ringkasan ikut filter Bulan (rekap bulanan): label & angka bulan yang dipilih, bukan bulan berjalan.
+    await expect(page.getByTestId("list-stat-Sesi Oktober 2026")).toBeVisible();
+    await expect(page.getByTestId("list-stat-Sesi bulan ini")).toHaveCount(0);
+    await page.screenshot({ path: "test-results/admin-events-list-month.png" });
     await page.goto(`/admin?q=${encodeURIComponent(pbName)}`);
     await expect(page.getByTestId("event-row")).toHaveCount(0);
     await expect(page.getByText("Tidak ada event yang cocok dengan filter ini.")).toBeVisible();

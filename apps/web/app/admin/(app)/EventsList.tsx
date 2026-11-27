@@ -114,7 +114,11 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
   const now = Date.now();
   const today = ymdWib(now);
   const week = ymdWib(now + 7 * DAY);
-  const month = today.slice(0, 7);
+  // Ringkasan mengikuti filter Bulan (rekap bulan mana pun, audit 27 Nov); tanpa filter = bulan ini.
+  const bulan = /^\d{4}-\d{2}$/.test(sp.bulan ?? "") ? (sp.bulan as string) : "";
+  const thisMonth = today.slice(0, 7);
+  const month = bulan || thisMonth;
+  const per = month === thisMonth ? "bulan ini" : monthName(month);
   const [y = 0, m = 0] = month.split("-").map(Number);
   const nextMonth = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`;
   const [{ data }, { data: stats }, { data: pays }, { data: period }, { data: devices }] =
@@ -180,7 +184,6 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
   // Ringkasan, bulan, dan tab biasa hanya dari event aktif; tab Arsip menampilkan sisanya.
   const rows = allRows.filter((e) => !e.archived);
   const q = (sp.q ?? "").trim().toLowerCase();
-  const bulan = /^\d{4}-\d{2}$/.test(sp.bulan ?? "") ? (sp.bulan as string) : "";
   const booth = (devices ?? []).some((d) => d.id === sp.booth) ? (sp.booth as string) : "";
   const urut = sp.urut === "terdekat" ? "terdekat" : "terbaru";
   const dayMs = (d: string) => Date.parse(`${d}T00:00:00Z`);
@@ -220,16 +223,16 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
     mode === "event"
       ? [
           {
-            l: "Event bulan ini",
+            l: `Event ${per}`,
             v: rows.filter((e) => e.event_date.startsWith(month)).length,
-            sub: `${soon} dalam 7 hari`,
+            ...(month === thisMonth && { sub: `${soon} dalam 7 hari` }),
             I: CalendarDays,
             bg: "var(--lavender)",
           },
           { l: "Berlangsung sekarang", v: live, I: Radio, bg: "var(--mint-soft)" },
-          { l: "Sesi bulan ini", v: pm?.sessions ?? 0, I: Images, bg: "var(--peach)" },
+          { l: `Sesi ${per}`, v: pm?.sessions ?? 0, I: Images, bg: "var(--peach)" },
           {
-            l: "Dicetak bulan ini",
+            l: `Dicetak ${per}`,
             v: pm?.prints ?? 0,
             sub: "lembar",
             I: Printer,
@@ -240,21 +243,21 @@ export async function EventsList({ mode, sp }: { mode: Mode; sp: ListParams }) {
       : [
           { l: "Berlangsung sekarang", v: live, I: Radio, bg: "var(--mint-soft)" },
           {
-            l: "Sesi bulan ini",
+            l: `Sesi ${per}`,
             v: pm?.sessions ?? 0,
             sub: `${pm?.active_days ? Math.round(pm.sessions / pm.active_days) : 0}/hari · ${pm?.active_days ?? 0} hari aktif`,
             I: Images,
             bg: "var(--peach)",
           },
           {
-            l: "Dicetak bulan ini",
+            l: `Dicetak ${per}`,
             v: pm?.prints ?? 0,
             sub: "lembar",
             I: Printer,
             bg: "var(--butter)",
           },
           {
-            l: "Transaksi lunas bulan ini",
+            l: `Transaksi lunas ${per}`,
             v: pm?.paid ?? 0,
             ...(money && { sub: rupiah(pm?.revenue ?? 0) }),
             I: ReceiptText,
