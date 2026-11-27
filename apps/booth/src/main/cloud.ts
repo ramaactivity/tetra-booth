@@ -317,14 +317,17 @@ export function createCloud(
     async reportGuestPrint(id: string, status: "printed" | "failed", error?: string) {
       await api(`/api/booth/guest-prints/${id}`, { status, ...(error && { error }) });
     },
-    /** Rilis booth terbaru di cloud (DECISIONS #80); null = belum ada rilis. */
-    async latestRelease() {
+    /** Rilis booth terbaru di cloud (DECISIONS #80), atau versi stabil pilihan owner; null = belum ada. */
+    async latestRelease(channel?: "stable") {
       const t = token();
       if (!t) throw new Error("booth belum dipasangkan");
-      const res = await fetch(`${baseUrl}/api/booth/update`, {
-        headers: { authorization: `Bearer ${t}` },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      });
+      const res = await fetch(
+        `${baseUrl}/api/booth/update${channel ? `?channel=${channel}` : ""}`,
+        {
+          headers: { authorization: `Bearer ${t}` },
+          signal: AbortSignal.timeout(TIMEOUT_MS),
+        },
+      );
       if (res.status === 404) return null;
       if (!res.ok) throw new Error(`/api/booth/update: server ${res.status}`);
       return BoothUpdateResponse.parse(await res.json());

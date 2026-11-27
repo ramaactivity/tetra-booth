@@ -64,6 +64,7 @@ const bridge: TetraBridge = {
   crewSaveDesign: (id, l, f) => ipcRenderer.invoke("crewSaveDesign", id, l, f),
   crewResetDesign: (id, l) => ipcRenderer.invoke("crewResetDesign", id, l),
   crewInstallUpdate: () => ipcRenderer.invoke("crewInstallUpdate"),
+  crewRollback: () => ipcRenderer.invoke("crewRollback"),
   updateResult: () => ipcRenderer.invoke("updateResult"),
   crewOpenAdmin: (path) => ipcRenderer.invoke("crewOpenAdmin", path),
   printerAlert: () => ipcRenderer.invoke("printerAlert"),

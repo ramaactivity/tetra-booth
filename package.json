@@ -13,7 +13,8 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "supabase": "supabase",
-    "dist:dev": "node --env-file=apps/web/.env.local scripts/dist-dev.mjs"
+    "dist:dev": "node --env-file=apps/web/.env.local scripts/dist-dev.mjs",
+    "booth:stable": "node --env-file=apps/web/.env.local scripts/booth-stable.mjs"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",

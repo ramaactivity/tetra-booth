@@ -261,6 +261,8 @@ export type UpdateCheck = {
   ready?: boolean;
   /** true = tidak bisa cek (offline / belum dipasangkan); `current` tetap terisi. */
   offline?: boolean;
+  /** Versi stabil yang installer-nya sudah tersimpan di laptop ini (bisa kembali tanpa internet), atau null. */
+  stable?: string | null;
 };
 /** Hasil update terakhir, dibaca sekali setelah booth terbuka lagi. */
 export type UpdateResult = { ok: boolean; from: string; to: string; now: string } | null;
@@ -354,6 +356,8 @@ export interface BoothCrew {
   checkUpdate(): Promise<UpdateCheck>;
   /** Unduh & pasang versi terbaru; aplikasi tertutup lalu terbuka lagi. Hanya booth Windows. */
   installUpdate(): Promise<void>;
+  /** Pasang lagi versi stabil yang tersimpan di laptop (tanpa internet); aplikasi tertutup lalu terbuka lagi. */
+  rollback(): Promise<void>;
   /** Kemajuan unduhan update (byte), untuk ditampilkan ke crew (#89). */
   onUpdateProgress(cb: (p: { received: number; total: number }) => void): Unsubscribe;
   /** Update terakhir berhasil / gagal dipasang (sekali, setelah booth dibuka lagi). */

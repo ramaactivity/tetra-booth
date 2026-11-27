@@ -185,6 +185,7 @@ export const createElectronPlatform = (bridge: TetraBridge, cfg: BoothConfig): B
           }
         : {}),
       installUpdate: () => bridge.crewInstallUpdate(),
+      rollback: () => bridge.crewRollback(),
       onUpdateProgress: (cb) => bridge.onUpdateProgress(cb),
       updateResult: () => bridge.updateResult(),
       openAdmin: (path) => bridge.crewOpenAdmin(path),

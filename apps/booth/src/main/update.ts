@@ -192,16 +192,25 @@ async function differential(
   file: string,
   blockmap: Buffer,
   onProgress: (p: UpdateProgress) => void,
+  /** Folder lain yang boleh jadi sumber potongan (versi stabil memakai installer di folder update). */
+  sources: string[] = [],
 ): Promise<boolean> {
-  const names = await readdir(dir);
-  const old = names.find(
-    (f) =>
-      /^Tetra-Booth-Setup-\d+\.\d+\.\d+\.exe$/.test(f) &&
-      f !== basename(file) &&
-      names.includes(`${f}.blockmap`),
-  );
-  if (!old) return false;
-  const oldFile = join(dir, old);
+  let oldFile: string | null = null;
+  for (const d of [dir, ...sources]) {
+    const names = await readdir(d).catch(() => [] as string[]);
+    const f = names.find(
+      (n) =>
+        /^Tetra-Booth-Setup-\d+\.\d+\.\d+\.exe$/.test(n) &&
+        !(d === dir && n === basename(file)) &&
+        names.includes(`${n}.blockmap`),
+    );
+    if (f) {
+      oldFile = join(d, f);
+      break;
+    }
+  }
+  if (!oldFile) return false;
+  const old = basename(oldFile);
   const ops = planDiff(
     parseBlockmap(await readFile(`${oldFile}.blockmap`)),
     parseBlockmap(blockmap),
@@ -258,6 +267,8 @@ export async function downloadInstaller(
   onProgress: (p: UpdateProgress) => void,
   /** Checksum gagal → buang semua bagian dan ulang sekali lagi (penuh) dalam panggilan yang sama. */
   retryCorrupt = true,
+  /** Sumber diferensial tambahan di luar `dir` (lihat `differential`). */
+  sources: string[] = [],
 ): Promise<string> {
   await mkdir(dir, { recursive: true });
   const r = await release();
@@ -282,11 +293,13 @@ export async function downloadInstaller(
         })
     : null;
   if (blockmap && retryCorrupt) {
-    const ok = await differential(ctx, dir, file, blockmap, onProgress).catch((e: unknown) => {
-      if (msg(e).includes("terbit saat mengunduh")) throw e;
-      console.warn(`[update] diferensial gagal, unduh penuh: ${msg(e)}`);
-      return false;
-    });
+    const ok = await differential(ctx, dir, file, blockmap, onProgress, sources).catch(
+      (e: unknown) => {
+        if (msg(e).includes("terbit saat mengunduh")) throw e;
+        console.warn(`[update] diferensial gagal, unduh penuh: ${msg(e)}`);
+        return false;
+      },
+    );
     if (ok) {
       await keep(dir, file, blockmap);
       return file;
@@ -317,7 +330,7 @@ export async function downloadInstaller(
   await Promise.all([part, ...parts.map((p) => p.dest)].map((f) => rm(f, { force: true })));
   if (retryCorrupt) {
     console.warn("[update] checksum tidak cocok, unduh ulang dari awal");
-    return downloadInstaller(release, dir, onProgress, false);
+    return downloadInstaller(release, dir, onProgress, false, sources);
   }
   throw new Error("installer gagal diunduh: checksum tidak cocok");
 }

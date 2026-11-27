@@ -124,6 +124,18 @@ describe("downloadInstaller diferensial (#139)", () => {
     expect(ranges[2]).toBe("");
   });
 
+  it("versi stabil: sumber potongan dari folder update lain, installer di sana tidak disentuh", async () => {
+    const { srv, ranges, release } = await serve(false);
+    const updates = cacheWithOld();
+    const stable = mkdtempSync(join(tmpdir(), "tb-stable-"));
+    const file = await downloadInstaller(release, stable, () => {}, true, [updates]);
+    srv.close();
+    expect(file.startsWith(stable)).toBe(true);
+    expect(readFileSync(file).equals(newBuf)).toBe(true);
+    expect(ranges.sort()).toEqual(["bytes=1000-1999", "bytes=3000-3999"]);
+    expect(existsSync(join(updates, "Tetra-Booth-Setup-1.0.0.exe"))).toBe(true);
+  });
+
   it("tanpa installer lama → unduh penuh, blockmap disimpan untuk update berikutnya", async () => {
     const { srv, ranges, release } = await serve(false);
     const file = await downloadInstaller(release, mkdtempSync(join(tmpdir(), "tb-upd-")), () => {});

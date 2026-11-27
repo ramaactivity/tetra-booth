@@ -127,10 +127,14 @@ export async function getStream(key: string) {
 export const edsdkPrefix = (kit: "edsdk" | "lumix" | "nikon" | "nikonz") =>
   `private/${kit}/${createHmac("sha256", env("R2_SECRET_ACCESS_KEY")).update(`tetra-${kit}`).digest("hex").slice(0, 32)}/`;
 
-/** Rilis booth terbaru (`dev-builds/latest.json`, DECISIONS #80), null kalau belum ada. */
-export async function latestBoothRelease() {
-  const stream = await getStream("dev-builds/latest.json").catch(() => undefined);
+/**
+ * Rilis booth di R2: `latest` = versi terbaru (DECISIONS #80); `stable` = versi yang ditandai owner terbukti stabil,
+ * disimpan tiap laptop untuk "Kembali ke versi stabil" tanpa internet (`pnpm booth:stable <versi>`).
+ */
+export async function boothRelease(channel: "latest" | "stable" = "latest") {
+  const stream = await getStream(`dev-builds/${channel}.json`).catch(() => undefined);
   if (!stream) return null;
   const r = BoothRelease.safeParse(await new Response(stream).json().catch(() => null));
   return r.success ? r.data : null;
 }
+export const latestBoothRelease = () => boothRelease("latest");

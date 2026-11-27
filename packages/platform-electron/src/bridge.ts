@@ -106,6 +106,7 @@ export type TetraBridge = {
   crewSaveDesign: BoothCrew["saveDesign"];
   crewResetDesign: BoothCrew["resetDesign"];
   crewInstallUpdate: BoothCrew["installUpdate"];
+  crewRollback: BoothCrew["rollback"];
   onUpdateProgress: BoothCrew["onUpdateProgress"];
   updateResult: BoothCrew["updateResult"];
   crewOpenAdmin: BoothCrew["openAdmin"];

@@ -542,7 +542,7 @@ export function registerIpc(
     return x;
   };
   const getInstaller = (version: string) =>
-    (inflight ??= downloadInstaller(fresh, join(app.getPath("userData"), "updates"), (p) => {
+    (inflight ??= downloadInstaller(fresh, updatesDir, (p) => {
       // Progress ke layar crew paling sering tiap 500 ms.
       const now = Date.now();
       if (now - sent < 500 && p.received < p.total) return;
@@ -557,11 +557,54 @@ export function registerIpc(
       .finally(() => {
         inflight = null;
       }));
+  // Versi stabil pilihan owner (`pnpm booth:stable`): installer-nya disimpan di laptop supaya crew bisa kembali
+  // ke versi itu tanpa internet saat versi baru bermasalah di tengah acara (permintaan Rama 27 Nov). Diunduh saat
+  // senggang dan sebelum memasang update; sumber diferensial = installer di folder update (biasanya beberapa MB).
+  const updatesDir = join(app.getPath("userData"), "updates");
+  const stableDir = join(app.getPath("userData"), "stable");
+  const STABLE_KEY = "update.stable";
+  const stableInfo = (): { version: string; file: string } | null => {
+    try {
+      const s = JSON.parse(db.kv.get(STABLE_KEY) ?? "null") as {
+        version: string;
+        file: string;
+      } | null;
+      return s && existsSync(s.file) ? s : null;
+    } catch {
+      return null;
+    }
+  };
+  const stableFresh = async () => {
+    const x = await cloud.latestRelease("stable");
+    if (!x) throw new Error("versi stabil belum ditentukan");
+    return x;
+  };
+  let stableInflight: Promise<void> | null = null;
+  const cacheStable = (onProgress: (p: { received: number; total: number }) => void = () => {}) =>
+    (stableInflight ??= (async () => {
+      if (process.platform !== "win32" || !app.isPackaged) return;
+      const r = await cloud.latestRelease("stable").catch(() => null);
+      if (!r || stableInfo()?.version === r.version) return;
+      console.info(`[update] menyimpan versi stabil ${r.version}`);
+      const file = await downloadInstaller(stableFresh, stableDir, onProgress, true, [updatesDir]);
+      db.kv.set(STABLE_KEY, JSON.stringify({ version: r.version, file }));
+      console.info(`[update] versi stabil ${r.version} tersimpan`);
+    })()
+      .catch((e: unknown) =>
+        console.warn(
+          `[update] versi stabil gagal disimpan: ${e instanceof Error ? e.message : String(e)}`,
+        ),
+      )
+      .finally(() => {
+        stableInflight = null;
+      }));
+
   // Unduh di latar belakang saat senggang (antrean upload kosong): crew cukup memasang ±1 menit di lokasi.
   // Hanya build terpasang Windows; update tetap dipasang manual oleh crew (aturan 7).
   const prefetch = async () => {
     if (process.platform !== "win32" || !app.isPackaged || inflight || db.uploadPending() > 0)
       return;
+    await cacheStable();
     const { r, available } = await release().catch(() => ({ r: null, available: false }));
     if (!r || !available || ready === r.version) return;
     console.info(`[update] unduh latar belakang ${r.version} (${Math.round(r.size / 1e6)} MB)`);
@@ -580,9 +623,36 @@ export function registerIpc(
     crewOnly();
     // Offline / belum dipasangkan bukan error di checklist crew: versi terpasang tetap ditampilkan (#222).
     const got = await release().catch(() => null);
-    if (!got) return { current: app.getVersion(), latest: null, available: false, offline: true };
+    if (!got)
+      return {
+        current: app.getVersion(),
+        latest: null,
+        available: false,
+        offline: true,
+        stable: stableInfo()?.version ?? null,
+      };
     const { current, r, available } = got;
-    return { current, latest: r?.version ?? null, available, ready: !!r && ready === r.version };
+    return {
+      current,
+      latest: r?.version ?? null,
+      available,
+      ready: !!r && ready === r.version,
+      stable: stableInfo()?.version ?? null,
+    };
+  });
+  // Kembali ke versi stabil yang tersimpan di laptop: tanpa internet, ±1 menit (installer lokal).
+  ipcMain.handle("crewRollback", () => {
+    crewOnly();
+    if (process.platform !== "win32") throw new Error("Hanya untuk booth Windows");
+    const s = stableInfo();
+    if (!s) throw new Error("Versi stabil belum tersimpan di laptop ini");
+    if (s.version === app.getVersion()) throw new Error("Booth sudah memakai versi stabil");
+    console.info(`[update] kembali ke versi stabil ${s.version}, aplikasi ditutup`);
+    db.kv.set(UPDATE_PENDING_KEY, JSON.stringify({ from: app.getVersion(), to: s.version }));
+    db.kv.set(RESUME_KEY, "1");
+    runInstaller(s.file);
+    allowQuit();
+    app.quit();
   });
   ipcMain.handle("crewInstallUpdate", async (e) => {
     crewOnly();
@@ -592,6 +662,10 @@ export function registerIpc(
     listener = e.sender;
     // Log "memakai … yang sudah diunduh" / "mengunduh …" ditulis downloadInstaller (tahu isi folder temp).
     console.info(`[update] menyiapkan ${r.version}`);
+    // Versi stabil disimpan dulu: installer versi sekarang di folder update dibuang setelah update terunduh.
+    await cacheStable(
+      (x) => listener && !listener.isDestroyed() && listener.send("updateProgress", x),
+    );
     // Unduhan latar belakang versi lama masih jalan → tunggu selesai, lalu unduh versi yang diminta.
     // Kegagalan sungguhan tidak diulang di sini (crew menekan Coba Lagi); hanya versi lama/tergantikan yang diulang.
     const get = async () => {

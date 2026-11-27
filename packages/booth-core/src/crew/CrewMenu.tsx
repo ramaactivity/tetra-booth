@@ -389,6 +389,17 @@ export function CrewMenu({
 
   const [dl, setDl] = useState<{ received: number; total: number; eta: string } | null>(null);
   const [updErr, setUpdErr] = useState<string | null>(null);
+  // Kembali ke versi stabil: dua ketukan (tombol → konfirmasi) supaya tidak terpencet di tengah acara.
+  const [rollbackAsk, setRollbackAsk] = useState(false);
+  const rollback = () => {
+    setUpdErr(null);
+    setDl({ received: 1, total: 1, eta: "" });
+    p.crew.rollback().catch((e: unknown) => {
+      setDl(null);
+      setRollbackAsk(false);
+      setUpdErr(crewText(e));
+    });
+  };
   // Kemajuan unduhan update (#89): MB, persen, perkiraan sisa waktu dari kecepatan rata-rata.
   useEffect(() => {
     let t0 = 0;
@@ -1374,6 +1385,24 @@ export function CrewMenu({
             <Button className="h-[92px] rounded-[20px] text-[26px]" onClick={installUpdate}>
               {updErr ? c.updateRetry : c.updateNow}
             </Button>
+          )}
+          {update?.stable && update.stable !== update.current && !dl && (
+            <div
+              className="flex flex-col gap-3 rounded-[20px] border-[2.5px] border-dashed border-ink bg-white px-6 py-5"
+              data-testid="rollback"
+            >
+              <p className="text-2xl font-bold">{c.rollbackTitle(update.stable)}</p>
+              <p className="text-xl font-medium text-text-2">{c.rollbackBody}</p>
+              <Button
+                className={`h-[84px] rounded-[20px] text-[24px] ${rollbackAsk ? "bg-coral-strong!" : ""}`}
+                onClick={rollbackAsk ? rollback : () => setRollbackAsk(true)}
+              >
+                {rollbackAsk ? c.rollbackConfirm(update.stable) : c.rollbackNow(update.stable)}
+              </Button>
+            </div>
+          )}
+          {update?.stable && update.stable === update.current && (
+            <p className="text-xl font-medium text-text-2">{c.rollbackIsStable}</p>
           )}
         </Sheet>
       )}

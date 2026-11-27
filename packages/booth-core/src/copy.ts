@@ -632,6 +632,12 @@ export const copy = {
     updateAvailable: (latest: string, current: string) =>
       `Versi ${latest} tersedia (terpasang ${current}). Booth mengunduh ±150 MB, lalu tertutup dan terbuka lagi sendiri dalam ±1 menit. Jangan matikan laptop.`,
     updateNow: "Pasang Sekarang",
+    rollbackTitle: (v: string) => `Versi ini bermasalah? Kembali ke versi stabil ${v}`,
+    rollbackBody:
+      "Tersimpan di laptop ini, tidak perlu internet. Booth tertutup lalu terbuka lagi sendiri dalam ±1 menit. Foto & cetakan antre tetap aman.",
+    rollbackNow: (v: string) => `Kembali ke ${v}`,
+    rollbackConfirm: (v: string) => `Ya, pasang ${v} sekarang`,
+    rollbackIsStable: "Booth memakai versi stabil.",
     cursorShown: "Kursor: tampil",
     cursorHidden: "Kursor: sembunyi",
     updateInstalling: "Unduhan selesai. Memasang… booth tertutup lalu terbuka lagi sendiri.",
