@@ -79,6 +79,7 @@ Nama menu dari dokumen Sony & manual; bisa beda per firmware. Bagian ini dirapik
 - Layar "kamera sedang disiapkan ulang": cek kamera menyala dan baterai tidak habis. Kalau perlu, cabut-colok kabel USB kamera. Booth pulih sendiri (±30 detik).
 - Internet putus: **biarkan**, booth tetap jalan, foto dikirim otomatis saat online lagi.
 - **Versi baru bermasalah parah** (macet terus, cetak/foto rusak, tidak pulih setelah buka ulang): mode crew → **Update Aplikasi** → **Kembali ke versi stabil …** → ketuk sekali lagi untuk yakin. Tidak perlu internet; booth tertutup lalu terbuka lagi sendiri (±1 menit). Foto & cetakan antre tetap aman. Laporkan ke Rama versi mana yang bermasalah.
+- **Lupa PIN crew**: telepon owner/admin → di HP buka admin → **Booth** → kartu booth ini → **Lupa PIN** → bacakan kode 6 angka. Di booth: buka mode crew, ketik kode itu di layar PIN → langsung buat PIN baru. Tidak perlu internet di booth (booth 0.6.47+, harus pernah tersambung ke akun). Kode berganti tiap hari.
 - Crew masuk mode crew di tengah sesi tamu (mis. dari layar kamera bermasalah): foto yang sudah diambil tetap tersimpan ke galeri klien; tamu cukup foto ulang.
 - Jangan menutup aplikasi selain lewat mode crew. Jangan update apa pun.
 - Catat di HP: jam mulai/selesai, masalah + jamnya, apakah sempat pindah ke LumaBooth.
