@@ -118,10 +118,12 @@ describe("downloadInstaller paralel (#106)", () => {
       seen.push(req.headers.range ?? "");
       const [a, b] = [Number(m[1]), Number(m[2]) + 1];
       res.writeHead(206, { "content-length": b - a });
-      // Bagian ke-3 putus sekali di tengah.
+      // Bagian ke-3 putus sekali di tengah. Jeda sebelum putus: tanpa itu, di mesin sibuk
+      // koneksi bisa putus sebelum klien sempat membaca byte apa pun (lanjut dari 2_000_000 = benar,
+      // tapi uji ini mau membuktikan lanjut dari byte yang sudah diterima).
       if (a === 2_000_000 && !cut) {
         cut = true;
-        res.write(data.subarray(a, a + 300_000), () => res.destroy());
+        res.write(data.subarray(a, a + 300_000), () => setTimeout(() => res.destroy(), 200));
         return;
       }
       res.end(data.subarray(a, b));

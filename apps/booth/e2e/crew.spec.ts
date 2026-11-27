@@ -217,9 +217,11 @@ test("kiosk: layar penuh, kursor tersembunyi, pulih dari crash renderer", async 
       .join("");
   const boots = () => (log().match(/R-INFO \[boot\] kamera=/g) ?? []).length;
   expect(boots()).toBe(1);
-  await app.evaluate(({ BrowserWindow }) =>
-    BrowserWindow.getAllWindows()[0]?.webContents.forcefullyCrashRenderer(),
-  );
+  // Crash dijadwalkan setelah evaluate kembali: crash di dalam panggilan membuat Playwright
+  // kadang melempar "Target crashed" ke uji (CI Linux 27 Nov), padahal pemulihannya berhasil.
+  await app.evaluate(({ BrowserWindow }) => {
+    setTimeout(() => BrowserWindow.getAllWindows()[0]?.webContents.forcefullyCrashRenderer(), 100);
+  });
   await expect.poll(boots, { timeout: 10_000 }).toBe(2);
   await new Promise((r) => setTimeout(r, 3000));
   expect(log()).toContain("renderer mati");
