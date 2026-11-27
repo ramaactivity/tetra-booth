@@ -677,6 +677,18 @@ export function openDb(file: string) {
         )
         .get(eventId) as LocalRecap;
     },
+    /** Sesi tamu asli terakhir selesai (ISO) — kunci update di tengah acara (audit 27 Nov). */
+    lastSessionAt(): string | null {
+      return (
+        (
+          db
+            .prepare(
+              "select max(completed_at) t from sessions where status = 'completed' and is_test = 0",
+            )
+            .get() as { t: string | null } | undefined
+        )?.t ?? null
+      );
+    },
     /** Jam mulai sesi asli event ini (sesi di luar waktu acara di rekap, #170). */
     sessionTimes(eventId: string): string[] {
       return (

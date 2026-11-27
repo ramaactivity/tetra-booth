@@ -263,6 +263,8 @@ export type UpdateCheck = {
   offline?: boolean;
   /** Versi stabil yang installer-nya sudah tersimpan di laptop ini (bisa kembali tanpa internet), atau null. */
   stable?: string | null;
+  /** Menit sejak sesi tamu asli terakhir selesai (null = belum ada): < 15 = acara dianggap berjalan. */
+  recentMin?: number | null;
 };
 /** Hasil update terakhir, dibaca sekali setelah booth terbuka lagi. */
 export type UpdateResult = { ok: boolean; from: string; to: string; now: string } | null;

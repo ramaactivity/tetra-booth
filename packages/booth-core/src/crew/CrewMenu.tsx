@@ -454,6 +454,7 @@ export function CrewMenu({
   useEffect(checkVersion, [checkVersion]);
   const openUpdate = () => {
     setSheet("update");
+    setForce(false);
     if (ver?.available) return setUpdate(ver);
     setUpdate(null);
     p.crew.checkUpdate().then(
@@ -468,6 +469,16 @@ export function CrewMenu({
     );
   };
   const newVersion = !!ver?.available && !!ver.latest;
+  // Kunci update di tengah acara (audit 27 Nov): timer jalan/dijeda atau tamu berfoto < 15 menit lalu.
+  // Bukan larangan mutlak: crew bisa "Tetap pasang" (dua ketukan) kalau memang harus.
+  const [force, setForce] = useState(false);
+  const recent = update?.recentMin ?? null;
+  const lockWhy =
+    run === "running" || run === "paused" || run === "waiting"
+      ? c.updateLockRun
+      : recent !== null && recent < 15
+        ? c.updateLockRecent(recent)
+        : null;
   const doTestPrint = act(async () => setWatching(await testPrint(p, event)), c.sent);
   const printerSettings = () =>
     p.crew.printerSettings().then(
@@ -1381,7 +1392,23 @@ export function CrewMenu({
               <b>{c.updateFailed}:</b> {updErr}
             </div>
           )}
-          {update?.available && !dl && (
+          {update?.available && !dl && lockWhy && !force && (
+            <div
+              className="flex flex-col gap-3 rounded-[20px] border-[2.5px] border-ink bg-peach px-6 py-5"
+              data-testid="update-locked"
+            >
+              <p className="text-2xl font-bold">{c.updateLockTitle}</p>
+              <p className="text-xl font-medium">{c.updateLockBody(lockWhy)}</p>
+              <Button
+                variant="secondary"
+                className="h-[72px] rounded-[20px] text-[22px]"
+                onClick={() => setForce(true)}
+              >
+                {c.updateForce}
+              </Button>
+            </div>
+          )}
+          {update?.available && !dl && (!lockWhy || force) && (
             <Button className="h-[92px] rounded-[20px] text-[26px]" onClick={installUpdate}>
               {updErr ? c.updateRetry : c.updateNow}
             </Button>

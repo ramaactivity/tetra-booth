@@ -638,6 +638,12 @@ export const copy = {
     rollbackNow: (v: string) => `Kembali ke ${v}`,
     rollbackConfirm: (v: string) => `Ya, pasang ${v} sekarang`,
     rollbackIsStable: "Booth memakai versi stabil.",
+    updateLockTitle: "Acara sedang berjalan",
+    updateLockBody: (why: string) =>
+      `${why} Update menutup booth beberapa menit dan versi baru belum teruji di acara ini. Pasang setelah acara selesai.`,
+    updateLockRun: "Timer acara masih jalan.",
+    updateLockRecent: (m: number) => `Ada tamu berfoto ${m < 1 ? "barusan" : `${m} menit lalu`}.`,
+    updateForce: "Tetap pasang sekarang",
     cursorShown: "Kursor: tampil",
     cursorHidden: "Kursor: sembunyi",
     updateInstalling: "Unduhan selesai. Memasang… booth tertutup lalu terbuka lagi sendiri.",

@@ -635,6 +635,9 @@ export function registerIpc(
 
   ipcMain.handle("crewCheckUpdate", async () => {
     crewOnly();
+    // Menit sejak sesi tamu terakhir: Backstage mengunci Pasang Sekarang di tengah acara (audit 27 Nov).
+    const last = db.lastSessionAt();
+    const recentMin = last ? Math.floor((Date.now() - Date.parse(last)) / 60_000) : null;
     // Offline / belum dipasangkan bukan error di checklist crew: versi terpasang tetap ditampilkan (#222).
     const got = await release().catch(() => null);
     if (!got)
@@ -644,6 +647,7 @@ export function registerIpc(
         available: false,
         offline: true,
         stable: stableInfo()?.version ?? null,
+        recentMin,
       };
     const { current, r, available } = got;
     return {
@@ -652,6 +656,7 @@ export function registerIpc(
       available,
       ready: !!r && ready === r.version,
       stable: stableInfo()?.version ?? null,
+      recentMin,
     };
   });
   // Kembali ke versi stabil yang tersimpan di laptop: tanpa internet, ±1 menit (installer lokal).

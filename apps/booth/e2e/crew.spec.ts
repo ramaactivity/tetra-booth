@@ -313,6 +313,7 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
     guestColor: null as string | null,
   };
   let r2Down = false;
+  let updateOn = false;
   const EVENT = "7c9e6679-7425-40de-944b-e07fc1f90ae8";
   const pngSha = createHash("sha256").update(PNG).digest("hex");
   const config = JSON.parse(
@@ -339,6 +340,16 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
                 }
               : { error: "invalid_code" },
           ),
+        );
+      } else if (req.url?.startsWith("/api/booth/update") && updateOn) {
+        res.end(
+          JSON.stringify({
+            version: "99.0.0",
+            key: "dev-builds/Tetra-Booth-Setup-99.0.0.exe",
+            sha256: "0".repeat(64),
+            size: 1000,
+            url: "https://example.com/Tetra-Booth-Setup-99.0.0.exe",
+          }),
         );
       } else if (req.url === "/api/booth/events") {
         res.end(JSON.stringify({ events: [{ id: EVENT, name: "Cloud", bundleVersion: 3 }] }));
@@ -757,6 +768,20 @@ test("cloud: pairing, heartbeat, sync bundle event, sesi terunggah", async () =>
   await typePin(w, "1357");
   await typePin(w, "1357");
   await expect(w.getByRole("heading", { name: "Backstage" })).toBeVisible();
+
+  // Kunci update di tengah acara (audit 27 Nov): tamu baru saja berfoto → Pasang Sekarang ditahan, bisa dipaksa.
+  updateOn = true;
+  await w.getByTestId("crew-nav-system").click();
+  await w.getByRole("button", { name: "Cek Update" }).click();
+  const locked = w.getByTestId("update-locked");
+  await expect(locked).toContainText("Acara sedang berjalan");
+  await expect(locked).toContainText(
+    /Timer acara masih jalan|Ada tamu berfoto (barusan|\d+ menit lalu)/,
+  );
+  await expect(w.getByRole("button", { name: "Pasang Sekarang", exact: true })).toHaveCount(0);
+  await w.screenshot({ path: "test-results/update-locked.png" });
+  await locked.getByRole("button", { name: "Tetap pasang sekarang" }).click();
+  await expect(w.getByRole("button", { name: "Pasang Sekarang", exact: true })).toBeVisible();
 
   await app.close();
   server.close();
