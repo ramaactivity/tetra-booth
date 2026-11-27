@@ -193,7 +193,7 @@ test("Pengaturan event: daftar grup Photo Stage (tempel + impor CSV) masuk bundl
       paper: /Foto 4R/,
       design: "auto",
     });
-    await page.goto(`/admin/events/${slug}/settings`);
+    await page.goto(`/admin/events/${slug}/settings#photo-stage`);
     await page.getByLabel(/^Daftar grup/).fill("1. Keluarga Inti\nKeluarga Besar Bpk. Hadi\tBogor");
     await page.locator('label:has-text("Impor CSV / TXT") input[type=file]').setInputFiles({
       name: "grup.csv",

@@ -58,7 +58,7 @@ test("link klien, galeri, favorit, cabut", async ({ page, browser }) => {
     );
 
     await login(page, u);
-    await page.goto(`/admin/events/${eventId}/settings`);
+    await page.goto(`/admin/events/${eventId}/settings#link-klien`);
     await page.getByTestId("link-client").waitFor();
     await page.getByRole("button", { name: "Buat Link" }).first().click();
     await expect(page.getByTestId("link-client")).toContainText("/g/");

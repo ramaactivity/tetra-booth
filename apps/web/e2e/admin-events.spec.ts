@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { createEventViaWizard, db, hasDb, login, makeUser } from "./admin-helpers";
+import { createEventViaWizard, db, hasDb, login, makeUser, openSection } from "./admin-helpers";
 
 /** A3/A4: buat event → pengaturan + template → tugaskan booth → booth menarik bundle lewat API. */
 test.skip(!hasDb, "butuh Supabase dev (apps/web/.env.local)");
@@ -109,6 +109,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
       buffer: Buffer.from("RIFF0000WAVEfmt "),
     });
     // Desain cetak Photo Stage (#274): bebas ukuran, umumnya 4R landscape; masuk bundle sebagai stageLayout.
+    await openSection(page, "Photo Stage");
     const stageFrame = page.getByRole("group", { name: "Desain cetak Photo Stage" });
     await stageFrame.getByRole("button", { name: /Pilih desain/ }).click();
     await picker.getByRole("textbox", { name: "Cari nama desain" }).fill("landscape");
@@ -120,6 +121,7 @@ test("buat event, atur template + overlay, tugaskan booth, booth menarik bundle"
       timeout: 15_000,
     });
     await page.locator("#photo-stage").screenshot({ path: "test-results/admin-photo-stage.png" });
+    await openSection(page, "Sesi");
     await page.getByLabel("Maks. cetak per sesi").fill("3");
     await page.getByLabel(/Pilih booth/).check();
     await page.getByLabel(dev?.name ?? "").check();

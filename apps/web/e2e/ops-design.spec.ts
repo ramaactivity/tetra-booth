@@ -123,7 +123,7 @@ test("dashboard event: desain ACC dari Tetra Ops dipasang sebagai desain utama",
       (ev?.ops_sync as { design_installed_at?: string } | undefined)?.design_installed_at,
     ).toBeTruthy();
     // #182: daftar grup Photo Stage dari portal Ops mengisi isian yang masih kosong.
-    await page.goto(`/admin/events/${slug}/settings`);
+    await page.goto(`/admin/events/${slug}/settings#photo-stage`);
     await expect(page.getByLabel(/^Daftar grup/)).toHaveValue("Keluarga Inti\nSahabat SMA");
     await expect(page.getByText("Diisi dari daftar klien di Tetra Ops (2 grup)")).toBeVisible();
   } finally {

@@ -104,3 +104,9 @@ export async function createEventViaWizard(
   await expect(open).toBeVisible({ timeout: 30_000 });
   return (await open.getAttribute("href"))?.split("/").pop() ?? "";
 }
+
+/** Pengaturan event: bagian opsional tampil ringkas sampai dibuka (ketuk judulnya). */
+export async function openSection(page: Page, title: string) {
+  const b = page.getByRole("button", { name: title, exact: true, expanded: false });
+  if (await b.count()) await b.click();
+}
