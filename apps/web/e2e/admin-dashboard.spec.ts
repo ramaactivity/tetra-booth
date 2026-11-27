@@ -84,8 +84,9 @@ test("statistik, sembunyikan, hapus, audit", async ({ page }) => {
       )
       .toMatchObject({ guestCam: { enabled: true, approval: "manual" } });
     // Snapbook dinyalakan dari sini membuat link /c juga (aturan sama dengan Backstage #295).
-    const snap = (await db.from("events").select("guest_token, guest_link").eq("id", eventId).single())
-      .data;
+    const snap = (
+      await db.from("events").select("guest_token, guest_link").eq("id", eventId).single()
+    ).data;
     expect(snap?.guest_token).toBeTruthy();
     expect(snap?.guest_link).toMatch(/^e2e-dash/);
     await expect(page.getByTestId("link-guest")).toBeVisible();
@@ -121,7 +122,10 @@ test("statistik, sembunyikan, hapus, audit", async ({ page }) => {
     expect(audit.map((a) => a.action).sort()).toEqual(["session.delete", "session.hide"]);
     expect((await db.from("assets").select("id").eq("session_id", ids[2])).data).toEqual([]);
   } finally {
-    await db.from("audit_logs").delete().in("target", [...ids, eventId]);
+    await db
+      .from("audit_logs")
+      .delete()
+      .in("target", [...ids, eventId]);
     await db.from("events").delete().eq("id", eventId);
     await u.cleanup();
   }
