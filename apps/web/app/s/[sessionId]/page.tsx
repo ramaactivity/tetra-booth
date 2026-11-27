@@ -6,6 +6,7 @@ import { clock, type GuestEvent, loadGuest, longDate, shortDate } from "@/lib/gu
 import { loadPromoForSession } from "@/lib/promo";
 import { AutoRefresh } from "./AutoRefresh";
 import { GuestReady } from "./GuestReady";
+import { InAppHint } from "./InAppHint";
 import { LeadSheet } from "./LeadSheet";
 import { StageGuest } from "./StageGuest";
 import { TrackOpen } from "./TrackOpen";
@@ -167,6 +168,7 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
       <Shell>
         <TrackOpen sessionId={sessionId} />
         <Header event={g.event} ready />
+        <InAppHint />
         <StageGuest
           sessionId={sessionId}
           group={g.group}
@@ -195,6 +197,7 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
         <AutoRefresh seconds={5} />
         <TrackOpen sessionId={sessionId} />
         <Header event={g.event} />
+        <InAppHint />
         <div className="flex flex-1 flex-col gap-5 px-5 pb-6">
           <div>
             <p className="font-mono text-[13px] text-text-3">{s.meta(clock(g.startedAt), 0)}</p>
@@ -254,6 +257,7 @@ export default async function GuestPage({ params }: { params: Promise<{ sessionI
       <Shell>
         <TrackOpen sessionId={sessionId} />
         <Header event={g.event} ready />
+        <InAppHint />
         {g.group && (
           <h2 className="mx-5 mb-4 text-[22px] leading-tight font-extrabold tracking-[-0.02em]">
             {g.group}

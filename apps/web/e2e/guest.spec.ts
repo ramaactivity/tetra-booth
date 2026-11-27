@@ -41,7 +41,8 @@ test.beforeAll(async () => {
         name: "Andi & Sari",
         mode: "event",
         event_date: "2026-10-12",
-        guest_expires_at: "2026-11-11T10:00:00Z",
+        // Jauh di depan: dulu 11 Nov 2026, semua uji halaman tamu gagal begitu tanggal itu lewat.
+        guest_expires_at: "2099-11-11T10:00:00Z",
         ...extra,
       })
       .select("id")
@@ -119,7 +120,7 @@ test("ready: semua hasil satu halaman, pratinjau, simpan semua & satuan, masa be
   const strip = page.locator("img").first();
   await expect(strip).toHaveJSProperty("complete", true);
   expect(await strip.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
-  await expect(page.getByText("11 Nov 2026")).toBeVisible();
+  await expect(page.getByText("11 Nov 2099")).toBeVisible();
   // Revisi 29 Okt: tanpa tab; satu tombol menyimpan semua (strip + 3 foto + animasi + video).
   await expect(page.getByRole("tab")).toHaveCount(0);
   const saveAll = page.getByRole("button", { name: "Simpan semua (6) ke galeri" });
@@ -233,6 +234,8 @@ test("ready di iPhone: simpan semua lewat share sheet (masuk app Foto), satuan j
   });
   const page = await ctx.newPage();
   await page.goto(`/s/${ids.ready}`);
+  // Safari biasa: tanpa petunjuk "buka di browser".
+  await expect(page.getByTestId("in-app-hint")).toHaveCount(0);
   await page.getByRole("button", { name: "Simpan semua (6) ke galeri" }).click();
   const shared = () => page.evaluate(() => (window as unknown as { shared: string[][] }).shared);
   await expect.poll(async () => (await shared())[0]?.length).toBe(6);
@@ -243,6 +246,36 @@ test("ready di iPhone: simpan semua lewat share sheet (masuk app Foto), satuan j
     .poll(async () => (await shared())[1])
     .toEqual([`andi-sari-${ids.ready.slice(0, 4)}-animasi.gif`]);
   await ctx.close();
+});
+
+test("scan dari Instagram: petunjuk buka di Safari (iPhone) / tombol Chrome (Android)", async ({
+  browser,
+}) => {
+  const ig = {
+    ios: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 350.0.0.0.0",
+    android:
+      "Mozilla/5.0 (Linux; Android 14; SM-A546E) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.0.0 Mobile Safari/537.36 Instagram 350.0.0.0.0 Android",
+  };
+  for (const [os, userAgent] of Object.entries(ig)) {
+    const ctx = await browser.newContext({ userAgent, viewport: { width: 390, height: 844 } });
+    const page = await ctx.newPage();
+    await page.goto(`/s/${ids.ready}`);
+    const hint = page.getByTestId("in-app-hint");
+    await expect(hint).toBeVisible();
+    if (os === "ios") {
+      await expect(hint).toContainText("Safari");
+      await expect(hint.getByRole("link")).toHaveCount(0);
+      await page.screenshot({ path: "test-results/guest-in-app-ios.png" });
+    } else {
+      await expect(hint.getByRole("link", { name: "Buka di Chrome" })).toHaveAttribute(
+        "href",
+        new RegExp(
+          `^intent://[^#]+/s/${ids.ready}#Intent;scheme=https;package=com\\.android\\.chrome;end$`,
+        ),
+      );
+    }
+    await ctx.close();
+  }
 });
 
 test("removed & expired: foto tidak tersedia + ajakan kontak", async ({ page }) => {
