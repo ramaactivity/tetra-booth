@@ -142,6 +142,12 @@ export const copy = {
     close: "Tutup",
     back: "Kembali ke cek foto",
   },
+  stripZoom: {
+    open: "Perbesar hasil foto",
+    hint: "Ketuk untuk perbesar",
+    close: "Tutup",
+    back: "Kembali dari foto besar",
+  },
   compose: { busy: "Menyusun fotomu…" },
   print: {
     title: "Mau cetak berapa?",

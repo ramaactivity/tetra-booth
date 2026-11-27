@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { copy } from "../copy";
 import { rupiah } from "../format";
 import { PhotoboxSteps } from "./LayoutSelect";
+import { StripZoom } from "./StripZoom";
 
 /** Tamu pergi tanpa memilih (M-019): tanpa sentuhan selama ini → event: QR tanpa cetak; photobox: cetak 1 yang sudah dibayar. */
 export const PRINT_SELECT_IDLE_MS = 30_000;
@@ -21,6 +22,8 @@ export function PrintSelect({
   onSelect: (count: number) => void;
 }) {
   const [n, setN] = useState(1);
+  // Foto diperbesar = tamu masih melihat: timer pilih cetak berhenti, mulai ulang penuh saat ditutup.
+  const [zoomed, setZoomed] = useState(false);
   const photobox = extraPrice !== undefined;
   const select = useRef(onSelect);
   select.current = onSelect;
@@ -28,9 +31,10 @@ export function PrintSelect({
   useEffect(() => {
     // Hitung ulang tiap kali tamu mengubah jumlah. Mode event: waktu habis = tidak cetak (masukan Rama).
     // Photobox: lembar paket sudah dibayar → cetak 1, tanpa tagihan baru (DECISIONS #84).
+    if (zoomed) return;
     const t = setTimeout(() => select.current(photobox ? 1 : 0), PRINT_SELECT_IDLE_MS);
     return () => clearTimeout(t);
-  }, [n, photobox]);
+  }, [n, photobox, zoomed]);
   const step =
     "flex size-[150px] items-center justify-center border-dashed border-ink disabled:text-muted";
   return (
@@ -38,9 +42,10 @@ export function PrintSelect({
       <section
         className={`flex items-center justify-center border-r-[2.5px] border-ink p-16 ${photobox ? "bg-lavender" : "bg-mint-soft"} portrait:border-r-0 portrait:border-b-[2.5px]`}
       >
-        <img
+        <StripZoom
           src={stripUrl}
-          alt=""
+          onZoom={setZoomed}
+          frameClass="portrait:h-full"
           className="layered max-h-[840px] max-w-[560px] rounded-[10px] border-[2.5px] border-ink bg-white [--lx:14px] [--under:#fff] portrait:max-h-full"
         />
       </section>

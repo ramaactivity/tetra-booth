@@ -2,6 +2,7 @@ import { Button } from "@tetra/ui";
 import { useEffect, useState } from "react";
 import { copy } from "../copy";
 import { QrCode } from "../ui";
+import { StripZoom } from "./StripZoom";
 
 /** Perkiraan waktu keluar per lembar (DNP ±8–15 s). ponytail: konstanta, ganti dengan status spooler kalau ada. */
 export const PRINT_SEC_PER_SHEET = 12;
@@ -83,9 +84,8 @@ export function Qr({
     >
       {stripUrl && (
         <section className="flex min-h-0 flex-col items-center justify-center gap-10 border-r-[2.5px] border-ink bg-peach px-20 py-16 portrait:flex-row portrait:border-r-0 portrait:border-b-[2.5px] portrait:p-12">
-          <img
+          <StripZoom
             src={stripUrl}
-            alt=""
             className="layered max-h-[600px] max-w-[440px] min-h-0 rounded-[10px] border-[2.5px] border-ink bg-white object-contain [--lx:10px] [--under:#fff] portrait:max-h-[420px] portrait:max-w-[280px]"
           />
           {printing ? (
