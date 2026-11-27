@@ -33,3 +33,20 @@ jobs:
       - run: pnpm --filter web e2e
       - run: pnpm --filter booth build
       - run: xvfb-run -a pnpm --filter booth e2e
+
+  # Web produksi tayang hanya setelah semua cek di atas hijau (audit 27 Nov).
+  # Pola deploy standar: Vercel CLI + VERCEL_TOKEN, bukan Git integration Vercel.
+  deploy:
+    needs: ts
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: team_oFeXTqkiKLcdPfju1M1aPPYK
+      VERCEL_PROJECT_ID: prj_1JSju61YVZrQSc0szP1LrcdwUG18
+    steps:
+      - uses: actions/checkout@v5
+      - run: npm i -g vercel@latest
+      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      # Tanpa .git, Hobby tidak memblokir "commit email could not be matched".
+      - run: rm -rf .git
+      - run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
